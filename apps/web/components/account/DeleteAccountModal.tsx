@@ -1,4 +1,5 @@
 'use client';
+import toast from 'react-hot-toast';
 
 import { readAccountDeletionOutcome } from '@/lib/account-deletion-outcome';
 import React, { useState } from 'react';
@@ -79,7 +80,7 @@ export function DeleteAccountModal({
       }
 
       const outcome = readAccountDeletionOutcome(data, response.status);
-      if (!outcome.completed) window.alert(outcome.notice);
+      if (!outcome.completed) toast(outcome.notice, { duration: 10000 });
 
       // Clear any auth cookies/tokens
       document.cookie.split(';').forEach((c) => {

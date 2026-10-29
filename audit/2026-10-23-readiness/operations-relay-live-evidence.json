@@ -1,0 +1,32 @@
+{
+  "project": "ukrjudtlvapiajkjbcrd",
+  "function": "stripe-webhook-relay",
+  "functionId": "82e65c43-1ee9-4740-8eb2-bceeab37d24d",
+  "version": 1,
+  "status": "ACTIVE",
+  "verifyJwt": false,
+  "authentication": "Stripe raw-body HMAC signature, 300-second tolerance; live events only",
+  "sourceSha256": "8f1f0222d75169a8e5871d847bdb4a6c2ef3dfd2d654a46fa599547c17ec2cb2",
+  "secretsSavedAt": "2026-10-23T18:29:35Z",
+  "syntheticProbe": {
+    "eventId": "evt_codex_receiver_audit_20261023_1792780351318",
+    "type": "codex.receiver.verification",
+    "financialAction": false,
+    "providerGenerated": false,
+    "httpStatus": 200,
+    "response": { "received": true },
+    "databaseRowId": "f18313be-2ce1-4c25-90eb-10b0d3971329",
+    "databaseStatus": "processed",
+    "processedAt": "2026-10-23T18:32:40.315496Z",
+    "retryCount": 0,
+    "errorMessage": null
+  },
+  "stripeDestinationId": "we_1UMwZFJZfKi2oDP67jsKcxaq",
+  "stripeDestinationSwitch": "completed and verified Active at approximately 2026-10-23T18:58:41Z",
+  "stripeDestinationUrl": "https://ukrjudtlvapiajkjbcrd.supabase.co/functions/v1/stripe-webhook-relay",
+  "stripeSelectedEvents": 23,
+  "stripeApiVersion": "2026-06-24.dahlia",
+  "stripeProviderDelivery": "not yet verified after switch; waiting for normal provider event",
+  "historicalReplay": "not sent: automatic approval review rejected replay of a real refund webhook without explicit replay authorization",
+  "restrictedBetaGate": "unchanged, Vercel SSO redirect verified"
+}

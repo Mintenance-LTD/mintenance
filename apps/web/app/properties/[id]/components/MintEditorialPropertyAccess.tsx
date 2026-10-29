@@ -130,6 +130,7 @@ function initials(name: string): string {
 }
 
 interface Props {
+  entrySecretUnavailable?: boolean;
   propertyId: string;
   jobs: JobItem[];
   /** Initial server-fetched access values. Null fields render as
@@ -141,6 +142,7 @@ export function MintEditorialPropertyAccess({
   propertyId,
   jobs,
   initialAccess,
+  entrySecretUnavailable = false,
 }: Props) {
   const trades = deriveSavedTrades(jobs);
   // 2026-05-27 audit-85 P3: hold the saved baseline in state so a
@@ -181,7 +183,8 @@ export function MintEditorialPropertyAccess({
   // Dirty flag + per-field dirty checks. The per-field flags drive the
   // PATCH payload below — see P1.
   const modeDirty = mode !== baseline.access_mode;
-  const keySafeDirty = currentKeySafe !== baseline.key_safe_code;
+  const keySafeDirty =
+    !entrySecretUnavailable && currentKeySafe !== baseline.key_safe_code;
   const notesDirty = currentNotes !== baseline.access_notes;
   const stopcockDirty = currentStopcock !== baseline.stopcock_location;
   const gasDirty = currentGas !== baseline.gas_isolator_location;
@@ -195,7 +198,7 @@ export function MintEditorialPropertyAccess({
     consumerDirty;
 
   const handleSave = async () => {
-    if (saving || !isDirty) return;
+    if (saving || !isDirty || entrySecretUnavailable) return;
     setSaving(true);
     try {
       // 2026-05-27 audit-85 P1: only PATCH the fields that actually
@@ -251,7 +254,11 @@ export function MintEditorialPropertyAccess({
   };
 
   return (
-    <div className='col' style={{ gap: 22 }}>
+    <fieldset
+      disabled={entrySecretUnavailable}
+      className='col'
+      style={{ gap: 22, border: 0, padding: 0, margin: 0, minWidth: 0 }}
+    >
       <div className='col' style={{ gap: 4 }}>
         <h2 className='t-h2' style={{ fontSize: 28 }}>
           Access &amp; <em>contacts</em>
@@ -330,6 +337,12 @@ export function MintEditorialPropertyAccess({
                 })}
               </div>
 
+              {entrySecretUnavailable ? (
+                <p id='entry-code-unavailable' role='status'>
+                  The saved entry code could not be loaded. Refresh the page
+                  before editing access details.
+                </p>
+              ) : null}
               {/* Key-safe code input — only shown when key_safe is
                   picked. Marked sensitive in copy. */}
               {mode === 'key_safe' ? (
@@ -344,6 +357,12 @@ export function MintEditorialPropertyAccess({
                   </label>
                   <input
                     id='access-keysafe-code'
+                    disabled={entrySecretUnavailable}
+                    aria-describedby={
+                      entrySecretUnavailable
+                        ? 'entry-code-unavailable'
+                        : undefined
+                    }
                     type='text'
                     className='field'
                     value={keySafeCode}
@@ -488,7 +507,7 @@ export function MintEditorialPropertyAccess({
                   type='button'
                   className='btn btn-primary btn-sm'
                   onClick={handleSave}
-                  disabled={saving || !isDirty}
+                  disabled={saving || !isDirty || entrySecretUnavailable}
                 >
                   {saving ? (
                     <Loader2
@@ -644,6 +663,6 @@ export function MintEditorialPropertyAccess({
           </div>
         </aside>
       </div>
-    </div>
+    </fieldset>
   );
 }

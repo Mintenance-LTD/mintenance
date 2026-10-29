@@ -1,5 +1,6 @@
 import {
   getJobMessages,
+  getJobMessagesPage,
   getUserMessageThreads,
   searchJobMessages,
   getVideoCallMessages,
@@ -406,4 +407,40 @@ describe('getUnreadMessageCount', () => {
       err
     );
   });
+});
+
+describe('inbox cursor pagination', () => {
+  it('retrieves beyond 20 and deduplicates subsequent pages', async () => {
+    const threads = Array.from({ length: 20 }, (_, i) => ({
+      jobId: 'job-' + i,
+    }));
+    mockGet
+      .mockResolvedValueOnce({ threads, nextCursor: 'older' })
+      .mockResolvedValueOnce({ threads: [threads[19], { jobId: 'job-20' }] });
+    const result = await getUserMessageThreads('user');
+    expect(result).toHaveLength(21);
+    expect(mockGet.mock.calls[1][0]).toContain('cursor=older');
+    mockGet.mockResolvedValueOnce({ threads: [] });
+    await getUserMessageThreads('user');
+    expect(mockGet.mock.calls[2][0]).toBe('/api/messages/threads');
+  });
+  it('rejects a repeated cursor instead of looping or reporting partial success', async () => {
+    mockGet.mockResolvedValue({
+      threads: [{ jobId: 'one' }],
+      nextCursor: 'same',
+    });
+    await expect(getUserMessageThreads('user')).rejects.toThrow(
+      'did not advance'
+    );
+  });
+});
+
+it('fetches only one chat page and preserves the older-history cursor', async () => {
+  mockGet.mockResolvedValueOnce({ messages: [msg()], nextCursor: 'older' });
+  const page = await getJobMessagesPage('job-1');
+  expect(page.nextCursor).toBe('older');
+  expect(mockGet).toHaveBeenCalledTimes(1);
+  mockGet.mockResolvedValueOnce({ messages: [] });
+  await getJobMessagesPage('job-1', 'older');
+  expect(mockGet).toHaveBeenLastCalledWith(expect.stringContaining('cursor=older'));
 });

@@ -23,8 +23,16 @@ interface CompletenessField {
 }
 
 const FIELDS: CompletenessField[] = [
-  { label: 'First name', weight: 15, check: (u) => !!u.first_name?.trim() },
-  { label: 'Last name', weight: 15, check: (u) => !!u.last_name?.trim() },
+  {
+    label: 'First name',
+    weight: 15,
+    check: (u) => !!(u.first_name?.trim() || u.firstName?.trim()),
+  },
+  {
+    label: 'Last name',
+    weight: 15,
+    check: (u) => !!(u.last_name?.trim() || u.lastName?.trim()),
+  },
   { label: 'Email', weight: 10, check: (u) => !!u.email?.trim() },
   { label: 'Phone number', weight: 10, check: (u) => !!u.phone?.trim() },
   {
@@ -38,28 +46,20 @@ const FIELDS: CompletenessField[] = [
     weight: 10,
     check: (u) => !!(u.city?.trim() || u.location?.trim() || u.address?.trim()),
   },
-  {
-    label: 'Activity',
-    weight: 10,
-    check: () => false,
-  },
 ];
 
-function calculateCompleteness(user: User, completedJobs: number): number {
+function calculateCompleteness(user: User): number {
   let total = 0;
   for (const field of FIELDS) {
-    if (field.label === 'Activity') {
-      if (completedJobs > 0) total += field.weight;
-    } else if (field.check(user)) {
-      total += field.weight;
-    }
+    if (field.check(user)) total += field.weight;
   }
-  return Math.min(total, 100);
+  return Math.round(
+    (total / FIELDS.reduce((sum, field) => sum + field.weight, 0)) * 100
+  );
 }
 
 export const ProfileCompleteness: React.FC<ProfileCompletenessProps> = ({
   user,
-  completedJobs,
 }) => {
   const navigation = useNavigation<{ navigate: (screen: string) => void }>();
   const animatedWidth = useRef(new Animated.Value(0)).current;
@@ -67,8 +67,8 @@ export const ProfileCompleteness: React.FC<ProfileCompletenessProps> = ({
 
   const percentage = useMemo(() => {
     if (!user) return 0;
-    return calculateCompleteness(user, completedJobs);
-  }, [user, completedJobs]);
+    return calculateCompleteness(user);
+  }, [user]);
 
   const isComplete = percentage >= 100;
 
@@ -133,7 +133,11 @@ export const ProfileCompleteness: React.FC<ProfileCompletenessProps> = ({
 
       {!isComplete && (
         <Text style={styles.hint}>
-          Complete your profile to appear higher in search
+          Still needed:{' '}
+          {FIELDS.filter((field) => !field.check(user))
+            .map((field) => field.label)
+            .join(', ')}
+          . Tap Complete now to add these details.
         </Text>
       )}
     </View>

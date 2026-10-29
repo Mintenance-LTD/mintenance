@@ -1,4 +1,9 @@
 'use client';
+import {
+  RecurringAudienceFields,
+  emptyAudience,
+} from '@/components/recurring/RecurringAudienceFields';
+import { recurringCategory } from '@/lib/services/recurring/recurring-category';
 import { scheduleRequest } from '@/lib/schedule-request-key';
 
 import Link from 'next/link';
@@ -77,6 +82,7 @@ export function MintEditorialRecurringTasks({
   schedules: Schedule[];
 }) {
   const [schedules, setSchedules] = useState(initialSchedules);
+  const [audience, setAudience] = useState(emptyAudience);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -115,6 +121,13 @@ export function MintEditorialRecurringTasks({
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
+      audience.notification_audience === 'preferred' &&
+      !audience.preferred_contractor_id
+    ) {
+      toast.error('Choose a favourite contractor.');
+      return;
+    }
+    if (
       !formData.property_id ||
       !formData.title.trim() ||
       !formData.next_due_date ||
@@ -132,7 +145,10 @@ export function MintEditorialRecurringTasks({
     savingRef.current = true;
     setSaving(true);
     try {
-      const operation = await scheduleRequest(formData.property_id, formData);
+      const operation = await scheduleRequest(formData.property_id, {
+        ...formData,
+        ...audience,
+      });
       const csrfHeaders = await getCsrfHeaders();
       const res = await fetch('/api/landlord/recurring', {
         method: 'POST',
@@ -143,6 +159,7 @@ export function MintEditorialRecurringTasks({
         },
         body: JSON.stringify({
           ...formData,
+          ...audience,
           title: formData.title.trim(),
           description: formData.description.trim() || null,
         }),
@@ -161,6 +178,7 @@ export function MintEditorialRecurringTasks({
       operation.complete();
       setSchedules((prev) => [...prev, schedule]);
       setShowForm(false);
+      setAudience(emptyAudience);
       setFormData({
         property_id: '',
         task_type: 'General Inspection',
@@ -284,9 +302,10 @@ export function MintEditorialRecurringTasks({
                 className='field'
                 value={formData.property_id}
                 aria-label='Property'
-                onChange={(e) =>
+                onChange={(e) => (
+                  setAudience((a) => ({ ...emptyAudience, category: a.category })),
                   setFormData((p) => ({ ...p, property_id: e.target.value }))
-                }
+                )}
                 style={{ flex: '1 1 220px', minWidth: 220 }}
               >
                 <option value=''>Select property…</option>
@@ -300,13 +319,17 @@ export function MintEditorialRecurringTasks({
                 className='field'
                 value={formData.task_type}
                 aria-label='Task type'
-                onChange={(e) =>
+                onChange={(e) => {
+                  setAudience((a) => ({
+                    ...a,
+                    category: recurringCategory(undefined, e.target.value),
+                  }));
                   setFormData((p) => ({
                     ...p,
                     task_type: e.target.value,
                     title: e.target.value,
-                  }))
-                }
+                  }));
+                }}
                 style={{ flex: '1 1 200px', minWidth: 200 }}
               >
                 {TASK_TYPES.map((t) => (
@@ -358,6 +381,12 @@ export function MintEditorialRecurringTasks({
                 style={{ flex: '1 1 180px', minWidth: 180 }}
               />
             </div>
+            <RecurringAudienceFields
+              key={formData.property_id}
+              propertyId={formData.property_id}
+              value={audience}
+              onChange={setAudience}
+            />
             <label
               className='row'
               style={{ gap: 8, fontSize: 13, color: 'var(--me-ink-2)' }}
@@ -449,7 +478,7 @@ export function MintEditorialRecurringTasks({
                   </span>
                   <p className='t-meta'>
                     {schedule.auto_create_job
-                      ? 'A scheduled check creates the job. Review bids and approve completed work from that job; moving the due date does not confirm completion.'
+                      ? 'Due tasks are checked every 15 minutes. The job appears after a successful check. Review bids and completion in the created job.'
                       : 'Reminder only. Arrange the work yourself or post a job. This reminder does not record completed work.'}
                   </p>
                   <Link

@@ -8,6 +8,65 @@
 import { test, expect } from './fixtures';
 import { loginAsHomeowner, loginAsContractor } from './helpers/auth';
 import AxeBuilder from '@axe-core/playwright';
+import type { Page } from '@playwright/test';
+
+async function waitForAccessiblePage(page: Page, path: string) {
+  const main = page.locator('main').first();
+  await expect(main).toBeVisible();
+  await expect(page).not.toHaveURL(/\/login/);
+  await page.evaluate(() => document.fonts.ready);
+  if (path === '/contractor/profile') {
+    await expect(
+      main.getByText('Profile Completion', { exact: true })
+    ).toBeVisible();
+    // Profile cards enter with staggered opacity animations. Axe otherwise
+    // samples blended text mid-fade and reports transient contrast failures.
+    // Wait for the real rendered state; do not disable contrast checks or motion.
+    await expect
+      .poll(() =>
+        page
+          .locator('main [style*="opacity"]')
+          .evaluateAll((elements) =>
+            elements.every(
+              (element) => getComputedStyle(element).opacity === '1'
+            )
+          )
+      )
+      .toBe(true);
+  }
+  if (path === '/contractor/discover') {
+    // The code-split map can still be a skeleton when the page is visible.
+    // Scan the loaded map OR its fallback, so a quick scan cannot miss errors.
+    await expect(
+      main.locator('[data-map-state="ready"], [data-map-state="error"]')
+    ).toBeVisible({ timeout: 20_000 });
+  }
+}
+
+test.describe('Accessibility readiness', () => {
+  test('ignores a hidden profile duplicate outside main', async ({ page }) => {
+    await page.setContent(`
+      <main><span>Profile Completion</span></main>
+      <div hidden><span>Profile Completion</span></div>
+    `);
+    await waitForAccessiblePage(page, '/contractor/profile');
+  });
+
+  for (const state of ['ready', 'error']) {
+    test(`waits for the map ${state} state before scanning`, async ({ page }) => {
+      await page.setContent('<main><div id="map">Loading map...</div></main>');
+      await page.evaluate((nextState) => {
+        setTimeout(() => {
+          document
+            .querySelector('#map')!
+            .setAttribute('data-map-state', nextState);
+        }, 200);
+      }, state);
+      await waitForAccessiblePage(page, '/contractor/discover');
+      await expect(page.locator('#map')).toHaveAttribute('data-map-state', state);
+    });
+  }
+});
 
 // ============================================
 // TEST CONFIGURATION
@@ -43,8 +102,26 @@ test.describe('Accessibility Tests', () => {
 
       // Wait for content to load
       await page.waitForLoadState('domcontentloaded');
-      await expect(page.locator('main').first()).toBeVisible();
-      await expect(page).not.toHaveURL(/\/login/);
+      await waitForAccessiblePage(page, path);
+
+      if (path === '/contractor/discover') {
+        // The isolated contractor fixture has no stored coordinates. Its prompt
+        // opens after one second, independently of map loading. Scan the actual
+        // dialog after its entrance animation, then scan the page after dismissal.
+        const dialog = page.getByRole('dialog', { name: 'Set Your Location' });
+        await expect(dialog).toBeVisible();
+        await expect
+          .poll(() =>
+            dialog.evaluate((element) => getComputedStyle(element).opacity)
+          )
+          .toBe('1');
+        const dialogScan = await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+          .analyze();
+        expect(dialogScan.violations).toEqual([]);
+        await dialog.getByRole('button', { name: 'Skip for now' }).click();
+        await expect(dialog).toBeHidden();
+      }
 
       // Run axe accessibility checks
       const accessibilityScanResults = await new AxeBuilder({ page })
@@ -431,8 +508,7 @@ test.describe('WCAG Compliance Report', () => {
       else await loginAsHomeowner(page);
       await page.goto(path);
       await page.waitForLoadState('domcontentloaded');
-      await expect(page.locator('main').first()).toBeVisible();
-      await expect(page).not.toHaveURL(/\/login/);
+      await waitForAccessiblePage(page, path);
 
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -448,7 +524,11 @@ test.describe('WCAG Compliance Report', () => {
           id: v.id,
           impact: v.impact,
           description: v.description,
-          nodes: v.nodes.length,
+          nodes: v.nodes.map((node) => ({
+            target: node.target,
+            html: node.html,
+            failureSummary: node.failureSummary,
+          })),
         })),
       });
     }

@@ -37,36 +37,48 @@ const FEATURES = [
     description:
       'Each profile shows the business details, licences and insurance the tradesperson has provided, plus past job photos and homeowner ratings as they accumulate.',
     icon: BadgeCheck,
+    href: '/verification',
+    linkLabel: 'Understand the checks',
   },
   {
     title: 'Clear job records',
     description:
       'Photos, messages, quotes, and approvals stay attached to the job so everyone knows what was agreed.',
     icon: ClipboardList,
+    href: '/how-it-works#demo-agreements',
+    linkLabel: 'Watch the agreement demo',
   },
   {
     title: 'Protected payments',
     description:
       'Funds are held securely and released after the work is complete and approved.',
     icon: ShieldCheck,
+    href: '/safety',
+    linkLabel: 'Read about payment safeguards',
   },
   {
     title: 'Quote comparison',
     description:
       'Compare bids by price, availability, rating, and contractor details without cold calling around.',
     icon: WalletCards,
+    href: '/blog/compare-bids',
+    linkLabel: 'Learn how to compare bids',
   },
   {
     title: 'Direct communication',
     description:
       'Keep questions, updates, appointment notes, and evidence in one shared conversation.',
     icon: MessageSquareText,
+    href: '/how-it-works',
+    linkLabel: 'Explore the project journey',
   },
   {
     title: 'Mint AI guidance',
     description:
       'Photo assistance helps describe a problem and estimate a fair price. Final quotes still come from real tradespeople on the platform.',
     icon: Sparkles,
+    href: '/try-mint-ai',
+    linkLabel: 'Try the photo guidance',
   },
 ];
 
@@ -124,7 +136,7 @@ export function BentoFeaturesSection() {
             }}
           >
             Mintenance is designed around the parts of home maintenance that
-            usually create stress — finding the right person, agreeing the work,
+            usually create stress: finding the right person, agreeing the work,
             protecting the money, and keeping proof of what happened.
           </p>
         </motion.div>
@@ -136,7 +148,8 @@ export function BentoFeaturesSection() {
           viewport={{ once: true, amount: 0.1 }}
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns:
+              'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
             gap: 16,
           }}
         >
@@ -198,6 +211,20 @@ export function BentoFeaturesSection() {
                 >
                   {feature.description}
                 </p>
+                <Link
+                  href={feature.href}
+                  style={{
+                    display: 'inline-block',
+                    marginTop: 18,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: isLead ? 'var(--me-on-brand)' : 'var(--me-brand)',
+                    textDecoration: 'underline',
+                    textUnderlineOffset: 4,
+                  }}
+                >
+                  {feature.linkLabel} →
+                </Link>
               </motion.div>
             );
           })}
@@ -212,7 +239,7 @@ export function BentoFeaturesSection() {
           }}
         >
           <Link
-            href='/jobs/create'
+            href='/register?role=homeowner'
             style={{
               display: 'inline-flex',
               alignItems: 'center',

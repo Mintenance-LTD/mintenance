@@ -50,6 +50,17 @@ jest.mock('../../components/animations/primitives', () => {
 // jest.fn(). Provide explicit factories with the CURRENT method names the
 // dashboards call.
 jest.mock('../../contexts/AuthContext');
+// Keep dashboard assertions independent of the native onboarding destinations
+// and theme context. GettingStartedCard has a real-provider component test.
+jest.mock('../../screens/onboarding/GettingStartedScreen', () => ({
+  GettingStartedScreen: () => null,
+}));
+jest.mock('../../components/onboarding/PushPermissionRecoveryBanner', () => ({
+  PushPermissionRecoveryBanner: () => null,
+}));
+jest.mock('../../components/onboarding/GettingStartedCard', () => ({
+  GettingStartedCard: () => null,
+}));
 jest.mock('../../services/UserService', () => ({
   UserService: { getContractorStats: jest.fn() },
 }));

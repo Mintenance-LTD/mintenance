@@ -36,6 +36,8 @@ import {
 import { sendPushToDevice } from './NotificationPushDispatcher';
 
 interface CreateNotificationParams {
+  /** Surface persistence failures to callers that track durable delivery. */
+  throwOnError?: boolean;
   userId: string;
   type: string;
   title: string;
@@ -90,6 +92,7 @@ async function insertInAppNotification(
       error: error.message,
       userId: params.userId,
     });
+    if (params.throwOnError) throw new Error('notification_insert_failed');
     return null;
   }
   return data.id;
@@ -125,7 +128,8 @@ export class NotificationService {
    *
    * Returns the notification id (if inserted now) or the queue id (if
    * deferred). Returns null when the user has muted this notification
-   * type or if the insert failed.
+   * type or if the insert failed. With throwOnError, persistence failures
+   * reject instead of being indistinguishable from preference suppression.
    */
   static async createNotification(
     params: CreateNotificationParams
@@ -177,10 +181,14 @@ export class NotificationService {
       }
 
       if (immediate) {
-        return this.fireImmediately(params, prefs);
+        return await this.fireImmediately(params, prefs);
       }
 
-      return this.scheduleForLater(params, scheduledFor, sendDecision.reason);
+      return await this.scheduleForLater(
+        params,
+        scheduledFor,
+        sendDecision.reason
+      );
     } catch (error) {
       if (error instanceof NotificationPreferencesUnavailableError) {
         const retryAt = new Date(
@@ -196,6 +204,7 @@ export class NotificationService {
         service: 'NotificationService',
         userId: params.userId,
       });
+      if (params.throwOnError) throw error;
       return null;
     }
   }
@@ -209,6 +218,21 @@ export class NotificationService {
     params: CreateNotificationParams,
     prefs: UserNotificationPreferences
   ): Promise<string | null> {
+    // Strict callers need a durable receipt even when in-app delivery is
+    // disabled. Queue push-only delivery rather than returning an ambiguous
+    // null after a provider attempt; the processor records its final outcome.
+    if (
+      params.throwOnError &&
+      !prefs.in_app_enabled &&
+      prefs.push_enabled &&
+      !params.inAppOnly
+    ) {
+      return this.scheduleForLater(
+        params,
+        new Date(),
+        'Durable push-only delivery'
+      );
+    }
     let notificationId: string | null = null;
 
     if (prefs.in_app_enabled) {
@@ -286,6 +310,10 @@ export class NotificationService {
       scheduledFor: at,
       priority,
     });
+
+    if (!queueId && params.throwOnError) {
+      throw new Error('notification_enqueue_failed');
+    }
 
     logger.info('Notification queued', {
       service: 'NotificationService',

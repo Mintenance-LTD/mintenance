@@ -1,8 +1,9 @@
 'use client';
 
+import { useAdminFetch } from '@/components/admin/AdminVerificationProvider';
 import React, { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
 import {
@@ -75,6 +76,7 @@ async function fetchVerificationStats(): Promise<Stats> {
 // ── Component ──────────────────────────────────────────────────────
 
 export function VerificationClient({ initialStats }: VerificationClientProps) {
+  const adminFetch = useAdminFetch();
   const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState<StatusFilter>('pending');
   const [search, setSearch] = useState('');
@@ -163,7 +165,7 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
     setActionLoading(contractor.id);
     try {
       const csrfHeaders = await getCsrfHeaders();
-      const response = await fetch(
+      const response = await adminFetch(
         `/api/admin/verifications/${contractor.id}`,
         {
           method: 'PUT',
@@ -212,7 +214,7 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
     setActionLoading(rejectDialog.contractorId);
     try {
       const csrfHeaders = await getCsrfHeaders();
-      const response = await fetch(
+      const response = await adminFetch(
         `/api/admin/verifications/${rejectDialog.contractorId}`,
         {
           method: 'PUT',

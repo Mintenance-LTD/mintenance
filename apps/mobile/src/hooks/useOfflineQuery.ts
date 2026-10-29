@@ -39,6 +39,7 @@ export const useOfflineQuery = <T = unknown>({
   gcTime = 30 * 60 * 1000, // 30 minutes for offline data
   enabled = true,
   offlineFirst = false,
+  retry,
 }: OfflineQueryOptions) => {
   const { isOnline, connectionQuality } = useNetworkState();
 
@@ -55,16 +56,20 @@ export const useOfflineQuery = <T = unknown>({
     return {
       retry: (failureCount: number, error: unknown) => {
         // Don't retry if offline
-        if (!isOnline) return false;
+        if (!isOnline || retry === false) return false;
 
         // Don't retry on client errors (4xx)
-        const status = (error as Record<string, unknown>)?.status as
-          | number
-          | undefined;
+        const status = ((error as Record<string, unknown>)?.statusCode ??
+          (error as Record<string, unknown>)?.status) as number | undefined;
         if (status !== undefined && status >= 400 && status < 500) return false;
 
         // Limit retries on slow connections
-        const maxRetries = connectionQuality === 'poor' ? 1 : 3;
+        const configuredRetries =
+          typeof retry === 'number' ? Math.max(0, retry) : 3;
+        const maxRetries =
+          connectionQuality === 'poor'
+            ? Math.min(1, configuredRetries)
+            : configuredRetries;
         return failureCount < maxRetries;
       },
       retryDelay: (attemptIndex: number) => {
@@ -72,7 +77,7 @@ export const useOfflineQuery = <T = unknown>({
         return Math.min(baseDelay * Math.pow(2, attemptIndex), 30000);
       },
     };
-  }, [isOnline, connectionQuality]);
+  }, [isOnline, connectionQuality, retry]);
 
   return useQuery<T>({
     queryKey,
@@ -96,9 +101,9 @@ export const useOfflineQuery = <T = unknown>({
 
         const remoteData = await queryFn(signal);
 
-        // Cache successful remote data locally
+        // Persist offline data without holding the screen behind sequential disk writes.
         if (remoteData && isOnline) {
-          await cacheLocalData(queryKey, remoteData).catch((error) => {
+          void cacheLocalData(queryKey, remoteData).catch((error) => {
             logger.warn('Failed to cache local data:', error);
           });
         }
@@ -139,10 +144,9 @@ export const useOfflineQuery = <T = unknown>({
     // Enhanced refetch configuration
     refetchOnWindowFocus: isOnline,
     refetchOnReconnect: true,
-    refetchOnMount: (query) => {
-      // Only refetch on mount if data is stale or we're online with fresh connection
-      return query.state.isInvalidated || (isOnline && !query.state.data);
-    },
+    // React Query's true policy refreshes stale data while keeping cached content
+    // visible. Checking only for missing data left expired signed photos forever.
+    refetchOnMount: isOnline,
     meta: {
       offline: true,
       networkDependency: true,

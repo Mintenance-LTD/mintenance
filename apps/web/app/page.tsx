@@ -1,3 +1,4 @@
+import { PasswordRecoveryRedirect } from './components/PasswordRecoveryRedirect';
 import type { Metadata } from 'next';
 import { HeroSection } from './components/landing/HeroSection';
 import { Footer2025 } from './components/landing/Footer2025';
@@ -9,6 +10,8 @@ import { TrustIndicators } from '@/components/landing/trust-indicators';
 import { FAQSection } from '@/components/landing/faq-section';
 import { ContractorCTA } from '@/components/landing/contractor-cta';
 import { FinalCTA } from '@/components/landing/final-cta';
+import { ProductDemos } from '@/components/marketing/ProductDemos';
+import { GettingStartedLinks } from '@/components/marketing/GettingStartedLinks';
 
 // 2026-05-13 Mint Editorial rebuild: AppPreviewSection was dropped —
 // the new hero already shows the browser + phone "both platforms"
@@ -23,7 +26,7 @@ import { FinalCTA } from '@/components/landing/final-cta';
  */
 
 export const metadata: Metadata = {
-  title: 'Mintenance — Hire Local Tradespeople With Escrow-Protected Payments',
+  title: 'Mintenance: Hire Local Tradespeople With Escrow-Protected Payments',
   description:
     'Post home maintenance jobs, compare local tradespeople on the platform, and keep payment protected in escrow until the work is approved.',
   keywords:
@@ -31,30 +34,29 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_GB',
-    url: 'https://mintenance.com',
+    url: 'https://www.mintenance.co.uk',
     siteName: 'Mintenance',
-    title:
-      'Mintenance — Hire Local Tradespeople With Escrow-Protected Payments',
+    title: 'Mintenance: Hire Local Tradespeople With Escrow-Protected Payments',
     description:
       'Post home maintenance jobs, compare local tradespeople on the platform, and keep payment protected in escrow until the work is approved.',
     images: [
       {
-        url: 'https://mintenance.com/og-image.jpg',
+        url: 'https://www.mintenance.co.uk/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Mintenance — modern home maintenance platform',
+        alt: 'Mintenance: modern home maintenance platform',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
     site: '@mintenance',
-    title: 'Mintenance — Hire Local Tradespeople',
+    title: 'Mintenance: Hire Local Tradespeople',
     description:
       'Post jobs, compare local tradespeople, and protect payment in escrow until sign-off.',
   },
   alternates: {
-    canonical: 'https://mintenance.com',
+    canonical: 'https://www.mintenance.co.uk',
   },
 };
 
@@ -65,6 +67,7 @@ export default function LandingPage() {
       data-theme='mint-editorial'
       style={{ background: 'var(--me-bg)' }}
     >
+      <PasswordRecoveryRedirect />
       <LandingNavigation />
 
       {/* No top padding — LandingNavigation is `position: sticky`
@@ -74,9 +77,11 @@ export default function LandingPage() {
         <HeroSection />
         <TrustIndicators />
         <HowItWorks />
+        <ProductDemos />
         <BentoFeaturesSection />
         <ComparisonTable />
         <ContractorCTA />
+        <GettingStartedLinks />
         <FAQSection />
         <FinalCTA />
       </main>

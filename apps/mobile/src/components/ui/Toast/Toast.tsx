@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../../../utils/haptics';
 import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'loading';
 export type ToastPosition = 'top' | 'bottom' | 'center';
@@ -50,34 +51,34 @@ const TOAST_COLORS: Record<
   { background: string; border: string; icon: string; text: string }
 > = {
   success: {
-    background: '#F0FDF4',
-    border: '#BBF7D0',
-    icon: '#065F46',
-    text: '#065F46',
+    background: me.okBg,
+    border: me.line,
+    icon: me.okFg,
+    text: me.ink,
   },
   error: {
-    background: '#FEF2F2',
-    border: '#FECACA',
-    icon: '#991B1B',
-    text: '#991B1B',
+    background: me.errBg,
+    border: me.line,
+    icon: me.errFg,
+    text: me.ink,
   },
   warning: {
-    background: '#FFFBEB',
-    border: '#FDE68A',
-    icon: '#92400E',
-    text: '#92400E',
+    background: me.warnBg,
+    border: me.line,
+    icon: me.warnFg,
+    text: me.ink,
   },
   info: {
-    background: '#EFF6FF',
-    border: '#BFDBFE',
-    icon: '#1E40AF',
-    text: '#1E40AF',
+    background: me.infoBg,
+    border: me.line,
+    icon: me.infoFg,
+    text: me.ink,
   },
   loading: {
-    background: theme.colors.backgroundSecondary,
-    border: theme.colors.border,
-    icon: theme.colors.textPrimary,
-    text: theme.colors.textPrimary,
+    background: me.surface,
+    border: me.line,
+    icon: me.brand2,
+    text: me.ink,
   },
 };
 

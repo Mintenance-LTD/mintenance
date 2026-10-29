@@ -187,3 +187,43 @@ it('fails when result persistence fails instead of claiming success', async () =
     'could not be saved'
   );
 });
+
+it('distinguishes identity mismatches from provider status mismatches', () => {
+  const pi = intent();
+  pi.metadata.payerId = 'other';
+  expect(compareReconciliationFunding(source(), pi).evidence).toMatchObject({
+    mismatch_type: 'identity', status_match: true, amount_match: true, identity_match: false,
+  });
+  expect(compareReconciliationFunding(source(), intent()).evidence.mismatch_type).toBeNull();
+});
+
+it('recognizes the legacy homeowner identity on cash-only intents', () => {
+  const row = source();
+  row.funding = null;
+  row.amount = 90;
+  const pi = intent();
+  delete pi.metadata.payerId;
+  delete pi.metadata.fundingReservationId;
+  delete pi.metadata.creditAppliedPence;
+  pi.metadata.homeownerId = row.payer_id;
+  expect(compareReconciliationFunding(row, pi).matched).toBe(true);
+
+  row.status = 'pending';
+  expect(compareReconciliationFunding(row, pi).evidence).toMatchObject({
+    identity_match: true, status_match: false, mismatch_type: 'status',
+  });
+});
+
+it.each(['explicit payer', 'funding ledger', 'wrong homeowner', 'missing homeowner'])(
+  'does not use legacy identity to hide %s', (reason) => {
+    const row = source();
+    const pi = intent();
+    delete pi.metadata.payerId;
+    pi.metadata.homeownerId = row.payer_id;
+    if (reason !== 'funding ledger') row.funding = null;
+    if (reason === 'explicit payer') pi.metadata.payerId = 'different-payer';
+    if (reason === 'wrong homeowner') pi.metadata.homeownerId = 'different-owner';
+    if (reason === 'missing homeowner') delete pi.metadata.homeownerId;
+    expect(compareReconciliationFunding(row, pi).evidence.identity_match).toBe(false);
+  }
+);

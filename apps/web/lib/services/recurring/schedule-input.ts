@@ -37,7 +37,9 @@ export const propertyScheduleInput = z.object({
   title: z.string().trim().min(5).max(200),
   frequency,
   next_due_date: dueDate,
-  category: z.string().trim().max(100).optional(),
+  category: z.string().trim().toLowerCase().max(100).optional(),
+  preferred_contractor_id: z.string().uuid().nullable().optional(),
+  notification_audience: z.enum(['matching', 'preferred']).optional(),
 });
 
 export const propertyScheduleUpdate = propertyScheduleInput
@@ -54,8 +56,22 @@ export const propertyScheduleUpdate = propertyScheduleInput
       value.title !== undefined ||
       value.frequency !== undefined ||
       value.next_due_date !== undefined ||
-      value.category !== undefined,
+      value.category !== undefined ||
+      value.preferred_contractor_id !== undefined ||
+      value.notification_audience !== undefined,
     'Provide a change'
+  )
+  .refine(
+    (value) =>
+      value.notification_audience !== 'preferred' ||
+      !!value.preferred_contractor_id,
+    'Choose a previously hired contractor'
+  )
+  .refine(
+    (value) =>
+      value.preferred_contractor_id !== null ||
+      value.notification_audience === 'matching',
+    'Select matching contractors when clearing the preferred contractor'
   )
   .refine(
     (value) =>
@@ -63,7 +79,9 @@ export const propertyScheduleUpdate = propertyScheduleInput
       (value.title === undefined &&
         value.frequency === undefined &&
         value.next_due_date === undefined &&
-        value.category === undefined),
+        value.category === undefined &&
+        value.preferred_contractor_id === undefined &&
+        value.notification_audience === undefined),
     'Reload the schedule before editing'
   );
 

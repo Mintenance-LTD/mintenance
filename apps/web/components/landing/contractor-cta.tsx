@@ -16,7 +16,7 @@ const BENEFITS = [
   {
     title: 'Real jobs, not leads',
     description:
-      'See real posted jobs with budgets and details — no credits, no guessing.',
+      'See real posted jobs with budgets and details: no credits, no guessing.',
   },
   {
     title: 'Escrow-protected payment',
@@ -31,7 +31,7 @@ const BENEFITS = [
 ];
 
 const PROMISES = [
-  { label: 'No monthly fees', sub: 'You only pay when you win a job' },
+  { label: 'Clear plans and fees', sub: 'Review the costs before choosing' },
   { label: 'No credit system', sub: 'See full job details before you bid' },
   { label: 'Payment protected', sub: 'Funds secured before work begins' },
 ];
@@ -157,6 +157,18 @@ export function ContractorCTA() {
             }}
           >
             Join as a tradesperson
+          </Link>
+          <Link
+            href='/for-contractors#demo-local-work'
+            style={{
+              display: 'block',
+              marginTop: 20,
+              color: 'var(--me-on-brand)',
+              textDecoration: 'underline',
+              textUnderlineOffset: 4,
+            }}
+          >
+            Watch the job map and bidding demo →
           </Link>
         </div>
 

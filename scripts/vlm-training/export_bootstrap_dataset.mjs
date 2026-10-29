@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
  * Bootstrap training dataset export for Mint AI VLM (Qwen2.5-VL).
+ * DISABLED DURING BETA: exits 2 before database access, including --dry-run.
+ * The options below describe the dormant exporter, not permission to run training.
  *
  * Exports assessments only when vlm_training_buffer contains a human-verified
  * target for the same ordered images. Human corrections take precedence.
@@ -76,6 +78,11 @@ const { values: args } = parseArgs({
 });
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+// Mirror the application's beta reuse hold. Reviewed labels alone do not establish
+// source permission or exclusion of pilot/held-out captures. No environment bypass.
+console.error('Training export is unavailable during beta. Source consent and pilot exclusions must be enforced before enabling reuse.');
+process.exit(2);
+
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {

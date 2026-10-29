@@ -66,7 +66,7 @@ const profileUpdateSchema = z.object({
   // so future fields can be added without further schema changes
   // and so the data stays grouped with related preferences.
   propertyType: z
-    .enum(['house', 'flat', 'bungalow', 'maisonette', 'other'])
+    .enum(['house', 'flat', 'terrace', 'bungalow', 'maisonette', 'other'])
     .optional()
     .nullable(),
   concernTags: z.array(z.string().max(60)).max(20).optional().nullable(),
@@ -83,7 +83,7 @@ export const GET = withApiHandler(
     const { data: profile, error } = await serverSupabase
       .from('profiles')
       .select(
-        'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at, address, postcode, latitude, longitude, verified, phone_verified, company_name, skills'
+        'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, avatar_url, onboarding_completed, role, created_at, updated_at, address, postcode, latitude, longitude, verified, phone_verified, company_name, skills, settings'
       )
       .eq('id', user.id)
       .single();
@@ -191,10 +191,14 @@ export const PUT = withApiHandler(
         .single();
 
       if (settingsError) {
-        logger.error('Failed to read profile settings before update', settingsError, {
-          service: 'users',
-          userId: user.id,
-        });
+        logger.error(
+          'Failed to read profile settings before update',
+          settingsError,
+          {
+            service: 'users',
+            userId: user.id,
+          }
+        );
         throw new InternalServerError('Profile settings could not be updated');
       }
 

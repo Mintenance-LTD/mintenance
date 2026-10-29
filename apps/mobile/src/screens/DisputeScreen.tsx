@@ -11,12 +11,17 @@ import {
   Alert,
   Image,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
+import { File } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import { prepareJobPhoto } from '../services/prepareJobPhoto';
 import type { JobsStackParamList } from '../navigation/types';
 import { ScreenHeader, LoadingSpinner } from '../components/shared';
 import { Banner } from '../components/ui/Banner';
@@ -53,15 +58,15 @@ async function uploadDisputeEvidence(
       evidence.push(cached);
       continue;
     }
+    let preparedUri: string | undefined;
     try {
-      const rawExt = (asset.uri.split('.').pop() ?? 'jpg').toLowerCase();
-      const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : 'jpg';
-      const filePath = `${jobId}/disputes/${userId}/${Date.now()}-${i}.${ext}`;
-      const buf = await (await (await fetch(asset.uri)).blob()).arrayBuffer();
+      preparedUri = await prepareJobPhoto(asset);
+      const filePath = `${jobId}/disputes/${userId}/${Date.now()}-${i}.jpg`;
+      const buf = await new File(preparedUri).arrayBuffer();
       const { error: upErr } = await supabase.storage
         .from('job-attachments')
         .upload(filePath, buf, {
-          contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+          contentType: 'image/jpeg',
           upsert: false,
         });
       if (upErr) {
@@ -70,11 +75,21 @@ async function uploadDisputeEvidence(
       const reference = `job-attachments:${filePath}`;
       uploaded.set(cacheKey, reference);
       evidence.push(reference);
-    } catch {
-      logger.warn('Dispute evidence upload failed', { index: i });
+    } catch (error) {
+      logger.warn('Dispute evidence upload failed', {
+        index: i,
+        message:
+          error instanceof Error ? error.message : 'Storage upload failed',
+      });
       throw new Error(
         'Some evidence could not be uploaded. Your dispute has not been submitted. Please retry.'
       );
+    } finally {
+      if (preparedUri) {
+        await FileSystem.deleteAsync(preparedUri, { idempotent: true }).catch(
+          () => {}
+        );
+      }
     }
   }
   return evidence;
@@ -136,6 +151,8 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId, jobTitle } = route.params;
   const { user } = useAuth();
   const inFlight = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const descriptionY = useRef(0);
   const uploadedEvidence = useRef(new Map<string, string>());
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [description, setDescription] = useState('');
@@ -194,7 +211,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
     setSubmitting(true);
     try {
       const escrowResponse = await apiClient.get<{
-        escrow: { id: string } | null;
+        escrow: { id: string; status: string } | null;
       }>(`/api/jobs/${jobId}/escrow`);
 
       // 2026-06-06 audit: GET /api/jobs/[id]/escrow returns { escrow: null }
@@ -206,6 +223,19 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
           'No payment was found for this job. A dispute can only be raised once a payment is held in escrow.'
         );
         setSubmitting(false);
+        return;
+      }
+
+      if (
+        !['held', 'awaiting_homeowner_approval'].includes(
+          escrowResponse.escrow.status
+        )
+      ) {
+        setFormError(
+          escrowResponse.escrow.status === 'disputed'
+            ? 'A dispute is already open for this job. View the dispute record for updates.'
+            : 'This payment is no longer held in escrow, so a new payment dispute cannot be opened. View the dispute record or contact support about any further problem.'
+        );
         return;
       }
 
@@ -270,146 +300,165 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
         onBack={() => navigation.goBack()}
       />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Banner message={formError ?? ''} variant='error' />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps='handled'
+          keyboardDismissMode='on-drag'
+        >
+          <Banner message={formError ?? ''} variant='error' />
 
-        <View style={styles.jobCard}>
-          <View style={styles.jobIconWrap}>
-            <Ionicons name='briefcase-outline' size={18} color='#3B82F6' />
+          <View style={styles.jobCard}>
+            <View style={styles.jobIconWrap}>
+              <Ionicons name='briefcase-outline' size={18} color='#3B82F6' />
+            </View>
+            <Text style={styles.jobTitle} numberOfLines={1}>
+              {jobTitle}
+            </Text>
           </View>
-          <Text style={styles.jobTitle} numberOfLines={1}>
-            {jobTitle}
-          </Text>
-        </View>
 
-        <Text style={styles.sectionTitle}>What is the issue?</Text>
-        <View style={styles.reasonGrid}>
-          {DISPUTE_REASONS.map((reason) => (
-            <TouchableOpacity
-              key={reason.id}
-              style={[
-                styles.reasonCard,
-                selectedReason === reason.id && styles.reasonCardSelected,
-              ]}
-              disabled={submitting}
-              onPress={() => setSelectedReason(reason.id)}
-              accessibilityRole='button'
-              accessibilityLabel={`Dispute reason: ${reason.label}`}
-              accessibilityState={{ selected: selectedReason === reason.id }}
-              activeOpacity={0.7}
-            >
-              <View
+          <Text style={styles.sectionTitle}>What is the issue?</Text>
+          <View style={styles.reasonGrid}>
+            {DISPUTE_REASONS.map((reason) => (
+              <TouchableOpacity
+                key={reason.id}
                 style={[
-                  styles.reasonIconWrap,
-                  { backgroundColor: reason.iconBg },
+                  styles.reasonCard,
+                  selectedReason === reason.id && styles.reasonCardSelected,
                 ]}
+                disabled={submitting}
+                onPress={() => setSelectedReason(reason.id)}
+                accessibilityRole='button'
+                accessibilityLabel={`Dispute reason: ${reason.label}`}
+                accessibilityState={{ selected: selectedReason === reason.id }}
+                activeOpacity={0.7}
               >
-                <Ionicons
-                  name={reason.icon}
-                  size={22}
-                  color={reason.iconColor}
-                />
-              </View>
-              <Text
-                style={[
-                  styles.reasonLabel,
-                  selectedReason === reason.id && styles.reasonLabelSelected,
-                ]}
-              >
-                {reason.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.sectionTitle}>Describe the issue</Text>
-        <TextInput
-          style={styles.descriptionInput}
-          accessibilityLabel='Describe the dispute'
-          maxLength={10000}
-          editable={!submitting}
-          multiline
-          numberOfLines={6}
-          placeholder='Please describe the issue in detail. Include any relevant dates, communications, or evidence...'
-          placeholderTextColor={me.ink3}
-          value={description}
-          onChangeText={setDescription}
-          textAlignVertical='top'
-        />
-        <Text style={styles.charCount}>
-          {description.length}/10,000 characters (min 20)
-        </Text>
-
-        {/* Evidence Attachment */}
-        <Text style={styles.sectionTitle}>Attach Evidence</Text>
-        {attachments.length > 0 && (
-          <FlatList
-            data={attachments}
-            horizontal
-            keyExtractor={(item) => item.uri}
-            showsHorizontalScrollIndicator={false}
-            style={styles.thumbList}
-            renderItem={({ item }) => (
-              <View style={styles.thumbWrap}>
-                <Image source={{ uri: item.uri }} style={styles.thumb} />
-                <TouchableOpacity
-                  style={styles.thumbRemove}
-                  disabled={submitting}
-                  onPress={() => removeAttachment(item.uri)}
-                  accessibilityRole='button'
-                  accessibilityLabel='Remove attached photo'
+                <View
+                  style={[
+                    styles.reasonIconWrap,
+                    { backgroundColor: reason.iconBg },
+                  ]}
                 >
-                  <Ionicons name='close-circle' size={20} color={me.errFg} />
-                </TouchableOpacity>
-              </View>
-            )}
+                  <Ionicons
+                    name={reason.icon}
+                    size={22}
+                    color={reason.iconColor}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.reasonLabel,
+                    selectedReason === reason.id && styles.reasonLabelSelected,
+                  ]}
+                >
+                  {reason.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.sectionTitle}>Describe the issue</Text>
+          <TextInput
+            onLayout={(event) => {
+              descriptionY.current = event.nativeEvent.layout.y;
+            }}
+            onFocus={() =>
+              scrollRef.current?.scrollTo({
+                y: Math.max(0, descriptionY.current - 40),
+                animated: true,
+              })
+            }
+            style={styles.descriptionInput}
+            accessibilityLabel='Describe the dispute'
+            maxLength={10000}
+            editable={!submitting}
+            multiline
+            numberOfLines={6}
+            placeholder='Please describe the issue in detail. Include any relevant dates, communications, or evidence...'
+            placeholderTextColor={me.ink3}
+            value={description}
+            onChangeText={setDescription}
+            textAlignVertical='top'
           />
-        )}
-        <TouchableOpacity
-          style={styles.evidenceButton}
-          onPress={handleAddEvidence}
-          disabled={submitting || attachments.length >= 6}
-          accessibilityRole='button'
-          accessibilityLabel={
-            attachments.length === 0
-              ? 'Add evidence photos'
-              : `${attachments.length} of 6 photos added, add more`
-          }
-        >
-          <Ionicons name='camera-outline' size={20} color={me.ink2} />
-          <Text style={styles.evidenceButtonText}>
-            {attachments.length === 0
-              ? 'Add Photos'
-              : `${attachments.length}/6 photos added`}
+          <Text style={styles.charCount}>
+            {description.length}/10,000 characters (min 20)
           </Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            submitting && styles.submitButtonDisabled,
-          ]}
-          onPress={handleSubmit}
-          disabled={submitting}
-          accessibilityRole='button'
-          accessibilityLabel='Submit dispute'
-          accessibilityState={{ disabled: submitting }}
-        >
-          {submitting ? (
-            <LoadingSpinner />
-          ) : (
-            <>
-              <Ionicons name='shield-outline' size={20} color={me.onBrand} />
-              <Text style={styles.submitButtonText}>Submit Dispute</Text>
-            </>
+          {/* Evidence Attachment */}
+          <Text style={styles.sectionTitle}>Attach Evidence</Text>
+          {attachments.length > 0 && (
+            <FlatList
+              data={attachments}
+              horizontal
+              keyExtractor={(item) => item.uri}
+              showsHorizontalScrollIndicator={false}
+              style={styles.thumbList}
+              renderItem={({ item }) => (
+                <View style={styles.thumbWrap}>
+                  <Image source={{ uri: item.uri }} style={styles.thumb} />
+                  <TouchableOpacity
+                    style={styles.thumbRemove}
+                    disabled={submitting}
+                    onPress={() => removeAttachment(item.uri)}
+                    accessibilityRole='button'
+                    accessibilityLabel='Remove attached photo'
+                  >
+                    <Ionicons name='close-circle' size={20} color={me.errFg} />
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
           )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.evidenceButton}
+            onPress={handleAddEvidence}
+            disabled={submitting || attachments.length >= 6}
+            accessibilityRole='button'
+            accessibilityLabel={
+              attachments.length === 0
+                ? 'Add evidence photos'
+                : `${attachments.length} of 6 photos added, add more`
+            }
+          >
+            <Ionicons name='camera-outline' size={20} color={me.ink2} />
+            <Text style={styles.evidenceButtonText}>
+              {attachments.length === 0
+                ? 'Add Photos'
+                : `${attachments.length}/6 photos added`}
+            </Text>
+          </TouchableOpacity>
 
-        <Text style={styles.disclaimer}>
-          Submitted disputes await review. Keep your supporting evidence and
-          check the dispute status for updates.
-        </Text>
-      </ScrollView>
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              submitting && styles.submitButtonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={submitting}
+            accessibilityRole='button'
+            accessibilityLabel='Submit dispute'
+            accessibilityState={{ disabled: submitting }}
+          >
+            {submitting ? (
+              <LoadingSpinner />
+            ) : (
+              <>
+                <Ionicons name='shield-outline' size={20} color={me.onBrand} />
+                <Text style={styles.submitButtonText}>Submit Dispute</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <Text style={styles.disclaimer}>
+            Submitted disputes await review. Keep your supporting evidence and
+            check the dispute status for updates.
+          </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

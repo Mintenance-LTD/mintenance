@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { Alert, AlertDescription } from '@/components/ui/alert';

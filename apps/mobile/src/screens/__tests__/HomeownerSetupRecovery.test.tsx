@@ -1,9 +1,12 @@
+jest.mock('../../design-system/theme', () => ({
+  useTheme: () => ({ colorScheme: 'light' }),
+}));
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { HomeownerSetupScreen } from '../auth/HomeownerSetupScreen';
-const mockPut = jest.fn();
+const mockPost = jest.fn();
 jest.mock('../../utils/mobileApiClient', () => ({
-  mobileApiClient: { put: (...args: unknown[]) => mockPut(...args) },
+  mobileApiClient: { post: (...args: unknown[]) => mockPost(...args) },
 }));
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { firstName: 'Test', lastName: 'User' } }),
@@ -11,9 +14,11 @@ jest.mock('../../contexts/AuthContext', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
-beforeEach(() => mockPut.mockReset());
+beforeEach(() => mockPost.mockReset());
 it('retains selections after a failed save and dismisses only after a successful retry', async () => {
-  mockPut.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({});
+  mockPost
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockResolvedValueOnce({});
   const complete = jest.fn();
   const screen = render(<HomeownerSetupScreen onComplete={complete} />);
   fireEvent.press(screen.getByLabelText('Property type: House'));
@@ -29,13 +34,16 @@ it('retains selections after a failed save and dismisses only after a successful
   ).toBe(true);
   fireEvent.press(screen.getByLabelText('Retry saving setup'));
   await waitFor(() => expect(complete).toHaveBeenCalledTimes(1));
-  expect(mockPut).toHaveBeenLastCalledWith('/api/users/profile', {
-    propertyType: 'house',
-    concernTags: ['Plumbing'],
-  });
+  expect(mockPost).toHaveBeenLastCalledWith(
+    '/api/homeowner/onboarding/complete',
+    {
+      propertyType: 'house',
+      concernTags: ['Plumbing'],
+    }
+  );
 });
 it('allows an explicit skip after failure', async () => {
-  mockPut.mockRejectedValue(new Error('offline'));
+  mockPost.mockRejectedValue(new Error('offline'));
   const complete = jest.fn();
   const screen = render(<HomeownerSetupScreen onComplete={complete} />);
   fireEvent.press(screen.getByLabelText('Finish setup'));
@@ -47,7 +55,7 @@ it('allows an explicit skip after failure', async () => {
 });
 it('prevents duplicate submissions while saving', async () => {
   let resolve!: (value: unknown) => void;
-  mockPut.mockReturnValue(
+  mockPost.mockReturnValue(
     new Promise((r) => {
       resolve = r;
     })
@@ -57,7 +65,7 @@ it('prevents duplicate submissions while saving', async () => {
   const button = screen.getByLabelText('Finish setup');
   fireEvent.press(button);
   fireEvent.press(button);
-  expect(mockPut).toHaveBeenCalledTimes(1);
+  expect(mockPost).toHaveBeenCalledTimes(1);
   await act(async () => {
     resolve({});
   });

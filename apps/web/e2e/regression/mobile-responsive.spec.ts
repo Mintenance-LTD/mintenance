@@ -216,11 +216,32 @@ test.describe('Mobile: Job List', () => {
       return;
     }
 
-    // First card should be nearly full viewport width (within 40px for padding)
-    const firstCard = cards.first();
-    const box = await firstCard.boundingBox();
-    if (box) {
-      expect(box.width).toBeGreaterThan(MOBILE_VIEWPORT.width - 80);
+    // Rows fill the list's content box; the enclosing card has its own padding.
+    // Check actual stacking and containment rather than guessing that padding.
+    let previousBottom = 0;
+    for (const card of await cards.all()) {
+      await expect(card).toBeVisible();
+      const layout = await card.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const parent = element.parentElement!;
+        const style = getComputedStyle(parent);
+        return {
+          x: box.x,
+          right: box.right,
+          y: box.y,
+          bottom: box.bottom,
+          width: box.width,
+          available:
+            parent.clientWidth -
+            parseFloat(style.paddingLeft) -
+            parseFloat(style.paddingRight),
+        };
+      });
+      expect(Math.abs(layout.width - layout.available)).toBeLessThanOrEqual(2);
+      expect(layout.x).toBeGreaterThanOrEqual(0);
+      expect(layout.right).toBeLessThanOrEqual(MOBILE_VIEWPORT.width);
+      expect(layout.y).toBeGreaterThanOrEqual(previousBottom);
+      previousBottom = layout.bottom;
     }
   });
 

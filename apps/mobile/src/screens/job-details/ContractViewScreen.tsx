@@ -78,6 +78,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const [contract, setContract] = useState<Contract | null>(null);
   const [quoteItems, setQuoteItems] = useState<QuoteLineItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quoteLoading, setQuoteLoading] = useState(true);
   const [signing, setSigning] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
   const pdfBusy = useRef(false);
@@ -94,6 +95,8 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const fetchContract = useCallback(async () => {
     try {
       setLoading(true);
+      setQuoteLoading(true);
+      setQuoteItems([]);
       setError(null);
       const row = await JobCRUDService.getContractByJobId(jobId);
       if (row) {
@@ -122,20 +125,22 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             [h?.first_name, h?.last_name].filter(Boolean).join(' ') ||
             'Homeowner',
         });
+        setLoading(false);
         // Fetch linked quote line items
         const qid = row.quote_id as string | null;
         if (qid) {
           const { supabase } = await import('../../config/supabase');
-          const { data: q } = await supabase
+          const { data: q, error: quoteError } = await supabase
             .from('contractor_quotes')
             .select('line_items')
             .eq('id', qid)
             .single();
+          if (quoteError) throw quoteError;
           if (q?.line_items) setQuoteItems(q.line_items as QuoteLineItem[]);
         } else {
           // Try by job_id + contractor_id
           const { supabase } = await import('../../config/supabase');
-          const { data: q } = await supabase
+          const { data: q, error: quoteError } = await supabase
             .from('contractor_quotes')
             .select('line_items')
             .eq('job_id', jobId)
@@ -143,6 +148,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
+          if (quoteError) throw quoteError;
           if (q?.line_items) setQuoteItems(q.line_items as QuoteLineItem[]);
         }
       } else {
@@ -152,6 +158,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
       setError('Failed to load contract');
     } finally {
       setLoading(false);
+      setQuoteLoading(false);
     }
   }, [jobId]);
 
@@ -287,7 +294,8 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     userRole === 'homeowner';
   const showPrepareButton =
     contract?.status === 'draft' && userRole === 'contractor';
-  const showSignButton = canSign && contract?.status !== 'draft';
+  const showSignButton =
+    canSign && !quoteLoading && contract?.status !== 'draft';
 
   if (loading) {
     return (
@@ -369,6 +377,11 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {quoteLoading && (
+          <Text accessibilityLiveRegion='polite'>
+            Loading contract line items…
+          </Text>
+        )}
         <View style={styles.screenHeader}>
           <Text style={styles.eyebrow}>Contract</Text>
           <Text style={styles.headline}>Contract</Text>

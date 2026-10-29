@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { Check, X } from 'lucide-react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';

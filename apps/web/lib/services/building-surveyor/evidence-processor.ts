@@ -5,6 +5,7 @@
  */
 
 import type { RoboflowDetection, VisionAnalysisSummary } from './types';
+import { interpretDetectorLabel } from './tools/damage-type-mapping';
 
 /**
  * Sanitise ML-sourced labels before injecting into GPT prompts.
@@ -42,13 +43,20 @@ export function buildEvidenceSummary(
 
   if (roboflowDetections.length > 0) {
     const topClasses = roboflowDetections.reduce<
-      Record<string, { count: number; maxConfidence: number }>
+      Record<string, { count: number; maxConfidence: number; meaning: string }>
     >((acc, detection) => {
       const key = sanitiseMLLabel(detection.className).toLowerCase();
+      const interpretation = interpretDetectorLabel(detection.className);
       const existing = acc[key] || { count: 0, maxConfidence: 0 };
       acc[key] = {
         count: existing.count + 1,
         maxConfidence: Math.max(existing.maxConfidence, detection.confidence),
+        meaning:
+          interpretation.kind === 'defect'
+            ? `candidate ${interpretation.damageType}`
+            : interpretation.kind === 'context'
+              ? 'context only; not defect evidence'
+              : 'unresolved label; requires review',
       };
       return acc;
     }, {});
@@ -56,11 +64,14 @@ export function buildEvidenceSummary(
     const classSummary = Object.entries(topClasses)
       .map(
         ([name, stats]) =>
-          `${stats.count} × ${name} (max confidence ${Math.round(stats.maxConfidence)}%)`
+          `${stats.count} × ${name} (max confidence ${Math.round(stats.maxConfidence)}%; ${stats.meaning})`
       )
       .slice(0, 5);
 
     summaryParts.push(`Roboflow detected: ${classSummary.join('; ')}`);
+    summaryParts.push(
+      'Detector labels are unverified suggestions. Confirm defects from the photos; object presence does not prove damage. No detection does not establish that an image is healthy.'
+    );
   }
 
   // VisionAnalysisSummary kept for backward compat (preRunEvidence may still supply it)

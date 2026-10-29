@@ -324,9 +324,12 @@ export function generateSecurePassword(length: number = 16): string {
  * Check if password has been breached (using Have I Been Pwned API)
  */
 export async function checkPasswordBreach(password: string): Promise<{
+  checked: boolean;
   isBreached: boolean;
   occurrences?: number;
 }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
     const hash = crypto
       .createHash('sha1')
@@ -340,30 +343,40 @@ export async function checkPasswordBreach(password: string): Promise<{
       {
         headers: {
           'User-Agent': 'Mintenance-Security-Check',
+          'Add-Padding': 'true',
         },
+        signal: controller.signal,
       }
     );
     if (!response.ok) {
       logger.warn('Could not check password breach status', {
         status: response.status,
       });
-      return { isBreached: false };
+      return { checked: false, isBreached: false };
     }
     const text = await response.text();
-    const lines = text.split('\n');
+    const lines = text.trim().split(/\r?\n/);
+    // A proxy error page or truncated/malformed response is not a clean result.
+    if (!lines.every((line) => /^[A-F0-9]{35}:\d+$/i.test(line))) {
+      return { checked: false, isBreached: false };
+    }
     for (const line of lines) {
       const [hashSuffix, count] = line.split(':');
-      if (hashSuffix === suffix) {
+      if (hashSuffix.toUpperCase() === suffix && Number(count) > 0) {
         return {
+          checked: true,
           isBreached: true,
           occurrences: parseInt(count, 10),
         };
       }
     }
-    return { isBreached: false };
-  } catch (error) {
-    logger.error('Password breach check failed', { error });
-    return { isBreached: false }; // Fail open to avoid blocking users
+    return { checked: true, isBreached: false };
+  } catch {
+    // Do not log request details or password-derived data.
+    logger.warn('Password breach check unavailable');
+    return { checked: false, isBreached: false };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 /**

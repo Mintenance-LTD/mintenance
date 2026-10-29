@@ -46,6 +46,7 @@ it('offers task-based management sections and retries a failed reporting-link lo
     .mockResolvedValueOnce({ ok: false })
     .mockResolvedValueOnce({ ok: true, json: async () => ({ tokens: [] }) });
   show();
+  fireEvent.click(screen.getByRole('button', { name: /People and access/ }));
   expect(
     screen.getByRole('navigation', { name: 'Property management sections' })
   ).toBeDefined();
@@ -72,6 +73,7 @@ it('shows all links and keeps the current state when disabling fails', async () 
     }),
   });
   show();
+  fireEvent.click(screen.getByRole('button', { name: /People and access/ }));
   await screen.findByText('Link 4 · Active');
   fetchMock.mockResolvedValueOnce({ ok: false });
   fireEvent.click(screen.getAllByRole('button', { name: 'Disable' })[0]);

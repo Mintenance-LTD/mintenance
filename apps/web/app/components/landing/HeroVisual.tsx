@@ -84,7 +84,7 @@ export function HeroVisual() {
           <div className='rounded-xl bg-white/5 border border-white/5 p-4'>
             <div className='flex items-center justify-between mb-3'>
               <p className='text-sm font-semibold text-white'>
-                Leak repair &mdash; external wall
+                Leak repair: external wall
               </p>
               <span className='px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 text-[11px] font-medium border border-amber-400/20'>
                 4 bids

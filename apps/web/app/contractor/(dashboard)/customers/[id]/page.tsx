@@ -304,7 +304,7 @@ export default async function CustomerDetailPage({
             <div className='kpi' style={{ padding: 0, border: 'none' }}>
               <div className='label'>Total revenue</div>
               <div className='num' style={{ color: 'var(--me-brand)' }}>
-                \u00A3{totalRevenue.toLocaleString('en-GB')}
+                {'\u00A3'}{totalRevenue.toLocaleString('en-GB')}
               </div>
             </div>
             <div className='kpi' style={{ padding: 0, border: 'none' }}>

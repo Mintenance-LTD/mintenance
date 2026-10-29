@@ -42,11 +42,14 @@ export default async function HomeownerOnboardingPage() {
 
   const { data: profile } = await serverSupabase
     .from('profiles')
-    .select('first_name, onboarding_completed')
+    .select('first_name, settings')
     .eq('id', user.id)
     .single();
 
-  if (profile?.onboarding_completed === true) {
+  if (
+    (profile?.settings as Record<string, unknown> | null)
+      ?.homeowner_setup_completed === true
+  ) {
     redirect('/dashboard');
   }
 

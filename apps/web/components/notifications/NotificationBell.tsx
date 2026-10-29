@@ -1,25 +1,8 @@
 'use client';
 
-/**
- * NotificationBell — shared topbar bell with live unread badge.
- *
- * Used by:
- *   - homeowner Mint Editorial shell (links to /notifications)
- *   - contractor Mint Editorial shell (links to /contractor/notifications)
- *
- * Sources of truth:
- *   - initial count: GET /api/notifications/unread-count
- *   - live updates: Supabase Realtime on the `notifications` table,
- *     filtered to the current user. Mirrors the pattern in
- *     `apps/web/app/notifications/useNotificationsRealtime.ts` so the
- *     badge and the inbox stay in lock-step without a second round-trip.
- *
- * Pure UI: shows a soft mint dot when count > 0, or a "9+" pill when
- * count > 9. Renders nothing while loading so it doesn't flash a stale
- * zero.
- */
+/** Shared notification bell. HTTP remains authoritative if realtime is unavailable. */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Bell } from 'lucide-react';
 import { useRealtime } from '@/hooks/useRealtime';
@@ -33,73 +16,88 @@ interface NotificationBellProps {
 
 export function NotificationBell({ href }: NotificationBellProps) {
   const { user } = useCurrentUser();
-  const [count, setCount] = useState<number | null>(null);
+  const userId = user?.id;
+  const [snapshot, setSnapshot] = useState<{
+    userId: string;
+    count: number;
+  } | null>(null);
+  const refreshRef = useRef<() => void>(() => {});
+  const count = snapshot?.userId === userId ? (snapshot?.count ?? null) : null;
 
-  // Initial fetch
   useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
+    setSnapshot(null);
+    if (!userId) return;
+    let disposed = false;
+    let controller: AbortController | null = null;
+    let refreshAgain = false;
+    const refresh = async () => {
+      if (disposed) return;
+      if (controller) {
+        refreshAgain = true;
+        return;
+      }
+      controller = new AbortController();
+      const timeout = window.setTimeout(() => controller?.abort(), 10_000);
       try {
         const res = await fetch('/api/notifications/unread-count', {
           credentials: 'include',
+          cache: 'no-store',
+          signal: controller.signal,
         });
-        if (!res.ok) return;
+        if (!res.ok) throw new Error('Unread count request failed');
         const data = (await res.json()) as { count?: number };
-        if (!cancelled) {
-          setCount(typeof data.count === 'number' ? data.count : 0);
+        if (!Number.isSafeInteger(data.count) || data.count! < 0) {
+          throw new Error('Invalid unread count');
         }
-      } catch (e) {
-        logger.warn('NotificationBell: unread-count load failed', {
-          service: 'ui',
-          error: e instanceof Error ? e.message : String(e),
-        });
-        if (!cancelled) setCount(0);
+        if (!disposed) setSnapshot({ userId, count: data.count! });
+      } catch {
+        if (!disposed) {
+          // Unknown is not zero. Do not show a false "no unread" result.
+          setSnapshot(null);
+          logger.warn('NotificationBell: unread-count load failed', {
+            service: 'ui',
+          });
+        }
+      } finally {
+        window.clearTimeout(timeout);
+        controller = null;
+        if (refreshAgain && !disposed) {
+          refreshAgain = false;
+          void refresh();
+        }
       }
-    })();
-    return () => {
-      cancelled = true;
     };
-  }, [user]);
+    const requestRefresh = () => {
+      void refresh();
+    };
+    refreshRef.current = requestRefresh;
+    requestRefresh();
+    // Also reconciles missed events and incomplete RLS old-row payloads.
+    const interval = window.setInterval(requestRefresh, 30_000);
+    window.addEventListener('online', requestRefresh);
+    return () => {
+      disposed = true;
+      controller?.abort();
+      window.clearInterval(interval);
+      window.removeEventListener('online', requestRefresh);
+      refreshRef.current = () => {};
+    };
+  }, [userId]);
 
-  // Live updates. Mirrors useNotificationsRealtime — but instead of
-  // mutating an array, we adjust the count by ±1 on insert/delete and
-  // on update we read the new `read` boolean to figure out whether the
-  // row just became read (-1) or unread (+1). UPDATE payloads include
-  // both `old` and `new` so we can tell the direction.
-  useRealtime(
-    user
+  const { status } = useRealtime(
+    userId
       ? {
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-          onInsert: (payload) => {
-            const row = payload.new as { read?: boolean };
-            const wasUnread = !(row?.read ?? false);
-            if (wasUnread) {
-              setCount((c) => (c == null ? 1 : c + 1));
-            }
-          },
-          onUpdate: (payload) => {
-            const before = payload.old as { read?: boolean } | null;
-            const after = payload.new as { read?: boolean };
-            const wasRead = !!before?.read;
-            const isRead = !!after?.read;
-            if (wasRead && !isRead) {
-              setCount((c) => (c == null ? 1 : c + 1));
-            } else if (!wasRead && isRead) {
-              setCount((c) => (c == null ? 0 : Math.max(0, c - 1)));
-            }
-          },
-          onDelete: (payload) => {
-            const row = payload.old as { read?: boolean } | null;
-            const wasUnread = !(row?.read ?? false);
-            if (wasUnread) {
-              setCount((c) => (c == null ? 0 : Math.max(0, c - 1)));
-            }
-          },
+          filter: `user_id=eq.${userId}`,
+          onInsert: () => refreshRef.current(),
+          onUpdate: () => refreshRef.current(),
+          onDelete: () => refreshRef.current(),
         }
       : undefined
   );
+  useEffect(() => {
+    if (status.connected) refreshRef.current();
+  }, [status.connected]);
 
   // While the initial fetch is in flight we render the plain bell —
   // skipping the badge avoids flashing "0" then snapping to a real count.

@@ -4,18 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import {
   Heart,
-  Users,
   Target,
   Award,
-  TrendingUp,
   Shield,
   Zap,
   Globe,
-  CheckCircle,
-  Star,
 } from 'lucide-react';
 import {
-  MotionButton,
   MotionDiv,
   MotionH1,
   MotionP,
@@ -159,7 +154,7 @@ export default function AboutPageClient() {
             variants={staggerContainer}
             initial='hidden'
             animate='visible'
-            className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-16'
+            className='grid grid-cols-2 lg:grid-cols-4 gap-6 mt-16'
           >
             {stats.map((stat, index) => {
               const Icon = stat.icon;
@@ -167,7 +162,7 @@ export default function AboutPageClient() {
                 <MotionDiv
                   key={index}
                   variants={staggerItem}
-                  className='rounded-xl p-6 text-center'
+                  className='rounded-2xl p-4 sm:p-6 text-center'
                   style={{ background: 'rgba(255,255,255,0.15)' }}
                 >
                   <Icon
@@ -175,7 +170,7 @@ export default function AboutPageClient() {
                     style={{ color: 'rgba(255,255,255,0.85)' }}
                   />
                   <p
-                    className='text-3xl mb-2'
+                    className='text-xl sm:text-3xl mb-2'
                     style={{
                       fontFamily: 'var(--me-font-display)',
                       fontWeight: 500,
@@ -366,7 +361,7 @@ export default function AboutPageClient() {
                 So we built a platform where every contractor submission is
                 reviewed by our team, every payment is held in escrow until the
                 work is done, and AI helps match the right professional to the
-                right job. No surprises, no disputes — just quality work, paid
+                right job. Clear expectations and quality work, paid
                 fairly.
               </p>
               <p className='font-medium' style={{ color: 'var(--me-ink)' }}>

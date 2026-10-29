@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { ReportExtras } from './ReportExtras';
 type Message = {
   id: string;
   author_role: string;
@@ -16,6 +17,8 @@ export function ReportConversation({ reportId }: { reportId: string }) {
       status: string;
       messages: Message[];
       hasMore: boolean;
+      photos?: { url: string; slot: number }[];
+      photos_unavailable?: boolean;
     } | null>(null),
     [error, setError] = useState(''),
     [body, setBody] = useState(''),
@@ -54,6 +57,10 @@ export function ReportConversation({ reportId }: { reportId: string }) {
       cache: 'no-store',
     })
       .then(async (response) => {
+        if (response.status === 403 && receipt)
+          throw new Error(
+            'This private link is no longer valid. Confirming an email link replaces the previous private link. Open the link from your latest confirmation, or recover access below.'
+          );
         if (!response.ok)
           throw new Error(
             'Unable to open this conversation. Check your sign-in or private receipt link.'
@@ -113,13 +120,37 @@ export function ReportConversation({ reportId }: { reportId: string }) {
         Keep your private receipt link to return. It grants access to this issue
         only.
       </p>
-      {error && <p role='alert'>{error}</p>}
+      {error && (
+        <div
+          role='alert'
+          className='space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4'
+        >
+          <p>{error}</p>
+          <a
+            className='inline-block rounded-lg bg-[#2d6a5b] px-4 py-2 font-semibold text-white'
+            href={`/maintenance/report-access?reportId=${reportId}`}
+          >
+            Recover access by email
+          </a>
+        </div>
+      )}
       <button onClick={() => setAttempt((v) => v + 1)} className='underline'>
         Refresh updates
       </button>
       {data && (
         <>
           <p>Status: {data.status}</p>
+          {data.photos_unavailable && (
+            <p role='status'>
+              Photos could not be loaded. Refresh to try again.
+            </p>
+          )}
+          <ReportExtras
+            reportId={reportId}
+            receipt={receipt}
+            photos={data.photos}
+            refresh={() => setAttempt((v) => v + 1)}
+          />
           <ul className='space-y-3'>
             {data.messages.map((message) => (
               <li key={message.id} className='border-b pb-3'>

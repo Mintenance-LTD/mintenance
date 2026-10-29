@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Button } from '@/components/ui/Button';
 import {
   AlertDialog,
@@ -17,7 +17,7 @@ import type { EscrowRecord } from './RefundManagementClient';
 
 type ActionType = 'release' | 'refund' | 'hold';
 
-interface ActionModalProps {
+interface ActionModalProps { error?: string | null;
   savedRefund?: { reason: string; amount?: number } | null;
   open: boolean;
   type: ActionType;
@@ -68,7 +68,7 @@ const ACTION_CONFIG: Record<
   },
 };
 
-export function ActionModal({
+export function ActionModal({ error,
   savedRefund,
   open,
   type,
@@ -303,7 +303,7 @@ export function ActionModal({
           )}
         </div>
 
-        <AlertDialogFooter>
+        {error && <p role='alert' style={{ color: '#963c27', background: '#fff1ed', padding: 12, borderRadius: 8 }}>{error}</p>}<AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <Button
             variant={config.confirmVariant}

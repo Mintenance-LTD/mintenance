@@ -39,3 +39,4 @@ export const designTokens = {
   effects,
 } as const;
 export type DesignTokens = typeof designTokens;
+export { mintEditorial } from './mintEditorial';

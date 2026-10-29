@@ -63,7 +63,8 @@ export async function bumpRetryOrFail(
   reason: string
 ): Promise<void> {
   const nextCount = (queuedNotif.retry_count ?? 0) + 1;
-  const terminal = nextCount >= MAX_RETRY_COUNT;
+  // A device token must be registered by the user; retrying cannot create it.
+  const terminal = reason === 'no_push_tokens' || nextCount >= MAX_RETRY_COUNT;
 
   if (terminal) {
     const { error } = await serverSupabase
@@ -79,7 +80,7 @@ export async function bumpRetryOrFail(
       .eq('id', queuedNotif.id)
       .eq('scheduled_for', queuedNotif.scheduled_for);
     if (error) throw new Error('notification_failure_checkpoint_failed');
-    logger.warn('Queued notification exhausted retries', {
+    logger.warn('Queued notification reached a terminal delivery failure', {
       service: 'notification-processor',
       queueId: queuedNotif.id,
       userId: queuedNotif.user_id,

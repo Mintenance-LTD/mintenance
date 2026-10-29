@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
   supabaseFrom: vi.fn(),
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
-  createNotification: vi.fn(),
+  enqueueScheduled: vi.fn(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
@@ -52,7 +52,7 @@ vi.mock('@/lib/logger', () => ({ logger: mocks.logger }));
 
 vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
-    createNotification: mocks.createNotification,
+    enqueueScheduled: mocks.enqueueScheduled,
   },
 }));
 
@@ -167,7 +167,7 @@ function setupDefaultMocks() {
     resetTime: Date.now() + 60000,
     retryAfter: 0,
   });
-  mocks.createNotification.mockResolvedValue(undefined);
+  mocks.enqueueScheduled.mockResolvedValue(undefined);
 }
 
 const completedJob = {
@@ -440,7 +440,7 @@ describe('POST /api/jobs/[id]/review', () => {
           ? { data: null, error: { code: '23505', message: 'duplicate' } }
           : undefined,
       });
-      mocks.createNotification.mockClear();
+      mocks.enqueueScheduled.mockClear();
       const res = await POST(
         createPostRequest('/api/jobs/job-1/review', {
           rating: 5,
@@ -454,7 +454,7 @@ describe('POST /api/jobs/[id]/review', () => {
         success: true,
         reviewId: 'persisted-review',
       });
-      expect(mocks.createNotification).not.toHaveBeenCalled();
+      expect(mocks.enqueueScheduled).not.toHaveBeenCalled();
     }
   );
 
@@ -514,6 +514,9 @@ describe('POST /api/jobs/[id]/review', () => {
     const body = await res.json();
     expect(body.success).toBe(true);
     expect(body.reviewId).toBe('review-1');
+    expect(mocks.enqueueScheduled).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'review-1', scheduledFor: expect.any(Date), type: 'review',
+    }));
     expect(body.message).toContain('submitted successfully');
   });
 

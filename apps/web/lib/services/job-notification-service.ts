@@ -1,3 +1,4 @@
+import { matchesRecurringTrade } from './recurring/recurring-category';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -18,6 +19,7 @@ interface NotificationJobContext {
 }
 
 interface NotificationPayload {
+  recurring?: { category: string; contractorId?: string };
   required_skills?: string[] | null;
 }
 
@@ -50,8 +52,30 @@ export class JobNotificationService {
       const contractors = await fetchNearbyContractors(coordinates, job.city);
       if (contractors.length === 0) return;
 
+      let audience = contractors;
+      if (payload.recurring) {
+        const { data: skills, error } = await serverSupabase
+          .from('contractor_skills')
+          .select('contractor_id,skill_name')
+          .in(
+            'contractor_id',
+            contractors.map((c) => c.id)
+          );
+        if (error)
+          throw new Error('Recurring trade audience could not be checked');
+        audience = contractors.filter(
+          (c) =>
+            (!payload.recurring?.contractorId ||
+              c.id === payload.recurring.contractorId) &&
+            skills?.some(
+              (s) =>
+                s.contractor_id === c.id &&
+                matchesRecurringTrade(payload.recurring!.category, s.skill_name)
+            )
+        );
+      }
       const contractorsToNotify = await this.filterContractorsBySkills(
-        contractors,
+        audience,
         payload.required_skills
       );
       await this.createNotifications(job, payload, contractorsToNotify);

@@ -18,6 +18,10 @@ const PUBLIC_PAGE_ROUTES = [
   '/forgot-password',
   '/reset-password',
   '/about',
+  '/for-homeowners',
+  '/for-contractors',
+  '/resources',
+  '/verification',
   '/contact',
   '/privacy',
   '/terms',
@@ -44,6 +48,8 @@ const PUBLIC_PAGE_ROUTES = [
 
 /** Exact-match public API routes. Sub-paths are NOT allowed. */
 const PUBLIC_API_ROUTES_EXACT = new Set([
+  '/api/report-access',
+  '/api/report-photos',
   '/api/report-conversation/receipt',
   '/api/csrf',
   '/api/contact', // validated and rate-limited anonymous support form
@@ -91,6 +97,10 @@ const ADMIN_AUTH_ROUTES = [
 const UUID_CONTRACTOR_PROFILE_RE =
   /^\/contractor\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Only the three privacy-filtered, rate-limited public profile GET endpoints.
+const UUID_PUBLIC_CONTRACTOR_API_RE =
+  /^\/api\/contractors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\/(?:reviews|metrics))?$/i;
+
 // Generated reporting capabilities are 16 random bytes encoded as 32 hex chars.
 // The handler still verifies existence, active status and the linked property,
 // and rate-limits anonymous requests. Never expose reporting management paths.
@@ -100,6 +110,14 @@ const TENANT_REPORT_RE = /^\/(?:api\/)?report\/[0-9a-f]{32}$/i;
  * Returns true when the given pathname requires no authentication.
  */
 export function isPublicRoute(pathname: string): boolean {
+  // Only the four reviewed marketing exports are public, never arbitrary media.
+  if (
+    /^\/media\/demos\/(?:01-homeowner|02-contractor-business|03-find-local-work|04-clear-agreements)\.(?:mp4|vtt)$/.test(
+      pathname
+    )
+  )
+    return true;
+  if (pathname === '/maintenance/report-access') return true;
   // The shell exposes no report data; the API requires a private receipt.
   if (/^\/maintenance\/reports\/[0-9a-f-]{36}$/i.test(pathname)) return true;
   if (pathname === '/') return true;
@@ -139,6 +157,7 @@ export function isPublicRoute(pathname: string): boolean {
   }
 
   if (PUBLIC_API_ROUTES_EXACT.has(pathname)) return true;
+  if (UUID_PUBLIC_CONTRACTOR_API_RE.test(pathname)) return true;
 
   if (
     PUBLIC_API_ROUTES_PREFIXED.some((prefix) => pathname.startsWith(prefix))

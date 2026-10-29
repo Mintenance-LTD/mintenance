@@ -35,6 +35,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
+import { useOnboardingAudience } from './useOnboardingAudience';
 
 export type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -228,6 +229,7 @@ function buildSteps(
   bits: ProfileBits,
   pushGranted: boolean
 ): OnboardingStep[] {
+  if (role === 'admin') return [];
   const hasPhoto = !!(bits.profile_image_url || bits.avatar_url);
   const commonStart: OnboardingStep[] = [
     {
@@ -315,6 +317,7 @@ function buildSteps(
 
 export function useOnboardingProgress(): OnboardingProgress {
   const { user } = useAuth();
+  const audience = useOnboardingAudience();
   const [bits, setBits] = useState<ProfileBits>(EMPTY_BITS);
   const [pushGranted, setPushGranted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -353,7 +356,7 @@ export function useOnboardingProgress(): OnboardingProgress {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, user?.role, user]);
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -378,7 +381,11 @@ export function useOnboardingProgress(): OnboardingProgress {
     };
   }
 
-  const steps = buildSteps(user.role, bits, pushGranted);
+  const steps = buildSteps(user.role, bits, pushGranted).filter(
+    (step) =>
+      audience.audience === 'contractor' ||
+      !['verify_business', 'setup_payouts'].includes(step.actionKey)
+  );
   const completed = steps.filter((s) => s.complete).length;
   const total = steps.length;
   const fraction = total === 0 ? 0 : completed / total;

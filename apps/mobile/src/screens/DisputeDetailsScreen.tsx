@@ -40,8 +40,8 @@ export function DisputeDetailsScreen({ route, navigation }: Props) {
     queryFn: ({ signal }) => readDispute(route.params, signal),
     enabled: !!user?.id,
     retry: false,
-    gcTime: 0,
-    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
   });
   const contextKey = `${user?.id}:${route.params.escrowId}:${route.params.jobId}`;
   const currentContext = useRef(contextKey);
@@ -90,7 +90,7 @@ export function DisputeDetailsScreen({ route, navigation }: Props) {
       />
       {!user?.id ? (
         <Text style={styles.body}>Please sign in to view this dispute.</Text>
-      ) : isFetching ? (
+      ) : isFetching && !data ? (
         <LoadingSpinner message='Loading dispute…' />
       ) : error ? (
         <ErrorView

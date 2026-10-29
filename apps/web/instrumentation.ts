@@ -69,55 +69,9 @@ export async function register() {
         return;
       }
 
-      // Initialize Roboflow (optional, non-critical)
-      try {
-        const { logRoboflowConfig } =
-          await import('./lib/config/roboflow.config');
-        logRoboflowConfig();
-      } catch {
-        // Roboflow not configured — OK
-      }
+      // Inference initializes on demand. Retraining runs through the authenticated
+      // retraining endpoint, never on an unrelated request's cold start.
 
-      // Initialize YOLO model (optional, non-critical)
-      try {
-        const { RoboflowDetectionService } =
-          await import('./lib/services/building-surveyor/RoboflowDetectionService');
-        await RoboflowDetectionService.initialize();
-      } catch {
-        // YOLO model not available — OK
-      }
-
-      // Start scheduled retraining checks (if enabled)
-      if (process.env.YOLO_CONTINUOUS_LEARNING_ENABLED === 'true') {
-        try {
-          const { YOLORetrainingService } =
-            await import('./lib/services/building-surveyor/YOLORetrainingService');
-          setInterval(
-            async () => {
-              try {
-                await YOLORetrainingService.checkAndRetrain();
-              } catch (error) {
-                logger.error('Scheduled retraining check failed', error, {
-                  service: 'yolo-retraining',
-                });
-              }
-            },
-            24 * 60 * 60 * 1000
-          );
-
-          YOLORetrainingService.checkAndRetrain().catch((error) => {
-            logger.error('Initial retraining check failed', error, {
-              service: 'yolo-retraining',
-            });
-          });
-
-          logger.info(
-            'YOLO continuous learning enabled - scheduled checks active'
-          );
-        } catch {
-          // YOLO retraining not available — OK
-        }
-      }
     } catch (error) {
       // Last-resort catch — never let instrumentation crash the server
       console.error('[instrumentation] Fatal error during startup:', error);

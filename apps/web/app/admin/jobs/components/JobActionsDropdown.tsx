@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { AdminJobTrackingModal } from './AdminJobTrackingModal';
@@ -103,13 +103,13 @@ export function ActionsDropdown({
           }}
         >
           <DropdownLink
-            href={`/jobs/${jobId}`}
+            href={`/admin/jobs/${jobId}`}
             label='View Job'
             icon='eye'
             onClose={() => setOpen(false)}
           />
           <DropdownLink
-            href={`/jobs/${jobId}#bids`}
+            href={`/admin/jobs/${jobId}#bids`}
             label='View Bids'
             icon='fileText'
             onClose={() => setOpen(false)}
@@ -128,7 +128,7 @@ export function ActionsDropdown({
             <DropdownLink
               href='/admin/escrow/reviews'
               label='Escrow Reviews'
-              icon='dollarSign'
+              icon='currencyPound'
               onClose={() => setOpen(false)}
             />
           )}

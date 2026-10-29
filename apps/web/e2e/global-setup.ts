@@ -54,7 +54,9 @@ async function authenticateViaEndpoint(
     );
   }
 
-  const context = await browser.newContext();
+  const context = await browser.newContext({
+    ignoreHTTPSErrors: !!process.env.CI && baseURL === 'https://localhost:3000',
+  });
   try {
     const response = await context.request.post(
       `${baseURL}/api/test-auth/login`,

@@ -13,23 +13,23 @@ import Link from 'next/link';
 const FAQ_ITEMS = [
   {
     q: 'How does the protected payment system work?',
-    a: "When you accept a contractor's bid, your payment is held securely by Mintenance. The contractor completes the work, you approve it, and then funds are released. If there's any issue, our mediation team steps in to resolve it fairly — protecting both homeowners and contractors.",
+    a: "When you accept a contractor's bid, your payment is held securely by Mintenance. The contractor completes the work, you approve it, and then funds are released. If there's any issue, our mediation team steps in to resolve it fairly: protecting both homeowners and contractors.",
   },
   {
     q: 'How are contractors checked before they can bid?',
-    a: 'Contractors share their credentials (e.g. Gas Safe, NICEIC), insurance, and business details during onboarding. Our admin team reviews each submission manually before a contractor can bid — direct lookups against the official registers are on our roadmap, not live today. Past jobs, ratings, and dispute history are visible on every contractor profile so you can judge fit for yourself.',
+    a: 'Contractors share their credentials (e.g. Gas Safe, NICEIC), insurance, and business details during onboarding. Our admin team reviews each submission manually before a contractor can bid: direct lookups against the official registers are on our roadmap, not live today. Past jobs, ratings, and dispute history are visible on every contractor profile so you can judge fit for yourself.',
   },
   {
     q: 'What fees does Mintenance charge?',
-    a: 'Homeowners post jobs completely free. Contractors pay a small service fee only when they win a job — no monthly subscriptions, listing fees, or hidden costs. The exact fee is shown before accepting any job.',
+    a: 'Review the Pricing page for current plans and fees. Any confirmed early-access award has its own terms; signing up alone does not guarantee an award. Check the charges shown for your account before committing to work.',
   },
   {
     q: 'How long does it take to get quotes?',
-    a: 'Most jobs receive competitive bids within 24–48 hours. You can review profiles, ratings, past work and quotes before choosing.',
+    a: 'Response times depend on the work, location and contractor availability. You can review proposals, profiles and past work before choosing.',
   },
   {
     q: 'Do I have to use Mint AI?',
-    a: 'No. Mint AI photo guidance is optional — it can help describe a repair and estimate a fair price before posting. Contractor quotes, credentials, messages and protected payment are the core of the service.',
+    a: 'No. Mint AI photo guidance is optional: it can help describe a repair and estimate a fair price before posting. Contractor quotes, credentials, messages and protected payment are the core of the service.',
   },
   {
     q: "What if I'm not satisfied with the work?",

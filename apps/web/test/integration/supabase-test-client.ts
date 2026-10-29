@@ -64,10 +64,17 @@ export function createServiceClient(): SupabaseClient {
  */
 async function requireLocalSupabase(): Promise<void> {
   try {
-    const res = await fetch(`${TEST_SUPABASE_URL}/rest/v1/`, {
-      headers: { apikey: TEST_ANON_KEY },
-    });
-    if (!res.ok && res.status !== 404) {
+    const res = await fetch(
+      `${TEST_SUPABASE_URL}/rest/v1/profiles?select=id&limit=0`,
+      {
+        headers: {
+          apikey: TEST_SERVICE_KEY,
+          Authorization: `Bearer ${TEST_SERVICE_KEY}`,
+        },
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+    if (!res.ok) {
       throw new Error(`Unexpected status ${res.status}`);
     }
   } catch (err) {
@@ -81,20 +88,23 @@ async function requireLocalSupabase(): Promise<void> {
 }
 
 /**
- * Synchronously check if Supabase is likely available by attempting a quick
- * TCP connection. Used at test-file load time where top-level await is unreliable.
+ * Check the local REST API with a bounded query instead of generating the full
+ * OpenAPI schema, which can time out on the complete migration set.
  * Returns a Promise that resolves to boolean — never throws.
  */
 export async function isLocalSupabaseAvailable(): Promise<boolean> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
-    const res = await fetch(`${TEST_SUPABASE_URL}/rest/v1/`, {
-      headers: { apikey: TEST_ANON_KEY },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    return res.status < 500;
+    const res = await fetch(
+      `${TEST_SUPABASE_URL}/rest/v1/profiles?select=id&limit=0`,
+      {
+        headers: {
+          apikey: TEST_SERVICE_KEY,
+          Authorization: `Bearer ${TEST_SERVICE_KEY}`,
+        },
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+    return res.ok;
   } catch {
     return false;
   }

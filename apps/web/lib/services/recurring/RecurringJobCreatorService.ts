@@ -1,3 +1,4 @@
+import { recurringCategory } from './recurring-category';
 import { advanceRecurringDate } from './advance-recurring-date';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { JobCreationService } from '@/lib/services/job-creation-service';
@@ -18,11 +19,12 @@ export class RecurringJobCreatorService {
     next: string,
     frequency: string,
     ownerId: string,
-    propertyId: string
+    propertyId: string,
+    jobId: string
   ) {
     const { data, error } = await serverSupabase
       .from('recurring_schedules')
-      .update({ next_due_date: next })
+      .update({ next_due_date: next, last_job_id: jobId })
       .eq('id', id)
       .eq('next_due_date', due)
       .eq('is_active', true)
@@ -57,7 +59,7 @@ export class RecurringJobCreatorService {
     const { data: schedules, error } = await serverSupabase
       .from('recurring_schedules')
       .select(
-        'id, owner_id, property_id, title, description, category, frequency, next_due_date, auto_create_job'
+        'id, owner_id, property_id, title, description, category, frequency, next_due_date, auto_create_job, task_type, preferred_contractor_id, notification_audience'
       )
       .eq('is_active', true)
       .eq('auto_create_job', true)
@@ -117,11 +119,20 @@ export class RecurringJobCreatorService {
             nextDate,
             schedule.frequency,
             schedule.owner_id,
-            schedule.property_id
+            schedule.property_id,
+            existing[0].id
           );
           result.skipped++;
           continue;
         }
+
+        if (
+          schedule.notification_audience === 'preferred' &&
+          !schedule.preferred_contractor_id
+        )
+          throw new Error(
+            'Choose a favourite contractor or switch to matching contractors.'
+          );
 
         // Create the job, tagging it with the schedule_id for next-run
         // idempotency lookups.
@@ -143,7 +154,17 @@ export class RecurringJobCreatorService {
               (schedule.description?.trim().length ?? 0) >= 20
                 ? schedule.description.trim()
                 : `Recurring maintenance: ${schedule.title}`,
-            category: schedule.category || undefined,
+            category: recurringCategory(schedule.category, schedule.task_type),
+            recurring_notification: {
+              category: recurringCategory(
+                schedule.category,
+                schedule.task_type
+              ),
+              ...(schedule.notification_audience === 'preferred' &&
+              schedule.preferred_contractor_id
+                ? { contractorId: schedule.preferred_contractor_id }
+                : {}),
+            },
             property_id: schedule.property_id,
             requirements: {
               from_schedule_id: schedule.id,
@@ -160,7 +181,8 @@ export class RecurringJobCreatorService {
           nextDate,
           schedule.frequency,
           schedule.owner_id,
-          schedule.property_id
+          schedule.property_id,
+          job.id
         );
 
         // Notify the owner. Non-fatal if it fails — the job + date

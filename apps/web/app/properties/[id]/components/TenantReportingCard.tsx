@@ -123,7 +123,7 @@ export function TenantReportingCard({
       toast.error('Reporting link unavailable. Reload and retry.');
       return;
     }
-    const url = `${window.location.origin}/report/${encodeURIComponent(reportToken)}`;
+    const url = `https://www.mintenance.co.uk/report/${encodeURIComponent(reportToken)}`;
     const ok = await safeCopyToClipboard(url);
     if (ok) {
       toast.success('Link copied to clipboard');

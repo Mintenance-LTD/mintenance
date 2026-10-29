@@ -16,14 +16,16 @@ import { useCSRF } from '@/lib/hooks/useCSRF';
 
 const navigation = {
   homeowners: [
-    { name: 'Post a job', href: '/jobs/create' },
+    { name: 'Post your first job', href: '/register?role=homeowner' },
+    { name: 'Homeowner demo', href: '/for-homeowners#demo-homeowner' },
     { name: 'How it works', href: '/how-it-works' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Mint AI', href: '/try-mint-ai' },
   ],
   contractors: [
     { name: 'Join as a pro', href: '/for-contractors' },
-    { name: 'Browse jobs', href: '/contractor/discover' },
+    { name: 'See the job map', href: '/for-contractors#demo-local-work' },
+    { name: 'Business tools demo', href: '/for-contractors#demo-business' },
     { name: 'Resources', href: '/resources' },
     { name: 'Verification', href: '/verification' },
   ],
@@ -36,6 +38,7 @@ const navigation = {
     { name: 'Help centre', href: '/help' },
     { name: 'FAQs', href: '/faq' },
     { name: 'Safety', href: '/safety' },
+    { name: 'Agreements explained', href: '/how-it-works#demo-agreements' },
     { name: 'Terms', href: '/terms' },
     { name: 'Privacy', href: '/privacy' },
   ],
@@ -251,8 +254,8 @@ export function Footer2025() {
                 margin: '0 0 20px',
               }}
             >
-              The modern way to hire local tradespeople — fair prices,
-              escrow-protected payments, every job in one place.
+              Hire local tradespeople with fair prices, escrow-protected
+              payments, every job in one place.
             </p>
 
             <section aria-labelledby='newsletter-heading'>

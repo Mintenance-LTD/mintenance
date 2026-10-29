@@ -26,7 +26,7 @@ export default function ContractorDetailsError({
   }, [error]);
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8'>
+    <div className='min-h-screen flex items-center justify-center bg-[#f3f7f4] px-4 py-12 sm:px-6 lg:px-8'>
       <div className='max-w-md w-full space-y-8'>
         <div className='text-center'>
           <div className='mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100'>
@@ -34,12 +34,11 @@ export default function ContractorDetailsError({
           </div>
 
           <h2 className='mt-6 text-3xl font-bold text-gray-900'>
-            Contractor not found
+            Profile unavailable
           </h2>
 
           <p className='mt-2 text-sm text-gray-600'>
-            We couldn't load this contractor's profile. They may have been
-            removed or you don't have permission to view it.
+            We couldn't load this contractor's profile. Please try again or browse other contractors.
           </p>
 
           {error.digest && (
@@ -86,7 +85,7 @@ export default function ContractorDetailsError({
             Contact our support team at{' '}
             <a
               href='mailto:support@mintenance.co.uk'
-              className='text-blue-600 hover:underline'
+              className='text-[#2f6f5f] underline'
             >
               support@mintenance.co.uk
             </a>

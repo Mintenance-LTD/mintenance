@@ -43,7 +43,7 @@ jest.mock('../../utils/logger', () => ({
 
 import { useBackgroundCheckGate } from '../useBackgroundCheckGate';
 
-const STORAGE_KEY = 'background_check_prompt_dismissed_at';
+const STORAGE_KEY = 'background_check_prompt_dismissed_at:u1';
 const onboardedContractor = {
   id: 'u1',
   role: 'contractor',

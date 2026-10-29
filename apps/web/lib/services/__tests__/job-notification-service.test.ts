@@ -205,3 +205,58 @@ describe('JobNotificationService.notifyPreferredContractor', () => {
     expect(mockCreateNotification).not.toHaveBeenCalled();
   });
 });
+
+describe('recurring trade and preferred audience', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockNextWindow.mockReturnValue(null);
+    mockCreateNotification.mockResolvedValue('n');
+    mockFetchAudience.mockResolvedValue(
+      audience('gardener', 'plumber', 'other-gardener')
+    );
+  });
+  it('alerts only matching trades in the eligible service area', async () => {
+    mockFrom.mockReturnValue(
+      buildChain({
+        data: [
+          { contractor_id: 'gardener', skill_name: 'Garden maintenance' },
+          { contractor_id: 'plumber', skill_name: 'Plumbing' },
+        ],
+      })
+    );
+    await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
+      recurring: { category: 'gardening' },
+    });
+    expect(mockCreateNotification).toHaveBeenCalledTimes(1);
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'gardener' })
+    );
+  });
+  it('restricts the selected contractor without broadening to other trades or favourites', async () => {
+    mockFrom.mockReturnValue(
+      buildChain({
+        data: [
+          { contractor_id: 'gardener', skill_name: 'Landscaping' },
+          { contractor_id: 'other-gardener', skill_name: 'Gardening' },
+        ],
+      })
+    );
+    await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
+      recurring: { category: 'gardening', contractorId: 'other-gardener' },
+    });
+    expect(mockCreateNotification).toHaveBeenCalledTimes(1);
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'other-gardener' })
+    );
+  });
+  it.each([{ data: [] }, { error: { message: 'unavailable' } }])(
+    'never falls back to every contractor when trade matching fails',
+    async (result) => {
+      mockFrom.mockReturnValue(buildChain(result));
+      await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
+        recurring: { category: 'gardening' },
+      });
+      expect(mockCreateNotification).not.toHaveBeenCalled();
+    }
+  );
+});

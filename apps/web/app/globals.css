@@ -103,8 +103,8 @@ footer #newsletter-email::placeholder {
   color: #d9e5dd !important;
 }
 
-/* Custom theme colors for Tailwind v4 */
-@theme {
+/* Runtime CSS variables. Tailwind 3 utilities use tailwind.config.js. */
+:root {
   /* Primary Brand Colors (Navy Blue) */
   --color-primary-50: #f8fafc;
   --color-primary-100: #f1f5f9;
@@ -192,10 +192,8 @@ footer #newsletter-email::placeholder {
 [data-debug-overlay],
 [class*='debug'],
 [class*='ruler'],
-[class*='guide'],
 [id*='debug'],
-[id*='ruler'],
-[id*='guide'] {
+[id*='ruler'] {
   display: none !important;
 }
 

@@ -192,10 +192,10 @@ export function MintEditorialPropertyDetail({
       ) : null}
 
       {activeTab === 'documents' ? (
-        <>
+        <div style={{ display: 'grid', gap: 24 }}>
           <PropertyFileHub propertyId={property.id} />
           <MintEditorialPropertyDocuments certificates={certificates} />
-        </>
+        </div>
       ) : null}
 
       {activeTab === 'timeline' ? (
@@ -206,6 +206,7 @@ export function MintEditorialPropertyDetail({
         <MintEditorialPropertyAccess
           propertyId={property.id}
           jobs={jobs}
+          entrySecretUnavailable={property.entry_secret_unavailable}
           initialAccess={{
             access_mode: property.access_mode ?? null,
             key_safe_code: property.key_safe_code ?? null,

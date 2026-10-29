@@ -12,7 +12,8 @@ export default async function AdminUsersPage() {
 
   const { data: users, count } = await supabase
     .from('profiles')
-    .select('*', { count: 'exact' })
+    .select('id,email,first_name,last_name,role,company_name,license_number,admin_verified,created_at,updated_at', { count: 'exact' })
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .range(0, PAGE_SIZE - 1);
 
@@ -26,9 +27,9 @@ export default async function AdminUsersPage() {
     admin_verified: u.admin_verified ?? false,
     created_at: u.created_at,
     updated_at: u.updated_at,
-    verificationStatus: u.admin_verified
+    verificationStatus: u.role !== 'contractor' ? ('not_applicable' as const) : u.admin_verified
       ? ('verified' as const)
-      : ('pending' as const),
+      : u.company_name && u.license_number ? ('pending' as const) : ('not_submitted' as const),
   }));
 
   const pagination = {

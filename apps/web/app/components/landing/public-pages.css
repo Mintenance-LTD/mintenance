@@ -1,0 +1,68 @@
+/* Public information pages share Mint Editorial navigation and rhythm. */
+.public-page-navigation {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+body:has(.public-page-navigation) {
+  background: #f2f7f3;
+}
+body:has(.public-page-navigation) main,
+body:has(.public-page-navigation) [role='main'] {
+  scroll-margin-top: 90px;
+}
+body:has(.public-page-navigation) h1 {
+  font-size: clamp(2.25rem, 5.5vw, 4.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+body:has(.public-page-navigation) h2 {
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+body:has(.public-page-navigation) p {
+  line-height: 1.7;
+}
+body:has(.public-page-navigation)
+  :is(a, button, input, textarea, select):focus-visible {
+  outline: 3px solid #277568;
+  outline-offset: 4px;
+}
+@media (max-width: 640px) {
+  body:has(.public-page-navigation) .px-8 {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  body:has(.public-page-navigation) .p-12 {
+    padding: 24px;
+  }
+  body:has(.public-page-navigation) .pt-32 {
+    padding-top: 48px;
+  }
+  body:has(.public-page-navigation) .gap-12 {
+    gap: 28px;
+  }
+  body:has(.public-page-navigation) .text-6xl {
+    font-size: 2.5rem;
+  }
+}
+
+/* Readable document rhythm and consistent public icon weight. */
+.public-legal-copy {
+  overflow-wrap: anywhere;
+}
+.public-legal-copy > div > section + section {
+  padding-top: 2rem;
+  border-top: 1px solid #d8e2da;
+}
+body:has(.public-page-navigation) main svg.lucide {
+  stroke-width: 1.75;
+  flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  body:has(.public-page-navigation) main * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

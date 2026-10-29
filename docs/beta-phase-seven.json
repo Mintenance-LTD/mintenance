@@ -1,0 +1,37 @@
+{
+  "recordedOn": "2026-10-10",
+  "phase": "F07",
+  "status": "implementation_verified",
+  "changes": [
+    "Service-only inbox projection authorizes homeowner, assigned contractor or designated payer; no broader direct jobs access or property secret exposure.",
+    "Database pagination orders by activity and job UUID, retaining timestamp precision. Snapshot cut-off keeps new messages from moving unseen conversations out of an ongoing traversal.",
+    "Per-job latest-message lookup prevents a busy conversation from starving other previews; unread counts include only messages addressed to the authenticated actor.",
+    "Web and mobile consume cursor pages with deduplication and fresh cursor state on refresh. Non-advancing cursors and database failures surface as errors."
+  ],
+  "verification": {
+    "postgresChecks": 60,
+    "inboxDatabaseChecks": 4,
+    "fixtureConversations": 201,
+    "webTests": 5,
+    "mobileTests": 30
+  },
+  "rollout": [
+    "Apply the new inbox function migration before deploying its API consumer.",
+    "Deploy API before releasing updated mobile clients; legacy clients retain first-page shape and ISO cursors remain accepted.",
+    "Exact deployed cookie/bearer transport and device acceptance remain F12."
+  ],
+  "newUserReports": {
+    "priority": "Next phase F07A before F08",
+    "issues": [
+      "Signup returns to sign-in without a clear confirmation-email state",
+      "Mobile database error after registration/sign-in",
+      "Web invalid-credentials response for the reported account",
+      "Archived job thumbnails and job-detail loading failure",
+      "Existing profile photo missing on mobile and inconsistent completion prompts",
+      "Profile edit back navigation returns to dashboard and leaves profile tab on editor",
+      "Completion percentage needs an actionable list of missing fields",
+      "Poor performance on mobile connections"
+    ],
+    "evidence": "User screenshots and narrated reproduction supplied 2026-10-10; causes not yet established."
+  }
+}

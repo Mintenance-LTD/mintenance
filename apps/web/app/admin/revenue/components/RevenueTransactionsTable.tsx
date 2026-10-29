@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { DollarSign } from 'lucide-react';
+import { PoundSterling } from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -196,7 +196,7 @@ export function RevenueTransactionsTable({
 
       {transactions.length === 0 && (
         <div className='text-center py-12'>
-          <DollarSign className='w-12 h-12 text-gray-400 mx-auto mb-4' />
+          <PoundSterling className='w-12 h-12 text-gray-400 mx-auto mb-4' />
           <p className='text-gray-500'>No transactions found</p>
         </div>
       )}

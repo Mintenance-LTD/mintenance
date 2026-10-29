@@ -10,6 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { safeNavigationUrl } from '@/lib/security/navigation-url';
 
 interface Certification {
   id: string;
@@ -55,6 +56,7 @@ export function CertificationCard({
   onEdit,
 }: CertificationCardProps) {
   const daysUntilExpiry = calculateDaysUntilExpiry(cert.expiryDate);
+  const documentUrl = safeNavigationUrl(cert.documentUrl);
 
   return (
     <div className='p-6 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow'>
@@ -110,9 +112,9 @@ export function CertificationCard({
           </div>
         </div>
         <div className='flex flex-wrap gap-2'>
-          {cert.documentUrl && (
+          {documentUrl && (
             <button
-              onClick={() => window.open(cert.documentUrl, '_blank')}
+              onClick={() => window.open(documentUrl, '_blank', 'noopener,noreferrer')}
               className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm'
             >
               <Download className='w-4 h-4' />

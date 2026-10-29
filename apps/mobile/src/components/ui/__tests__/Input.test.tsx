@@ -1,3 +1,4 @@
+import { me } from '../../../design-system/mint-editorial';
 import React, { createRef } from 'react';
 import { TextInput } from 'react-native';
 import { render, fireEvent } from '../../test-utils';
@@ -279,7 +280,7 @@ describe('Input', () => {
       );
 
       const input = getByTestId('test-input');
-      expect(input.props.placeholderTextColor).toBe('#B0B0B0');
+      expect(input.props.placeholderTextColor).toBe(me.ink4);
     });
 
     it('should use variant-specific placeholder color for filled variant', () => {
@@ -550,7 +551,7 @@ describe('Input', () => {
       );
 
       const input = getByTestId('test-input');
-      expect(input.props.placeholderTextColor).toBe('#B0B0B0');
+      expect(input.props.placeholderTextColor).toBe(me.ink4);
     });
 
     it('should fallback to theme color when variant color is undefined', () => {

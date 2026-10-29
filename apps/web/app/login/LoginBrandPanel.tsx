@@ -127,7 +127,7 @@ export function LoginBrandPanel() {
           }}
         >
           Mintenance is the modern home-maintenance platform built around real
-          trust — verified people, fair prices, payments only released when
+          trust: verified people, fair prices, payments only released when
           you&apos;re happy.
         </p>
       </div>

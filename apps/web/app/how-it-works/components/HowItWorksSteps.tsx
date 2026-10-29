@@ -141,7 +141,7 @@ export function HowItWorksSteps({ activeRole }: HowItWorksStepsProps) {
             variants={staggerItem}
             className={`flex flex-col ${
               isEven ? 'lg:flex-row' : 'lg:flex-row-reverse'
-            } items-center gap-8 lg:gap-12`}
+            } items-center gap-6 lg:gap-12 rounded-3xl border border-[#d8e2da] bg-white p-6 lg:p-10`}
           >
             <div className='flex-1 text-center lg:text-left'>
               <div className='inline-flex items-center gap-3 mb-4'>
@@ -178,7 +178,7 @@ export function HowItWorksSteps({ activeRole }: HowItWorksStepsProps) {
 
             <div className='flex-1 flex justify-center'>
               <div
-                className='w-64 h-64 flex items-center justify-center transform hover:scale-105 transition-transform'
+                className='w-20 h-20 lg:w-40 lg:h-40 flex items-center justify-center transform hover:scale-105 transition-transform'
                 style={{
                   borderRadius: 'var(--me-radius-card)',
                   background: 'var(--me-brand-soft)',
@@ -186,7 +186,7 @@ export function HowItWorksSteps({ activeRole }: HowItWorksStepsProps) {
                   boxShadow: 'var(--me-shadow-pop)',
                 }}
               >
-                <Icon className='w-32 h-32' aria-hidden='true' />
+                <Icon className='w-9 h-9 lg:w-16 lg:h-16' aria-hidden='true' />
               </div>
             </div>
           </MotionDiv>

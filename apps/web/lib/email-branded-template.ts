@@ -11,11 +11,11 @@
 
 const BRAND = {
   name: 'Mintenance',
-  color: '#0d9488', // teal-600
-  colorDark: '#0f766e', // teal-700
-  colorLight: '#f0fdfa', // teal-50
-  url: process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com',
-  logo: '/assets/icon.png',
+  color: '#2f6f5f', // teal-600
+  colorDark: '#245748', // teal-700
+  colorLight: '#e9f1eb', // teal-50
+  url: process.env.NEXT_PUBLIC_APP_URL || 'https://www.mintenance.co.uk',
+  logo: '/assets/logo-mark.png',
   year: new Date().getFullYear(),
   company: 'Mintenance Ltd',
   companyNo: '16542104',
@@ -61,7 +61,7 @@ export function brandedEmail(options: BrandedEmailOptions): string {
 
   const unsubscribeHtml = showUnsubscribe
     ? `<p style="margin-top:16px;">
-        <a href="${BRAND.url}/settings/notifications" style="color:#9ca3af;text-decoration:underline;">Email preferences</a>
+        <a href="${BRAND.url}/settings/notifications" style="color:#59675f;text-decoration:underline;">Email preferences</a>
       </p>`
     : '';
 
@@ -73,11 +73,11 @@ export function brandedEmail(options: BrandedEmailOptions): string {
   <meta name="color-scheme" content="light" />
   <title>${title}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<body style="margin:0;padding:0;background-color:#f3f7f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   ${preheaderHtml}
 
   <!-- Outer wrapper -->
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f7f4;">
     <tr>
       <td align="center" style="padding:32px 16px;">
 
@@ -86,18 +86,18 @@ export function brandedEmail(options: BrandedEmailOptions): string {
 
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,${BRAND.color},${BRAND.colorDark});padding:32px 24px;text-align:center;">
+            <td style="background-color:${BRAND.colorLight};padding:32px 24px;text-align:center;">
               <img src="${BRAND.url}${BRAND.logo}" alt="${BRAND.name}" width="40" height="40" style="border-radius:8px;margin-bottom:12px;" />
-              <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;line-height:1.3;">
+              <h1 style="margin:0;font-size:22px;font-weight:600;color:#1a2520;line-height:1.3;">
                 ${title}
               </h1>
-              ${subtitle ? `<p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">${subtitle}</p>` : ''}
+              ${subtitle ? `<p style="margin:8px 0 0;font-size:14px;color:#4a5751;">${subtitle}</p>` : ''}
             </td>
           </tr>
 
           <!-- Body -->
           <tr>
-            <td style="padding:32px 24px;font-size:16px;color:#374151;line-height:1.65;">
+            <td style="padding:32px 24px;font-size:16px;color:#4a5751;line-height:1.65;">
               ${body}
               ${ctaHtml}
             </td>
@@ -105,7 +105,7 @@ export function brandedEmail(options: BrandedEmailOptions): string {
 
           <!-- Footer -->
           <tr>
-            <td style="padding:20px 24px 28px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#9ca3af;line-height:1.5;">
+            <td style="padding:20px 24px 28px;border-top:1px solid #d8e2da;text-align:center;font-size:12px;color:#59675f;line-height:1.5;">
               <p style="margin:0 0 4px;">&copy; ${BRAND.year} ${BRAND.company}. Company No. ${BRAND.companyNo}.</p>
               <p style="margin:0 0 4px;">${BRAND.address}</p>
               ${unsubscribeHtml}

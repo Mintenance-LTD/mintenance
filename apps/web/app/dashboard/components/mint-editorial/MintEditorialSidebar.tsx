@@ -35,6 +35,11 @@ function NavLink({
   const active = isActive(pathname, item.href);
   return (
     <Link
+      data-tutorial={item.href
+        .split('?')[0]
+        .split('/')
+        .pop()
+        ?.replace('dashboard-enhanced', 'dashboard')}
       href={item.href}
       className={'me-nav-item ' + (active ? 'active' : '')}
       aria-current={active ? 'page' : undefined}

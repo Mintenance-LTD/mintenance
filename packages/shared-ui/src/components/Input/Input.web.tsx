@@ -5,7 +5,7 @@
  */
 'use client';
 import React, { useState, useId, forwardRef } from 'react';
-import { webTokens } from '@mintenance/design-tokens';
+import { useWebTokens } from '../../ThemeProvider';
 import { cn } from '../../utils/cn';
 import type { WebInputProps, InputSize } from './types';
 /**
@@ -15,6 +15,7 @@ import type { WebInputProps, InputSize } from './types';
  */
 export const Input = forwardRef<HTMLInputElement, WebInputProps>(
   (props, ref) => {
+    const webTokens = useWebTokens();
     const {
       value,
       defaultValue,
@@ -68,9 +69,9 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>(
     };
     // Base border color
     const baseBorderColor = hasError
-      ? webTokens.colors.error
+      ? 'var(--me-err-fg, #8A2E1B)'
       : hasSuccess
-        ? webTokens.colors.success
+        ? 'var(--me-ok-fg, #166B49)'
         : webTokens.colors.border;
     // Base styles - using separate border properties instead of shorthand
     const baseStyles: React.CSSProperties = {
@@ -92,11 +93,11 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>(
       isFocused && !disabled
         ? {
             borderColor: hasError
-              ? webTokens.colors.error
+              ? 'var(--me-err-fg, #8A2E1B)'
               : hasSuccess
-                ? webTokens.colors.success
+                ? 'var(--me-ok-fg, #166B49)'
                 : webTokens.colors.primary,
-            boxShadow: `0 0 0 3px ${hasError ? webTokens.colors.error + '20' : hasSuccess ? webTokens.colors.success + '20' : webTokens.colors.primary + '20'}`,
+            boxShadow: `0 0 0 3px ${hasError ? 'var(--me-err-bg, #F5DDD2)' : hasSuccess ? 'var(--me-ok-bg, #D9EFE2)' : webTokens.colors.primary + '20'}`,
           }
         : {};
     // Normalize style prop to avoid mixing shorthand and non-shorthand border properties
@@ -244,7 +245,7 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>(
             {required && (
               <span
                 style={{
-                  color: webTokens.colors.error,
+                  color: 'var(--me-err-fg, #8A2E1B)',
                   marginLeft: webTokens.spacing.xs,
                 }}
               >
@@ -320,9 +321,9 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>(
                 display: 'flex',
                 alignItems: 'center',
                 color: hasError
-                  ? webTokens.colors.error
+                  ? 'var(--me-err-fg, #8A2E1B)'
                   : hasSuccess
-                    ? webTokens.colors.success
+                    ? 'var(--me-ok-fg, #166B49)'
                     : webTokens.colors.textSecondary,
               }}
               aria-hidden='true'
@@ -339,9 +340,9 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>(
               marginTop: webTokens.spacing.xs,
               fontSize: webTokens.typography.fontSize.xs,
               color: errorText
-                ? webTokens.colors.error
+                ? 'var(--me-err-fg, #8A2E1B)'
                 : successText
-                  ? webTokens.colors.success
+                  ? 'var(--me-ok-fg, #166B49)'
                   : webTokens.colors.textSecondary,
             }}
           >

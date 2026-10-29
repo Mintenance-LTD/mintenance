@@ -1,4 +1,8 @@
-# Mint AI VLM v2 — Current State
+# Mint AI VLM v2 — Historical State
+
+> For the current source audit, Roboflow backlog and next steps, read
+> [MINT_AI_CONTINUATION.md](MINT_AI_CONTINUATION.md). Deployment and readiness claims below
+> are historical reports, not a fresh verification of production configuration or model accuracy.
 
 **Last updated:** 2026-04-23 **Status:** Deployed (shadow mode ready) **Supersedes:** parts of
 [`MINT_AI_TRAINING_GUIDE.md`](./MINT_AI_TRAINING_GUIDE.md) and

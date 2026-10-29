@@ -2,6 +2,7 @@
 export * from './state-machines';
 
 // Shared copy constants (user-facing language)
+export * from './onboarding';
 export {
   PROTECTED_PAYMENT,
   PROTECTED_PAYMENT_LOWER,

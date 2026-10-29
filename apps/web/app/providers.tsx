@@ -1,6 +1,7 @@
 'use client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
+import { FeatureGuideLink } from '@/components/onboarding/FeatureGuideLink';
 import { Toaster } from 'react-hot-toast';
 import { queryClient } from '@/lib/react-query-client';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -29,6 +30,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <ConfirmDialogProvider>
+          <FeatureGuideLink />
           {children}
           {/*
           react-hot-toast portal. Mounted globally because 107+ files
@@ -49,30 +51,30 @@ export function Providers({ children }: { children: React.ReactNode }) {
             toastOptions={{
               duration: 5000,
               style: {
-                fontFamily: 'var(--font-inter)',
+                fontFamily: 'var(--me-font-ui)',
+                background: 'var(--me-surface)',
+                color: 'var(--me-ink)',
+                border: '1px solid var(--me-line)',
+                maxWidth: 'min(420px, calc(100vw - 32px))',
                 borderRadius: '0.75rem',
                 padding: '0.75rem 1rem',
                 fontSize: '0.875rem',
               },
               success: {
-                // Uses the design-system success palette
-                // (--success-light / --success-dark) defined in
-                // apps/web/styles/professional-design-system.css so the
-                // Toaster matches `.badge-success` and respects future
-                // theme changes.
+                // Shared Mint Editorial feedback palette.
                 style: {
-                  background: 'var(--success-light)',
-                  color: 'var(--success-dark)',
-                  border: '1px solid var(--success)',
+                  background: 'var(--me-ok-bg)',
+                  color: 'var(--me-ok-fg)',
+                  border: '1px solid var(--me-ok-fg)',
                 },
               },
               error: {
                 // Mirror of `.badge-error` — see comment on success
                 // above.
                 style: {
-                  background: 'var(--error-light)',
-                  color: 'var(--error-dark)',
-                  border: '1px solid var(--error)',
+                  background: 'var(--me-err-bg)',
+                  color: 'var(--me-err-fg)',
+                  border: '1px solid var(--me-err-fg)',
                 },
               },
             }}

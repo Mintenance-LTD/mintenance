@@ -64,7 +64,18 @@ const patchSchema = z
     companyName: z.string().trim().max(200).optional(),
     businessAddress: z.string().trim().max(500).optional(),
     licenseNumber: z.string().trim().max(50).optional(),
-    licenseType: z.string().trim().max(120).optional(),
+    licenseType: z
+      .enum([
+        '',
+        'trade',
+        'gas_safe',
+        'electrical',
+        'plumbing',
+        'hvac',
+        'roofing',
+        'other',
+      ])
+      .optional(),
     /**
      * ISO-8601 date string (YYYY-MM-DD). The verification flow accepts
      * legacy human-formatted dates too — clients should normalise
@@ -118,6 +129,10 @@ async function loadBundle(userId: string): Promise<{
       .limit(1)
       .maybeSingle(),
   ]);
+
+  if (profileRes.error || insuranceRes.error || licenseRes.error) {
+    throw new InternalServerError('Could not load saved business details');
+  }
 
   return {
     profile: (profileRes.data ?? null) as ProfileShape | null,
@@ -201,10 +216,14 @@ export const PATCH = withApiHandler(
         .update(profileUpdate)
         .eq('id', user.id);
       if (profileError) {
-        logger.error('business-profile profile update failed', profileError, {
-          service: 'contractor.business-profile',
-          userId: user.id,
-        });
+        logger.error(
+          'business-profile profile update failed',
+          { code: profileError.code },
+          {
+            service: 'contractor.business-profile',
+            userId: user.id,
+          }
+        );
         throw new InternalServerError('Failed to update profile');
       }
     }
@@ -423,9 +442,7 @@ export const PATCH = withApiHandler(
             { service: 'contractor.business-profile', userId: user.id }
           );
         }
-        throw new InternalServerError(
-          'Failed to submit verification request'
-        );
+        throw new InternalServerError('Failed to submit verification request');
       }
     }
 

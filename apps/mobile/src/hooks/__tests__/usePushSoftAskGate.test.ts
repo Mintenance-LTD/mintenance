@@ -249,7 +249,7 @@ describe('usePushSoftAskGate — allowNotifications()', () => {
     );
     // Dismissal stamp written so the modal won't reopen on next mount
     expect(mockSetItem).toHaveBeenCalledWith(
-      'push_soft_ask_dismissed_at',
+      'push_soft_ask_dismissed_at:user-1',
       expect.any(String)
     );
   });
@@ -276,7 +276,7 @@ describe('usePushSoftAskGate — allowNotifications()', () => {
     // Still writes the stamp so the modal respects the cooldown.
     // Without this the user would see the modal on every mount.
     expect(mockSetItem).toHaveBeenCalledWith(
-      'push_soft_ask_dismissed_at',
+      'push_soft_ask_dismissed_at:user-1',
       expect.any(String)
     );
   });
@@ -296,7 +296,7 @@ describe('usePushSoftAskGate — dismiss + openSystemSettings', () => {
 
     expect(result.current.shouldShow).toBe(false);
     expect(mockSetItem).toHaveBeenCalledWith(
-      'push_soft_ask_dismissed_at',
+      'push_soft_ask_dismissed_at:user-1',
       expect.any(String)
     );
   });
@@ -318,7 +318,7 @@ describe('usePushSoftAskGate — dismiss + openSystemSettings', () => {
     // Cooldown stamp written so we don't re-prompt before the user
     // returns from settings.
     expect(mockSetItem).toHaveBeenCalledWith(
-      'push_soft_ask_dismissed_at',
+      'push_soft_ask_dismissed_at:user-1',
       expect.any(String)
     );
   });

@@ -378,7 +378,7 @@ export function ProfileTabPanels({
                   Showcase your best work
                 </p>
               </div>
-              {isEditMode && (
+              {(
                 <button
                   onClick={onAddPortfolioClick}
                   className='px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 flex items-center gap-2 transition-colors'
@@ -397,7 +397,7 @@ export function ProfileTabPanels({
                 <p className='text-gray-500 mb-6'>
                   Start building your portfolio to attract more clients
                 </p>
-                {isEditMode && (
+                {(
                   <button
                     onClick={onAddPortfolioClick}
                     className='px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 inline-flex items-center gap-2 transition-colors'
@@ -431,18 +431,7 @@ export function ProfileTabPanels({
                           <ImageIcon className='w-16 h-16 text-slate-300' />
                         </div>
                       )}
-                      {isEditMode && (
-                        <div className='absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/60 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100'>
-                          <div className='flex gap-3'>
-                            <button className='p-2.5 bg-white rounded-xl hover:bg-slate-50 transition-colors shadow-lg'>
-                              <Edit3 className='w-4 h-4 text-teal-600' />
-                            </button>
-                            <button className='p-2.5 bg-white rounded-xl hover:bg-slate-50 transition-colors shadow-lg'>
-                              <Trash2 className='w-4 h-4 text-red-600' />
-                            </button>
-                          </div>
-                        </div>
-                      )}
+
                     </div>
                     <div className='p-5'>
                       <h3 className='font-semibold text-slate-900 text-base mb-2 line-clamp-1'>
@@ -461,7 +450,7 @@ export function ProfileTabPanels({
                     </div>
                   </MotionDiv>
                 ))}
-                {isEditMode && (
+                {(
                   <MotionButton
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}

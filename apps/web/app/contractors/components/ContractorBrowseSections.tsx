@@ -16,7 +16,7 @@ export function EmptyState({ onClearFilters }: { onClearFilters: () => void }) {
   return (
     <div className='bg-white rounded-2xl border border-gray-200 p-12 text-center'>
       <div className='w-20 h-20 bg-gradient-to-br from-teal-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6'>
-        <Search className='w-10 h-10 text-teal-600' />
+        <Search className='w-10 h-10 text-[#2f6f5f]' />
       </div>
       <h3 className='text-2xl font-bold text-slate-900 mb-2'>
         No contractors found
@@ -27,7 +27,7 @@ export function EmptyState({ onClearFilters }: { onClearFilters: () => void }) {
       </p>
       <button
         onClick={onClearFilters}
-        className='px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg'
+        className='px-6 py-3 bg-[#2f6f5f] text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg'
       >
         Clear All Filters
       </button>
@@ -42,7 +42,7 @@ export function TrustSection() {
       title: 'Background Checks',
       description:
         'Every contractor undergoes thorough background verification before joining our platform.',
-      color: 'text-teal-600',
+      color: 'text-[#2f6f5f]',
       bgColor: 'bg-teal-50',
     },
     {
@@ -77,7 +77,7 @@ export function TrustSection() {
         {/* Section Header */}
         <div className='text-center mb-16'>
           <div className='inline-flex items-center gap-2 px-4 py-2 bg-teal-100 rounded-full mb-4'>
-            <Sparkles className='w-4 h-4 text-teal-600' />
+            <Sparkles className='w-4 h-4 text-[#2f6f5f]' />
             <span className='text-sm font-semibold text-teal-700'>
               Your Safety First
             </span>
@@ -125,7 +125,7 @@ export function TrustSection() {
         <div className='mt-16 bg-white rounded-2xl shadow-lg p-8'>
           <div className='grid grid-cols-2 md:grid-cols-4 gap-8'>
             <div className='text-center'>
-              <div className='text-3xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2'>
+              <div className='text-3xl font-bold bg-[#2f6f5f] bg-clip-text text-transparent mb-2'>
                 Reviewed
               </div>
               <div className='text-sm text-gray-600 font-medium'>
@@ -133,7 +133,7 @@ export function TrustSection() {
               </div>
             </div>
             <div className='text-center'>
-              <div className='text-3xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2'>
+              <div className='text-3xl font-bold bg-[#2f6f5f] bg-clip-text text-transparent mb-2'>
                 Escrow
               </div>
               <div className='text-sm text-gray-600 font-medium'>
@@ -141,7 +141,7 @@ export function TrustSection() {
               </div>
             </div>
             <div className='text-center'>
-              <div className='text-3xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2'>
+              <div className='text-3xl font-bold bg-[#2f6f5f] bg-clip-text text-transparent mb-2'>
                 Photo proof
               </div>
               <div className='text-sm text-gray-600 font-medium'>
@@ -149,7 +149,7 @@ export function TrustSection() {
               </div>
             </div>
             <div className='text-center'>
-              <div className='text-3xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2'>
+              <div className='text-3xl font-bold bg-[#2f6f5f] bg-clip-text text-transparent mb-2'>
                 Dispute support
               </div>
               <div className='text-sm text-gray-600 font-medium'>
@@ -165,7 +165,7 @@ export function TrustSection() {
 
 export function CTASection() {
   return (
-    <section className='relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-20'>
+    <section className='relative overflow-hidden bg-[#203d32] py-20'>
       {/* Background Pattern */}
       <div className='absolute inset-0 opacity-10'>
         <div

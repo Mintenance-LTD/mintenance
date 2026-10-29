@@ -55,7 +55,7 @@ jest.mock('../../utils/logger', () => ({
 
 import { useStripeConnectPromptGate } from '../useStripeConnectPromptGate';
 
-const STORAGE_KEY = 'stripe_connect_prompt_dismissed_at';
+const STORAGE_KEY = 'stripe_connect_prompt_dismissed_at:u1';
 const contractor = { id: 'u1', role: 'contractor' };
 
 beforeEach(() => {

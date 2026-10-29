@@ -33,7 +33,9 @@ export default function SafetyPage() {
     <ErrorBoundary componentName='SafetyPage'>
       <div data-theme='mint-editorial'>
         <LandingNavigation />
-        <div
+        <main
+          id='main-content'
+          tabIndex={-1}
           className='min-h-screen'
           style={{
             background: 'var(--me-bg)',
@@ -241,7 +243,7 @@ export default function SafetyPage() {
               </Link>
             </div>
           </div>
-        </div>
+        </main>
         <Footer2025 />
       </div>
     </ErrorBoundary>

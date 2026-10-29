@@ -1,0 +1,15 @@
+{
+  "mobile": {
+    "passed": 50,
+    "failed": 0
+  },
+  "scope": "Readiness fixes, Stripe receiver, dependency updates, regression tests and audit reports; concurrent password implementation excluded",
+  "rawLogs": "Retained locally; concise evidence files committed",
+  "branch": "fix/readiness-audit-oct23",
+  "dependencies": "Reused existing installed dependencies through local junctions",
+  "web": {
+    "passed": 148,
+    "failed": 0
+  },
+  "base": "72cb5c945034a4985aa7b8c34d302cbbce310020"
+}

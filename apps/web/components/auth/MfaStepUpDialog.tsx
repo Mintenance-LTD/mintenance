@@ -1,5 +1,6 @@
 'use client';
 
+import { useSharedTheme } from '@mintenance/shared-ui';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -20,6 +21,7 @@ interface Props {
 
 /** Mount only while verification is requested, so codes never survive closing. */
 export function MfaStepUpDialog({ onCancel, onSuccess }: Props) {
+  const sharedTheme = useSharedTheme();
   const [code, setCode] = useState('');
   const [method, setMethod] = useState<'totp' | 'backup_code'>('totp');
   const [submitting, setSubmitting] = useState(false);
@@ -88,7 +90,7 @@ export function MfaStepUpDialog({ onCancel, onSuccess }: Props) {
         if (!open && !inFlight.current) onCancel();
       }}
     >
-      <DialogContent
+      <DialogContent data-theme={sharedTheme} className="mfa-step-up-dialog"
         onEscapeKeyDown={(event) => {
           if (inFlight.current) event.preventDefault();
         }}
@@ -104,7 +106,7 @@ export function MfaStepUpDialog({ onCancel, onSuccess }: Props) {
           <div className='flex gap-2'>
             <Button
               type='button'
-              variant='secondary'
+              variant={method === 'totp' ? 'primary' : 'outline'}
               aria-pressed={method === 'totp'}
               disabled={submitting}
               onClick={() => {
@@ -117,7 +119,7 @@ export function MfaStepUpDialog({ onCancel, onSuccess }: Props) {
             </Button>
             <Button
               type='button'
-              variant='secondary'
+              variant={method === 'backup_code' ? 'primary' : 'outline'}
               aria-pressed={method === 'backup_code'}
               disabled={submitting}
               onClick={() => {
@@ -141,7 +143,8 @@ export function MfaStepUpDialog({ onCancel, onSuccess }: Props) {
             onChange={(event) => setCode(event.target.value)}
             autoComplete='one-time-code'
             inputMode={method === 'totp' ? 'numeric' : 'text'}
-            maxLength={16}
+            maxLength={method === 'totp' ? 6 : 16}
+            autoFocus
             disabled={submitting}
             aria-invalid={!!error}
             aria-describedby={error ? 'mfa-step-up-error' : undefined}
@@ -158,7 +161,7 @@ export function MfaStepUpDialog({ onCancel, onSuccess }: Props) {
           <DialogFooter>
             <Button
               type='button'
-              variant='secondary'
+              variant='ghost'
               disabled={submitting}
               onClick={onCancel}
             >

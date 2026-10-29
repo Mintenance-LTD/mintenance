@@ -8,6 +8,7 @@ const m = vi.hoisted(() => ({
   lookupError: null as unknown,
   advanceError: null as unknown,
   advanced: true,
+  scheduleExtra: {} as Record<string, unknown>,
 }));
 vi.mock('@/lib/services/job-creation-service', () => ({
   JobCreationService: { getInstance: () => ({ createJob: m.create }) },
@@ -51,6 +52,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
               title: 'Synthetic schedule',
               frequency: 'monthly',
               next_due_date: '2026-01-31',
+              ...m.scheduleExtra,
             },
           ],
           error: null,
@@ -68,6 +70,7 @@ beforeEach(() => {
   m.lookupError = null;
   m.advanceError = null;
   m.advanced = true;
+  m.scheduleExtra = {};
   m.create.mockResolvedValue({ id: 'job' });
   m.notify.mockResolvedValue(undefined);
 });
@@ -107,7 +110,7 @@ it('recovers an existing exact occurrence without creating or notifying again', 
     'requirements->>schedule_cycle_due',
     '2026-01-31'
   );
-  expect(m.update).toHaveBeenCalledWith({ next_due_date: '2026-02-28' });
+  expect(m.update).toHaveBeenCalledWith({ next_due_date: '2026-02-28', last_job_id: 'job' });
 });
 it('reports advancement failure after creation without sending a misleading next-date notice', async () => {
   m.advanceError = { code: '08006' };
@@ -129,4 +132,33 @@ it('does not overwrite a concurrently changed schedule', async () => {
     '2026-01-31'
   );
   expect(m.notify).not.toHaveBeenCalled();
+});
+
+it('maps the legacy garden schedule and preserves the selected audience', async () => {
+  m.scheduleExtra = {
+    category: 'general',
+    task_type: 'Garden Maintenance',
+    notification_audience: 'preferred',
+    preferred_contractor_id: 'gardener',
+  };
+  await RecurringJobCreatorService.processSchedules();
+  expect(m.create).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      category: 'gardening',
+      recurring_notification: {
+        category: 'gardening',
+        contractorId: 'gardener',
+      },
+    })
+  );
+});
+it('does not silently broaden a deleted preferred contractor to everybody', async () => {
+  m.scheduleExtra = {
+    notification_audience: 'preferred',
+    preferred_contractor_id: null,
+  };
+  const result = await RecurringJobCreatorService.processSchedules();
+  expect(result.errors).toBe(1);
+  expect(m.create).not.toHaveBeenCalled();
 });

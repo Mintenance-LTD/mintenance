@@ -5,6 +5,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import {
@@ -203,7 +204,9 @@ export const POST = withApiHandler(
       // 'review' notification fell back to the inbox on mobile (only
       // 'review_requested' was routed) and the contractor's "Tap to
       // read it and reply" CTA went nowhere useful.
-      await NotificationService.createNotification({
+      await NotificationService.enqueueScheduled({
+        id: review.id,
+        scheduledFor: new Date(),
         userId: revieweeId,
         title: `${stars} review on ${job.title}`,
         message: `Tap to read it and reply if you want to.`,
@@ -230,7 +233,9 @@ export const POST = withApiHandler(
         } else {
           const milestones = [10, 25, 50, 100];
           if (fiveStarCount !== null && milestones.includes(fiveStarCount)) {
-            await NotificationService.createNotification({
+            await NotificationService.enqueueScheduled({
+              id: randomUUID(),
+              scheduledFor: new Date(),
               userId: revieweeId,
               title: `🌟 ${fiveStarCount} Five-Star Reviews!`,
               message: `Congratulations! You've just received your ${fiveStarCount}th 5-star review. Your outstanding work is getting noticed.`,

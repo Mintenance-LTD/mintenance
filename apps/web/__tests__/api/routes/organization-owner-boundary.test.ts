@@ -11,6 +11,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({ serverSupabase: { from: () => {
   return chain;
 } } }));
 import { PATCH } from '@/app/api/organizations/[id]/members/[userId]/role/route';
+import { DELETE } from '@/app/api/organizations/[id]/members/route';
 beforeEach(() => {
   vi.clearAllMocks(); mocks.actor = 'manager'; mocks.target = 'owner';
   mocks.gate.mockImplementation(async () => ({ org_role: mocks.actor }));
@@ -33,4 +34,23 @@ it('preserves manager permission to update ordinary members', async () => {
   mocks.target = 'field';
   expect((await change('dispatcher')).status).toBe(200);
   expect(mocks.update).toHaveBeenCalledWith({ org_role: 'dispatcher' });
+});
+async function removeMember() {
+  return DELETE({ nextUrl: new URL('https://example.test/api?userId=00000000-0000-4000-8000-000000000002') } as never, {
+    user: { id: 'actor' }, params: { id: '00000000-0000-4000-8000-000000000001' },
+  } as never);
+}
+it('prevents managers removing an owner even when another owner exists', async () => {
+  await expect(removeMember()).rejects.toMatchObject({ statusCode: 403 });
+  expect(mocks.update).not.toHaveBeenCalled();
+});
+it('allows an owner to remove another owner when one remains', async () => {
+  mocks.actor = 'owner';
+  expect((await removeMember()).status).toBe(200);
+  expect(mocks.update).toHaveBeenCalledWith({ status: 'removed' });
+});
+it('preserves manager permission to remove ordinary members', async () => {
+  mocks.target = 'field';
+  expect((await removeMember()).status).toBe(200);
+  expect(mocks.update).toHaveBeenCalledWith({ status: 'removed' });
 });

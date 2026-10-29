@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   placeholderHero: {
-    height: Math.round(Dimensions.get('window').width * 0.6),
+    height: Math.min(200, Math.round(Dimensions.get('window').width * 0.45)),
     backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',

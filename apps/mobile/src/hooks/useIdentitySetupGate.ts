@@ -40,11 +40,7 @@ import { logger } from '../utils/logger';
 
 const STORAGE_KEY = 'identity_setup_prompt_dismissed_at';
 
-const ALREADY_SUBMITTED = new Set<string>([
-  'pending',
-  'verified',
-  'rejected',
-]);
+const ALREADY_SUBMITTED = new Set<string>(['pending', 'verified', 'rejected']);
 
 export interface IdentitySetupGate {
   shouldShow: boolean;
@@ -80,7 +76,9 @@ export function useIdentitySetupGate(): IdentitySetupGate {
     }
 
     try {
-      const dismissedAt = await AsyncStorage.getItem(STORAGE_KEY);
+      const dismissedAt = await AsyncStorage.getItem(
+        `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`
+      );
       if (dismissedAt) {
         setShouldShow(false);
         setLoading(false);
@@ -94,10 +92,9 @@ export function useIdentitySetupGate(): IdentitySetupGate {
         .maybeSingle();
 
       if (error) {
-        logger.warn(
-          'useIdentitySetupGate: verification_status query failed',
-          { error: error.message }
-        );
+        logger.warn('useIdentitySetupGate: verification_status query failed', {
+          error: error.message,
+        });
         setShouldShow(false);
         setLoading(false);
         return;
@@ -129,13 +126,16 @@ export function useIdentitySetupGate(): IdentitySetupGate {
   const dismiss = useCallback(async () => {
     setShouldShow(false);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, new Date().toISOString());
+      await AsyncStorage.setItem(
+        `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`,
+        new Date().toISOString()
+      );
     } catch (err) {
       logger.warn('useIdentitySetupGate: dismiss persist failed', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
-  }, []);
+  }, [user?.id]);
 
   return {
     shouldShow,

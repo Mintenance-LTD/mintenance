@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { VerificationBadge } from '../../users/components/VerificationBadge';
@@ -133,6 +133,7 @@ export function ContractorVerificationCard({
                 }}
               >
                 {contractor.email}
+                {contractor.assigned_admin_email && <span className='block mt-1 text-xs'>Assigned to {contractor.assigned_admin_email}</span>}
               </div>
               {contractor.phone && (
                 <div

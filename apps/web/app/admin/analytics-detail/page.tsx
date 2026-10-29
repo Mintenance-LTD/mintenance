@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   TrendingUp,
   Users,
-  DollarSign,
+  PoundSterling,
   Activity,
   Download,
   BarChart3,
@@ -120,7 +120,7 @@ export default function AnalyticsDetailPage() {
     {
       label: 'Revenue (Period)',
       value: `\u00A3${(monthlyRevenue / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
-      icon: DollarSign,
+      icon: PoundSterling,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-100',
     },
@@ -295,7 +295,7 @@ export default function AnalyticsDetailPage() {
               <MotionDiv variants={fadeIn}>
                 <AdminCard padding='lg'>
                   <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
-                    <DollarSign className='w-5 h-5 text-emerald-600' />
+                    <PoundSterling className='w-5 h-5 text-emerald-600' />
                     Revenue Breakdown
                   </h3>
                   {revenueTrend.length > 0 ? (
@@ -311,7 +311,7 @@ export default function AnalyticsDetailPage() {
                     />
                   ) : (
                     <div className='h-72 flex flex-col items-center justify-center text-center'>
-                      <DollarSign className='w-8 h-8 text-gray-300 mb-2' />
+                      <PoundSterling className='w-8 h-8 text-gray-300 mb-2' />
                       <p className='text-sm text-gray-400'>
                         No revenue data available yet
                       </p>

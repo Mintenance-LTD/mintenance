@@ -22,6 +22,7 @@ import {
   releaseOnError,
 } from '@/lib/idempotency';
 import {
+  APIError,
   ForbiddenError,
   NotFoundError,
   ConflictError,
@@ -313,9 +314,8 @@ export const POST = withApiHandler(
           job_status: string | null;
         }
 
-        const { data: rpcRaw, error: rpcError } = await serverSupabase.rpc(
-          'accept_bid_with_capacity',
-          {
+        const acceptBid = () =>
+          serverSupabase.rpc('accept_bid_with_capacity', {
             p_active_job_limit: ['free', 'basic'].includes(
               acceptingContractorTier
             )
@@ -325,15 +325,38 @@ export const POST = withApiHandler(
             p_job_id: jobId,
             p_contractor_id: bid.contractor_id,
             p_homeowner_id: user.id,
-          }
-        );
+          });
+
+        // Only retry explicit PostgreSQL transaction-abort responses. Network
+        // failures have an unknown commit outcome and must not be replayed here.
+        // Keep notifications and all other external effects outside this retry.
+        const rolledBackCodes = new Set(['57014', '40001', '40P01']);
+        let rpcResult = await acceptBid();
+        if (rpcResult.error && rolledBackCodes.has(rpcResult.error.code)) {
+          logger.warn('Retrying rolled-back bid acceptance transaction', {
+            service: 'jobs',
+            jobId,
+            bidId,
+            code: rpcResult.error.code,
+          });
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          rpcResult = await acceptBid();
+        }
+        const { data: rpcRaw, error: rpcError } = rpcResult;
 
         if (rpcError) {
           logger.error(
-            'accept_bid_atomic RPC failed — bid acceptance aborted',
+            'accept_bid_with_capacity RPC failed — bid acceptance aborted',
             rpcError,
             { service: 'jobs', bidId, jobId, contractorId: bid.contractor_id }
           );
+          if (rolledBackCodes.has(rpcError.code)) {
+            throw new APIError(
+              'BID_ACCEPTANCE_RETRY_REQUIRED',
+              'The bid could not be accepted because the service is busy. Please try again.',
+              503
+            );
+          }
           if (rpcError.code === '23505') {
             throw new ConflictError(
               'Bid has already been accepted for this job'

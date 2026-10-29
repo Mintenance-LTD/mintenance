@@ -36,22 +36,25 @@ describe('RedisRateLimiter degraded fallback', () => {
     globalThis.rateLimitFallback = undefined;
   });
 
-  it('fails CLOSED in production for criticality-tagged configs (unchanged path)', async () => {
-    vi.stubEnv('NODE_ENV', 'production');
-    const limiter = freshLimiter();
+  it.each(['auth', 'ai'] as const)(
+    'fails CLOSED in production for %s requests',
+    async (criticality) => {
+      vi.stubEnv('NODE_ENV', 'production');
+      const limiter = freshLimiter();
 
-    const result = await limiter.checkRateLimit({
-      windowMs: 60_000,
-      maxRequests: 30,
-      identifier: 'tagged-auth-test',
-      criticality: 'auth',
-    });
+      const result = await limiter.checkRateLimit({
+        windowMs: 60_000,
+        maxRequests: 30,
+        identifier: 'tagged-auth-test',
+        criticality,
+      });
 
-    // Rejected on the very FIRST request — no in-memory allowance at all.
-    expect(result.allowed).toBe(false);
-    expect(result.remaining).toBe(0);
-    expect(result.retryAfter).toBeGreaterThan(0);
-  });
+      // Rejected on the very FIRST request — no in-memory allowance at all.
+      expect(result.allowed).toBe(false);
+      expect(result.remaining).toBe(0);
+      expect(result.retryAfter).toBeGreaterThan(0);
+    }
+  );
 
   it('applies a conservative shared-budget limit to UNTAGGED configs in production', async () => {
     vi.stubEnv('NODE_ENV', 'production');

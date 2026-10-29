@@ -140,7 +140,7 @@ export function useRegisterSubmit() {
         const returnPath = inviteToken
           ? `/register/invitation?token=${encodeURIComponent(inviteToken)}`
           : data.role === 'contractor'
-            ? '/contractor/dashboard-enhanced'
+            ? '/contractor/onboarding'
             : '/onboarding/homeowner';
         setVerificationRequired(true);
         setVerificationLoginPath(
@@ -160,7 +160,7 @@ export function useRegisterSubmit() {
         const redirectPath = inviteToken
           ? `/register/invitation?token=${encodeURIComponent(inviteToken)}`
           : data.role === 'contractor'
-            ? '/contractor/dashboard-enhanced'
+            ? '/contractor/onboarding'
             : '/onboarding/homeowner';
         router.push(redirectPath);
         router.refresh();

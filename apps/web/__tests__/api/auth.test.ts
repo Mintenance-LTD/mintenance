@@ -137,7 +137,7 @@ vi.mock('@mintenance/auth', () => ({
   hashRefreshToken: vi.fn(),
   ConfigManager: { getInstance: vi.fn(() => ({ isProduction: () => false })) },
   PasswordValidator: { validate: vi.fn(() => ({ valid: true })) },
-  checkPasswordBreach: vi.fn(async () => ({ isBreached: false })),
+  checkPasswordBreach: vi.fn(async () => ({ checked: true, isBreached: false })),
 }));
 
 vi.mock('@/lib/mfa/mfa-service', () => ({

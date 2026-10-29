@@ -8,6 +8,7 @@
  *   - Student VLM shadow comparison (fire-and-forget, when endpoint configured)
  */
 import { logger } from '@mintenance/shared';
+import { isTrainingReuseAllowed } from '../training-reuse-policy';
 import { KnowledgeDistillationService } from '../KnowledgeDistillationService';
 import { SAM3Service } from '../SAM3Service';
 import { StudentShadowService } from '../distillation/StudentShadowService';
@@ -22,6 +23,7 @@ export async function captureTrainingDataAsync(
   promptMessages?: Array<{ role: string; content: unknown }>,
   apiKey?: string
 ): Promise<void> {
+  if (!isTrainingReuseAllowed()) return;
   try {
     if (!assessmentId) {
       logger.debug('Skipping training data capture - no assessment ID', {

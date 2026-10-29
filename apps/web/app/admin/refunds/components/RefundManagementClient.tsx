@@ -6,7 +6,7 @@ import {
 import { readPendingRefund, submitRefund } from '@/lib/payments/refund-request';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -179,7 +179,7 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const openAction = (type: ActionType, escrow: EscrowRecord) => {
+  const openAction = (type: ActionType, escrow: EscrowRecord) => { setActionError(null);
     try {
       setSavedRefund(
         type === 'refund'
@@ -199,9 +199,10 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
     setActionModal({ open: true, type, escrow });
   };
 
+  const [actionError, setActionError] = useState<string | null>(null);
   const handleAction = async (reason: string, refundAmount?: number) => {
     if (!actionModal.escrow) return;
-    setActionLoading(true);
+    setActionError(null); setActionLoading(true);
     try {
       const csrfHeaders = await getCsrfHeaders();
       if (actionModal.type === 'release') {
@@ -245,7 +246,7 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setToast({ message: data.error || 'Action failed', type: 'error' });
+        setActionError(data.error || 'Action failed');
       } else {
         setToast({
           message: data.message || 'Action completed',
@@ -255,6 +256,7 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
         fetchData();
       }
     } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Network error. Retry the same request.');
       setToast({
         message:
           error instanceof Error
@@ -432,7 +434,7 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
       />
 
       {/* Action Modal */}
-      <ActionModal
+      <ActionModal error={actionError}
         savedRefund={savedRefund}
         open={actionModal.open}
         type={actionModal.type}

@@ -31,6 +31,7 @@
 import React, { forwardRef } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
+import { safeNavigationUrl } from '@/lib/security/navigation-url';
 
 // ============================================
 // CARD VARIANTS
@@ -132,7 +133,8 @@ const UnifiedCard = forwardRef<HTMLDivElement, CardProps>(
     const handleClick = href
       ? (e: React.MouseEvent<HTMLDivElement>) => {
           if (!e.defaultPrevented) {
-            window.location.href = href;
+            const destination = safeNavigationUrl(href);
+            if (destination) window.location.href = destination;
           }
           onClick?.(e);
         }
@@ -412,7 +414,8 @@ export const ActionCard: React.FC<ActionCardProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 if (action.href) {
-                  window.location.href = action.href;
+                  const destination = safeNavigationUrl(action.href);
+                  if (destination) window.location.href = destination;
                 } else if (action.onClick) {
                   action.onClick();
                 }

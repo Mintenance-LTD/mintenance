@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Card } from '@mintenance/shared-ui';
 import { cn } from '@/lib/utils';
 
 interface AdminCardProps {
@@ -37,7 +38,7 @@ export function AdminCard({
   };
 
   return (
-    <div
+    <Card padding="none"
       className={cn(
         'rounded-2xl border border-slate-100 bg-white shadow-sm transition-all duration-300',
         paddingClasses[padding],
@@ -46,13 +47,13 @@ export function AdminCard({
         className
       )}
       style={{
+        padding: { none: 0, sm: 16, md: 20, lg: 24 }[padding],
         boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
         ...style,
       }}
       onClick={onClick}
     >
       {children}
-    </div>
+    </Card>
   );
 }
-

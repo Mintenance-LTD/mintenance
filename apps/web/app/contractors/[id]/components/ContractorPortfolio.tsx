@@ -1,73 +1,26 @@
-'use client';
+"use client";
 
 import Image from 'next/image';
-import { Image as ImageIcon } from 'lucide-react';
 
 interface PortfolioItem {
-  id: string;
-  title: string;
-  category: string;
-  images: string[];
-  description: string;
-  completionDate: string;
-  cost?: number;
-  featured: boolean;
+  id: string; title: string; category: string; images: string[];
+  description: string; completionDate: string; cost?: number; featured: boolean;
 }
 
-interface ContractorPortfolioProps {
-  portfolio: PortfolioItem[];
-}
-
-export function ContractorPortfolio({ portfolio }: ContractorPortfolioProps) {
-  if (portfolio.length === 0) return null;
-
-  return (
-    <div className="border-b border-gray-200 pb-8">
-      <h2 className="text-2xl font-semibold text-gray-900 mb-6">Portfolio</h2>
-      <div className="grid grid-cols-2 gap-4">
-        {portfolio.map((item) => (
-          <div
-            key={item.id}
-            className="group relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all cursor-pointer"
-          >
-            <div className="relative aspect-[4/3] bg-gray-100">
-              {item.images && item.images.length > 0 && item.images[0] ? (
-                <Image
-                  src={item.images[0]}
-                  alt={item.title}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 50vw, 33vw"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const parent = target.parentElement;
-                    if (parent) {
-                      const placeholder = parent.querySelector('.placeholder-fallback');
-                      if (placeholder) {
-                        (placeholder as HTMLElement).style.display = 'flex';
-                      }
-                    }
-                  }}
-                />
-              ) : null}
-              <div className="placeholder-fallback absolute inset-0 bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center" style={{ display: item.images && item.images.length > 0 && item.images[0] ? 'none' : 'flex' }}>
-                <ImageIcon className="w-16 h-16 text-gray-300" />
-              </div>
-              {item.featured && (
-                <span className="absolute top-3 right-3 px-3 py-1 bg-yellow-400 text-yellow-900 text-xs font-semibold rounded-full shadow-lg">
-                  Featured
-                </span>
-              )}
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all" />
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-              <h4 className="font-semibold text-white text-lg">{item.title}</h4>
-              <p className="text-white/90 text-sm">{item.category}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+export function ContractorPortfolio({ portfolio }: { portfolio: PortfolioItem[] }) {
+  if (!portfolio.length) return null;
+  return <section className="border-b border-gray-200 pb-8">
+    <h2 className="text-2xl font-semibold text-gray-900 mb-6">Portfolio</h2>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {portfolio.map(item => <article key={item.id} className="rounded-2xl overflow-hidden border border-gray-200 bg-white">
+        {item.images[0] && <div className="relative aspect-[4/3] bg-gray-100"><Image src={item.images[0]} alt={item.title} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-cover" /></div>}
+        <div className="p-4"><h3 className="font-semibold text-lg">{item.title}</h3>
+          {item.description && <p className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">{item.description}</p>}
+          {item.images.length > 1 && <details className="mt-3"><summary className="cursor-pointer text-teal-700 font-medium">View all {item.images.length} photos</summary>
+            <div className="grid grid-cols-2 gap-2 mt-3">{item.images.slice(1).map((url, index) => <div key={url} className="relative aspect-square"><Image src={url} alt={`${item.title}, photo ${index + 2}`} fill sizes="25vw" className="object-cover rounded-lg" /></div>)}</div>
+          </details>}
+        </div>
+      </article>)}
     </div>
-  );
+  </section>;
 }

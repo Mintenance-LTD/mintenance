@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, FormEvent, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, useInView } from 'framer-motion';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { ArrowRight, Check, Loader2, Sparkles } from 'lucide-react';
 import { features, steps, pricingPlans } from './data';
 import { WaitlistSuccessCard } from './WaitlistSuccessCard';
@@ -139,32 +139,7 @@ function ComingSoonContent() {
 
   return (
     <div className='min-h-screen bg-white font-[family-name:var(--font-inter)] text-navy-900 antialiased'>
-      <Toaster
-        position='top-center'
-        toastOptions={{
-          duration: 5000,
-          style: {
-            fontFamily: 'var(--font-inter)',
-            borderRadius: '0.75rem',
-            padding: '0.75rem 1rem',
-            fontSize: '0.875rem',
-          },
-          success: {
-            style: {
-              background: '#ECFDF5',
-              color: '#065F46',
-              border: '1px solid #A7F3D0',
-            },
-          },
-          error: {
-            style: {
-              background: '#FEF2F2',
-              color: '#991B1B',
-              border: '1px solid #FECACA',
-            },
-          },
-        }}
-      />
+
 
       {/* Navigation */}
       <nav
@@ -229,7 +204,7 @@ function ComingSoonContent() {
 
               <p className='mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-navy-500 sm:text-xl'>
                 Mintenance connects homeowners with vetted local contractors.
-                Post a job, compare quotes, and pay securely &mdash; all in one
+                Post a job, compare quotes, and pay securely, all in one
                 platform.
               </p>
 

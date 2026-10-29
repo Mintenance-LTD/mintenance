@@ -70,10 +70,14 @@ export function compareReconciliationFunding(
         funding.payment_intent_id === intent.id &&
         metadata.fundingReservationId === funding.id)) &&
     Number(metadata.creditAppliedPence ?? 0) === credit;
+  // Legacy cash-only intents used homeownerId before payerId was introduced.
+  // Never substitute the property owner for an explicit payer or a funded intent.
+  const payerId = metadata.payerId ?? metadata.payer_id ??
+    (!funding ? metadata.homeownerId : undefined);
   const identityMatch =
     intent.id === source.payment_intent_id &&
     (metadata.jobId ?? metadata.job_id) === source.job_id &&
-    (metadata.payerId ?? metadata.payer_id) === source.payer_id &&
+    payerId === source.payer_id &&
     (metadata.contractorId ?? metadata.contractor_id) === source.payee_id;
   const amountMatch =
     fundingMatch &&
@@ -122,7 +126,7 @@ export function compareReconciliationFunding(
       stripe_status: intent.status,
       stripe_amount: intent.amount / 100,
       expected_cash_minor: cash,
-      mismatch_type: !amountMatch ? 'amount' : 'status',
+      mismatch_type: matched ? null : !identityMatch ? 'identity' : !amountMatch ? 'amount' : !statusMatch ? 'status' : 'refund',
       identity_match: identityMatch,
       amount_match: amountMatch,
       status_match: statusMatch,

@@ -21,7 +21,7 @@ export const LogoSection: React.FC<LogoSectionProps> = ({
         upload path land. Be honest about it on the screen rather
         than promising a save that doesn't happen. */}
     <Text style={styles.sectionSubtitle}>
-      Preview only — logo upload coming soon.
+      Updates the image on your public profile.
     </Text>
     <TouchableOpacity
       style={styles.logoUpload}

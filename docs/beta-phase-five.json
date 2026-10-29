@@ -1,0 +1,44 @@
+{
+  "phase": "F05",
+  "recordedOn": "2026-10-08",
+  "status": "reconciled_with_documented_holds",
+  "provider": {"account": "acct_1SDXwDJZfKi2oDP6", "liveModeVerified": true, "alternateTestModeVerified": true},
+  "scope": "All 7 production escrow rows, all 5 homeowner subscription rows and invoices, the 5 historical subscription customers plus the current profile customer. Lists were not truncated. Private exact-ID evidence is retained locally, outside tracked files.",
+  "escrows": [
+    {"record": "4a1e0382", "grossGbp": 1.46, "classification": "captured_live_payment_pending_local_reconciliation", "evidence": "Live intent succeeded; captured/paid 146p charge; no dispute or refund. Job and contractor metadata match. Legacy homeownerId equals the local payer/homeowner, but payerId and provider customer are absent. Job remains assigned and local escrow pending.", "disposition": "Unresolved hold: retain pending state and do not release or refund. Billing operator must approve legacy payer attribution, then use the canonical funding path to record held funding; normal job completion gates still apply."},
+    {"record": "97cb18fb", "grossGbp": 120, "classification": "unpaid_live_intent_with_legacy_identity_metadata", "evidence": "Live intent requires_payment_method, amount_received=0, no charge. Job/contractor/homeowner metadata match; payerId absent. Job is completed but payment remains pending.", "disposition": "Unresolved collection hold: no captured funds exist to release/refund. Preserve pending state. Operations must establish whether this completed job is genuine billable work before arranging a new authorized payment."},
+    {"record": "493f9a35", "grossGbp": 1.32, "classification": "test_mode_payment_in_production_database", "evidence": "Live account lookup returns resource_missing. The exact intent exists in test mode, succeeded for 132p, and job/payer/contractor metadata match. No corresponding production earnings credit. Existing release_blocked_reason requires provider verification.", "disposition": "Documented test-data hold: exclude from live held-funds and payout totals. Preserve historical row and its release block. Do not substitute test-mode success for live funding or create a live payout. Formal data tagging/quarantine awaits controlled rollout."},
+    {"record": "eaa3d60f", "grossGbp": 120, "classification": "explicitly_simulated_legacy_history", "evidence": "payment_intent_id is pi_test_simulated; local row failed and already marked archived legacy test history. No provider payment.", "disposition": "Retain audit history and exclude from customer-money totals. No refund or release."},
+    {"record": "309553a5", "grossGbp": 1.2, "classification": "captured_and_credited_job_flag_drift", "evidence": "Live intent succeeded; 120p charge paid/captured, undisputed, unrefunded. Explicit job/payer/contractor metadata match. Completed escrow recorded accumulated payout mode with a 70p credit event and 50p platform fee. Job incorrectly remains payment_status=pending. No direct transfer is expected for the accumulated payout model.", "disposition": "Correction candidate: after fresh provider verification and an expected-state transaction, set only this job's payment flag to paid with an audit entry. Do not issue another earnings credit, charge or transfer. Actual payout settlement belongs to F06."},
+    {"record": "61de757b", "grossGbp": 1.2, "classification": "consistent_unpaid_live_intent", "evidence": "requires_payment_method, amount_received=0, no charge; explicit participant and current customer identity match. Job assigned, escrow and job payment pending.", "disposition": "No correction; normal unpaid flow. No release/refund."},
+    {"record": "d97dbe30", "grossGbp": 1, "classification": "consistent_captured_and_credited", "evidence": "Live 100p captured charge; no dispute/refund; job/payer/contractor/customer match. Attached funding reservation has 100p cash, 0 credit. Completed escrow, paid job, 50p contractor earnings credit and 50p platform fee.", "disposition": "No funding correction. Verify accumulated payout settlement in F06."}
+  ],
+  "subscriptions": {
+    "providerStateForAllFive": "incomplete_expired",
+    "invoiceCount": 5,
+    "invoiceStatuses": "all void",
+    "totalPaidPence": 0,
+    "duplicateSubscriptionChargesFound": false,
+    "records": [
+      {"record": "ebae9b29", "localStatus": "canceled", "disposition": "Preserve terminal history; no refund/cancellation needed."},
+      {"record": "28078e6c", "localStatus": "canceled", "disposition": "Preserve terminal history; no refund/cancellation needed."},
+      {"record": "fabcab8f", "localStatus": "canceled", "disposition": "Preserve terminal history; no refund/cancellation needed."},
+      {"record": "cb796137", "localStatus": "incomplete", "disposition": "Correction candidate: change stale local row to expired after fresh provider and customer verification."},
+      {"record": "feb1bfa6", "localStatus": "incomplete", "disposition": "Correction candidate: change stale local row to expired after fresh provider and customer verification."}
+    ],
+    "customerHistory": "Each historical row references a different Stripe customer; each provider customer matches its row. Profiles now reference a newer customer with no subscriptions. That customer's only observed successful charge was a separate 100p job payment, not a subscription invoice.",
+    "profileCorrection": "After expiring the stale rows, set the affected profile subscription status from incomplete to none only if a fresh provider inventory and locked database query still show no effective subscription. Preserve immutable early-access grants.",
+    "hold": "Do not auto-cancel or refund: all inspected subscriptions are already expired and no subscription payment was collected. Existing billing/customer drift must be corrected before the affected account can use the new transition flow."
+  },
+  "moneySummaryPence": {"capturedLiveGross": 366, "completedEscrowGross": 220, "capturedPendingReconciliation": 146, "contractorEarningsCredits": 120, "knownTestHeldExcluded": 132, "simulatedFailedExcluded": 12000},
+  "correctionControls": [
+    "No production database or Stripe mutation was performed in this phase.",
+    "Refresh provider evidence immediately before any approved correction; this report is a point-in-time read-only snapshot.",
+    "Use exact record/provider/customer IDs from the private ledger, lock affected rows, assert the recorded before-state and require expected affected-row counts.",
+    "Write before/after audit evidence in the same transaction. Validate job, escrow, funding, earnings and entitlement consistency before commit.",
+    "No direct money movement, inferred refund, bulk cancellation or destructive deletion is authorized by this ledger.",
+    "Operational owner: platform billing administrator; unresolved classifications stay held through F12. This documents ownership by role, not an assertion that a particular person has accepted the work."
+  ],
+  "verification": {"readOnlyCollector": "scripts/billing-production-evidence.mjs", "productionMutations": 0, "financialActions": 0, "providerEvidenceComplete": true, "holdsDocumented": true},
+  "releaseGate": "Review and execute approved nonfinancial corrections with fresh evidence, or explicitly retain these documented holds. Customer-money beta is not approved by phase completion."
+}

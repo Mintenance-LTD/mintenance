@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { isAssessmentMemoryReuseAllowed } from '../training-reuse-policy';
 import { LearnedFeatureExtractor } from '../LearnedFeatureExtractor';
 import { extractHandcraftedFeatures } from '../utils/FeatureExtractionUtils';
 import { getConfig } from '../config/BuildingSurveyorConfig';
@@ -25,6 +26,7 @@ export class FeatureExtractionService {
      * Initialize the feature extraction service
      */
     static async initialize(): Promise<void> {
+        if (!isAssessmentMemoryReuseAllowed()) return;
         if (this.initialized) return;
 
         const config = getConfig();
@@ -78,7 +80,7 @@ export class FeatureExtractionService {
         const config = getConfig();
 
         // Try learned feature extraction if available and enabled
-        if (config.useLearnedFeatures && this.learnedExtractor) {
+        if (isAssessmentMemoryReuseAllowed() && config.useLearnedFeatures && this.learnedExtractor) {
             try {
                 return await this.learnedExtractor.extractFeatures(
                     imageUrls,

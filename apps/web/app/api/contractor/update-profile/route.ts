@@ -34,11 +34,16 @@ interface ProfileUpdateData {
 class GeocodingService {
   private apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
-  async geocodeAddress(address: string): Promise<{ lat: number; lng: number; formattedAddress: string } | null> {
+  async geocodeAddress(
+    address: string
+  ): Promise<{ lat: number; lng: number; formattedAddress: string } | null> {
     if (!this.apiKey) {
-      logger.warn('GOOGLE_MAPS_API_KEY not configured; geocoding will be skipped', {
-        service: 'geocoding',
-      });
+      logger.warn(
+        'GOOGLE_MAPS_API_KEY not configured; geocoding will be skipped',
+        {
+          service: 'geocoding',
+        }
+      );
       return null;
     }
 
@@ -58,10 +63,14 @@ class GeocodingService {
         };
       }
 
-      logger.error('Geocoding failed', new Error(`Geocoding status: ${data.status}`), {
-        service: 'geocoding',
-        status: data.status,
-      });
+      logger.error(
+        'Geocoding failed',
+        new Error(`Geocoding status: ${data.status}`),
+        {
+          service: 'geocoding',
+          status: data.status,
+        }
+      );
       return null;
     } catch (error) {
       logger.error('Geocoding API error', error, { service: 'geocoding' });
@@ -76,7 +85,9 @@ class GeocodingService {
  * - Starts with +44 or 0
  * - Followed by exactly 10 digits
  */
-function normalizePhoneToUKFormat(phone: string | undefined | null): string | null {
+function normalizePhoneToUKFormat(
+  phone: string | undefined | null
+): string | null {
   if (!phone || typeof phone !== 'string') return null;
   const trimmed = phone.trim();
   if (!trimmed) return null;
@@ -124,18 +135,57 @@ function normalizePhoneToUKFormat(phone: string | undefined | null): string | nu
 
 // Profile update validation schema
 const profileUpdateSchema = z.object({
-  firstName: z.string().min(1, 'First name is required').max(50, 'First name must be less than 50 characters'),
-  lastName: z.string().min(1, 'Last name is required').max(50, 'Last name must be less than 50 characters'),
-  bio: z.union([z.string().max(1000, 'Bio must be less than 1000 characters'), z.literal('')]).optional(),
-  city: z.union([z.string().max(100, 'City must be less than 100 characters'), z.literal('')]).optional(),
-  country: z.union([z.string().max(100, 'Country must be less than 100 characters'), z.literal('')]).optional(),
-  phone: z.union([
-    z.string().regex(/^[\d\s\-()+]+$/, 'Invalid phone number format'),
-    z.literal(''),
-  ]).optional(),
-  companyName: z.union([z.string().max(255, 'Company name must be less than 255 characters'), z.literal('')]).optional(),
-  licenseNumber: z.union([z.string().max(100, 'License number must be less than 100 characters'), z.literal('')]).optional(),
-  postcode: z.union([z.string().max(20, 'Postcode must be less than 20 characters'), z.literal('')]).optional(),
+  firstName: z
+    .string()
+    .min(1, 'First name is required')
+    .max(50, 'First name must be less than 50 characters'),
+  lastName: z
+    .string()
+    .min(1, 'Last name is required')
+    .max(50, 'Last name must be less than 50 characters'),
+  bio: z
+    .union([
+      z.string().max(1000, 'Bio must be less than 1000 characters'),
+      z.literal(''),
+    ])
+    .optional(),
+  city: z
+    .union([
+      z.string().max(100, 'City must be less than 100 characters'),
+      z.literal(''),
+    ])
+    .optional(),
+  country: z
+    .union([
+      z.string().max(100, 'Country must be less than 100 characters'),
+      z.literal(''),
+    ])
+    .optional(),
+  phone: z
+    .union([
+      z.string().regex(/^[\d\s\-()+]+$/, 'Invalid phone number format'),
+      z.literal(''),
+    ])
+    .optional(),
+  companyName: z
+    .union([
+      z.string().max(255, 'Company name must be less than 255 characters'),
+      z.literal(''),
+    ])
+    .optional(),
+  licenseNumber: z
+    .union([
+      z.string().max(100, 'License number must be less than 100 characters'),
+      z.literal(''),
+    ])
+    .optional(),
+  postcode: z
+    .union([
+      z.string().max(20, 'Postcode must be less than 20 characters'),
+      z.literal(''),
+    ])
+    .optional(),
+  hourlyRate: z.coerce.number().finite().min(0).max(10000).optional(),
   isAvailable: z.boolean(),
 });
 
@@ -147,7 +197,10 @@ export const POST = withApiHandler(
   { roles: ['contractor'], rateLimit: false },
   async (request, { user }) => {
     // Custom rate limiting - prevent profile update abuse
-    const rateLimitResult = await checkRateLimit(request, RATE_LIMIT_CONFIGS.api);
+    const rateLimitResult = await checkRateLimit(
+      request,
+      RATE_LIMIT_CONFIGS.api
+    );
     if (!rateLimitResult.success) {
       throw new RateLimitError();
     }
@@ -155,7 +208,9 @@ export const POST = withApiHandler(
     // Parse form data
     const formData = await request.formData();
 
-    const getOptionalField = (value: FormDataEntryValue | null): string | undefined => {
+    const getOptionalField = (
+      value: FormDataEntryValue | null
+    ): string | undefined => {
       const str = typeof value === 'string' ? value : '';
       return str.trim() === '' ? undefined : str.trim();
     };
@@ -170,6 +225,9 @@ export const POST = withApiHandler(
       companyName: getOptionalField(formData.get('companyName')),
       licenseNumber: getOptionalField(formData.get('licenseNumber')),
       postcode: getOptionalField(formData.get('postcode')),
+      hourlyRate: formData.has('hourlyRate')
+        ? formData.get('hourlyRate')
+        : undefined,
       isAvailable: formData.get('isAvailable') === 'true',
     };
 
@@ -177,11 +235,15 @@ export const POST = withApiHandler(
     const latitudeValue = formData.get('latitude');
     const longitudeValue = formData.get('longitude');
     const addressValue = formData.get('address');
-    const latitudeStr = typeof latitudeValue === 'string' ? latitudeValue : null;
-    const longitudeStr = typeof longitudeValue === 'string' ? longitudeValue : null;
+    const latitudeStr =
+      typeof latitudeValue === 'string' ? latitudeValue : null;
+    const longitudeStr =
+      typeof longitudeValue === 'string' ? longitudeValue : null;
     const address = typeof addressValue === 'string' ? addressValue : null;
     const providedLatitude = latitudeStr ? parseFloat(latitudeStr) : undefined;
-    const providedLongitude = longitudeStr ? parseFloat(longitudeStr) : undefined;
+    const providedLongitude = longitudeStr
+      ? parseFloat(longitudeStr)
+      : undefined;
 
     // Validate and sanitize input
     let validatedData;
@@ -203,8 +265,12 @@ export const POST = withApiHandler(
     const firstName = sanitizeText(validatedData.firstName, 50);
     const lastName = sanitizeText(validatedData.lastName, 50);
     const bio = validatedData.bio ? sanitizeText(validatedData.bio, 1000) : '';
-    const city = validatedData.city ? sanitizeText(validatedData.city, 100) : '';
-    const country = validatedData.country ? sanitizeText(validatedData.country, 100) : '';
+    const city = validatedData.city
+      ? sanitizeText(validatedData.city, 100)
+      : '';
+    const country = validatedData.country
+      ? sanitizeText(validatedData.country, 100)
+      : '';
 
     // Normalize phone to UK format required by database constraint
     const normalizedPhone = normalizePhoneToUKFormat(validatedData.phone);
@@ -215,7 +281,9 @@ export const POST = withApiHandler(
         originalPhone: validatedData.phone,
         normalizedPhone,
       });
-      throw new BadRequestError('Invalid phone number format. Please use UK format (e.g., +44 1234 567890 or 01234 567890)');
+      throw new BadRequestError(
+        'Invalid phone number format. Please use UK format (e.g., +44 1234 567890 or 01234 567890)'
+      );
     }
 
     const phone = normalizedPhone ?? undefined;
@@ -258,20 +326,22 @@ export const POST = withApiHandler(
 
       if (uploadError) {
         logger.error('Upload error', uploadError, {
-          service: 'contractor', userId: user.id, filePath,
+          service: 'contractor',
+          userId: user.id,
+          filePath,
         });
         throw uploadError;
       }
 
-      const { data: { publicUrl } } = serverSupabase.storage
-        .from('profile-images')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = serverSupabase.storage.from('profile-images').getPublicUrl(filePath);
 
       profileImageUrl = publicUrl;
     }
 
     // Build update data
-    const updateData: ProfileUpdateData = {
+    const updateData: Partial<ProfileUpdateData> & { hourly_rate?: number } = {
       first_name: firstName,
       last_name: lastName,
       bio,
@@ -279,22 +349,56 @@ export const POST = withApiHandler(
       country,
       phone,
       company_name: rawData.companyName || null,
-      license_number: rawData.licenseNumber ? rawData.licenseNumber.trim().toUpperCase() : null,
-      postcode: validatedData.postcode ? sanitizeText(validatedData.postcode, 20) : undefined,
+      license_number: rawData.licenseNumber
+        ? rawData.licenseNumber.trim().toUpperCase()
+        : null,
+      postcode: validatedData.postcode
+        ? sanitizeText(validatedData.postcode, 20)
+        : undefined,
       is_available: validatedData.isAvailable,
       updated_at: new Date().toISOString(),
     };
 
+    // Partial profile edits (including logo uploads) must preserve omitted fields.
+    const optionalFields = {
+      bio: 'bio',
+      city: 'city',
+      country: 'country',
+      phone: 'phone',
+      companyName: 'company_name',
+      licenseNumber: 'license_number',
+      postcode: 'postcode',
+      isAvailable: 'is_available',
+    } as const;
+    for (const [input, column] of Object.entries(optionalFields)) {
+      if (!formData.has(input)) delete updateData[column];
+    }
+    if (validatedData.hourlyRate !== undefined)
+      updateData.hourly_rate = validatedData.hourlyRate;
+
     // Geocode city/country to get coordinates for map display
-    if (city || country || providedLatitude !== undefined || providedLongitude !== undefined) {
-      if (providedLatitude !== undefined && providedLongitude !== undefined &&
-          !isNaN(providedLatitude) && !isNaN(providedLongitude)) {
+    if (
+      city ||
+      country ||
+      providedLatitude !== undefined ||
+      providedLongitude !== undefined
+    ) {
+      if (
+        providedLatitude !== undefined &&
+        providedLongitude !== undefined &&
+        !isNaN(providedLatitude) &&
+        !isNaN(providedLongitude)
+      ) {
         updateData.latitude = providedLatitude;
         updateData.longitude = providedLongitude;
         if (address) updateData.address = address;
         logger.info('Using provided coordinates from Places Autocomplete', {
-          service: 'contractor', userId: user.id, city, country,
-          latitude: providedLatitude, longitude: providedLongitude,
+          service: 'contractor',
+          userId: user.id,
+          city,
+          country,
+          latitude: providedLatitude,
+          longitude: providedLongitude,
         });
       } else {
         const addressParts = [];
@@ -305,23 +409,33 @@ export const POST = withApiHandler(
         if (fullAddress) {
           try {
             const geocodingService = new GeocodingService();
-            const coordinates = await geocodingService.geocodeAddress(fullAddress);
+            const coordinates =
+              await geocodingService.geocodeAddress(fullAddress);
             if (coordinates) {
               updateData.latitude = coordinates.lat;
               updateData.longitude = coordinates.lng;
-              if (coordinates.formattedAddress) updateData.address = coordinates.formattedAddress;
+              if (coordinates.formattedAddress)
+                updateData.address = coordinates.formattedAddress;
               logger.info('Geocoded contractor location', {
-                service: 'contractor', userId: user.id, city, country,
-                latitude: coordinates.lat, longitude: coordinates.lng,
+                service: 'contractor',
+                userId: user.id,
+                city,
+                country,
+                latitude: coordinates.lat,
+                longitude: coordinates.lng,
               });
             } else {
               logger.warn('Failed to geocode contractor location', {
-                service: 'contractor', userId: user.id, address: fullAddress,
+                service: 'contractor',
+                userId: user.id,
+                address: fullAddress,
               });
             }
           } catch (geocodeError) {
             logger.error('Error geocoding contractor location', geocodeError, {
-              service: 'contractor', userId: user.id, address: fullAddress,
+              service: 'contractor',
+              userId: user.id,
+              address: fullAddress,
             });
           }
         }
@@ -341,27 +455,36 @@ export const POST = withApiHandler(
       if (profileImageUrl) {
         const marker = '/profile-images/';
         const markerIndex = profileImageUrl.indexOf(marker);
-        const uploadedPath = markerIndex >= 0
-          ? decodeURIComponent(profileImageUrl.slice(markerIndex + marker.length))
-          : null;
+        const uploadedPath =
+          markerIndex >= 0
+            ? decodeURIComponent(
+                profileImageUrl.slice(markerIndex + marker.length)
+              )
+            : null;
 
         if (uploadedPath) {
           const { error: cleanupError } = await serverSupabase.storage
             .from('profile-images')
             .remove([uploadedPath]);
           if (cleanupError) {
-            logger.warn('Failed to clean up profile image after update failure', {
-              service: 'contractor',
-              userId: user.id,
-              cleanupError,
-            });
+            logger.warn(
+              'Failed to clean up profile image after update failure',
+              {
+                service: 'contractor',
+                userId: user.id,
+                cleanupError,
+              }
+            );
           }
         }
       }
       logger.error('Update error', {
-        service: 'contractor', userId: user.id,
-        errorMessage: error.message, errorCode: error.code,
-        errorDetails: error.details, errorHint: error.hint,
+        service: 'contractor',
+        userId: user.id,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        errorHint: error.hint,
         updateData: Object.keys(updateData),
       });
       throw error;

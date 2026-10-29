@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import {
   useSafeAreaInsets,
@@ -212,7 +212,7 @@ const TabNavigator: React.FC = () => {
   return (
     <>
       <OfflineSyncStatus showWhenOnline compact position='top' />
-      <OnboardingGateStack />
+      <OnboardingGateStack key={user?.id} />
       <QuickJobModal
         visible={showQuickJobModal}
         onClose={() => setShowQuickJobModal(false)}
@@ -303,6 +303,10 @@ const TabNavigator: React.FC = () => {
 
 export const AppNavigator: React.FC = () => {
   const { user, loading } = useAuth();
+  // Only the initial restore blocks navigation. Interactive sign-in/sign-up
+  // loading must not unmount Register/Login and discard their result screens.
+  const restored = useRef(false);
+  if (!loading) restored.current = true;
   const { colorScheme } = useTheme();
   const isDark = colorScheme === 'dark';
   const onNavigationReady = useNotificationNavigation(user?.id, loading);
@@ -332,7 +336,7 @@ export const AppNavigator: React.FC = () => {
         },
       };
 
-  if (loading) {
+  if (loading && !restored.current) {
     return (
       <SafeAreaView
         style={[

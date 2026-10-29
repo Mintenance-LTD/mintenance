@@ -45,7 +45,15 @@ export function isAllowedRedirect(url: string | null | undefined): boolean {
   try {
     const parsed = new URL(url, window.location.origin);
     if (parsed.origin !== window.location.origin) return false;
-    if (parsed.pathname === '/register/invitation') return true;
+    if (
+      [
+        '/register/invitation',
+        '/accept-invite',
+        '/getting-started',
+        '/onboarding/homeowner',
+      ].includes(parsed.pathname)
+    )
+      return true;
     if (
       /^\/tenant\/properties\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
         parsed.pathname

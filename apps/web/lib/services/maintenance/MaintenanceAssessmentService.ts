@@ -88,6 +88,7 @@ export class MaintenanceAssessmentService {
   ): Promise<MaintenanceAssessment> {
     const startTime = Date.now();
     const assessmentId = crypto.randomUUID();
+    let assessment: MaintenanceAssessment;
 
     try {
       // Step 1: Run detection
@@ -95,34 +96,32 @@ export class MaintenanceAssessmentService {
 
       // Step 2: Handle detection results
       if (!detections || detections.length === 0) {
-        return this.handleNoDetection(assessmentId, images, options, Date.now() - startTime);
+        assessment = await this.handleNoDetection(
+          assessmentId, images, options, Date.now() - startTime
+        );
+      } else {
+        assessment = await this.buildAssessment(
+          assessmentId, detections, options, Date.now() - startTime
+        );
       }
-
-      // Step 3: Analyze and build assessment
-      const assessment = await this.buildAssessment(
-        assessmentId,
-        detections,
-        options,
-        Date.now() - startTime
-      );
-
-      // Step 4: Save if requested
-      if (options.saveAssessment) {
-        await this.saveAssessment(assessment, images, options);
-      }
-
-      return assessment;
-
     } catch (error) {
       logger.error('Assessment failed:', error);
 
       // Fallback to GPT-4 if available
       if (options.useGPTFallback) {
-        return this.assessWithGPTFallback(assessmentId, images, options, Date.now() - startTime);
+        assessment = await this.assessWithGPTFallback(
+          assessmentId, images, options, Date.now() - startTime
+        );
+      } else {
+        throw error;
       }
-
-      throw error;
     }
+    // Persistence is outside the inference fallback: a rejected database write
+    // must not trigger another paid inference and then masquerade as success.
+    if (options.saveAssessment) {
+      await this.saveAssessment(assessment, images, options);
+    }
+    return assessment;
   }
 
   /**
@@ -426,7 +425,15 @@ export class MaintenanceAssessmentService {
 
     } catch (error) {
       logger.error('GPT-4 fallback failed:', error);
-      return this.handleNoDetection(assessmentId, images, options, processingTime);
+      // Do not re-enter description -> GPT fallback indefinitely on provider
+      // failure, or report an unavailable analysis as "no issue detected".
+      const unavailable = await this.handleNoDetection(
+        assessmentId, images,
+        { ...options, userDescription: undefined, useGPTFallback: false },
+        processingTime
+      );
+      return { ...unavailable, status: 'need_more_info',
+        message: 'Analysis is temporarily unavailable. Please try again later.' };
     }
   }
 
@@ -440,7 +447,7 @@ export class MaintenanceAssessmentService {
   ): Promise<void> {
     try {
       const supabase = serverSupabase;
-      await supabase.from('maintenance_assessments').insert({
+      const { error } = await supabase.from('maintenance_assessments').insert({
         id: assessment.id,
         user_id: options.userId,
         job_id: options.jobId,
@@ -461,10 +468,12 @@ export class MaintenanceAssessmentService {
         model_version: assessment.model_version,
         model_type: assessment.model_type
       });
+      if (error) throw new Error('maintenance_assessment_save_failed');
 
       logger.info(`Assessment saved: ${assessment.id}`);
     } catch (error) {
       logger.error('Failed to save assessment:', error);
+      throw error;
     }
   }
 

@@ -27,6 +27,14 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('../../contexts/AuthContext');
 
 // Stub the dashboards + loading view so HomeScreen routing is isolated.
+jest.mock('../../screens/onboarding/GettingStartedScreen', () => {
+  const { Text: RNText } = require('react-native');
+  return {
+    GettingStartedScreen: () => (
+      <RNText testID='getting-started-screen'>Getting started</RNText>
+    ),
+  };
+});
 jest.mock('../../screens/home/HomeownerDashboard', () => {
   const { Text: RNText } = require('react-native');
   return {
@@ -112,7 +120,7 @@ describe('HomeScreen (role router)', () => {
     expect(queryByTestId('homeowner-dashboard')).toBeNull();
   });
 
-  it('falls back to the homeowner view for unknown roles', () => {
+  it('routes admins to the guide instead of a homeowner dashboard', () => {
     mockUseAuth.mockReturnValue({
       ...baseAuth,
       user: {
@@ -126,8 +134,20 @@ describe('HomeScreen (role router)', () => {
       },
     } as unknown as ReturnType<typeof useAuth>);
 
-    const { getByTestId } = render(<HomeScreen />);
+    const { getByTestId, queryByTestId } = render(<HomeScreen />);
+    expect(getByTestId('getting-started-screen')).toBeTruthy();
+    expect(queryByTestId('homeowner-dashboard')).toBeNull();
+    expect(queryByTestId('contractor-dashboard')).toBeNull();
+  });
+
+  it('falls back to the homeowner view for an unknown role', () => {
+    mockUseAuth.mockReturnValue({
+      ...baseAuth,
+      user: { id: 'unknown-user', role: 'unknown' },
+    } as unknown as ReturnType<typeof useAuth>);
+    const { getByTestId, queryByTestId } = render(<HomeScreen />);
     expect(getByTestId('homeowner-dashboard')).toBeTruthy();
+    expect(queryByTestId('getting-started-screen')).toBeNull();
   });
 
   it('shows the loading view while a contractor session is still loading', () => {

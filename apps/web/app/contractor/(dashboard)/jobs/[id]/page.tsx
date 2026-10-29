@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { PropertyEntryUnavailableNotice } from '@/components/properties/PropertyEntryUnavailableNotice';
+import { readPropertyEntryForDisplay } from '@/lib/services/property-entry-secret';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { canRevealKeySafeCode } from '@/lib/services/jobs/key-safe-reveal';
 import { redirect } from 'next/navigation';
@@ -243,6 +245,10 @@ export default async function ContractorJobDetailPage({
     status: job.status,
     scheduled_start_date: job.scheduled_start_date,
   });
+  const entry =
+    property && canSeeKeySafeCode
+      ? await readPropertyEntryForDisplay(job.property_id, user.id, job.id)
+      : { code: null, unavailable: false };
   const safeProperty = property
     ? {
         access_mode: (property as Record<string, unknown>).access_mode as
@@ -250,11 +256,8 @@ export default async function ContractorJobDetailPage({
           | 'smart_lock'
           | 'in_person'
           | null,
-        key_safe_code: canSeeKeySafeCode
-          ? (((property as Record<string, unknown>).key_safe_code as
-              | string
-              | null) ?? null)
-          : null,
+        key_safe_code: entry.code,
+        entry_secret_unavailable: entry.unavailable,
         access_notes:
           ((property as Record<string, unknown>).access_notes as
             | string
@@ -284,73 +287,77 @@ export default async function ContractorJobDetailPage({
 
   if (isMintEditorial) {
     return (
-      <MintEditorialJobDetailView
-        job={{
-          id: job.id,
-          title: job.title ?? null,
-          description: job.description ?? null,
-          status: job.status ?? null,
-          budget: job.budget ?? null,
-          location: job.location ?? null,
-          latitude: job.latitude ?? null,
-          longitude: job.longitude ?? null,
-          created_at: job.created_at ?? null,
-          scheduled_start_date: job.scheduled_start_date ?? null,
-          scheduled_end_date: job.scheduled_end_date ?? null,
-          scheduled_duration_hours: job.scheduled_duration_hours ?? null,
-        }}
-        homeowner={homeowner}
-        contract={
-          contract
-            ? {
-                start_date: contract.start_date ?? null,
-                end_date: contract.end_date ?? null,
-              }
-            : null
-        }
-        property={safeProperty}
-        propertyContacts={propertyContacts}
-        contractStatus={contractStatus}
-        currentStage={currentStage}
-        stageTitle={stageConfig.title}
-        stageSubtitle={stageConfig.subtitle}
-        steps={steps.map((s) => ({
-          label: s.label,
-          state: s.completed
-            ? ('complete' as const)
-            : s.active
-              ? ('current' as const)
-              : ('pending' as const),
-        }))}
-        escrowHeld={escrowHeld}
-        escrowStatus={escrowStatus}
-        escrowId={escrowTransaction?.id ?? null}
-        paymentAmounts={
-          escrowTransaction
-            ? {
-                gross: Number(escrowTransaction.amount),
-                fee:
-                  escrowTransaction.platform_fee === null
-                    ? null
-                    : Number(escrowTransaction.platform_fee),
-                net:
-                  escrowTransaction.contractor_payout === null
-                    ? null
-                    : Number(escrowTransaction.contractor_payout),
-              }
-            : undefined
-        }
-        jobPhotoUrls={jobPhotoUrls}
-        buildingAssessment={buildingAssessment}
-        userId={user.id}
-        messageHref={messageHref}
-        platformFeeRate={platformFeeRate}
-      />
+      <>
+        <PropertyEntryUnavailableNotice unavailable={entry.unavailable} />
+        <MintEditorialJobDetailView
+          job={{
+            id: job.id,
+            title: job.title ?? null,
+            description: job.description ?? null,
+            status: job.status ?? null,
+            budget: job.budget ?? null,
+            location: job.location ?? null,
+            latitude: job.latitude ?? null,
+            longitude: job.longitude ?? null,
+            created_at: job.created_at ?? null,
+            scheduled_start_date: job.scheduled_start_date ?? null,
+            scheduled_end_date: job.scheduled_end_date ?? null,
+            scheduled_duration_hours: job.scheduled_duration_hours ?? null,
+          }}
+          homeowner={homeowner}
+          contract={
+            contract
+              ? {
+                  start_date: contract.start_date ?? null,
+                  end_date: contract.end_date ?? null,
+                }
+              : null
+          }
+          property={safeProperty}
+          propertyContacts={propertyContacts}
+          contractStatus={contractStatus}
+          currentStage={currentStage}
+          stageTitle={stageConfig.title}
+          stageSubtitle={stageConfig.subtitle}
+          steps={steps.map((s) => ({
+            label: s.label,
+            state: s.completed
+              ? ('complete' as const)
+              : s.active
+                ? ('current' as const)
+                : ('pending' as const),
+          }))}
+          escrowHeld={escrowHeld}
+          escrowStatus={escrowStatus}
+          escrowId={escrowTransaction?.id ?? null}
+          paymentAmounts={
+            escrowTransaction
+              ? {
+                  gross: Number(escrowTransaction.amount),
+                  fee:
+                    escrowTransaction.platform_fee === null
+                      ? null
+                      : Number(escrowTransaction.platform_fee),
+                  net:
+                    escrowTransaction.contractor_payout === null
+                      ? null
+                      : Number(escrowTransaction.contractor_payout),
+                }
+              : undefined
+          }
+          jobPhotoUrls={jobPhotoUrls}
+          buildingAssessment={buildingAssessment}
+          userId={user.id}
+          messageHref={messageHref}
+          platformFeeRate={platformFeeRate}
+        />
+      </>
     );
   }
 
   return (
     <div style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0 }}>
+      <PropertyEntryUnavailableNotice unavailable={entry.unavailable} />
       {/* Back Navigation */}
       <div style={{ marginBottom: theme.spacing[4] }}>
         <Link

@@ -241,6 +241,7 @@ yolo11n.pt
 !scripts/**/*.sh
 !infrastructure/**/*.sh
 *.json
+!apps/web/lib/services/building-surveyor/taxonomy/roboflow-label-policy.json
 !package*.json
 !turbo.json
 !tsconfig*.json
@@ -365,3 +366,14 @@ apps/mobile/phase4-after-mocks.txt
 # Isolated readiness database configuration and local credentials
 /output/readiness-stack/
 /output/readiness-toolchain/
+
+# Public blank pilot schema; populated registers stay in ignored private storage.
+!docs/pilot/pilot-manifest.template.json
+
+# Generated aggregate storage audit report
+/scripts/storage-integrity-report.json
+
+# Keep the scheduled k6 entry point despite the broad test-script ignore.
+!apps/web/load-tests/k6/smoke-test.js
+/apps/web/load-tests/k6/load-test-results.json
+/apps/web/load-tests/k6/k6-output.txt

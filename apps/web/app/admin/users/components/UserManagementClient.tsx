@@ -1,8 +1,9 @@
 'use client';
 
+import { useAdminFetch } from '@/components/admin/AdminVerificationProvider';
 import React, { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
@@ -52,6 +53,7 @@ export function UserManagementClient({
   initialUsers,
   initialPagination,
 }: UserManagementClientProps) {
+  const adminFetch = useAdminFetch();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -113,15 +115,6 @@ export function UserManagementClient({
         verifiedFilter,
         excludeTestUsers,
       }),
-    initialData:
-      page === 1 &&
-      debouncedSearch === '' &&
-      roleFilter === 'all' &&
-      verifiedFilter === 'all' &&
-      excludeTestUsers
-        ? { users: initialUsers, pagination: initialPagination }
-        : undefined,
-    placeholderData: (previousData) => previousData,
     meta: {
       onError: (err: unknown) => {
         logger.error('Error fetching users:', err);
@@ -129,7 +122,7 @@ export function UserManagementClient({
     },
   });
 
-  const users = data?.users ?? initialUsers;
+  const users = data?.users ?? [];
   const pagination = data?.pagination ?? initialPagination;
 
   // Reset page when filters change
@@ -189,7 +182,7 @@ export function UserManagementClient({
     }
     setBulkActionLoading(true);
     try {
-      const csrfRes = await fetch('/api/csrf', {
+      const csrfRes = await adminFetch('/api/csrf', {
         method: 'GET',
         credentials: 'include',
       });
@@ -197,7 +190,7 @@ export function UserManagementClient({
         ? await csrfRes.json()
         : { token: '' };
       if (csrfToken) await new Promise((r) => setTimeout(r, 50));
-      const response = await fetch('/api/admin/users/bulk-verify', {
+      const response = await adminFetch('/api/admin/users/bulk-verify', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -240,7 +233,7 @@ export function UserManagementClient({
         ...(verifiedFilter !== 'all' && { verified: verifiedFilter }),
         ...(search.trim() && { search: search.trim() }),
       });
-      const response = await fetch(
+      const response = await adminFetch(
         `/api/admin/users/export?${params.toString()}`
       );
       if (!response.ok) throw new Error('Failed to export users');

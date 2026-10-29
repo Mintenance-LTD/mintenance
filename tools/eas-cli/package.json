@@ -1,0 +1,13 @@
+{
+  "name": "mintenance-eas-tooling",
+  "private": true,
+  "engines": {
+    "node": "20.19.4"
+  },
+  "dependencies": {
+    "eas-cli": "25.3.0"
+  },
+  "overrides": {
+    "@oclif/plugin-autocomplete": "3.2.40"
+  }
+}

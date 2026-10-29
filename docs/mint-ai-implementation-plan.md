@@ -1,6 +1,12 @@
 # Mint AI implementation plan
 
-Updated 25 September 2026.
+Updated 25 October 2026.
+
+Current source/inventory audit and next steps: [Mint AI continuation](MINT_AI_CONTINUATION.md).
+The latest assessment runner excludes unvalidated detector evidence. Roboflow has 2,301
+unassigned images plus separate annotation/review jobs; these are not ready training labels.
+The October update adds conservative label interpretation, main-AI evidence guidance and a
+review-aware COCO audit. Training and deployment remain outstanding.
 
 ## Objective
 

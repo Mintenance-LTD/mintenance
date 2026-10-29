@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+
 import Link from 'next/link';
 import {
   Search,
@@ -47,9 +47,11 @@ interface FAQ {
 }
 
 export default function FAQPageClient() {
-  const router = useRouter();
-
   const [searchQuery, setSearchQuery] = useState('');
+  useEffect(() => {
+    setSearchQuery(new URLSearchParams(window.location.search).get('q') ?? '');
+  }, []);
+
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const categories = [
@@ -134,7 +136,7 @@ export default function FAQPageClient() {
       id: '6',
       question: 'What are your service fees?',
       answer:
-        'Homeowners can post jobs completely free. Contractors pay a small service fee (typically 5-10%) only when they win a job. There are no monthly subscriptions or hidden costs. The exact fee is clearly shown before you accept any job.',
+        'Homeowners can post jobs completely free. Contractors pay a small service fee (typically 5-10%) only when they win a job. Optional subscription plans are available; see Pricing for details. The exact fee is clearly shown before you accept any job.',
       category: 'payments',
     },
     {
@@ -194,7 +196,7 @@ export default function FAQPageClient() {
       id: '14',
       question: 'How are contractors checked before they can bid?',
       answer:
-        'Contractors share their credentials (e.g. Gas Safe, NICEIC), insurance details, and business info during onboarding. Our admin team reviews each submission manually before a contractor can bid — automated lookups against the official registers and a background-check provider are on our roadmap, not live today. Past job history, ratings, and dispute records are visible on every contractor profile so you can judge fit for yourself.',
+        'Contractors share their credentials (e.g. Gas Safe, NICEIC), insurance details, and business info during onboarding. Our admin team reviews each submission manually before a contractor can bid: automated lookups against the official registers and a background-check provider are on our roadmap, not live today. Past job history, ratings, and dispute records are visible on every contractor profile so you can judge fit for yourself.',
       category: 'safety',
     },
     {
@@ -224,7 +226,7 @@ export default function FAQPageClient() {
       id: '18',
       question: 'How can I contact customer support?',
       answer:
-        "You can reach us via: live chat (bottom right corner of website), email at support@mintenance.co.uk, phone at 0800 MINTENANCE, or through the Help Centre. We're available Monday-Friday 8am-8pm, Saturday 9am-5pm.",
+        'You can reach us via: live chat (bottom right corner of website), email at support@mintenance.co.uk, the contact form, or through the Help Centre. Send your enquiry through the contact page.',
       category: 'support',
     },
     {
@@ -372,7 +374,7 @@ export default function FAQPageClient() {
                 <p className='text-sm font-medium text-center'>
                   {category.label}
                 </p>
-                <p className='text-xs mt-1 opacity-75'>
+                <p className='text-xs mt-1'>
                   {
                     faqs.filter(
                       (f) => category.id === 'all' || f.category === category.id
@@ -526,7 +528,7 @@ export default function FAQPageClient() {
                 textDecoration: 'none',
               }}
             >
-              Live Chat
+              Contact support
             </Link>
           </div>
         </MotionDiv>

@@ -27,7 +27,7 @@ export const GET = withApiHandler(
         // directly — the legacy side table it used to come from is
         // retired (it only ever held Stripe/subscription columns).
         .select(
-          'id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry_date, is_available, latitude, longitude, address, postcode, portfolio_images, hourly_rate, created_at, updated_at'
+          'id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry_date, is_available, latitude, longitude, address, business_address, postcode, portfolio_images, hourly_rate, created_at, updated_at'
         )
         .eq('id', user.id)
         .single(),

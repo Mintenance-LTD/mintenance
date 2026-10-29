@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'path';
 
+const localHttps = process.env.CI && process.env.PLAYWRIGHT_TEST_BASE_URL === 'https://localhost:3000';
+
 // Load environment variables from .env.local for E2E tests
 // This ensures Supabase credentials are available for test data seeding
 dotenv.config({ path: path.resolve(__dirname, '.env.local') });
@@ -45,6 +47,8 @@ export default defineConfig({
   use: {
     // Base URL for tests
     baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
+    // Only the ephemeral loopback CI certificate is self-signed.
+    ignoreHTTPSErrors: !!localHttps,
 
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
@@ -96,7 +100,7 @@ export default defineConfig({
     // Visual regression tests
     {
       name: 'visual-regression',
-      testMatch: /visual-regression\.spec\.ts/,
+      testMatch: /visual-(regression|capture)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
 
@@ -151,8 +155,8 @@ export default defineConfig({
     // Firefox, WebKit, and mobile viewports re-run auth-flow (the only spec
     // that needs no storageState — these projects have none, so the
     // auth-gated specs could never pass here). They run only when
-    // E2E_ALL_BROWSERS=true — the CI workflow sets that on pushes to main,
-    // while PR runs stay Chromium-only to fit the CI time budget.
+    // E2E_ALL_BROWSERS=true — CI sets this for both PRs and main so Safari
+    // authentication regressions are caught before merging.
 
     ...(process.env.E2E_ALL_BROWSERS === 'true'
       ? [
@@ -190,8 +194,9 @@ export default defineConfig({
   // Start web server before running tests
   // CI uses production build (already built in workflow); local dev reuses existing server
   webServer: {
-    command: process.env.CI ? 'npm run start' : 'npm run dev',
-    url: 'http://localhost:3000',
+    command: localHttps ? 'node ../../scripts/ci/start-e2e-https.cjs' : process.env.CI ? 'npm run start' : 'npm run dev',
+    url: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
+    ignoreHTTPSErrors: !!localHttps,
     timeout: 120 * 1000,
     reuseExistingServer: !process.env.CI,
   },

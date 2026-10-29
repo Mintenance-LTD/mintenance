@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { DashboardOnboarding } from '@/components/onboarding/OnboardingWrapper';
 import { useQuery } from '@tanstack/react-query';
 import { formatMoney } from '@/lib/utils/currency';
 import { AirbnbSearchBar } from './AirbnbSearchBar';
@@ -94,7 +95,7 @@ export function DashboardWithAirbnbSearch({
       <section className='bg-gradient-to-b from-white to-gray-50 px-4 sm:px-6 lg:px-8 py-8'>
         <div className='max-w-6xl mx-auto min-w-0'>
           <div className='mb-8 text-center'>
-            <h1 className='text-3xl font-bold text-gray-900 mb-2'>
+            <h2 className='text-3xl font-bold text-gray-900 mb-2'>
               Welcome back,{' '}
               {(() => {
                 if (!homeowner.name || typeof homeowner.name !== 'string') {
@@ -104,10 +105,11 @@ export function DashboardWithAirbnbSearch({
                 return firstName || 'there';
               })()}
               !
-            </h1>
+            </h2>
             <p className='text-gray-600'>What maintenance do you need today?</p>
           </div>
 
+          <DashboardOnboarding />
           {/* Airbnb Search Bar */}
           <AirbnbSearchBar properties={properties} />
 

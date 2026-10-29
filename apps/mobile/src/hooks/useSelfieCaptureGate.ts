@@ -72,7 +72,9 @@ export function useSelfieCaptureGate(): SelfieCaptureGate {
     }
 
     try {
-      const dismissedAt = await AsyncStorage.getItem(STORAGE_KEY);
+      const dismissedAt = await AsyncStorage.getItem(
+        `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`
+      );
       if (dismissedAt) {
         setShouldShow(false);
         setLoading(false);
@@ -132,13 +134,16 @@ export function useSelfieCaptureGate(): SelfieCaptureGate {
   const dismiss = useCallback(async () => {
     setShouldShow(false);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, new Date().toISOString());
+      await AsyncStorage.setItem(
+        `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`,
+        new Date().toISOString()
+      );
     } catch (err) {
       logger.warn('useSelfieCaptureGate: dismiss persist failed', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
-  }, []);
+  }, [user?.id]);
 
   return {
     shouldShow,

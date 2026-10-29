@@ -21,6 +21,21 @@ import { render, fireEvent, screen } from '@testing-library/react-native';
 import { ContractorDashboard } from '../ContractorDashboard';
 
 // ---- Navigation -----------------------------------------------------------
+// Keep the child boundary consistent with the other cards below. The real
+// onboarding card is exercised with ThemeProvider in its own component suite.
+jest.mock('../../../components/onboarding/GettingStartedCard', () => {
+  const React2 = jest.requireActual('react');
+  const { Text } = jest.requireActual('react-native');
+  return {
+    GettingStartedCard: () =>
+      React2.createElement(
+        Text,
+        { testID: 'getting-started-card' },
+        'Getting started'
+      ),
+  };
+});
+
 const mockNavigate = jest.fn();
 const mockParentNavigate = jest.fn();
 const mockGetParent = jest.fn(() => ({ navigate: mockParentNavigate }));
@@ -363,6 +378,7 @@ describe('ContractorDashboard — time-of-day greeting branches', () => {
 describe('ContractorDashboard — data render + greeting branches', () => {
   it('renders main dashboard with stats', () => {
     render(<ContractorDashboard />);
+    expect(screen.getByTestId('getting-started-card')).toBeTruthy();
     expect(screen.getByTestId('home-scroll-view')).toBeTruthy();
     expect(screen.getByTestId('today-row').props.children).toBe('has-stats');
     expect(screen.getByTestId('next-up-has').props.children).toBe('has-next');

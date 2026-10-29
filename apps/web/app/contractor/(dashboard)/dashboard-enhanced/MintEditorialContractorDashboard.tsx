@@ -15,7 +15,9 @@
  */
 
 import React from 'react';
+import styles from '@/app/dashboard/components/HomeownerDashboard.module.css';
 import Link from 'next/link';
+import { DashboardOnboarding } from '@/components/onboarding/OnboardingWrapper';
 import { Plus, ArrowRight, Briefcase, AlertCircle } from 'lucide-react';
 import { formatMoney } from '@/lib/utils/currency';
 import { MintEditorialContractorDashboardRail } from './MintEditorialContractorDashboardRail';
@@ -112,7 +114,7 @@ export function MintEditorialContractorDashboard({
   return (
     <>
       {/* Greeting */}
-      <div className='between' style={{ marginBottom: 22 }}>
+      <div className={styles.greeting}>
         <div className='col' style={{ gap: 6 }}>
           <div className='t-eyebrow'>{today}</div>
           <h1 className='t-h1'>Good day, {firstName}.</h1>
@@ -131,15 +133,9 @@ export function MintEditorialContractorDashboard({
         </div>
       </div>
 
+      <DashboardOnboarding />
       {/* KPI row */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-          gap: 14,
-          marginBottom: 22,
-        }}
-      >
+      <div className={styles.metrics}>
         <div className='kpi'>
           <div className='label'>Total revenue</div>
           <div className='num'>{formatMoney(metrics.totalRevenue)}</div>
@@ -225,13 +221,7 @@ export function MintEditorialContractorDashboard({
       ) : null}
 
       {/* Two-column body */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)',
-          gap: 18,
-        }}
-      >
+      <div className={styles.content}>
         {/* Active jobs panel */}
         <div className='card'>
           <div

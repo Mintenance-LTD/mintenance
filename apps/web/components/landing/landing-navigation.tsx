@@ -14,13 +14,13 @@ import Image from 'next/image';
  */
 
 const NAV_LINKS = [
-  { href: '#how-it-works', label: 'How it works' },
-  { href: '/login?redirect=/dashboard', label: 'For homeowners' },
+  { href: '/how-it-works', label: 'How it works' },
+  { href: '/for-homeowners', label: 'For homeowners' },
   {
-    href: '/login?redirect=/contractor/dashboard-enhanced',
+    href: '/for-contractors',
     label: 'For tradespeople',
   },
-  { href: '/about', label: 'About' },
+  { href: '/how-it-works#watch-demo', label: 'Watch demos' },
 ];
 
 function LeafMark({ size = 22 }: { size?: number }) {
@@ -58,6 +58,8 @@ export function LandingNavigation() {
 
   return (
     <nav
+      aria-label='Main navigation'
+      className='public-site-navigation'
       data-theme='mint-editorial'
       style={{
         position: 'sticky',
@@ -167,6 +169,7 @@ export function LandingNavigation() {
           className='landing-nav-burger'
           aria-label='Toggle navigation menu'
           aria-expanded={isMobileMenuOpen}
+          aria-controls='public-mobile-menu'
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           style={{
             display: 'none',
@@ -203,6 +206,7 @@ export function LandingNavigation() {
       {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div
+          id='public-mobile-menu'
           className='landing-nav-mobile'
           style={{
             borderTop: '1px solid var(--me-line)',
@@ -224,6 +228,13 @@ export function LandingNavigation() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href='/login'
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{ ...linkStyle, display: 'block', padding: '12px 0' }}
+          >
+            Sign in
+          </Link>
           <Link
             href='/register'
             onClick={() => setIsMobileMenuOpen(false)}
@@ -248,10 +259,11 @@ export function LandingNavigation() {
       {/* Responsive: collapse desktop links/CTAs into the burger menu
           below 900px. */}
       <style>{`
+        .public-site-navigation :is(a, button):focus-visible { outline: 3px solid var(--me-brand); outline-offset: 4px; }
         @media (max-width: 899px) {
           .landing-nav-links,
           .landing-nav-cta { display: none !important; }
-          .landing-nav-burger { display: block !important; }
+          .landing-nav-burger { display: block !important; margin-left: auto; }
         }
       `}</style>
     </nav>

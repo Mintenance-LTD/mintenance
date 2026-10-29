@@ -20,6 +20,7 @@ on:
       - 'apps/web/lib/services/agents/escrow/**'
       - 'apps/web/lib/api/with-api-handler.ts'
       - 'supabase/migrations/**'
+      - 'scripts/db-tests/**'
       - '.github/workflows/integration-tests.yml'
   pull_request:
     branches: [main, master, develop]
@@ -35,10 +36,34 @@ on:
       - 'apps/web/lib/services/agents/escrow/**'
       - 'apps/web/lib/api/with-api-handler.ts'
       - 'supabase/migrations/**'
+      - 'scripts/db-tests/**'
       - '.github/workflows/integration-tests.yml'
   workflow_dispatch:
 
 jobs:
+  authorization-regressions:
+    name: Database authorization and concurrency
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20.19.4'
+          cache: npm
+          cache-dependency-path: scripts/db-tests/package-lock.json
+      - run: npm ci --prefix scripts/db-tests
+      - name: Prepare pinned PostgreSQL test binaries
+        working-directory: scripts/db-tests/node_modules/@embedded-postgres/linux-x64
+        run: node scripts/hydrate-symlinks.js
+      - run: npm test --prefix scripts/db-tests
+      - name: Check onboarding recovery and legacy migration compatibility
+        run: |
+          npm run test:onboarding --prefix scripts/db-tests
+          npm run test:onboarding --prefix scripts/db-tests -- --legacy-first
+
   integration-tests:
     name: Integration Tests (Real DB)
     runs-on: ubuntu-latest
@@ -55,6 +80,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        # CPU runners use bundled ONNX binaries; skip only the extra CUDA download.
+        env:
+          ONNXRUNTIME_NODE_INSTALL: 'skip'
         run: |
           npm install --global npm@11.6.2
           npm ci --ignore-scripts=false
@@ -85,8 +113,12 @@ jobs:
           echo "::add-mask::$SERVICE_KEY"
           echo "SUPABASE_TEST_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_TEST_SERVICE_KEY=$SERVICE_KEY" >> "$GITHUB_ENV"
-          curl -f http://localhost:54321/rest/v1/ \
-            -H "apikey: $ANON_KEY" --output /dev/null
+          # Probe a bounded table read; the full OpenAPI document can exceed
+          # the statement timeout with this schema's hundreds of functions.
+          curl --fail --retry 5 --retry-connrefused --retry-delay 2 \
+            'http://localhost:54321/rest/v1/profiles?select=id&limit=0' \
+            -H "apikey: $SERVICE_KEY" -H "Authorization: Bearer $SERVICE_KEY" \
+            --output /dev/null
 
       - name: Run integration tests
         working-directory: apps/web

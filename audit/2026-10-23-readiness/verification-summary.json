@@ -1,0 +1,14 @@
+{
+  "audit_date": "2026-10-23",
+  "web_typecheck": "passed",
+  "mobile_typecheck": "passed",
+  "selected_web_unique_tests": {"total": 1265, "passed_after_runner_correction": 1264, "failed": 1, "files": 191},
+  "selected_mobile_tests": {"total": 1023, "passed": 1020, "failed": 3, "files": 55},
+  "test_interpretation": "Selected suites only. The web total counts the corrected recovery-health rerun once. Remaining assertions appear to reflect behavior/expectation drift; this is not a fully green test run.",
+  "legacy_maintenance_assessments": {"rows": 0, "latest_created_at": null, "source": "read-only production SQL count on 2026-10-23"},
+  "report_local_links": {"checked": 11, "missing": 0},
+  "production_mutations": false,
+  "protected_browser_testing": "temporary link explicitly approved, created and verified; anonymous entry-point checks completed; application-role sign-in still required",
+  "android_device_testing": "not performed",
+  "ios_device_testing": "not performed"
+}

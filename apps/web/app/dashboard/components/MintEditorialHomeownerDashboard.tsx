@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { DashboardOnboarding } from '@/components/onboarding/OnboardingWrapper';
 import { Plus, FileText } from 'lucide-react';
 import styles from './HomeownerDashboard.module.css';
 import { MintEditorialShell } from './mint-editorial/MintEditorialShell';
@@ -66,6 +67,7 @@ export function MintEditorialHomeownerDashboard({
         </div>
       </div>
 
+      <DashboardOnboarding />
       {/* KPI row */}
       <div className={styles.metrics}>
         <div className='kpi'>

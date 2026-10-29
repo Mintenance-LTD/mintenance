@@ -1,41 +1,91 @@
-import type { Metadata } from 'next';
+import Link from 'next/link';
+import { ArrowUpRight } from 'lucide-react';
 import { LandingNavigation } from '../components/landing/LandingNavigation';
 import { Footer2025 } from '../components/landing/Footer2025';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { ResourcesClient } from './components/ResourcesClient';
-
-export const metadata: Metadata = {
-  title: 'Contractor Resources & Growth Tools | Mintenance',
-  description: 'Essential resources for contractors. Learn how to grow your business, win more jobs, improve your profile, and succeed on the Mintenance platform.',
-  keywords: 'contractor resources, business guides, contractor tips, professional development, platform guides, contractor success',
-  openGraph: {
-    title: 'Contractor Resources & Growth Tools | Mintenance',
-    description: 'Essential resources to help contractors grow their business and succeed on our platform.',
-    type: 'website',
-    images: [
-      {
-        url: '/og-resources.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Mintenance Contractor Resources',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Contractor Resources | Mintenance',
-    description: 'Essential resources for contractors to grow their business and win more jobs.',
-  },
+export const metadata = {
+  title: 'Resources for tradespeople | Mintenance',
+  description:
+    'Guidance for getting verified, understanding fees and delivering a job on Mintenance.',
 };
-
-export default function ResourcesPage() {
+const resources = [
+  [
+    'Watch the job-map demo',
+    'See service areas, the map and how a proposal comes together.',
+    '/for-contractors#demo-local-work',
+  ],
+  [
+    'Explore your Business hub',
+    'Take a short tour of business tools, expenses and documents.',
+    '/for-contractors#demo-business',
+  ],
+  [
+    'Get ready to work',
+    'Understand business verification and the information to prepare.',
+    '/verification',
+  ],
+  [
+    'Understand your fees',
+    'Review the available plans and pricing before choosing.',
+    '/pricing',
+  ],
+  [
+    'Write a clear proposal',
+    'See the details homeowners consider when comparing bids.',
+    '/blog/compare-bids',
+  ],
+  [
+    'Finish with confidence',
+    'Understand the completion review and payment stages.',
+    '/blog/review-completed-work',
+  ],
+];
+export default function Resources() {
   return (
-    <ErrorBoundary componentName="ResourcesPage">
-      <div>
-        <LandingNavigation />
-        <ResourcesClient />
-        <Footer2025 />
-      </div>
-    </ErrorBoundary>
+    <>
+      <LandingNavigation />
+      <main
+        id='main-content'
+        className='bg-[#f2f7f3] text-[#1b342b] px-6 py-16'
+      >
+        <div className='max-w-6xl mx-auto'>
+          <p className='text-sm tracking-[.18em] uppercase text-[#347968] font-semibold'>
+            For tradespeople
+          </p>
+          <h1 className='max-w-3xl mt-5 font-semibold'>
+            Useful guidance.
+            <br />
+            Less guesswork.
+          </h1>
+          <p className='max-w-xl mt-6 mb-12 text-lg text-[#53675d]'>
+            From setting up your profile to handing over a finished job, find
+            the next step here.
+          </p>
+          <div className='grid sm:grid-cols-2 gap-6'>
+            {resources.map(([title, text, href]) => (
+              <Link
+                key={href}
+                href={href}
+                className='rounded-3xl border border-[#d7e4dc] bg-white p-8 hover:shadow-lg transition'
+              >
+                <ArrowUpRight className='mb-8 text-[#347968]' />
+                <h2 className='text-2xl font-semibold'>{title}</h2>
+                <p className='mt-4 text-[#53675d]'>{text}</p>
+              </Link>
+            ))}
+          </div>
+          <p className='mt-10 text-[#53675d]'>
+            Have a specific question?{' '}
+            <Link
+              className='underline font-semibold text-[#286858]'
+              href='/contact'
+            >
+              Contact support
+            </Link>
+            .
+          </p>
+        </div>
+      </main>
+      <Footer2025 />
+    </>
   );
 }

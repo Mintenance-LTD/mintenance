@@ -1,6 +1,11 @@
 # Reviewed export requirements
 
-`export_bootstrap_dataset.mjs` exports only targets marked human-verified in `vlm_training_buffer`,
+**Beta hold:** `export_bootstrap_dataset.mjs` currently exits 2 before database access, including
+`--dry-run`. Reviewed labels do not establish source permission or exclude pilot captures. The
+application also blocks training exports; no environment flag bypasses these holds. Implement
+source-consent and held-out exclusions before enabling reuse. The format below is dormant.
+
+When enabled in a future reviewed change, `export_bootstrap_dataset.mjs` exports only targets marked human-verified in `vlm_training_buffer`,
 with the same ordered source images. A human correction takes precedence over the original teacher
 response. Automated validation and high teacher confidence cannot substitute for review.
 

@@ -135,14 +135,20 @@ export function BuildingAssessmentDisplay({
     return (
       <div className='space-y-4'>
         <CaptureWarnings warnings={assessment.captureWarnings} />
-        <VisibleEvidenceCard evidence={assessment.visualEvidence} />
+        <VisibleEvidenceCard
+          evidence={assessment.visualEvidence}
+          frameUrls={frameUrls ?? photoUrls}
+        />
       </div>
     );
   if (assessment?.visualEvidence)
     return (
       <div className='space-y-4'>
         <CaptureWarnings warnings={assessment.captureWarnings} />
-        <VisibleEvidenceCard evidence={assessment.visualEvidence} />
+        <VisibleEvidenceCard
+          evidence={assessment.visualEvidence}
+          frameUrls={frameUrls ?? photoUrls}
+        />
       </div>
     );
   // Guard: also treat incomplete assessments (placeholder row without GPT data) as "no assessment"

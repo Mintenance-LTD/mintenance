@@ -14,7 +14,11 @@ export default function PressPage() {
     <ErrorBoundary componentName='PressPage'>
       <div>
         <LandingNavigation />
-        <div className='min-h-screen bg-gray-50'>
+        <main
+          id='main-content'
+          tabIndex={-1}
+          className='min-h-screen bg-[#f3f7f4]'
+        >
           <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16'>
             <div className='text-center mb-12'>
               <h1 className='text-4xl font-bold text-gray-900 mb-4'>
@@ -26,7 +30,7 @@ export default function PressPage() {
             </div>
 
             <div className='grid md:grid-cols-2 gap-8 mb-8'>
-              <div className='bg-white rounded-xl shadow-sm p-8'>
+              <div className='bg-white rounded-3xl border border-[#d8e2da] shadow-sm p-6 sm:p-8'>
                 <h2 className='text-2xl font-semibold text-gray-900 mb-4'>
                   Media Kit
                 </h2>
@@ -36,13 +40,13 @@ export default function PressPage() {
                 </p>
                 <Link
                   href='/contact?subject=Media+Kit+Request'
-                  className='inline-block px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
+                  className='inline-block px-6 py-2 bg-[#2f6f5f] text-white rounded-full hover:bg-teal-700 transition-colors'
                 >
                   Request Media Kit
                 </Link>
               </div>
 
-              <div className='bg-white rounded-xl shadow-sm p-8'>
+              <div className='bg-white rounded-3xl border border-[#d8e2da] shadow-sm p-6 sm:p-8'>
                 <h2 className='text-2xl font-semibold text-gray-900 mb-4'>
                   Press Inquiries
                 </h2>
@@ -52,14 +56,14 @@ export default function PressPage() {
                 </p>
                 <Link
                   href='/contact?subject=Press+Enquiry'
-                  className='inline-block px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
+                  className='inline-block px-6 py-2 bg-[#2f6f5f] text-white rounded-full hover:bg-teal-700 transition-colors'
                 >
                   Contact Press Team
                 </Link>
               </div>
             </div>
 
-            <div className='bg-white rounded-xl shadow-sm p-8'>
+            <div className='bg-white rounded-3xl border border-[#d8e2da] shadow-sm p-6 sm:p-8'>
               <h2 className='text-2xl font-semibold text-gray-900 mb-6'>
                 Recent News
               </h2>
@@ -87,7 +91,7 @@ export default function PressPage() {
               </div>
             </div>
           </div>
-        </div>
+        </main>
         <Footer2025 />
       </div>
     </ErrorBoundary>

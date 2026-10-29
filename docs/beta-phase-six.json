@@ -1,0 +1,107 @@
+{
+  "recordedOn": "2026-10-10",
+  "phase": "F06",
+  "status": "verified",
+  "sandbox": {
+    "recordedOn": "2026-10-10T16:54:41.949Z",
+    "sandboxMode": true,
+    "productionUntouched": true,
+    "passed": true,
+    "results": [
+      {
+        "name": "normal transfer, replay and exactly one debit",
+        "passed": true
+      },
+      {
+        "name": "crash before provider preserves reservation and retries",
+        "passed": true
+      },
+      {
+        "name": "lost provider response retries the same Stripe operation",
+        "passed": true
+      },
+      {
+        "name": "lost database completion preserves concurrent earnings",
+        "passed": true
+      },
+      {
+        "name": "aged operation reconciles provider metadata without new transfer",
+        "passed": true
+      },
+      {
+        "name": "duplicate cron calls produce one transfer and one ledger debit",
+        "passed": true
+      },
+      {
+        "name": "account not ready is skipped without reservation",
+        "passed": true
+      },
+      {
+        "name": "aged missing provider operation is held for review",
+        "passed": true
+      },
+      {
+        "name": "insufficient provider balance leaves ledger untouched",
+        "passed": true
+      },
+      {
+        "name": "unavailable provider destination does not debit earnings",
+        "passed": true
+      }
+    ],
+    "transfersCreated": 7,
+    "transfersReversed": 7
+  },
+  "production": {
+    "readOnly": true,
+    "creditsMinor": [
+      70,
+      50
+    ],
+    "currency": "GBP",
+    "thresholdMinor": 1,
+    "schedule": "Friday 09:00 UTC",
+    "account": {
+      "chargesEnabled": true,
+      "payoutsEnabled": true,
+      "transfers": "active",
+      "outstandingRequirements": []
+    },
+    "scheduledRun": {
+      "at": "2026-10-09T09:00:26.710443Z",
+      "operationState": "completed",
+      "transferAmountMinor": 120,
+      "providerLiveMode": true,
+      "providerReversed": false,
+      "providerMetadataMatchesOperation": true,
+      "pendingBalanceMinor": 0,
+      "lifetimeTransferredMinor": 120,
+      "ledgerTransferRows": 1
+    },
+    "bankPayout": {
+      "amountMinor": 120,
+      "status": "in_transit",
+      "arrivalDate": "2026-10-12",
+      "note": "Not yet confirmed paid. Connect transfer and external bank settlement are distinct."
+    }
+  },
+  "conclusions": [
+    "Existing reservation/begin/complete payout implementation passed actual provider recovery checks; no replacement payout implementation was needed.",
+    "Friday scheduled run observed successfully; the prior Wednesday absence was not a scheduler defect.",
+    "No live financial mutation was performed by this audit."
+  ],
+  "releaseChecks": [
+    "Hosted Express onboarding on exact web/mobile candidate remains F12; automated provider tests used an owned synthetic Custom account.",
+    "Confirm eventual bank payout settlement; current provider state is in_transit."
+  ],
+  "operatorProcedure": [
+    "For skipped accounts inspect current Stripe requirements and resume hosted onboarding.",
+    "For needs_review or uncertain operations retrieve transfers by operation metadata; never issue a replacement blindly.",
+    "Only complete accounting after exact amount, currency, destination and unreversed transfer match; preserve later earnings.",
+    "If no unique transfer exists after the idempotency window, keep funds pending and escalate for reviewed resolution."
+  ],
+  "sources": [
+    "https://docs.stripe.com/connect/testing",
+    "https://docs.stripe.com/api/transfers/create"
+  ]
+}

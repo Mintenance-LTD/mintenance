@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/og-how-it-works.jpg',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'How Mintenance Works',

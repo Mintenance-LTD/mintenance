@@ -126,6 +126,8 @@ export function RegisterForm() {
 
   return (
     <main
+      id='main-content'
+      tabIndex={-1}
       style={{
         flex: 1,
         display: 'flex',
@@ -286,9 +288,7 @@ export function RegisterForm() {
           />
 
           {/* Name */}
-          <div
-            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}
-          >
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-6 [&>*]:min-w-0'>
             <Field
               id='reg-firstName'
               label='First name'

@@ -18,13 +18,13 @@ import {
 export const metadata: Metadata = {
   title: 'For Homeowners - Your Property, Protected | Mintenance',
   description:
-    'Post a job in 60 seconds. Get AI-assisted damage assessments, compare bids from local contractors, and pay securely with Protected Payment. Your money is held in escrow until you approve the work.',
+    'Explore the homeowner demo. Organise properties and visits, post maintenance jobs and compare contractor proposals with Mintenance.',
   keywords:
     'homeowner maintenance, property repair, find contractor UK, protected payment, AI building assessment, local tradespeople',
   openGraph: {
     title: 'For Homeowners - Your Property, Protected | Mintenance',
     description:
-      'AI damage assessments, local contractors, Protected Payment. Post a job in 60 seconds.',
+      'See how property records, maintenance jobs and upcoming visits fit together in Mintenance.',
     type: 'website',
   },
 };
@@ -32,23 +32,29 @@ export const metadata: Metadata = {
 const FEATURES: MarketingFeature[] = [
   {
     icon: Search,
-    title: 'Post a Job in Seconds',
+    title: 'Describe the Work You Need',
     description:
-      'Describe what needs fixing, pick your property, set your budget. Local contractors in your area get notified instantly.',
-    screenshot: '/screenshots/homeowner/dashboard.png',
-    screenshotAlt: 'Homeowner dashboard with job posting search bar',
-    mobileScreenshot: '/screenshots/mobile/homeowner-dashboard.png',
-    mobileAlt: 'Mobile homeowner dashboard showing active projects and bids',
+      'Describe what needs fixing, choose your property and add photos, a budget and preferred timing so interested contractors can prepare a proposal.',
+    screenshot: '/media/landing/homeowner-post-job.webp',
+    screenshotWidth: 880,
+    screenshotHeight: 810,
+    screenshotAlt:
+      'Current web job form with a fictional kitchen tap repair description',
+    mobileScreenshot: '/media/landing/mobile-homeowner-post.webp',
+    mobileAlt:
+      'Current mobile job form with repair categories, description and urgency',
     badge: 'Quick & Easy',
   },
   {
     icon: Sparkles,
-    title: "AI Tells You What's Wrong",
+    title: 'Get Photo Guidance From Mint AI',
     description:
-      'Upload a photo of the damage. Our AI analyses it in seconds \u2014 identifying the problem, estimating repair costs, listing materials needed, and assessing insurance impact.',
-    screenshot: '/screenshots/homeowner/ai-assessment.png',
+      'Upload a photo to help describe a maintenance issue and explore an initial repair estimate. This is guidance; confirm the scope and price with a qualified tradesperson.',
+    screenshot: '/media/landing/mint-ai-upload.webp',
+    screenshotWidth: 1216,
+    screenshotHeight: 560,
     screenshotAlt:
-      'AI Building Assessment showing damage analysis with cost estimate',
+      'Current Mint AI photo-upload form for property damage guidance',
     badge: 'Powered by Mint AI',
   },
   {
@@ -56,11 +62,12 @@ const FEATURES: MarketingFeature[] = [
     title: 'Compare & Choose',
     description:
       "Review bids from local contractors. See their ratings, completed jobs, company details, and portfolio. Accept the best offer \u2014 your money stays protected in escrow until you're happy.",
-    screenshot: '/screenshots/homeowner/bids-received.png',
+    screenshot: '/media/landing/homeowner-job-detail.webp',
     screenshotAlt:
-      'Job detail page showing bids received with contractor profiles',
-    mobileScreenshot: '/screenshots/mobile/homeowner-bids.png',
-    mobileAlt: 'Mobile view of bids received section',
+      'Current web job record showing an accepted demo proposal and agreed scope',
+    mobileScreenshot: '/media/landing/mobile-homeowner-review.webp',
+    mobileAlt:
+      'Mobile bid review with a fictional contractor, price and estimated duration',
     badge: 'You Decide',
   },
   {
@@ -68,9 +75,9 @@ const FEATURES: MarketingFeature[] = [
     title: 'Track Every Step',
     description:
       'Follow the entire job lifecycle from posting to completion. See real-time progress, before and after photos, and approve work before releasing payment.',
-    screenshot: '/screenshots/homeowner/job-progress.png',
+    screenshot: '/media/landing/homeowner-jobs.webp',
     screenshotAlt:
-      'Job progress timeline showing all steps from posting to payment',
+      'Current homeowner job list with status badges and fictional property details',
     badge: 'Full Visibility',
   },
   {
@@ -78,10 +85,11 @@ const FEATURES: MarketingFeature[] = [
     title: 'Payment Protection',
     description:
       'Your money is held securely with Protected Payment. Contractors upload before photos, complete the work, then submit after photos. You compare and approve before a single penny is released.',
-    screenshot: '/screenshots/homeowner/property-management.png',
-    screenshotAlt: 'Property management view with Protected Payment',
-    mobileScreenshot: '/screenshots/mobile/homeowner-properties.png',
-    mobileAlt: 'Mobile property management screen',
+    screenshot: '/media/landing/homeowner-payments.webp',
+    screenshotAlt:
+      'Current payments screen with demo paid, protected and refunded amounts',
+    mobileScreenshot: '/media/landing/mobile-agreement.webp',
+    mobileAlt: 'Mobile signed demo agreement and next step to fund escrow',
     badge: 'Protected Payment',
   },
 ];
@@ -91,7 +99,7 @@ const TRUST_POINTS: MarketingTrustPoint[] = [
     icon: Shield,
     title: 'Protected Payment',
     description:
-      'Your money is held securely by Stripe until you confirm the work is done. No risk of paying upfront and getting ghosted.',
+      'Review the funding, completion and payment-release stages before agreeing a job. Read the platform safeguards and terms for the applicable conditions.',
   },
   {
     icon: Camera,
@@ -112,7 +120,7 @@ const HOW_IT_WORKS_STEPS = [
     step: '1',
     icon: Camera,
     title: 'Upload a Photo',
-    desc: 'Snap a picture of the damage. AI analyses it instantly.',
+    desc: 'Add photos and describe the issue. Mint AI guidance is optional.',
   },
   {
     step: '2',
@@ -146,10 +154,10 @@ function HowItWorksSection() {
             const Icon = item.icon;
             return (
               <div key={item.step} className='text-center'>
-                <div className='inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 mb-4'>
+                <div className='inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-100 text-[#2f6f5f] mb-4'>
                   <Icon className='w-6 h-6' />
                 </div>
-                <div className='text-xs font-bold text-teal-600 uppercase tracking-wider mb-2'>
+                <div className='text-xs font-bold text-[#2f6f5f] uppercase tracking-wider mb-2'>
                   Step {item.step}
                 </div>
                 <h3 className='font-semibold text-gray-900 mb-2'>
@@ -168,6 +176,7 @@ function HowItWorksSection() {
 export default function ForHomeownersPage() {
   return (
     <MarketingFeaturePage
+      audience='homeowner'
       accent='teal'
       hero={{
         badge: { icon: Home, label: 'For Homeowners' },
@@ -175,22 +184,28 @@ export default function ForHomeownersPage() {
         highlightedWord: 'Protected.',
         description:
           'Post a maintenance job, get AI-assisted damage assessments, compare bids from local contractors, and pay securely with Protected Payment. You stay in control from first quote to final sign-off.',
-        primaryCTA: { label: 'Get Started Free', href: '/register' },
-        secondaryCTA: { label: 'How It Works', href: '/how-it-works' },
+        primaryCTA: {
+          label: 'Get Started Free',
+          href: '/register?role=homeowner',
+        },
+        secondaryCTA: {
+          label: 'Watch the Homeowner Demo',
+          href: '#demo-homeowner',
+        },
         desktopScreenshot: {
-          src: '/screenshots/homeowner/dashboard.png',
-          alt: 'Mintenance homeowner dashboard showing active jobs, bids received, and project overview',
+          src: '/media/landing/homeowner-properties.webp',
+          alt: 'Current homeowner property overview with fictional demo properties',
         },
         mobileScreenshot: {
-          src: '/screenshots/mobile/homeowner-dashboard.png',
+          src: '/media/landing/mobile-homeowner-home.webp',
           alt: 'Mobile app showing homeowner dashboard',
         },
       }}
       stats={[
-        { value: '60s', label: 'To post a job' },
-        { value: '100%', label: 'Protected Payment on every job' },
-        { value: '24/7', label: 'AI damage assessment' },
-        { value: 'Free', label: 'To get started' },
+        { value: 'Describe', label: 'The work you need' },
+        { value: 'Compare', label: 'Contractor proposals' },
+        { value: 'Organise', label: 'Properties and visits' },
+        { value: 'Review', label: 'The finished work' },
       ]}
       featuresHeading={{
         title: 'Everything You Need to Maintain Your Property',
@@ -208,8 +223,8 @@ export default function ForHomeownersPage() {
       finalCTA={{
         title: 'Ready to Get Your Home Sorted?',
         description:
-          'Join thousands of UK homeowners who protect their property with Mintenance. Post your first job for free.',
-        primary: { label: 'Post a Job Now', href: '/register' },
+          'Create your homeowner account, add your property and describe the work you need.',
+        primary: { label: 'Post a Job Now', href: '/register?role=homeowner' },
         secondary: { label: 'View Pricing', href: '/pricing' },
       }}
     />

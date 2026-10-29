@@ -10,6 +10,10 @@ on:
       - 'apps/mobile/**'
       - 'packages/**'
       - '.github/workflows/mobile-build.yml'
+      - 'tools/eas-cli/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/mobile-build-changes*.cjs'
   pull_request:
     branches:
       - Main
@@ -18,6 +22,11 @@ on:
     paths:
       - 'apps/mobile/**'
       - 'packages/**'
+      - '.github/workflows/mobile-build.yml'
+      - 'tools/eas-cli/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/mobile-build-changes*.cjs'
   workflow_dispatch:
     inputs:
       platform:
@@ -62,23 +71,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Check native build change detection
+        run: node --test scripts/mobile-build-changes.test.cjs
+
       - name: Check for mobile changes
         id: check-changes
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "should-build=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} || echo "")
-
-          if echo "$CHANGED_FILES" | grep -q "apps/mobile/\|packages/"; then
-            echo "should-build=true" >> $GITHUB_OUTPUT
-            echo "Mobile code changes detected"
-          else
-            echo "should-build=false" >> $GITHUB_OUTPUT
-            echo "No mobile code changes"
-          fi
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: node scripts/mobile-build-changes.cjs
 
       - name: Determine build profile
         id: determine-profile
@@ -100,12 +107,6 @@ jobs:
             *) echo "::error::Invalid build profile" >&2; exit 1 ;;
           esac
           printf 'profile=%s\n' "$PROFILE" >> "$GITHUB_OUTPUT"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
-        with:
-          node-version: '20.19.4'
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci --ignore-scripts=false
@@ -131,12 +132,14 @@ jobs:
   # ============================================================
   # ANDROID BUILD (EAS)
   # ============================================================
+  # PRs validate locally above; EAS submissions belong to branch pushes or manual dispatch.
   build-android:
     name: Build Android (${{ needs.pre-build-checks.outputs.build-profile }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: pre-build-checks
     if: |
+      github.event_name != 'pull_request' &&
       needs.pre-build-checks.outputs.should-build == 'true' &&
       (github.event.inputs.platform == 'android' ||
        github.event.inputs.platform == 'all' ||
@@ -152,12 +155,10 @@ jobs:
           node-version: '20.19.4'
           cache: 'npm'
 
-      - name: Setup Expo
-        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
-        with:
-          expo-version: latest
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install pinned EAS CLI
+        run: |
+          npm ci --prefix tools/eas-cli --ignore-scripts --engine-strict --no-audit --no-fund
+          echo "$GITHUB_WORKSPACE/tools/eas-cli/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
         run: npm ci --ignore-scripts=false
@@ -195,6 +196,8 @@ jobs:
       - name: Get build URL
         id: build-url
         working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           BUILD_URL=$(eas build:list --platform android --limit 1 --json | jq -r '.[0].artifacts.buildUrl')
           echo "build-url=$BUILD_URL" >> $GITHUB_OUTPUT
@@ -221,6 +224,7 @@ jobs:
     timeout-minutes: 45
     needs: pre-build-checks
     if: |
+      github.event_name != 'pull_request' &&
       needs.pre-build-checks.outputs.should-build == 'true' &&
       (github.event.inputs.platform == 'ios' ||
        github.event.inputs.platform == 'all' ||
@@ -237,12 +241,10 @@ jobs:
           node-version: '20.19.4'
           cache: 'npm'
 
-      - name: Setup Expo
-        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
-        with:
-          expo-version: latest
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install pinned EAS CLI
+        run: |
+          npm ci --prefix tools/eas-cli --ignore-scripts --engine-strict --no-audit --no-fund
+          echo "$GITHUB_WORKSPACE/tools/eas-cli/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
         run: npm ci --ignore-scripts=false
@@ -307,6 +309,8 @@ jobs:
   notify-failure:
     name: Notify Build Failure
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     needs: [build-android, build-ios]
     if: |
       failure() &&

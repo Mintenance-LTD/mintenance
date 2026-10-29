@@ -1,10 +1,11 @@
+import { authenticationError } from './auth/authentication-error';
 import { supabase } from '../config/supabase';
 import type { User } from '@mintenance/types';
 import { Session } from '@supabase/supabase-js';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 import { logger } from '../utils/logger';
 import { checkRateLimit, resetRateLimit } from '../middleware/RateLimiter';
-import { mobileApiClient } from '../utils/mobileApiClient';
+import { assertPasswordNotBreached } from './auth/password-breach';
 
 import {
   validateEmailFormat,
@@ -90,34 +91,7 @@ export class AuthService {
         context
       );
 
-      // SECURITY: HIBP breach check via web API. Mobile cannot run
-      // SHA-1 + range fetch locally without adding a crypto dep.
-      // Fails open on network error so a flaky connection doesn't
-      // lock users out of signup.
-      try {
-        const breachResult = await mobileApiClient.post<{
-          isBreached: boolean;
-          occurrences: number | null;
-        }>('/api/auth/check-password-breach', {
-          password: userData.password,
-        });
-        if (breachResult.isBreached) {
-          throw new Error(
-            `This password has been exposed in ${(
-              breachResult.occurrences ?? 0
-            ).toLocaleString()} data breaches. ` +
-              `Please choose a different, more secure password.`
-          );
-        }
-      } catch (err) {
-        if (err instanceof Error && err.message.startsWith('This password')) {
-          throw err;
-        }
-        logger.warn(
-          '[AUTH] Password breach check failed, proceeding (fail-open)',
-          err
-        );
-      }
+      await assertPasswordNotBreached(userData.password);
 
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
@@ -136,7 +110,7 @@ export class AuthService {
       });
 
       if (error) {
-        throw ServiceErrorHandler.handleDatabaseError(error, context);
+        throw authenticationError(error);
       }
 
       // The handle_new_user trigger creates the profile row. The
@@ -145,10 +119,10 @@ export class AuthService {
       // of here, because signUp may not yield a session immediately
       // when email confirmation is required.
       return data;
-    }, context);
+    }, context, false);
 
     if (!result.success || !result.data) {
-      throw new Error('Failed to sign up user');
+      throw result.error ?? new Error('Failed to sign up user');
     }
     return result.data;
   }
@@ -174,11 +148,11 @@ export class AuthService {
 
       const { error } = await supabase.auth.resend({ type: 'signup', email });
       if (error) {
-        throw ServiceErrorHandler.handleDatabaseError(error, context);
+        throw authenticationError(error);
       }
       logger.info('[AUTH] Resent signup confirmation email');
       return null;
-    }, context);
+    }, context, false);
 
     if (!result.success) {
       throw new Error(result.error?.message || 'Failed to resend email');
@@ -225,7 +199,7 @@ export class AuthService {
         ) {
           throw ServiceErrorHandler.handleNetworkError(error, context);
         }
-        throw ServiceErrorHandler.handleDatabaseError(error, context);
+        throw authenticationError(error);
       }
 
       logger.info('✅ Supabase auth successful');
@@ -236,10 +210,10 @@ export class AuthService {
       }
 
       return data as unknown as { user: User | null; session: Session | null };
-    }, context);
+    }, context, false);
 
     if (!result.success || !result.data) {
-      throw new Error('Failed to sign in user');
+      throw result.error ?? new Error('Failed to sign in user');
     }
     return result.data;
   }

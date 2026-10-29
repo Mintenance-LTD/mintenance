@@ -20,6 +20,8 @@ jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'synthetic-homeowner' } }),
 }));
 jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (effect: () => void) =>
+    require('react').useEffect(effect, [effect]),
   useNavigation: () => ({}),
   useRoute: () => ({ params: { jobId: 'synthetic-job' } }),
 }));

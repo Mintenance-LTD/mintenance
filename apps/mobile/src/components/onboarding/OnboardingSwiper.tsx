@@ -19,7 +19,8 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
+  ScrollView,
   Animated,
   TouchableOpacity,
   Platform,
@@ -28,10 +29,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Swiper from 'react-native-swiper';
-import { me } from '../../design-system/mint-editorial';
+import { useOnboardingTokens } from '../../hooks/useOnboardingTheme';
 import { JobsNearYouPreview } from './JobsNearYouPreview';
-
-const { width } = Dimensions.get('window');
 
 interface OnboardingSlide {
   id: string;
@@ -88,6 +87,9 @@ export function OnboardingSwiper({
   onComplete,
   onSkip,
 }: OnboardingSwiperProps) {
+  const me = useOnboardingTokens();
+  const { width } = useWindowDimensions();
+  const styles = createStyles(me, width);
   const [currentIndex, setCurrentIndex] = useState(0);
   const swiperRef = useRef<Swiper>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -96,12 +98,7 @@ export function OnboardingSwiper({
 
   const handleIndexChanged = (index: number) => {
     setCurrentIndex(index);
-    Animated.spring(progressAnim, {
-      toValue: index,
-      useNativeDriver: false,
-      tension: 50,
-      friction: 7,
-    }).start();
+    progressAnim.setValue(index);
   };
 
   const handleNext = () => {
@@ -146,7 +143,7 @@ export function OnboardingSwiper({
         onIndexChanged={handleIndexChanged}
       >
         {slides.map((slide) => (
-          <View key={slide.id} style={styles.slide}>
+          <ScrollView key={slide.id} contentContainerStyle={styles.slide}>
             {slide.renderBody ? (
               <>
                 <View style={styles.content}>
@@ -173,7 +170,7 @@ export function OnboardingSwiper({
                 </View>
               </>
             )}
-          </View>
+          </ScrollView>
         ))}
       </Swiper>
 
@@ -209,126 +206,131 @@ export function OnboardingSwiper({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: me.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 22,
-    paddingTop: 8,
-    paddingBottom: 12,
-    gap: 14,
-    height: 56,
-  },
-  progressTrack: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: me.bg2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: me.brand,
-    borderRadius: 2,
-  },
-  skipButton: {
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-  },
-  skipText: {
-    fontSize: 13,
-    color: me.ink2,
-    fontWeight: '600',
-  },
-  slide: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    backgroundColor: me.bg,
-  },
-  customBody: {
-    width: '100%',
-    maxWidth: width * 0.9,
-    marginTop: 20,
-    alignItems: 'stretch',
-  },
-  iconTile: {
-    width: 96,
-    height: 96,
-    borderRadius: 22,
-    backgroundColor: me.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 32,
-  },
-  iconText: {
-    fontSize: 48,
-  },
-  content: {
-    alignItems: 'center',
-    maxWidth: width * 0.85,
-  },
-  title: {
-    fontFamily: me.font.display,
-    fontSize: 32,
-    lineHeight: 36,
-    color: me.ink,
-    textAlign: 'center',
-    marginBottom: 14,
-    letterSpacing: me.displayTracking,
-  },
-  description: {
-    fontSize: 15,
-    color: me.ink2,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  footer: {
-    paddingHorizontal: 22,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 24,
-    paddingTop: 8,
-  },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dot: {
-    height: 6,
-    borderRadius: 3,
-    marginHorizontal: 4,
-  },
-  activeDot: {
-    backgroundColor: me.brand,
-    width: 22,
-  },
-  inactiveDot: {
-    backgroundColor: me.bg3,
-    width: 6,
-  },
-  button: {
-    backgroundColor: me.brand,
-    paddingVertical: 16,
-    borderRadius: me.radius.btn,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    ...me.shadow.btn,
-  },
-  buttonText: {
-    color: me.onBrand,
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.1,
-  },
-});
+const createStyles = (
+  me: ReturnType<typeof useOnboardingTokens>,
+  width: number
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: me.bg,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 22,
+      paddingTop: 8,
+      paddingBottom: 12,
+      gap: 14,
+      height: 56,
+    },
+    progressTrack: {
+      flex: 1,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: me.bg2,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: me.brand,
+      borderRadius: 2,
+    },
+    skipButton: {
+      paddingHorizontal: 4,
+      paddingVertical: 4,
+    },
+    skipText: {
+      fontSize: 13,
+      color: me.ink2,
+      fontWeight: '600',
+    },
+    slide: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 32,
+      paddingVertical: 16,
+      backgroundColor: me.bg,
+    },
+    customBody: {
+      width: '100%',
+      maxWidth: width * 0.9,
+      marginTop: 20,
+      alignItems: 'stretch',
+    },
+    iconTile: {
+      width: 96,
+      height: 96,
+      borderRadius: 22,
+      backgroundColor: me.brandSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 32,
+    },
+    iconText: {
+      fontSize: 48,
+    },
+    content: {
+      alignItems: 'center',
+      maxWidth: width * 0.85,
+    },
+    title: {
+      fontFamily: me.font.display,
+      fontSize: 32,
+      lineHeight: 36,
+      color: me.ink,
+      textAlign: 'center',
+      marginBottom: 14,
+      letterSpacing: me.displayTracking,
+    },
+    description: {
+      fontSize: 15,
+      color: me.ink2,
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    footer: {
+      paddingHorizontal: 22,
+      paddingBottom: Platform.OS === 'ios' ? 32 : 24,
+      paddingTop: 8,
+    },
+    pagination: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    dot: {
+      height: 6,
+      borderRadius: 3,
+      marginHorizontal: 4,
+    },
+    activeDot: {
+      backgroundColor: me.brand,
+      width: 22,
+    },
+    inactiveDot: {
+      backgroundColor: me.bg3,
+      width: 6,
+    },
+    button: {
+      backgroundColor: me.brand,
+      paddingVertical: 16,
+      borderRadius: me.radius.btn,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 8,
+      ...me.shadow.btn,
+    },
+    buttonText: {
+      color: me.onBrand,
+      fontSize: 16,
+      fontWeight: '600',
+      letterSpacing: 0.1,
+    },
+  });
 
 // Default slides for homeowners — Mint Editorial copy & Ionicons.
 // Keeps the same shape as the original module so OnboardingModal and
@@ -366,6 +368,30 @@ export const homeownerSlides: OnboardingSlide[] = [
 ];
 
 // Default slides for contractors — Mint Editorial copy & Ionicons.
+export const teamMemberSlides: OnboardingSlide[] = [
+  {
+    id: 'team',
+    title: 'Welcome to your team',
+    description:
+      'Review your invitation and assigned role. Your membership controls which jobs and tools you can use.',
+    icon: 'construct-outline',
+  },
+  {
+    id: 'work',
+    title: 'Your assigned work',
+    description:
+      'Check your schedule and job instructions. Use messages to confirm scope and access with your team.',
+    icon: 'briefcase-outline',
+  },
+  {
+    id: 'evidence',
+    title: 'Record work and progress',
+    description:
+      'Capture required work evidence and time entries. Ask your business owner about billing, bank details and business verification.',
+    icon: 'camera-outline',
+  },
+];
+
 export const contractorSlides: OnboardingSlide[] = [
   {
     id: 'welcome',
@@ -392,7 +418,7 @@ export const contractorSlides: OnboardingSlide[] = [
     id: 'get-paid',
     title: 'Get paid faster',
     description:
-      'Homeowner payment is secured before you arrive. Complete the work, upload after-photos — money releases to your Stripe account.',
+      'Check that the job is funded before starting. Submit completion evidence and track approval and payout readiness in Mintenance.',
     icon: 'wallet-outline',
   },
   {
@@ -409,9 +435,9 @@ export const contractorSlides: OnboardingSlide[] = [
     // Phase 1 closeout of 2026-04-19 mobile-onboarding-audit PDF
     // (§5.3 Tier 1 step 4 — "First value moment. No bid button yet.").
     id: 'jobs-near-you-preview',
-    title: 'Jobs waiting for you',
+    title: 'Explore example jobs',
     description:
-      'A preview of the kind of work homeowners are posting in your area right now. Finish verification to start bidding.',
+      'These examples show how job cards work. Open Find Work after setup to see real jobs matched to your trades and service area.',
     renderBody: () => <JobsNearYouPreview />,
   },
 ];

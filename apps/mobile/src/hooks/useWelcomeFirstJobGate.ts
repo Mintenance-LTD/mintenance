@@ -1,59 +1,44 @@
-/**
- * useWelcomeFirstJobGate — fires the final onboarding screen once
- * per device after every earlier tier has cleared.
- *
- * Rules:
- *   1. Suppress until user.onboarding_completed === true. We don't
- *      want the celebration screen showing before the swiper has
- *      been finished.
- *   2. Suppress once the local `welcome_first_job_seen` flag is set
- *      in AsyncStorage. A single dismissal sticks for the device.
- *
- * Mirrors the shape of `useOnboardingGate` / `useHomeownerSetupGate`
- * so OnboardingGateStack can compose them the same way.
- */
-
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 
-const STORAGE_KEY = 'welcome_first_job_seen';
-
+// This homeowner finale belongs to an onboarding flow completed in this
+// session, not every existing account signing in on a fresh installation.
 export function useWelcomeFirstJobGate() {
   const { user } = useAuth();
-  const [shouldShow, setShouldShow] = useState(false);
-  const [checked, setChecked] = useState(false);
-
+  const eligibleAccount = useRef<string | null>(null);
+  const [visibleAccount, setVisibleAccount] = useState<string | null>(null);
   useEffect(() => {
-    if (!user) {
-      setChecked(true);
-      setShouldShow(false);
+    let active = true;
+    setVisibleAccount(null);
+    if (!user || user.role !== 'homeowner') {
+      eligibleAccount.current = null;
       return;
     }
-    if (!user.onboarding_completed) {
-      setChecked(true);
-      setShouldShow(false);
+    if (user.onboarding_completed === false) {
+      eligibleAccount.current = user.id;
       return;
     }
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((val) => {
-        setShouldShow(val !== '1');
-        setChecked(true);
+    if (!user.onboarding_completed || eligibleAccount.current !== user.id) return;
+    AsyncStorage.getItem(`welcome_first_job_seen:${user.id}`)
+      .then((value) => {
+        if (active && value !== '1') setVisibleAccount(user.id);
       })
-      .catch(() => {
-        setChecked(true);
-        setShouldShow(false);
-      });
-  }, [user]);
+      .catch(() => { /* Optional guidance must not block sign-in. */ });
+    return () => { active = false; };
+  }, [user?.id, user?.role, user?.onboarding_completed]);
 
   const dismiss = useCallback(async () => {
-    setShouldShow(false);
+    setVisibleAccount(null);
+    eligibleAccount.current = null;
+    if (!user) return;
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, '1');
-    } catch {
-      // Non-critical — the gate will re-evaluate on next mount.
-    }
-  }, []);
+      await AsyncStorage.setItem(`welcome_first_job_seen:${user.id}`, '1');
+    } catch { /* The current session remains dismissed. */ }
+  }, [user?.id]);
 
-  return { shouldShow: checked && shouldShow, dismiss };
+  return {
+    shouldShow: user?.role === 'homeowner' && !!user?.onboarding_completed && visibleAccount === user?.id,
+    dismiss,
+  };
 }

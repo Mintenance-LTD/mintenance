@@ -292,13 +292,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Setup Expo
+      - name: Install pinned EAS CLI
         if: ${{ env.HAS_EXPO == 'true' }}
-        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
-        with:
-          expo-version: latest
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npm ci --prefix tools/eas-cli --ignore-scripts --engine-strict --no-audit --no-fund
+          echo "$GITHUB_WORKSPACE/tools/eas-cli/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
         run: npm ci --ignore-scripts=false

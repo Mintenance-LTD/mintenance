@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -47,6 +47,7 @@ export function UserManagementFilters({
         </label>
         <Input
           id='user-search'
+          style={{ paddingLeft: '44px' }}
           type='text'
           placeholder='Search by name or email...'
           aria-label='Search users by name or email'

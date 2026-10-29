@@ -7,7 +7,7 @@ import {
 } from '@mintenance/shared';
 import Image from 'next/image';
 import { Check, X, Hourglass } from 'lucide-react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
 import type { Assessment } from './BuildingAssessmentsTypes';

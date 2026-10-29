@@ -1,15 +1,18 @@
 import { beforeEach, expect, it, vi } from 'vitest';
+import { render } from '@testing-library/react';
 const s = vi.hoisted(() => ({
   failed: '',
   actor: 'owner',
   memberRole: '',
   queries: vi.fn(),
+  theme: 'mint-editorial',
+  renderDetail: vi.fn(),
 }));
 vi.mock('@/lib/auth', () => ({
   getCurrentUserFromCookies: async () => ({ id: s.actor }),
 }));
 vi.mock('next/headers', () => ({
-  cookies: async () => ({ get: () => ({ value: 'mint-editorial' }) }),
+  cookies: async () => ({ get: () => ({ value: s.theme }) }),
 }));
 vi.mock('next/navigation', () => ({
   notFound: () => {
@@ -20,16 +23,23 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/app/properties/[id]/components/PropertyDetailsClient', () => ({
-  default: () => null,
+  default: (props: unknown) => {
+    s.renderDetail(props);
+    return null;
+  },
 }));
 vi.mock('@/app/properties/[id]/components/MintEditorialPropertyDetail', () => ({
-  MintEditorialPropertyDetail: () => null,
+  MintEditorialPropertyDetail: (props: unknown) => {
+    s.renderDetail(props);
+    return null;
+  },
 }));
 vi.mock('@/app/properties/[id]/components/SharedPropertyDetail', () => ({
   SharedPropertyDetail: () => null,
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
+    rpc: async () => ({ data: 'synthetic-entry-code', error: null }),
     from: (table: string) => {
       const result = () => ({
         data:
@@ -68,6 +78,8 @@ beforeEach(() => {
   s.actor = 'owner';
   s.memberRole = '';
   s.queries.mockClear();
+  s.theme = 'mint-editorial';
+  s.renderDetail.mockClear();
 });
 it.each(['properties', 'jobs', 'recurring_schedules'])(
   'does not render missing records on %s connection failure',
@@ -78,12 +90,21 @@ it.each(['properties', 'jobs', 'recurring_schedules'])(
     ).rejects.toThrow(/Unable to load/);
   }
 );
-it('keeps unknown construction year unknown and scopes property reads to its owner', async () => {
-  const page = await Page({ params: Promise.resolve({ id: 'property' }) });
-  expect(page.props.property.yearBuilt).toBe(0);
-  expect(s.queries).toHaveBeenCalledWith('jobs', 'homeowner_id', 'owner');
-  expect(s.queries).toHaveBeenCalledWith('jobs', 'property_id', 'property');
-});
+it.each(['mint-editorial', 'default'])(
+  'keeps unknown construction year unknown and scopes property reads to its owner (%s)',
+  async (theme) => {
+    s.theme = theme;
+    const page = await Page({ params: Promise.resolve({ id: 'property' }) });
+    render(page);
+    expect(s.renderDetail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        property: expect.objectContaining({ yearBuilt: 0 }),
+      })
+    );
+    expect(s.queries).toHaveBeenCalledWith('jobs', 'homeowner_id', 'owner');
+    expect(s.queries).toHaveBeenCalledWith('jobs', 'property_id', 'property');
+  }
+);
 
 it.each(['viewer', 'manager', 'admin'])(
   'loads accepted %s membership without serializing owner entry secrets',

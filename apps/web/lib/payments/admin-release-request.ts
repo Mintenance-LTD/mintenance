@@ -40,6 +40,9 @@ export async function submitAdminRelease(
     }
   );
   const result = await response.json();
+  if (response.status === 403 && result.requiresStepUp === true) {
+    throw new Error('Confirm identity at the top of this page, then reopen this release to retry the saved request.');
+  }
   if (
     !response.ok ||
     result.success !== true ||
