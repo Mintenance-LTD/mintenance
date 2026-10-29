@@ -49,11 +49,13 @@ DEFAULT_TEMPERATURE = 0.1
 infer_image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install(
-        "torch==2.4.1",
-        "torchvision==0.19.1",
-        "transformers>=4.49.2",  # 4.49.2+ required for Qwen2_5_VLForConditionalGeneration
-        "peft==0.13.2",
-        "accelerate==1.2.1",
+        # Keep the matched pair in sync with requirements.txt and training.
+        "torch==2.13.0",
+        "torchvision==0.28.0",
+        # Match the training stack when loading its LoRA adapters.
+        "transformers==4.57.6",
+        "peft==0.18.1",
+        "accelerate==1.11.0",
         "qwen-vl-utils==0.0.8",
         "supabase==2.10.0",
         "httpx==0.27.2",

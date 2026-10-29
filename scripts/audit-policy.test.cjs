@@ -82,18 +82,19 @@ async function audit(
   }
 }
 
-test('reproduces the CI failure with only the old Expo ancestry exceptions', async (t) => {
-  const config = {
-    ...policy,
-    allowlist: policy.allowlist.filter((entry) => !entry[leaf]),
-  };
-  await assert.rejects(audit(t, { config }), /Failed security audit/);
+test('fixed node-forge has no audit exception, including the npm v2 leaf path', async (t) => {
+  assert.ok(
+    policy.allowlist.every(
+      (entry) => !Object.keys(entry).some((key) => key.includes('node-forge'))
+    )
+  );
+  await assert.rejects(audit(t), /Failed security audit/);
 });
 
-test('accepts the reviewed advisory when npm v2 omits its transitive effects', async (t) => {
-  const result = await audit(t);
-  assert.deepEqual(result.failedLevelsFound, []);
-  assert.ok(result.allowlistedPathsFound.includes(leaf));
+test('a node-forge regression through previously excepted Expo consumers blocks', async (t) => {
+  for (const effect of ['@expo/cli', '@expo/code-signing-certificates']) {
+    await assert.rejects(audit(t, { effect }), /Failed security audit/);
+  }
 });
 
 test('a different advisory on node-forge still blocks the security gate', async (t) => {
@@ -121,10 +122,28 @@ test('expired or inactive leaf exceptions fail closed', async (t) => {
   for (const change of [{ expiry: '2000-01-01' }, { active: false }]) {
     const config = {
       ...policy,
-      allowlist: policy.allowlist.map((entry) =>
-        entry[leaf] ? { [leaf]: { ...entry[leaf], ...change } } : entry
-      ),
+      allowlist: [
+        ...policy.allowlist,
+        {
+          [leaf]: { active: true, expiry: '2099-01-01', ...change },
+        },
+      ],
     };
     await assert.rejects(audit(t, { config }), /Failed security audit/);
   }
+});
+
+test('the fixture can accept an explicitly active exception without changing production policy', async (t) => {
+  const config = {
+    ...policy,
+    allowlist: [
+      ...policy.allowlist,
+      {
+        [leaf]: { active: true, expiry: '2099-01-01' },
+      },
+    ],
+  };
+  const result = await audit(t, { config });
+  assert.deepEqual(result.failedLevelsFound, []);
+  assert.ok(result.allowlistedPathsFound.includes(leaf));
 });

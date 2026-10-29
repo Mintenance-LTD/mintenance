@@ -5,25 +5,47 @@
  * links to prevent stored XSS via `javascript:` / `data:` / `vbscript:` and
  * other non-http(s) protocol handlers.
  */
-import {
-  sanitizeUrlScheme,
-  simpleMarkdownToHtml,
-} from '../MarkdownEditor';
+import { createElement, Fragment } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { sanitizeUrlScheme, renderMarkdownPreview } from '../MarkdownEditor';
+
+const simpleMarkdownToHtml = (markdown: string) =>
+  renderToStaticMarkup(
+    createElement(Fragment, null, renderMarkdownPreview(markdown))
+  );
 
 describe('sanitizeUrlScheme', () => {
+  it.each([
+    'javascript%3Aalert',
+    'javascript%253Aalert',
+    'java%09script%3Aalert',
+    '%2F%2Fevil.example',
+    '//evil.example',
+  ])('blocks obfuscated schemes and network references: %s', (url) => {
+    expect(sanitizeUrlScheme(url)).toBe('#');
+  });
+
+  it.each([
+    'https://example.com/path%2Fname?q=a%26b%3Dc%23d',
+    'mailto:hello@example.com?subject=Hello%20world',
+    '/search?q=two words',
+  ])('preserves safe URL data: %s', (url) => {
+    expect(sanitizeUrlScheme(url)).toBe(url);
+  });
+
   it('allows http:// URLs', () => {
     expect(sanitizeUrlScheme('http://example.com')).toBe('http://example.com');
   });
 
   it('allows https:// URLs', () => {
     expect(sanitizeUrlScheme('https://example.com/path?q=1')).toBe(
-      'https://example.com/path?q=1',
+      'https://example.com/path?q=1'
     );
   });
 
   it('allows mailto: URLs', () => {
     expect(sanitizeUrlScheme('mailto:hello@example.com')).toBe(
-      'mailto:hello@example.com',
+      'mailto:hello@example.com'
     );
   });
 
@@ -60,9 +82,9 @@ describe('sanitizeUrlScheme', () => {
   });
 
   it('BLOCKS data: URLs', () => {
-    expect(
-      sanitizeUrlScheme('data:text/html,<script>alert(1)</script>'),
-    ).toBe('#');
+    expect(sanitizeUrlScheme('data:text/html,<script>alert(1)</script>')).toBe(
+      '#'
+    );
   });
 
   it('BLOCKS vbscript: URLs', () => {
@@ -78,7 +100,7 @@ describe('sanitizeUrlScheme', () => {
   });
 });
 
-describe('simpleMarkdownToHtml — XSS resistance', () => {
+describe('React Markdown preview — XSS resistance', () => {
   it('escapes script tags in body text', () => {
     const html = simpleMarkdownToHtml('<script>alert(1)</script>');
     expect(html).not.toContain('<script>');
@@ -93,7 +115,9 @@ describe('simpleMarkdownToHtml — XSS resistance', () => {
   });
 
   it('neutralizes data: href in link syntax', () => {
-    const html = simpleMarkdownToHtml('[x](data:text/html,<svg/onload=alert(1)>)');
+    const html = simpleMarkdownToHtml(
+      '[x](data:text/html,<svg/onload=alert(1)>)'
+    );
     expect(html).not.toContain('data:');
     expect(html).toContain('href="#"');
   });
@@ -106,10 +130,9 @@ describe('simpleMarkdownToHtml — XSS resistance', () => {
 
   it('escapes HTML in link label', () => {
     const html = simpleMarkdownToHtml(
-      '[<img src=x onerror=alert(1)>](https://ok.com)',
+      '[<img src=x onerror=alert(1)>](https://ok.com)'
     );
-    // The label was escaped BEFORE link processing, so <img> was turned into
-    // &lt;img... and can't be rendered as a tag
+    // React renders the label as text, never as an image element.
     expect(html).not.toContain('<img src=x');
     expect(html).toContain('&lt;img');
   });
@@ -124,5 +147,46 @@ describe('simpleMarkdownToHtml — XSS resistance', () => {
     const html = simpleMarkdownToHtml('**bold** and *italic*');
     expect(html).toContain('<strong>bold</strong>');
     expect(html).toContain('<em>italic</em>');
+  });
+
+  it('preserves headings, line breaks, and formatting inside link labels', () => {
+    const html = simpleMarkdownToHtml(
+      '# **Heading**\n[**bold** and *italic*](https://example.com)'
+    );
+    const document = new DOMParser().parseFromString(html, 'text/html');
+    expect(document.querySelector('h3 strong')?.textContent).toBe('Heading');
+    expect(document.querySelectorAll('br')).toHaveLength(1);
+    expect(document.querySelector('a strong')?.textContent).toBe('bold');
+    expect(document.querySelector('a em')?.textContent).toBe('italic');
+  });
+
+  it('does not double-escape query parameters or create attributes from quotes', () => {
+    const url = 'https://example.com/?a=1&b=" onmouseover="alert';
+    const document = new DOMParser().parseFromString(
+      simpleMarkdownToHtml(`[x](${url})`),
+      'text/html'
+    );
+    const link = document.querySelector('a');
+    expect(link?.getAttribute('href')).toBe(url.replace(/"/g, '%22'));
+    expect(new URL(link!.getAttribute('href')!).searchParams.get('b')).toBe(
+      '" onmouseover="alert'
+    );
+    expect(link?.hasAttribute('onmouseover')).toBe(false);
+  });
+
+  it('does not decode entity-obfuscated schemes into executable URLs', () => {
+    const document = new DOMParser().parseFromString(
+      simpleMarkdownToHtml('[x](javascript&#58;alert)'),
+      'text/html'
+    );
+    expect(document.querySelector('a')?.getAttribute('href')).toBe(
+      'javascript&#58;alert'
+    );
+  });
+
+  it('encodes URL metacharacters while preserving existing URL escapes', () => {
+    expect(sanitizeUrlScheme("https://example.com/<tag>'?q=%26%3C")).toBe(
+      'https://example.com/%3Ctag%3E%27?q=%26%3C'
+    );
   });
 });

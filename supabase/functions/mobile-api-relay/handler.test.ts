@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { createMobileRelay, type RelayDependencies } from './handler';
 
 const id = '11111111-1111-4111-8111-111111111111';
-const base = 'https://example.supabase.co/functions/v1/mobile-api-relay';
+// Model the URL actually received after the hosted gateway strips /functions/v1.
+const base = 'https://example.supabase.co/mobile-api-relay';
 const request = (path = '/api/users/profile', init: RequestInit = {}) =>
   new Request(base + path, {
     ...init,
@@ -44,6 +45,43 @@ test('approved user gets profile using their own bearer token and a fixed upstre
     'server-only-synthetic-secret'
   );
   assert.equal(f.calls[0].init.redirect, 'manual');
+});
+
+test('external URL form preserves the same fixed upstream and authentication', async () => {
+  const f = fixture();
+  const response = await f.handler(
+    new Request(
+      'https://example.supabase.co/functions/v1/mobile-api-relay/api/users/profile?view=mobile',
+      { headers: { authorization: 'Bearer user.jwt.token' } }
+    )
+  );
+  assert.equal(response.status, 200);
+  assert.equal(f.verifications(), 1);
+  assert.equal(
+    f.calls[0].url,
+    'https://www.mintenance.co.uk/api/users/profile?view=mobile'
+  );
+});
+
+test('lookalike function prefixes and bare API paths remain denied', async () => {
+  const f = fixture();
+  for (const path of [
+    '/api/users/profile',
+    '/mobile-api-relay-other/api/users/profile',
+    '/other/mobile-api-relay/api/users/profile',
+    '/functions/v1/mobile-api-relay-other/api/users/profile',
+    '/functions/v1/mobile-api-relay/api/admin/users',
+    '/mobile-api-relay//api/users/profile',
+  ]) {
+    const response = await f.handler(
+      new Request('https://example.supabase.co' + path, {
+        headers: { authorization: 'Bearer user.jwt.token' },
+      })
+    );
+    assert.equal(response.status, 403, path);
+  }
+  assert.equal(f.verifications(), 0);
+  assert.equal(f.calls.length, 0);
 });
 
 for (const options of [
