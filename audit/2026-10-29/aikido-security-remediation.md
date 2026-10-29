@@ -227,3 +227,22 @@ The seven GitHub Actions workflows on f74f9ba1 completed successfully. Pulled
 Local verification: 29 workflow/change-detection tests and 32 Markdown security
 and formatting tests pass. `git diff --check` passes. Aikido MCP scanning is
 still unavailable; CI security and CodeQL results are checked separately.
+
+The full local web lint subsequently completed: 2,573 files, zero errors and
+830 warnings. The lint installation is retained under the checkout's ignored
+output/readiness-toolchain/lint directory; apps/web resolves its declared Next
+ESLint configuration there without modifying another checkout's node_modules.
+
+CI logs for 92578ee4 confirmed both Code Quality & Testing and deploy failed
+on the same Markdown href-preservation assertion, fixed by 5f129d97 (all other
+4,962 web tests passed in that run).
+
+Main then advanced to 9dd364c3 with PR #1434, creating conflicts in the dependency
+test command and the old node-forge mitigation tests. Integrated main while
+preserving node-forge 1.4.2 and its standalone regressions. Removed the obsolete
+node-forge audit exceptions instead of reintroducing the 1.4.0 source patch.
+Retained main's audit-policy tests, updated to require rejection of vulnerable
+node-forge paths including the previously excepted Expo consumers. All seven
+policy tests pass, including inactive/expired exception rejection. The actual
+production audit gate also passes; it still reports the documented Zod 3 advisory
+under its existing scoped mitigation and expiry, plus lower-severity findings.

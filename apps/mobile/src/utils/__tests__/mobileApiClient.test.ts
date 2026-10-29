@@ -71,6 +71,7 @@ function makeResponse(init: FakeResponseInit = {}): Response {
     init.contentType === undefined ? 'application/json' : init.contentType;
   return {
     ok,
+    clone: () => makeResponse(init),
     status,
     statusText: init.statusText ?? '',
     headers: {
@@ -132,6 +133,27 @@ function importFresh() {
 // resolveApiBaseUrl() / API_BASE_URL — runs at module import time.
 // ===========================================================================
 describe('resolveApiBaseUrl / API_BASE_URL', () => {
+  it('uses only the configured Supabase project relay when explicitly enabled', () => {
+    process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.EXPO_PUBLIC_MOBILE_API_GATEWAY_URL =
+      'https://example.supabase.co/functions/v1/mobile-api-relay';
+    process.env.EXPO_PUBLIC_API_URL = 'https://www.mintenance.co.uk';
+    expect(importFresh().API_BASE_URL).toBe(
+      process.env.EXPO_PUBLIC_MOBILE_API_GATEWAY_URL
+    );
+  });
+
+  it.each([
+    'https://evil.example',
+    'https://other.supabase.co/functions/v1/mobile-api-relay',
+    'https://example.supabase.co/functions/v1/mobile-api-relay?bypass=secret',
+  ])('rejects a mismatched relay URL %s', (gateway) => {
+    process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.EXPO_PUBLIC_MOBILE_API_GATEWAY_URL = gateway;
+    expect(importFresh).toThrow(
+      'Invalid mobile beta API gateway configuration'
+    );
+  });
   it('uses EXPO_PUBLIC_API_URL when set', () => {
     process.env.EXPO_PUBLIC_API_URL = 'https://api.example.com';
     delete process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -462,9 +484,11 @@ describe('HTTP verbs', () => {
     expect(res).toBe('plain-text');
   });
 
-  it('passes absolute URLs through unchanged', async () => {
-    await client.get('https://other.host/abs');
-    expect(lastCall()[0]).toBe('https://other.host/abs');
+  it('rejects absolute URLs before disclosing a bearer token', async () => {
+    await expect(client.get('https://other.host/abs')).rejects.toThrow(
+      'relative path'
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });
 
@@ -477,6 +501,119 @@ describe('401 refresh-and-retry', () => {
   beforeEach(() => {
     process.env.EXPO_PUBLIC_API_URL = 'https://api.test';
     client = importFresh().mobileApiClient;
+  });
+
+  it.each([
+    {
+      status: 401,
+      jsonBody: {
+        message: 'Protected by Vercel Authentication',
+        error: { code: '401', message: 'Protected deployment' },
+      },
+    },
+    { status: 403, jsonBody: { error: { message: 'Protected deployment' } } },
+    {
+      status: 401,
+      contentType: 'text/html',
+      textBody: '<html>Authentication Required</html>',
+    },
+    { status: 200, contentType: 'text/html', textBody: '<html>Login</html>' },
+    { status: 302 },
+    { status: 307 },
+  ])('keeps sign-in when a hosting gate returns %j', async (init) => {
+    (global.fetch as jest.Mock).mockResolvedValue(makeResponse(init));
+    await expect(client.get('/api/users/profile')).rejects.toMatchObject({
+      statusCode: 403,
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseAuth.refreshSession).not.toHaveBeenCalled();
+    expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      status: 401,
+      jsonBody: { message: 'Protected by Vercel Authentication' },
+    },
+    { status: 401, contentType: 'text/html' },
+    { status: 200, contentType: 'text/html' },
+    { status: 302 },
+  ])(
+    'does not refresh or sign out on an upload hosting gate %j',
+    async (init) => {
+      (global.fetch as jest.Mock).mockResolvedValue(makeResponse(init));
+      await expect(
+        client.postFormData('/api/upload', new FormData())
+      ).rejects.toMatchObject({ statusCode: 403 });
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(mockSupabaseAuth.refreshSession).not.toHaveBeenCalled();
+      expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+      expect((global.fetch as jest.Mock).mock.calls[0][1].redirect).toBe(
+        'manual'
+      );
+    }
+  );
+
+  it('keeps sign-in if a refreshed request encounters the deployment gate', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeResponse({ status: 401 }))
+      .mockResolvedValueOnce(
+        makeResponse({
+          status: 401,
+          jsonBody: { message: 'Protected by Vercel Authentication' },
+        })
+      );
+    await expect(client.get('/api/users/profile')).rejects.toMatchObject({
+      code: 'DEPLOYMENT_PROTECTED',
+    });
+    expect(mockSupabaseAuth.refreshSession).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+  });
+
+  it('keeps sign-in across concurrent hosting rejections', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      makeResponse({
+        status: 401,
+        jsonBody: { message: 'Protected by Vercel Authentication' },
+      })
+    );
+    const results = await Promise.allSettled([
+      client.get('/api/users/profile'),
+      client.get('/api/jobs'),
+    ]);
+    expect(results.every((result) => result.status === 'rejected')).toBe(true);
+    expect(mockSupabaseAuth.refreshSession).not.toHaveBeenCalled();
+    expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { status: 503, code: 'unexpected_failure' },
+    { status: 429, code: 'over_request_rate_limit' },
+    { name: 'AuthRetryableFetchError', status: 0 },
+  ])(
+    'does not erase a session on transient refresh failure %j',
+    async (error) => {
+      (global.fetch as jest.Mock).mockResolvedValue(
+        makeResponse({ status: 401 })
+      );
+      mockSupabaseAuth.refreshSession.mockResolvedValue({
+        data: { session: null },
+        error,
+      });
+      await expect(client.get('/api/jobs')).rejects.toBeDefined();
+      expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+    }
+  );
+
+  it('does not sign out a different account after an old request fails', async () => {
+    (global.fetch as jest.Mock).mockImplementation(async () => {
+      mockSupabaseAuth.getSession.mockResolvedValue(
+        sessionWith('different-account-token')
+      );
+      return makeResponse({ status: 401 });
+    });
+    await expect(client.get('/api/jobs')).rejects.toBeDefined();
+    expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
   });
 
   it('leaves an expired session when even the refreshed token is rejected', async () => {
@@ -533,14 +670,12 @@ describe('401 refresh-and-retry', () => {
     );
     mockSupabaseAuth.refreshSession.mockResolvedValue({
       data: { session: null },
-      error: { message: 'refresh expired' },
+      error: { message: 'refresh expired', code: 'refresh_token_not_found' },
     });
 
     await expect(client.get('/secure')).rejects.toBeDefined();
     expect(mockSupabaseAuth.signOut).toHaveBeenCalledTimes(1);
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      'Session refresh failed, signing out'
-    );
+    expect(mockLogger.warn).toHaveBeenCalledWith('Session expired');
   });
 
   it('signs out with a synthesized error when refresh returns null session and null error', async () => {
@@ -612,7 +747,13 @@ describe('401 refresh-and-retry', () => {
   });
 
   it('does not multiply query retries with hidden HTTP retries on server errors', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue(makeResponse({ status: 500, ok: false, jsonBody: { message: 'Unavailable' } }));
+    (global.fetch as jest.Mock).mockResolvedValue(
+      makeResponse({
+        status: 500,
+        ok: false,
+        jsonBody: { message: 'Unavailable' },
+      })
+    );
     await expect(client.get('/unavailable')).rejects.toBeDefined();
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(mockSupabaseAuth.refreshSession).not.toHaveBeenCalled();
@@ -659,14 +800,11 @@ describe('postFormData', () => {
     );
   });
 
-  it('builds absolute URLs unchanged', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue(
-      makeResponse({ jsonBody: {} })
-    );
-    await client.postFormData('https://cdn.test/u', new FormData());
-    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
-      'https://cdn.test/u'
-    );
+  it('rejects absolute upload URLs before attaching a bearer token', async () => {
+    await expect(
+      client.postFormData('https://cdn.test/u', new FormData())
+    ).rejects.toThrow('relative path');
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('omits Authorization header when no token is available', async () => {

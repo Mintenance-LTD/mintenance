@@ -11,6 +11,7 @@ import {
   NetworkError,
   IApiError,
 } from './ErrorHandler';
+import { responseAccessError } from './ResponseAccessError';
 export interface ApiClientConfig {
   baseURL?: string;
   timeout?: number;
@@ -105,15 +106,8 @@ export class ApiClient {
             signal: controller.signal,
             redirect: 'manual', // Don't follow redirects — treat 3xx as errors (catches middleware 307s)
           });
-          // Treat redirects (307/302) as 401 auth failures — middleware redirects
-          // unauthenticated API requests to login page instead of returning JSON
-          if (response.status >= 300 && response.status < 400) {
-            throw parseError({
-              message: 'Authentication required (redirected to login)',
-              code: 'UNAUTHORIZED',
-              statusCode: 401,
-            });
-          }
+          const accessError = responseAccessError(response);
+          if (accessError) throw accessError;
           // Handle non-OK responses
           if (!response.ok) {
             const errorData = await this.parseErrorResponse(response);
@@ -193,6 +187,8 @@ export class ApiClient {
   }> {
     try {
       const data = await response.json();
+      const accessError = responseAccessError(response, data);
+      if (accessError) throw accessError;
       // Support both shapes:
       //   { message, code }                     (legacy / supabase)
       //   { error: { message, code }, timestamp } (Next.js APIError.toResponse)
@@ -206,7 +202,8 @@ export class ApiClient {
         `HTTP ${response.status}`;
       const code = data.code || nestedError?.code;
       return { message, code, details: data };
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
       return {
         message: `HTTP ${response.status}: ${response.statusText}`,
       };

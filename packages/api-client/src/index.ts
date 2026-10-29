@@ -3,6 +3,7 @@
  */
 export * from './ErrorHandler';
 export * from './ApiClient';
+export * from './ResponseAccessError';
 export * from './SupabaseClientWrapper';
 export * from './validate';
 // Re-export types

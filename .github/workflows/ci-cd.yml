@@ -86,6 +86,9 @@ jobs:
       - name: Check native build configuration without submitting builds
         run: node --test scripts/validate-eas-config.test.cjs scripts/mobile-build-changes.test.cjs
 
+      - name: Check mobile beta API access boundaries
+        run: node --import tsx --test supabase/functions/mobile-api-relay/handler.test.ts
+
       - name: Check storage audit classification (offline)
         run: node --test scripts/storage-integrity.test.cjs
 

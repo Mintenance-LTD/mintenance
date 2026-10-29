@@ -338,6 +338,10 @@ deno_version = 2
 [functions.stripe-webhook-relay]
 verify_jwt = false
 
+# Mobile beta requires a valid user JWT AND an explicit server-side account allowlist.
+[functions.mobile-api-relay]
+verify_jwt = true
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

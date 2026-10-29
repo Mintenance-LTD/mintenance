@@ -12,20 +12,6 @@
       }
     },
     {
-      "GHSA-86w9-cpqp-85rv|expo-updates>@expo/code-signing-certificates>node-forge": {
-        "active": true,
-        "notes": "Reviewed 2026-10-23: node-forge has no patched release. scripts/apply-security-patches.cjs verifies the exact 1.4.0 registry source and enforces nested DigestAlgorithm element counts (upstream PR 1152). Root prepare/build:packages and mobile validation/EAS hooks apply it; security-scan runs positive and malformed-signature regressions. npm ci --ignore-scripts users must run npm run security:prepare before tooling. Advisory remains visible until a fixed upstream version is adopted. Trusted signing inputs only; recheck before expiry.",
-        "expiry": "2026-11-03"
-      }
-    },
-    {
-      "GHSA-86w9-cpqp-85rv|expo>@expo/cli>node-forge": {
-        "active": true,
-        "notes": "Reviewed 2026-10-23: node-forge has no patched release. scripts/apply-security-patches.cjs verifies the exact 1.4.0 registry source and enforces nested DigestAlgorithm element counts (upstream PR 1152). Root prepare/build:packages and mobile validation/EAS hooks apply it; security-scan runs positive and malformed-signature regressions. npm ci --ignore-scripts users must run npm run security:prepare before tooling. Advisory remains visible until a fixed upstream version is adopted. Trusted signing inputs only; recheck before expiry.",
-        "expiry": "2026-11-03"
-      }
-    },
-    {
       "GHSA-vfj7-8cjw-p6xm|@expo/metro-config>@expo/metro>metro-file-map>micromatch>braces>": {
         "active": true,
         "notes": "Reviewed 2026-10-04: no patched braces release. This exact Metro/Jest build-time path receives repository-owned patterns, not request input. No application imports of braces/micromatch found. Only trusted source/assets may be built. Recheck upstream before expiry.",
