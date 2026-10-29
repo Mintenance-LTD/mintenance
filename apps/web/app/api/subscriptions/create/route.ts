@@ -5,7 +5,7 @@ import {
   HomeownerSubscriptionService,
   type HomeownerPlanType,
 } from '@/lib/services/subscription/HomeownerSubscriptionService';
-import { TrialService } from '@/lib/services/subscription/TrialService';
+import { syncContractorProviderState } from '@/lib/services/subscription/contractor-provider-state';
 import { logger } from '@mintenance/shared';
 import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
@@ -117,364 +117,131 @@ export const POST = withApiHandler(
       throw new BadRequestError('Invalid contractor plan type');
     }
 
-    // Check if user already has a subscription
-    const existingSubscription =
-      await SubscriptionService.getContractorSubscription(user.id);
-
-    // Handle free tier separately - no Stripe needed
-    if (planType === 'free') {
+    const contractorPlan = planType === 'basic' ? 'free' : planType;
+    const cycle = billingCycle || 'monthly';
+    const existing = await SubscriptionService.getContractorSubscription(
+      user.id
+    );
+    if (contractorPlan === 'free') {
       if (
-        existingSubscription?.planType === 'free' &&
-        existingSubscription.status === 'free'
+        existing &&
+        !['free', 'basic'].includes(existing.planType) &&
+        !existing.stripeSubscriptionId
       ) {
-        return NextResponse.json({
-          success: true,
-          message: 'You are already on the free tier',
-          subscriptionId: existingSubscription.id,
-        });
+        throw new BadRequestError(
+          'Resume the pending checkout before cancelling it'
+        );
       }
-
-      // Cancel any existing paid subscriptions
-      if (existingSubscription && existingSubscription.stripeSubscriptionId) {
-        try {
-          await stripe.subscriptions.cancel(
-            existingSubscription.stripeSubscriptionId
-          );
-        } catch (cancelError) {
-          logger.warn('Could not cancel Stripe subscription', {
-            service: 'subscriptions',
-            subscriptionId: existingSubscription.stripeSubscriptionId,
-            error:
-              cancelError instanceof Error
-                ? cancelError.message
-                : String(cancelError),
-          });
-          if (
-            (cancelError as { code?: string })?.code !== 'resource_missing'
-          ) {
-            throw new InternalServerError(
-              'Could not cancel your current subscription. Please try again.'
-            );
-          }
-        }
-
-        // Mark existing subscription as canceled
-        const { error: cancelUpdateError } = await serverSupabase
-          .from('contractor_subscriptions')
-          .update({
-            status: 'canceled',
-            canceled_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingSubscription.id);
-        if (cancelUpdateError) {
-          logger.error(
-            'Failed to persist canceled subscription before free-tier creation',
-            cancelUpdateError,
-            {
-              service: 'subscriptions',
-              subscriptionId: existingSubscription.id,
-              contractorId: user.id,
-            }
-          );
-          throw new InternalServerError(
-            'Could not update your subscription. Please try again.'
-          );
-        }
+      if (existing?.stripeSubscriptionId) {
+        const canceled = await stripe.subscriptions.cancel(
+          existing.stripeSubscriptionId
+        );
+        await syncContractorProviderState(canceled, user.id);
       }
-
-      // Create free tier subscription
-      const subscriptionDbId =
-        await SubscriptionService.createFreeTierSubscription(user.id);
-
-      logger.info('Free tier subscription created', {
-        service: 'subscriptions',
-        contractorId: user.id,
-      });
-
+      const id =
+        existing?.planType === 'free' && existing.status === 'free'
+          ? existing.id
+          : await SubscriptionService.createFreeTierSubscription(user.id);
       return NextResponse.json({
         success: true,
-        subscriptionId: subscriptionDbId,
+        subscriptionId: id,
         stripeSubscriptionId: null,
         clientSecret: null,
         requiresPayment: false,
       });
     }
 
-    if (existingSubscription && existingSubscription.stripeSubscriptionId) {
-      // Check the actual Stripe subscription status (more reliable than database status)
-      let stripeSubscriptionStatus: string | null = null;
-      try {
-        const stripeSub = await stripe.subscriptions.retrieve(
-          existingSubscription.stripeSubscriptionId
-        );
-        stripeSubscriptionStatus = stripeSub.status;
-      } catch (stripeError) {
-        logger.warn(
-          'Could not retrieve Stripe subscription status, using database status',
-          {
-            service: 'subscriptions',
-            subscriptionId: existingSubscription.stripeSubscriptionId,
-            error:
-              stripeError instanceof Error
-                ? stripeError.message
-                : String(stripeError),
-          }
-        );
-      }
-
-      const effectiveStatus =
-        stripeSubscriptionStatus || existingSubscription.status;
-
-      // If user is trying to subscribe to the same plan and it's active, return error
-      if (
-        existingSubscription.planType === planType &&
-        effectiveStatus === 'active'
-      ) {
-        throw new BadRequestError(
-          `You are already subscribed to the ${planType} plan`
-        );
-      }
-
-      // Check if subscription is incomplete/unpaid/trial/expired - cancel it and create new one
-      const incompleteStatuses = [
-        'incomplete',
-        'incomplete_expired',
-        'trial',
-        'unpaid',
-        'expired',
-        'past_due',
-      ];
-      if (incompleteStatuses.includes(effectiveStatus)) {
-        logger.info(
-          'Canceling incomplete/expired subscription to create new one',
-          {
-            service: 'subscriptions',
-            contractorId: user.id,
-            oldSubscriptionId: existingSubscription.stripeSubscriptionId,
-            databaseStatus: existingSubscription.status,
-            stripeStatus: stripeSubscriptionStatus,
-            effectiveStatus,
-          }
-        );
-
-        try {
-          if (existingSubscription.stripeSubscriptionId) {
-            try {
-              await stripe.subscriptions.cancel(
-                existingSubscription.stripeSubscriptionId
-              );
-            } catch (cancelError) {
-              logger.warn('Subscription may already be canceled in Stripe', {
-                service: 'subscriptions',
-                subscriptionId: existingSubscription.stripeSubscriptionId,
-              });
-              if (
-                (cancelError as { code?: string })?.code !== 'resource_missing'
-              ) {
-                throw new InternalServerError(
-                  'Could not cancel the previous subscription. Please try again.'
-                );
-              }
-            }
-          }
-
-          // Update database status to 'canceled' to release the unique constraint
-          const { error: updateError } = await serverSupabase
-            .from('contractor_subscriptions')
-            .update({
-              status: 'canceled',
-              canceled_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingSubscription.id);
-
-          if (updateError) {
-            logger.error('Failed to update subscription status in database', {
-              service: 'subscriptions',
-              subscriptionId: existingSubscription.id,
-              error: updateError.message,
-            });
-            throw new InternalServerError(
-              'Could not update the previous subscription. Please try again.'
-            );
-          } else {
-            logger.info('Marked old subscription as canceled in database', {
-              service: 'subscriptions',
-              subscriptionId: existingSubscription.id,
-            });
-          }
-        } catch (cancelError) {
-          logger.error('Failed to retire incomplete subscription', cancelError, {
-            service: 'subscriptions',
-            contractorId: user.id,
-            subscriptionId: existingSubscription.id,
-          });
-          if (cancelError instanceof InternalServerError) {
-            throw cancelError;
-          }
-          throw new InternalServerError(
-            'Could not retire the previous subscription. Please try again.'
-          );
-        }
-
-        // Fall through to create new subscription
-      } else if (
-        existingSubscription.status === 'active' &&
-        existingSubscription.stripeSubscriptionId
-      ) {
-        // Subscription is active and different plan - try to update it
-        try {
-          const { subscriptionId, clientSecret, requiresPayment } =
-            await SubscriptionService.updateSubscriptionPlan(
-              user.id,
-              planType,
-              existingSubscription.stripeSubscriptionId
-            );
-
-          logger.info('Subscription plan updated', {
-            service: 'subscriptions',
-            contractorId: user.id,
-            oldPlan: existingSubscription.planType,
-            newPlan: planType,
-            subscriptionId,
-            requiresPayment,
-          });
-
-          // 2026-05-23 audit-18 P1: include the PaymentSheet bundle when
-          // an upgrade requires confirming a new PaymentIntent. The
-          // customer id is already on profiles.stripe_customer_id —
-          // fetch it cheaply here.
-          let upgradeCustomerId: string | null = null;
-          if (requiresPayment && clientSecret) {
-            const { data: upgradeProfile } = await serverSupabase
-              .from('profiles')
-              .select('stripe_customer_id')
-              .eq('id', user.id)
-              .maybeSingle();
-            upgradeCustomerId =
-              (upgradeProfile?.stripe_customer_id as string | null) ?? null;
-          }
-          const upgradePaymentSheet = await buildPaymentSheet(
-            clientSecret,
-            upgradeCustomerId
-          );
-          return NextResponse.json({
-            success: true,
-            subscriptionId: existingSubscription.id,
-            stripeSubscriptionId: subscriptionId,
-            clientSecret,
-            requiresPayment,
-            isUpgrade: true,
-            paymentSheet: upgradePaymentSheet,
-          });
-        } catch (err) {
-          const errorMessage =
-            err instanceof Error ? err.message : 'Unknown error';
-          logger.error('Error updating subscription plan', {
-            service: 'subscriptions',
-            contractorId: user.id,
-            oldPlan: existingSubscription.planType,
-            newPlan: planType,
-            stripeSubscriptionId: existingSubscription.stripeSubscriptionId,
-            error: errorMessage,
-            stack: err instanceof Error ? err.stack : undefined,
-          });
-
-          return NextResponse.json(
-            {
-              error: 'Failed to update subscription plan',
-              details: errorMessage,
-              debug:
-                process.env.NODE_ENV === 'development'
-                  ? {
-                      oldPlan: existingSubscription.planType,
-                      newPlan: planType,
-                      subscriptionId: existingSubscription.stripeSubscriptionId,
-                    }
-                  : undefined,
-            },
-            { status: 500 }
-          );
-        }
-      }
-      // If subscription exists but status is 'canceled' or other, fall through to create new
-    }
-
-    // Get or create Stripe customer (only for paid plans)
-    const { data: userData } = await serverSupabase
+    const { data: profile, error: profileError } = await serverSupabase
       .from('profiles')
-      .select('stripe_customer_id, email, trial_ends_at')
+      .select('stripe_customer_id')
       .eq('id', user.id)
       .single();
-
-    let stripeCustomerId = userData?.stripe_customer_id;
-
-    if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
-        email: userData?.email || user.email,
-        metadata: {
-          userId: user.id,
-          userRole: 'contractor',
+    if (profileError || !profile)
+      throw new InternalServerError('Could not load billing profile');
+    let customerId = profile.stripe_customer_id as string | null;
+    if (!customerId) {
+      const customer = await stripe.customers.create(
+        {
+          email: user.email,
+          metadata: { userId: user.id, role: 'contractor' },
         },
-      }, {
-        idempotencyKey: `stripe_customer_${user.id}`,
-      });
-
-      stripeCustomerId = customer.id;
-
-      await serverSupabase
+        { idempotencyKey: 'stripe_customer_' + user.id }
+      );
+      customerId = customer.id;
+      const { error } = await serverSupabase
         .from('profiles')
-        .update({ stripe_customer_id: stripeCustomerId })
+        .update({ stripe_customer_id: customerId })
         .eq('id', user.id);
+      if (error)
+        throw new InternalServerError('Could not save billing customer');
     }
 
-    // Get trial end date
-    const trialStatus = await TrialService.getTrialStatus(user.id);
-    const trialEnd = trialStatus?.trialEndsAt || null;
-
-    // Create Stripe subscription
-    const { subscriptionId, clientSecret } =
-      await SubscriptionService.createStripeSubscription(
-        user.id,
-        planType,
-        stripeCustomerId
+    if (existing?.stripeSubscriptionId) {
+      // Provider lookup failures must stop checkout rather than permit another charge.
+      const current = await stripe.subscriptions.retrieve(
+        existing.stripeSubscriptionId
       );
-
-    // Get Stripe price ID (only for paid plans)
-    let priceId = 'free-tier';
-    const stripeSubscription =
-      await stripe.subscriptions.retrieve(subscriptionId);
-    priceId = stripeSubscription.items.data[0]?.price.id || '';
-
-    // Save subscription to database
-    const subscriptionDbId = await SubscriptionService.saveSubscription(
+      const owner =
+        typeof current.customer === 'string'
+          ? current.customer
+          : current.customer.id;
+      if (owner !== customerId || current.metadata?.contractorId !== user.id)
+        throw new InternalServerError(
+          'Subscription ownership needs reconciliation'
+        );
+      if (['active', 'trialing', 'past_due'].includes(current.status)) {
+        const currentCycle =
+          current.items.data[0]?.price.recurring?.interval === 'year'
+            ? 'yearly'
+            : 'monthly';
+        if (existing.planType === contractorPlan && currentCycle === cycle)
+          throw new BadRequestError(
+            'You already have this plan and billing cycle'
+          );
+        const changed = await SubscriptionService.updateSubscriptionPlan(
+          user.id,
+          contractorPlan,
+          current.id,
+          cycle
+        );
+        return NextResponse.json({
+          success: true,
+          subscriptionId: existing.id,
+          stripeSubscriptionId: changed.subscriptionId,
+          clientSecret: changed.clientSecret,
+          requiresPayment: changed.requiresPayment,
+          isUpgrade: true,
+          paymentSheet: await buildPaymentSheet(
+            changed.clientSecret,
+            customerId
+          ),
+        });
+      }
+      if (['canceled', 'incomplete_expired'].includes(current.status))
+        await syncContractorProviderState(current, user.id);
+      // An unpaid/incomplete checkout resumes through its durable reservation.
+    }
+    const created = await SubscriptionService.createStripeSubscription(
       user.id,
-      planType,
-      subscriptionId,
-      stripeCustomerId,
-      priceId,
-      trialEnd || undefined
+      contractorPlan,
+      customerId,
+      cycle
     );
-
-    logger.info('Subscription created', {
-      service: 'subscriptions',
-      contractorId: user.id,
-      planType,
-      subscriptionId,
-    });
-
-    const contractorPaymentSheet = await buildPaymentSheet(
-      clientSecret,
-      stripeCustomerId
-    );
+    const { data: row, error: rowError } = await serverSupabase
+      .from('contractor_subscriptions')
+      .select('id')
+      .eq('contractor_id', user.id)
+      .eq('stripe_subscription_id', created.subscriptionId)
+      .single();
+    if (rowError || !row)
+      throw new InternalServerError('Could not load the reserved subscription');
     return NextResponse.json({
       success: true,
-      subscriptionId: subscriptionDbId,
-      stripeSubscriptionId: subscriptionId,
-      clientSecret,
-      requiresPayment: !!clientSecret,
-      paymentSheet: contractorPaymentSheet,
+      subscriptionId: row.id,
+      stripeSubscriptionId: created.subscriptionId,
+      clientSecret: created.clientSecret,
+      requiresPayment: !!created.clientSecret,
+      paymentSheet: await buildPaymentSheet(created.clientSecret, customerId),
     });
   }
 );

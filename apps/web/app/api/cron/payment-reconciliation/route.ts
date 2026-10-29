@@ -9,7 +9,7 @@ export const maxDuration = 60;
  */
 export const GET = withCronHandler('payment-reconciliation', async () => {
   const result = await PaymentReconciliationService.reconcile();
-  if (result.errors)
+  if (result.errors || result.mismatched || result.missingInStripe)
     throw new Error(
       'Payment reconciliation requires retry; durable results retained'
     );

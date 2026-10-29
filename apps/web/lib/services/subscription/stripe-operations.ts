@@ -13,100 +13,32 @@
  *     is observable in one place.
  */
 import type Stripe from 'stripe';
-import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getInvoiceClientSecret } from '@/lib/stripe';
 import { stripe } from './stripe-client';
 import { PLAN_PRICING } from './plan-pricing';
 import type { SubscriptionPlan } from './types';
+import {
+  contractorPrice,
+  createContractorCheckout,
+} from './contractor-checkout';
+import {
+  syncContractorProviderState,
+  type BillingCycle,
+} from './contractor-provider-state';
 
-/**
- * Get-or-create the Stripe Price ID for a given plan + amount.
- *
- * Free tier returns the sentinel `'free-tier'` (we never round-trip
- * to Stripe for £0). For paid tiers we currently CREATE a fresh price
- * each time and let Stripe deduplicate by amount + product. A future
- * optimization is to cache the latest price id in
- * `subscription_features.stripe_price_id`.
- */
+/** Stable prices are reused across retries and billing cycles. */
 export async function getOrCreateStripePrice(
-  planType: SubscriptionPlan,
-  amountInPence: number
-): Promise<string> {
-  if (planType === 'free') {
-    return 'free-tier';
-  }
-  const price = await stripe.prices.create({
-    currency: 'gbp',
-    unit_amount: amountInPence,
-    recurring: { interval: 'month' },
-    product_data: {
-      name: `${PLAN_PRICING[planType].name} Plan`,
-    } as Stripe.PriceCreateParams['product_data'],
-  });
-  return price.id;
+  plan: SubscriptionPlan,
+  amount: number,
+  cycle: BillingCycle = 'monthly'
+) {
+  if (plan === 'free' || plan === 'basic') return 'free-tier';
+  if (amount !== PLAN_PRICING[plan].amount * (cycle === 'yearly' ? 10 : 1))
+    throw new Error('Invalid plan amount');
+  return contractorPrice(plan, cycle);
 }
-
-/**
- * Create a Stripe subscription for a contractor.
- *
- * Free tier short-circuits — we return a sentinel id so callers can
- * proceed to `saveSubscription()` without any Stripe round-trip.
- *
- * For paid tiers, the subscription is created with
- * `payment_behavior: 'default_incomplete'`, which means Stripe waits
- * for the first invoice to be paid before flipping the subscription
- * to `active`. The returned `clientSecret` is used by the mobile /
- * web client to confirm the PaymentIntent.
- */
-export async function createStripeSubscription(
-  contractorId: string,
-  planType: SubscriptionPlan,
-  stripeCustomerId: string
-): Promise<{ subscriptionId: string; clientSecret: string | null }> {
-  if (planType === 'free') {
-    return { subscriptionId: 'free-tier', clientSecret: null };
-  }
-
-  try {
-    const planPricing = PLAN_PRICING[planType];
-    if (!planPricing) {
-      throw new Error(`Invalid plan type: ${planType}`);
-    }
-
-    const priceId = await getOrCreateStripePrice(planType, planPricing.amount);
-
-    const subscription = await stripe.subscriptions.create({
-      customer: stripeCustomerId,
-      items: [{ price: priceId }],
-      payment_behavior: 'default_incomplete',
-      payment_settings: { save_default_payment_method: 'on_subscription' },
-      // basil+ API versions reject the old `latest_invoice.payment_intent`
-      // expansion; confirmation_secret carries the same client secret.
-      expand: ['latest_invoice.confirmation_secret'],
-      metadata: {
-        contractorId,
-        planType,
-        platform: 'mintenance',
-      },
-    }, {
-      idempotencyKey: `subscription_${contractorId}_${planType}`,
-    });
-
-    return {
-      subscriptionId: subscription.id,
-      clientSecret: getInvoiceClientSecret(subscription.latest_invoice),
-    };
-  } catch (err) {
-    logger.error('Error creating Stripe subscription', {
-      service: 'SubscriptionService',
-      contractorId,
-      planType,
-      error: err instanceof Error ? err.message : String(err),
-    });
-    throw err;
-  }
-}
+export const createStripeSubscription = createContractorCheckout;
 
 /**
  * Upgrade or downgrade an existing subscription to a new plan.
@@ -114,9 +46,9 @@ export async function createStripeSubscription(
  * Updates the Stripe subscription with `proration_behavior:
  * 'always_invoice'` so the customer is charged or credited for the
  * prorated difference. After the Stripe call succeeds we update the
- * matching DB row (`contractor_subscriptions`) — failures on the DB
- * side are logged but do not throw, since the Stripe state is the
- * source of truth and webhooks will reconcile.
+ * matching DB row (`contractor_subscriptions`). Database failures
+ * propagate so callers can retry; the provider's current price and
+ * any pending invoice let retries recover without another charge.
  *
  * Returns whether the change requires further payment (e.g. an open
  * invoice from the proration). The mobile / web client uses the
@@ -125,7 +57,8 @@ export async function createStripeSubscription(
 export async function updateSubscriptionPlan(
   contractorId: string,
   newPlanType: SubscriptionPlan,
-  existingStripeSubscriptionId: string
+  existingStripeSubscriptionId: string,
+  billingCycle: BillingCycle = 'monthly'
 ): Promise<{
   subscriptionId: string;
   clientSecret: string | null;
@@ -186,6 +119,8 @@ export async function updateSubscriptionPlan(
       });
     }
 
+    if (currentSubscription.metadata?.contractorId !== contractorId)
+      throw new Error('Subscription ownership mismatch');
     const currentItemId = currentSubscription.items.data[0]?.id;
     if (!currentItemId) {
       throw new Error('Current subscription item not found');
@@ -193,8 +128,41 @@ export async function updateSubscriptionPlan(
 
     const newPriceId = await getOrCreateStripePrice(
       newPlanType,
-      planPricing.amount
+      planPricing.amount * (billingCycle === 'yearly' ? 10 : 1),
+      billingCycle
     );
+
+    if (currentSubscription.pending_update) {
+      const pendingPrice =
+        currentSubscription.pending_update.subscription_items?.[0]?.price;
+      const pendingPriceId =
+        typeof pendingPrice === 'string' ? pendingPrice : pendingPrice?.id;
+      if (pendingPriceId !== newPriceId)
+        throw new Error(
+          'Complete the pending plan change before selecting another'
+        );
+      const pending = await stripe.subscriptions.retrieve(
+        existingStripeSubscriptionId,
+        {
+          expand: ['latest_invoice.confirmation_secret'],
+        }
+      );
+      await syncContractorProviderState(pending, contractorId);
+      const secret = getInvoiceClientSecret(pending.latest_invoice);
+      return {
+        subscriptionId: pending.id,
+        clientSecret: secret,
+        requiresPayment: !!secret,
+      };
+    }
+    if (currentSubscription.items.data[0].price.id === newPriceId) {
+      await syncContractorProviderState(currentSubscription, contractorId);
+      return {
+        subscriptionId: currentSubscription.id,
+        clientSecret: null,
+        requiresPayment: false,
+      };
+    }
 
     let updatedSubscription: Stripe.Subscription;
     try {
@@ -202,11 +170,8 @@ export async function updateSubscriptionPlan(
         existingStripeSubscriptionId,
         {
           items: [{ id: currentItemId, price: newPriceId }],
-          metadata: {
-            ...currentSubscription.metadata,
-            planType: newPlanType,
-          },
           proration_behavior: 'always_invoice',
+          payment_behavior: 'pending_if_incomplete',
           expand: ['latest_invoice.confirmation_secret'],
         }
       );
@@ -240,31 +205,11 @@ export async function updateSubscriptionPlan(
       requiresPayment = invoice.status === 'open' || invoice.status === 'draft';
     }
 
-    // Update database
-    const { error: updateDbError } = await serverSupabase
-      .from('contractor_subscriptions')
-      .update({
-        plan_type: newPlanType,
-        plan_name: planPricing.name,
-        stripe_price_id: newPriceId,
-        amount: planPricing.amount / 100,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('stripe_subscription_id', existingStripeSubscriptionId);
-
-    if (updateDbError) {
-      logger.error('Failed to update subscription in database', {
-        service: 'SubscriptionService',
-        contractorId,
-        error: updateDbError.message,
-      });
-      // Don't throw — Stripe update succeeded, DB update is secondary;
-      // webhook reconciliation will fix the DB state.
-    }
+    await syncContractorProviderState(updatedSubscription, contractorId);
 
     return {
       subscriptionId: existingStripeSubscriptionId,
-      clientSecret,
+      clientSecret: requiresPayment ? clientSecret : null,
       requiresPayment: !!requiresPayment,
     };
   } catch (err) {
@@ -295,27 +240,15 @@ export async function cancelSubscription(
   cancelAtPeriodEnd: boolean = true
 ): Promise<boolean> {
   try {
-    await stripe.subscriptions.update(subscriptionId, {
-      cancel_at_period_end: cancelAtPeriodEnd,
-    });
-
-    const { error } = await serverSupabase
-      .from('contractor_subscriptions')
-      .update({
-        cancel_at_period_end: cancelAtPeriodEnd,
-        canceled_at: cancelAtPeriodEnd ? null : new Date().toISOString(),
-        status: cancelAtPeriodEnd ? 'active' : 'canceled',
-      })
-      .eq('stripe_subscription_id', subscriptionId);
-
-    if (error) {
-      logger.error('Failed to update canceled subscription', {
-        service: 'SubscriptionService',
-        subscriptionId,
-        error: error.message,
-      });
-      return false;
-    }
+    const current = await stripe.subscriptions.retrieve(subscriptionId);
+    const contractorId = current.metadata?.contractorId;
+    if (!contractorId) throw new Error('Subscription owner is missing');
+    const updated = cancelAtPeriodEnd
+      ? await stripe.subscriptions.update(subscriptionId, {
+          cancel_at_period_end: true,
+        })
+      : await stripe.subscriptions.cancel(subscriptionId);
+    await syncContractorProviderState(updated, contractorId);
 
     return true;
   } catch (err) {

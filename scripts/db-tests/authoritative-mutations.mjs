@@ -1,4 +1,6 @@
 import { testMessageInbox } from './message-inbox.mjs';
+import { testLaunchBilling } from './launch-billing.mjs';
+import { testConfirmedTestExclusion } from './confirmed-test-reconciliation.mjs';
 // npm ci --prefix scripts/db-tests && npm test --prefix scripts/db-tests
 // Starts its own loopback-only PostgreSQL 17 cluster; never reads app env files.
 import assert from 'node:assert/strict';
@@ -94,7 +96,7 @@ try {
   await check('baseline permits forged initial job', () => as('authenticated', `INSERT INTO jobs VALUES('${uid(11)}','${actor}','${contractor}',NULL,'completed','paid')`));
   await check('baseline permits anonymous appointment', () => as('anon', `INSERT INTO appointments VALUES('${uid(30)}','${contractor}',NULL,'unauthorized')`, null));
   await check('baseline permits unrelated review target', () => as('authenticated', `INSERT INTO reviews VALUES('${uid(21)}','${job}','${actor}','${outsider}',1,NULL)`));
-  await admin.query(await fs.readFile(path.join(root, 'supabase/migrations/20261007230825_beta_authoritative_mutations.sql'), 'utf8'));
+  await admin.query(await fs.readFile(path.join(root, 'supabase/migrations/20261029202135_beta_authoritative_mutations.sql'), 'utf8'));
   for (const role of ['anon','authenticated']) {
     await check(`${role}: job creation denied`, () => denied(role, `INSERT INTO jobs VALUES('${uid(12)}','${actor}',NULL,NULL,'completed','paid')`));
     await check(`${role}: appointment insert denied`, () => denied(role, `INSERT INTO appointments VALUES('${uid(31)}','${contractor}',NULL,'forged')`));
@@ -161,6 +163,8 @@ try {
   await testPropertyEntrySecrets({ admin, as, check, uid, root });
   await testHomeownerSubscriptions({ admin, as, check, uid, root, config });
   await testMessageInbox({ admin, as, check, uid, root });
+  await testLaunchBilling({ admin, as, check, uid, root, config });
+  await testConfirmedTestExclusion({ admin, check, uid, root });
   console.log(`PASS ${passed} database regression checks on PostgreSQL 17; production untouched.`);
 } finally {
   if(connected) await admin.end();

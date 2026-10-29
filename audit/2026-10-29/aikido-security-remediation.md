@@ -255,3 +255,9 @@ percent escapes and query delimiters are left intact, and scheme validation
 remains mandatory. The regression checks decoded query values as well as absence
 of injected attributes. All 33 Markdown tests and targeted ESLint pass.
 Reference: https://codeql.github.com/codeql-query-help/javascript/js-xss-through-dom/
+
+All CI checks passed on bb7de62c, including CodeQL, the security gate, full
+web/mobile validation, both E2E shards and the PR Quality Gate. Main subsequently
+advanced to 5b0c5237 (PR #1436). Resolved its security-test entrypoint overlap by
+retaining the audit-policy import and removing duplicate command-line execution.
+The seven audit-policy tests, JavaScript syntax check and diff check pass.

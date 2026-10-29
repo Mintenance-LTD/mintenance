@@ -2,6 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { createRequire } = require('node:module');
 const { applyPatches } = require('./apply-security-patches.cjs');
+require('./audit-policy.test.cjs');
 
 applyPatches();
 for (const consumer of ['@google-cloud/storage', 'gaxios', 'teeny-request']) {
