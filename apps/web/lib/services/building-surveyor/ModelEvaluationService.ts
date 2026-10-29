@@ -11,7 +11,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { existsSync, readFileSync } from 'fs';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import path from 'path';
 
 import type {
@@ -148,9 +148,10 @@ export class ModelEvaluationService {
 
       logger.info('Starting model evaluation', { modelPath, options });
 
-      // Run evaluation
+      // Pass arguments directly so paths/options cannot be interpreted by a shell.
       const startTime = Date.now();
-      const result = execSync(`python ${args.join(' ')}`, {
+      execFileSync('python', args, {
+        shell: false,
         encoding: 'utf-8',
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
       });

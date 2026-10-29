@@ -42,10 +42,15 @@ BASE_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
 vlm_image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install(
-        "torch==2.4.1",
-        "torchvision==0.19.1",
-        # LLaMA-Factory manages its own transformers/peft/trl versions
-        "llamafactory>=0.9.3",
+        # Keep the matched pair in sync with requirements.txt and inference.
+        "torch==2.13.0",
+        "torchvision==0.28.0",
+        # Supported LLaMA-Factory stack; keep aligned with requirements.txt.
+        "llamafactory==0.9.5",
+        "transformers==4.57.6",
+        "peft==0.18.1",
+        "trl==0.24.0",
+        "accelerate==1.11.0",
         "qwen-vl-utils==0.0.8",
         "datasets>=3.2.0",
         "supabase==2.10.0",

@@ -82,16 +82,24 @@ jobs:
 
       - name: Determine build profile
         id: determine-profile
+        env:
+          REQUESTED_PROFILE: ${{ github.event.inputs.profile }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "profile=${{ github.event.inputs.profile }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref }}" = "refs/heads/Main" ] || [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "profile=production" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
-            echo "profile=staging" >> $GITHUB_OUTPUT
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            PROFILE="$REQUESTED_PROFILE"
+          elif [ "$GITHUB_REF" = "refs/heads/Main" ] || [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            PROFILE=production
+          elif [ "$GITHUB_REF" = "refs/heads/develop" ]; then
+            PROFILE=staging
           else
-            echo "profile=development" >> $GITHUB_OUTPUT
+            PROFILE=development
           fi
+
+          case "$PROFILE" in
+            development|staging|production) ;;
+            *) echo "::error::Invalid build profile" >&2; exit 1 ;;
+          esac
+          printf 'profile=%s\n' "$PROFILE" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -166,10 +174,13 @@ jobs:
       - name: Build Android APK/AAB
         working-directory: apps/mobile
         run: |
-          PROFILE="${{ needs.pre-build-checks.outputs.build-profile }}"
-
-          eas build --platform android --profile $PROFILE --non-interactive --no-wait
+          case "$PROFILE" in
+            development|staging|production) ;;
+            *) echo "::error::Invalid build profile" >&2; exit 1 ;;
+          esac
+          eas build --platform android --profile "$PROFILE" --non-interactive --no-wait
         env:
+          PROFILE: ${{ needs.pre-build-checks.outputs.build-profile }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
@@ -190,14 +201,16 @@ jobs:
         continue-on-error: true
 
       - name: Post build summary
+        env:
+          PROFILE: ${{ needs.pre-build-checks.outputs.build-profile }}
         run: |
-          echo "## Android Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Profile: ${{ needs.pre-build-checks.outputs.build-profile }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Platform: Android" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: Submitted to EAS" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "[View build status on EAS](https://expo.dev)" >> $GITHUB_STEP_SUMMARY
+          echo "## Android Build Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- Profile: %s\n' "$PROFILE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Platform: Android" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Status: Submitted to EAS" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "[View build status on EAS](https://expo.dev)" >> "$GITHUB_STEP_SUMMARY"
 
   # ============================================================
   # iOS BUILD (EAS)
@@ -240,21 +253,27 @@ jobs:
       - name: Build iOS
         working-directory: apps/mobile
         run: |
-          PROFILE="${{ needs.pre-build-checks.outputs.build-profile }}"
-          eas build --platform ios --profile $PROFILE --non-interactive --no-wait
+          case "$PROFILE" in
+            development|staging|production) ;;
+            *) echo "::error::Invalid build profile" >&2; exit 1 ;;
+          esac
+          eas build --platform ios --profile "$PROFILE" --non-interactive --no-wait
         env:
+          PROFILE: ${{ needs.pre-build-checks.outputs.build-profile }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
           EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
 
       - name: Post build summary
+        env:
+          PROFILE: ${{ needs.pre-build-checks.outputs.build-profile }}
         run: |
-          echo "## iOS Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Profile: ${{ needs.pre-build-checks.outputs.build-profile }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Platform: iOS" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: Submitted to EAS" >> $GITHUB_STEP_SUMMARY
+          echo "## iOS Build Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- Profile: %s\n' "$PROFILE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Platform: iOS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Status: Submitted to EAS" >> "$GITHUB_STEP_SUMMARY"
 
   # ============================================================
   # POST-BUILD VERIFICATION

@@ -5,16 +5,17 @@
 #   pip install -r vlm_training_worker/requirements.txt
 
 # ---- Core ML ----
-torch==2.4.1
-torchvision==0.19.1
-transformers>=4.49.2    # 4.49.2+ for Qwen2_5_VLForConditionalGeneration
-peft==0.13.2            # LoRA / QLoRA via PEFT
-trl==0.12.1             # SFTTrainer (used by LLaMA-Factory internally)
-accelerate>=1.4.0       # multi-GPU / device_map="auto" support
+# Keep this matched pair in sync with both Modal image definitions.
+torch==2.13.0
+torchvision==0.28.0
+transformers==4.57.6    # Qwen2.5-VL; compatible with LLaMA-Factory 0.9.5
+peft==0.18.1            # LLaMA-Factory 0.9.5 requires >=0.18.0,<=0.18.1
+trl==0.24.0             # LLaMA-Factory 0.9.5 requires >=0.18.0,<=0.24.0
+accelerate==1.11.0      # LLaMA-Factory 0.9.5 requires >=1.3.0,<=1.11.0
 bitsandbytes>=0.44.1    # QLoRA 4-bit NF4 quantisation (optional)
 
 # ---- LLaMA-Factory ----
-llamafactory>=0.9.1     # Unified fine-tuning framework (replaces custom trainer)
+llamafactory==0.9.5     # Keep the supported training stack aligned with modal_train.py
 
 # ---- Model-specific ----
 qwen-vl-utils==0.0.8   # Qwen2.5-VL processor helpers

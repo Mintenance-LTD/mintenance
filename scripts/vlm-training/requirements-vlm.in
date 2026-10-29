@@ -1,4 +1,6 @@
-torch>=2.4,<3
+# Keep the patched torch/vision pair aligned with vlm_training_worker.
+torch==2.13.0
+torchvision==0.28.0
 transformers>=4.49,<5
 accelerate>=1.2,<2
 bitsandbytes>=0.45,<1
