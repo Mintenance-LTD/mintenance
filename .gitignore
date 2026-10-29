@@ -229,6 +229,7 @@ yolo11n.pt
 *.py
 !scripts/**/*.py
 !apps/**/*.py
+!vlm_training_worker/tests/test_*.py
 *.ps1
 !scripts/**/*.ps1
 *.txt
