@@ -140,3 +140,67 @@ window and existing API-key/Hugging Face secrets.
 Sources: [LLaMA-Factory 0.9.5 metadata](https://pypi.org/pypi/llamafactory/0.9.5/json),
 [torchvision compatibility](https://github.com/pytorch/vision#installation),
 [PyTorch checkpoint advisory](https://github.com/pytorch/pytorch/security/advisories/GHSA-63cw-57p8-fm3p).
+
+## Follow-up Aikido triage and PR conflict resolution (2026-10-29)
+
+Merged main at `45673036d7ca2995112b979ffbb2e948f7fe3dea` into the security
+branch. Resolved the sole conflict in `mobile-build.yml`: retained main's earlier
+Node setup and native-change detection, plus the validated profile environment
+variable, quoted Android/iOS arguments and literal build summaries.
+
+Addressed two further high-severity groups from the signed-in Aikido queue:
+
+- **node-forge signature forgery**, issue [54457180](https://app.aikido.dev/queue?sidebarIssue=54457180),
+  SCA, risk 75 (High), CVE-2026-85393. Upgraded 1.4.0 to upstream 1.4.2 in both
+  the application and isolated EAS CLI manifests/locks. Removed the now-obsolete
+  local RSA-source patch; preserved the independent Zod 3 backport. Moved the RSA
+  regressions to their own suite and kept them in the security CI test command.
+  Version 1.4.1 fixes the nested DigestAlgorithm issue; 1.4.2 also restores PEM
+  Buffer compatibility needed by signing consumers. Source:
+  [upstream changelog](https://github.com/digitalbazaar/forge/blob/v1.4.2/CHANGELOG.md).
+- **Markdown preview raw HTML sink**, issue [54457962](https://app.aikido.dev/queue?sidebarIssue=54457962),
+  SAST, High. Replaced HTML-string replacement and dangerouslySetInnerHTML with
+  React elements and text children. Kept the URL-scheme allowlist, headings,
+  bold/italic, links and line breaks. React now handles attribute/text escaping;
+  query-string ampersands are no longer double-escaped. Existing escaping already
+  mitigated common payloads; this change removes the raw HTML sink itself.
+
+Other triage conclusions (no findings were dismissed in Aikido):
+
+- Timing issue 54457964 compares currentPassword and newPassword from the same
+  request. Neither operand is a stored secret, so that comparison cannot disclose
+  an unknown password through timing; actual authentication happens separately.
+- SQL group 54457958 already validates table names and binds record values;
+  SQLCipher keys are validated as hex and SQL literals escaped. Group 54458042
+  concerns local synthetic database race harnesses with internally generated IDs.
+  These deserve less urgency than an unpatched upstream cryptographic dependency;
+  they were inspected, not counted as fixes in this batch.
+- Main already contains additional dependency patches, including Zod 4.6.7 and
+  the Zod 3 collection-bound backport. The queue still displays earlier fixes;
+  this branch must be merged and rescanned before its findings can be confirmed
+  closed. Other open groups, including secret alerts, remain for separate triage.
+
+Validation for this batch:
+
+- **24 passed**: Markdown security/formatting tests (Vitest), including dangerous
+  schemes, raw tags, quoted attributes, query strings and formatted link labels.
+- **5 passed**: node-forge tests against a clean, isolated registry install of
+  1.4.2; valid RSA signature, malformed nested DigestInfo with/without NULL,
+  both lockfiles, and PEM Buffer compatibility. The exact repository test and
+  lockfiles were copied into a temporary fixture to avoid modifying shared
+  node_modules. No RSA source patch was applied to that install.
+- **22 passed**: actual mobile YAML shell regressions and native-change detection,
+  using portable Git Bash. EAS was stubbed; no paid Android/iOS build was submitted.
+- **20 passed**: build prerequisite and offline Expo environment/config tests.
+- `git diff --check` passed.
+
+Additional checks and limits:
+
+- The inherited broader workflow-shell suite has 2 passing syntax/expression
+  checks and 4 failing stale target-URL tests: it references a removed step with
+  id `target` in load-test.yml. The suite and both workflows are identical to
+  main at the merge base above. This is separate from the 22 passing mobile tests.
+- Targeted ESLint could not load `eslint-config-next` from the existing local
+  dependency installation. No successful lint/full application build is claimed.
+- Aikido's MCP scan tools remain unavailable. The signed-in dashboard supplied
+  the findings; no Aikido rescan or all-clear result is claimed.
