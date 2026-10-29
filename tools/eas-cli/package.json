@@ -8,6 +8,7 @@
     "eas-cli": "25.3.0"
   },
   "overrides": {
+    "node-forge": "1.4.2",
     "@oclif/plugin-autocomplete": "3.2.40"
   }
 }

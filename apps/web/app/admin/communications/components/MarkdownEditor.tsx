@@ -7,68 +7,107 @@ import { Textarea } from '@/components/ui/Textarea';
 const CONTENT_MAX_LENGTH = 5000;
 
 /**
- * Converts a subset of markdown to HTML for preview purposes.
  * The input is admin-authored content, but an admin account could be
  * compromised — we still sanitize URL schemes to prevent stored XSS
  * via `javascript:` / `data:` / `vbscript:` protocol handlers.
  */
 export function sanitizeUrlScheme(url: string): string {
-  // Strip whitespace and control chars (e.g. \x09 in "java\tscript:")
-  const cleaned = url.trim().replace(/[\x00-\x1f\x7f]/g, '');
-  // Allow only http, https, mailto, and relative URLs (/path, #anchor, ?query)
-  const safeSchemeRe = /^(https?:|mailto:|[/#?]|[^:]*$)/i;
-  // Reject if the URL starts with a dangerous scheme
-  if (!safeSchemeRe.test(cleaned)) return '#';
-  // Second check: anything containing a `:` before the first `/` or `#` that
-  // isn't http/https/mailto is untrusted
-  const colonIdx = cleaned.indexOf(':');
-  const slashIdx = cleaned.indexOf('/');
-  const hashIdx = cleaned.indexOf('#');
-  const hasSchemeColon =
-    colonIdx !== -1 &&
-    (slashIdx === -1 || colonIdx < slashIdx) &&
-    (hashIdx === -1 || colonIdx < hashIdx);
-  if (hasSchemeColon) {
-    const scheme = cleaned.slice(0, colonIdx).toLowerCase();
-    if (!['http', 'https', 'mailto'].includes(scheme)) return '#';
-  }
-  return cleaned;
-}
-
-/**
- * Escapes HTML-significant characters to block raw tag injection.
- */
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
-}
-
-export function simpleMarkdownToHtml(md: string): string {
-  let html = escapeHtml(md);
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  html = html.replace(
-    /^# (.+)$/gm,
-    '<h3 style="font-size:18px;font-weight:600;margin:8px 0">$1</h3>'
+  // Trim and remove ASCII control chars
+  const href = url.trim().replace(/[\x00-\x1f\x7f]/g, '');
+  // URL-encode HTML metacharacters without re-encoding existing percent escapes
+  // or query delimiters. Scheme validation below is still required.
+  const encodedHref = href.replace(
+    /[<>"']/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
   );
-  // Link: sanitize href scheme to block javascript:/data:/vbscript:
-  html = html.replace(
-    /\[([^\]]+)\]\(([^)]+)\)/g,
-    (_match, label: string, rawUrl: string) => {
-      // audit S9: escape the URL for the attribute context too. sanitizeUrlScheme
-      // only validates the scheme; without escaping, a URL containing a double
-      // quote (e.g. [x](http://a" onmouseover=...)) breaks out of href="..." and
-      // injects an attribute. escapeHtml turns " into &quot; so it can't.
-      const safeUrl = escapeHtml(sanitizeUrlScheme(rawUrl));
-      return `<a href="${safeUrl}" style="color:#0d9488;text-decoration:underline">${label}</a>`;
+  let cleaned = href;
+
+  // Canonicalize encoded payloads (e.g. javascript%3a...)
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(cleaned);
+      if (decoded === cleaned) break;
+      cleaned = decoded;
+    } catch {
+      break;
     }
-  );
-  html = html.replace(/\n/g, '<br/>');
-  return html;
+  }
+
+  // Remove whitespace after decoding to catch obfuscated schemes
+  cleaned = cleaned.replace(/\s+/g, '');
+
+  if (!cleaned) return '#';
+
+  // Disallow protocol-relative URLs
+  if (cleaned.startsWith('//')) return '#';
+
+  // Allow explicit safe schemes
+  // Canonicalize only for validation: decoding the returned href changes
+  // encoded path/query delimiters, while stripping spaces changes link data.
+  if (/^(https?:|mailto:)/i.test(cleaned)) return encodedHref;
+
+  // Allow safe relative references
+  if (
+    cleaned.startsWith('/') ||
+    cleaned.startsWith('#') ||
+    cleaned.startsWith('?') ||
+    cleaned.startsWith('./') ||
+    cleaned.startsWith('../')
+  ) {
+    return encodedHref;
+  }
+
+  // Allow plain relative paths with no scheme (e.g. "docs/page")
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(cleaned)) return encodedHref;
+
+  return '#';
+}
+
+// Text and attribute values are passed to React, never reparsed as HTML.
+// Each recursive pass handles only the next syntax level, bounding nesting.
+function renderInline(text: string, level = 0): React.ReactNode {
+  const patterns = [/\[([^\]]+)\]\(([^)]+)\)/g, /\*\*(.+?)\*\*/g, /\*(.+?)\*/g];
+  if (level === patterns.length) return text;
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+  for (const match of text.matchAll(patterns[level])) {
+    const index = match.index!;
+    nodes.push(renderInline(text.slice(cursor, index), level + 1));
+    const children = renderInline(match[1], level + 1);
+    if (level === 0) {
+      nodes.push(
+        <a
+          key={index}
+          href={sanitizeUrlScheme(match[2])}
+          style={{ color: '#0d9488', textDecoration: 'underline' }}
+        >
+          {children}
+        </a>
+      );
+    } else if (level === 1) {
+      nodes.push(<strong key={index}>{children}</strong>);
+    } else {
+      nodes.push(<em key={index}>{children}</em>);
+    }
+    cursor = index + match[0].length;
+  }
+  nodes.push(renderInline(text.slice(cursor), level + 1));
+  return nodes;
+}
+
+export function renderMarkdownPreview(md: string): React.ReactNode {
+  return md.split('\n').map((line, index) => (
+    <React.Fragment key={index}>
+      {index > 0 && <br />}
+      {line.startsWith('# ') ? (
+        <h3 style={{ fontSize: 18, fontWeight: 600, margin: '8px 0' }}>
+          {renderInline(line.slice(2))}
+        </h3>
+      ) : (
+        renderInline(line)
+      )}
+    </React.Fragment>
+  ));
 }
 
 /**
@@ -169,10 +208,6 @@ export function MarkdownEditor({
   // Compiler linter flags as `react-hooks/refs` (ref read in render).
   // With four buttons, the inlined JSX is shorter than the workaround.
 
-  // Admin-only preview — content is authored by admins, not user input.
-  // HTML entities are escaped in simpleMarkdownToHtml before transformation.
-  const previewHtml = simpleMarkdownToHtml(content);
-
   return (
     <div>
       <div
@@ -232,9 +267,9 @@ export function MarkdownEditor({
             fontSize: 14,
             lineHeight: 1.6,
           }}
-          // eslint-disable-next-line react/no-danger -- admin-only preview with escaped HTML entities
-          dangerouslySetInnerHTML={{ __html: previewHtml }}
-        />
+        >
+          {renderMarkdownPreview(content)}
+        </div>
       ) : (
         <Textarea
           ref={textareaRef}
