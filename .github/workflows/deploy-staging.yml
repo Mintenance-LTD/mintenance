@@ -299,8 +299,15 @@ jobs:
           echo "$GITHUB_WORKSPACE/tools/eas-cli/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
+        # This CPU-only runner needs bundled ONNX, not optional Linux CUDA binaries.
+        env:
+          ONNXRUNTIME_NODE_INSTALL: 'skip'
         run: npm ci --ignore-scripts=false
         timeout-minutes: 10
+
+      - name: Verify ONNX CPU runtime
+        run: node scripts/ci/verify-onnx-cpu.cjs
+        timeout-minutes: 1
 
       - name: Build shared packages
         run: npm run build:packages
