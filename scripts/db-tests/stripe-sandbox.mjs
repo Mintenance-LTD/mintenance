@@ -11,6 +11,7 @@ import { createRequire, syncBuiltinESMExports } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import childProcess from 'node:child_process';
 import pg from 'pg';
+import { browserChallenge } from './interactive-3ds.mjs';
 
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -476,10 +477,23 @@ try {
           .clientSecret,
         r.clientSecret
       );
-      // Completing the interactive challenge itself is an exact-client F12 check.
+      if (process.argv.includes('--interactive')) {
+        await browserChallenge(stripe, r, 'succeeded', async () => {
+          await handleSubscriptionUpdated(
+            await current(r.stripeSubscriptionId),
+            notify
+          );
+          assert.equal((await snapshot(x.owner)).status, 'active');
+          assert.equal(
+            (await stripe.subscriptions.list({ customer: x.id, status: 'all' }))
+              .data.length,
+            1
+          );
+        });
+      }
       return {
         paymentIntentStatus: intent.status,
-        interactiveChallengeCompleted: false,
+        interactiveChallengeCompleted: process.argv.includes('--interactive'),
       };
     }
   );

@@ -11,6 +11,7 @@ import { createRequire, syncBuiltinESMExports } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import childProcess from 'node:child_process';
 import pg from 'pg';
+import { browserChallenge } from './interactive-3ds.mjs';
 
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -343,12 +344,8 @@ try {
       },
     ],
   });
-  const {
-    checkout,
-    change,
-    cancel,
-    handleSubscriptionUpdated,
-  } = webRequire(bundle);
+  const { checkout, change, cancel, handleSubscriptionUpdated } =
+    webRequire(bundle);
   const notify = async () => {};
 
   const c = await customer('contractor-monthly');
@@ -454,6 +451,49 @@ try {
     await handleSubscriptionUpdated(await current(r.subscriptionId), notify);
     assert.equal((await snapshot(x.owner)).status, 'unpaid');
   });
+  if (process.argv.includes('--interactive')) {
+    const x = await customer('interactive-3ds');
+    const r = await checkout(x.owner, 'professional', x.id, 'monthly');
+    await check(
+      'interactive failed authentication grants no benefits',
+      async () => {
+        await browserChallenge(
+          stripe,
+          r,
+          'requires_payment_method',
+          async () => {
+            await handleSubscriptionUpdated(
+              await current(r.subscriptionId),
+              notify
+            );
+            assert.equal((await snapshot(x.owner)).status, 'unpaid');
+          }
+        );
+        return { interactiveChallengeCompleted: true };
+      }
+    );
+    await check(
+      'interactive retry authenticates the same subscription and grants paid benefits',
+      async () => {
+        const retry = await checkout(x.owner, 'professional', x.id, 'monthly');
+        assert.equal(retry.subscriptionId, r.subscriptionId);
+        assert.equal(retry.clientSecret, r.clientSecret);
+        await browserChallenge(stripe, retry, 'succeeded', async () => {
+          await handleSubscriptionUpdated(
+            await current(r.subscriptionId),
+            notify
+          );
+          assert.equal((await snapshot(x.owner)).status, 'active');
+          assert.equal(
+            (await stripe.subscriptions.list({ customer: x.id, status: 'all' }))
+              .data.length,
+            1
+          );
+        });
+        return { interactiveChallengeCompleted: true };
+      }
+    );
+  }
   await check(
     'failed annual upgrade preserves paid tier and retries the same invoice',
     async () => {

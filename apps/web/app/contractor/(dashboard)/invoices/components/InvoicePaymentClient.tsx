@@ -71,20 +71,28 @@ function PaymentForm({
         return;
       }
 
-      const { error: confirmError } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/payments/invoice/${invoiceId}/success`,
-        },
-        redirect: 'if_required',
-      });
+      const { error: confirmError, paymentIntent } =
+        await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+            return_url: `${window.location.origin}/payments/invoice/${invoiceId}/success`,
+          },
+          redirect: 'if_required',
+        });
 
       if (confirmError) {
         setError(confirmError.message || 'Payment failed. Please try again.');
         setIsProcessing(false);
-      } else {
+      } else if (paymentIntent?.status === 'succeeded') {
         // Payment succeeded, redirect to success page
         router.push(`/payments/invoice/${invoiceId}/success`);
+      } else {
+        setError(
+          paymentIntent?.status === 'processing'
+            ? 'Your payment is processing. Check the invoice status before trying again.'
+            : 'Payment has not completed. Please try again.'
+        );
+        setIsProcessing(false);
       }
     } catch (err) {
       setError(

@@ -52,6 +52,7 @@
     { "path": "/api/cron/stale-job-reminders",          "schedule": "30 8 * * *"  },
     { "path": "/api/cron/admin-escrow-alerts",          "schedule": "0 8 * * *"   },
     { "path": "/api/cron/payment-reconciliation",       "schedule": "*/5 * * * *"   },
+    { "path": "/api/cron/operator-alerts",             "schedule": "*/5 * * * *"   },
     { "path": "/api/cron/auto-verify-contractors",      "schedule": "0 7 * * *"   },
     { "path": "/api/cron/admin-alerts",                 "schedule": "0 8 * * *"   },
     { "path": "/api/cron/retention-cleanup",            "schedule": "0 3 * * *"   },
