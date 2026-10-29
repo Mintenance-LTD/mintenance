@@ -348,7 +348,6 @@ try {
     change,
     cancel,
     handleSubscriptionUpdated,
-    handleSubscriptionDeleted,
   } = webRequire(bundle);
   const notify = async () => {};
 

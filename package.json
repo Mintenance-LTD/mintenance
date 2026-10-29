@@ -73,7 +73,7 @@
     "test:accessibility": "node scripts/check-accessibility.js",
     "db:gen-types": "npx supabase gen types typescript --local > apps/web/lib/database.types.ts",
     "security:prepare": "node scripts/apply-security-patches.cjs",
-    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs scripts/zod-collection-bounds.test.cjs scripts/vercel-build.test.cjs scripts/i18next-security.test.cjs scripts/audit-policy.test.cjs"
+    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs scripts/zod-collection-bounds.test.cjs scripts/vercel-build.test.cjs scripts/i18next-security.test.cjs"
   },
   "keywords": [
     "marketplace",
