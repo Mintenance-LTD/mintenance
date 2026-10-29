@@ -31,10 +31,10 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20.19.4'
           cache: 'npm'
@@ -59,21 +59,25 @@ jobs:
         env:
           COMPOSITION: ${{ github.event.inputs.composition || 'MintenanceDemo' }}
         run: |
+          if [[ ! "$COMPOSITION" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
+            echo "Invalid Remotion composition ID" >&2
+            exit 1
+          fi
           mkdir -p out
-          npx remotion render src/index.tsx "$COMPOSITION" "out/demo-${{ github.ref_name }}.mp4"
+          npx remotion render src/index.tsx "$COMPOSITION" out/demo.mp4
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: demo-video-${{ github.ref_name }}
-          path: apps/demo-video/out/demo-*.mp4
+          path: apps/demo-video/out/demo.mp4
           retention-days: 30
 
       - name: Attach to GitHub Release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          files: apps/demo-video/out/demo-*.mp4
+          files: apps/demo-video/out/demo.mp4
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

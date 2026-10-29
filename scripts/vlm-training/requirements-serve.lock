@@ -442,6 +442,7 @@ propcache==0.5.4
     #   yarl
 protobuf==7.36.2
     # via
+    #   -r scripts/vlm-training/requirements-serve.in
     #   googleapis-common-protos
     #   nvidia-cutlass-dsl-libs-base
     #   nvidia-cutlass-dsl-libs-core

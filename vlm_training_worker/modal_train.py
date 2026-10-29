@@ -41,22 +41,29 @@ BASE_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
 
 vlm_image = (
     modal.Image.debian_slim(python_version="3.11")
+    .add_local_file(
+        str(Path(__file__).with_name("vendor") / "llamafactory-0.9.5+mintenance.1-py3-none-any.whl"),
+        "/opt/wheels/llamafactory-0.9.5+mintenance.1-py3-none-any.whl",
+        copy=True,
+    )
     .pip_install(
         # Keep the matched pair in sync with requirements.txt and inference.
         "torch==2.13.0",
         "torchvision==0.28.0",
         # Supported LLaMA-Factory stack; keep aligned with requirements.txt.
-        "llamafactory==0.9.5",
+        "llamafactory==0.9.5+mintenance.1",
         "transformers==4.57.6",
         "peft==0.18.1",
         "trl==0.24.0",
         "accelerate==1.11.0",
+        "protobuf==7.36.2",
         "qwen-vl-utils==0.0.8",
         "datasets>=3.2.0",
         "supabase==2.10.0",
         "httpx==0.27.2",
         "pillow==13.0.0",
         "fastapi[standard]",
+        extra_options="--find-links=/opt/wheels",
     )
     .env({"HF_HOME": "/model-cache", "TRANSFORMERS_CACHE": "/model-cache"})
 )

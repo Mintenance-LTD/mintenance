@@ -6,4 +6,5 @@ torchvision==0.28.0
 torchaudio==2.11.0
 transformers>=5.16.1,<5.20.0
 pillow>=12.3.0
+protobuf==7.36.2
 httpx==0.28.1

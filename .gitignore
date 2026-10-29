@@ -229,6 +229,7 @@ yolo11n.pt
 *.py
 !scripts/**/*.py
 !apps/**/*.py
+!vlm_training_worker/tests/test_*.py
 *.ps1
 !scripts/**/*.ps1
 *.txt
@@ -377,3 +378,6 @@ apps/mobile/phase4-after-mocks.txt
 !apps/web/load-tests/k6/smoke-test.js
 /apps/web/load-tests/k6/load-test-results.json
 /apps/web/load-tests/k6/k6-output.txt
+
+# Reproducible headless LLaMA-Factory distribution; see vendor/README.md.
+!vlm_training_worker/vendor/*.whl
