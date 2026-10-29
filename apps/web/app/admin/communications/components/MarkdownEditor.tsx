@@ -12,26 +12,46 @@ const CONTENT_MAX_LENGTH = 5000;
  * via `javascript:` / `data:` / `vbscript:` protocol handlers.
  */
 export function sanitizeUrlScheme(url: string): string {
-  // Strip whitespace and control chars (e.g. \x09 in "java\tscript:")
-  const cleaned = url.trim().replace(/[\x00-\x1f\x7f]/g, '');
-  // Allow only http, https, mailto, and relative URLs (/path, #anchor, ?query)
-  const safeSchemeRe = /^(https?:|mailto:|[/#?]|[^:]*$)/i;
-  // Reject if the URL starts with a dangerous scheme
-  if (!safeSchemeRe.test(cleaned)) return '#';
-  // Second check: anything containing a `:` before the first `/` or `#` that
-  // isn't http/https/mailto is untrusted
-  const colonIdx = cleaned.indexOf(':');
-  const slashIdx = cleaned.indexOf('/');
-  const hashIdx = cleaned.indexOf('#');
-  const hasSchemeColon =
-    colonIdx !== -1 &&
-    (slashIdx === -1 || colonIdx < slashIdx) &&
-    (hashIdx === -1 || colonIdx < hashIdx);
-  if (hasSchemeColon) {
-    const scheme = cleaned.slice(0, colonIdx).toLowerCase();
-    if (!['http', 'https', 'mailto'].includes(scheme)) return '#';
+  // Trim and remove ASCII control chars
+  let cleaned = url.trim().replace(/[\x00-\x1f\x7f]/g, '');
+
+  // Canonicalize encoded payloads (e.g. javascript%3a...)
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(cleaned);
+      if (decoded === cleaned) break;
+      cleaned = decoded;
+    } catch {
+      break;
+    }
   }
-  return cleaned;
+
+  // Remove whitespace after decoding to catch obfuscated schemes
+  cleaned = cleaned.replace(/\s+/g, '');
+
+  if (!cleaned) return '#';
+
+  // Disallow protocol-relative URLs
+  if (cleaned.startsWith('//')) return '#';
+
+  // Allow explicit safe schemes
+  if (/^(https?:|mailto:)/i.test(cleaned)) return cleaned;
+
+  // Allow safe relative references
+  if (
+    cleaned.startsWith('/') ||
+    cleaned.startsWith('#') ||
+    cleaned.startsWith('?') ||
+    cleaned.startsWith('./') ||
+    cleaned.startsWith('../')
+  ) {
+    return cleaned;
+  }
+
+  // Allow plain relative paths with no scheme (e.g. "docs/page")
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(cleaned)) return cleaned;
+
+  return '#';
 }
 
 // Text and attribute values are passed to React, never reparsed as HTML.
