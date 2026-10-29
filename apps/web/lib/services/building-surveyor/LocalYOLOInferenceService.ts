@@ -10,7 +10,7 @@
 
 import * as ort from 'onnxruntime-node';
 import { logger } from '@mintenance/shared';
-import { writeFileSync, unlinkSync, existsSync } from 'fs';
+import { mkdtempSync, writeFileSync, unlinkSync, existsSync, rmdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { createHash } from 'crypto';
@@ -371,9 +371,21 @@ export class LocalYOLOInferenceService {
         throw new Error('Model has neither storage path nor BYTEA data');
       }
 
-      // Save to temporary file (ONNX Runtime needs file path)
-      const tempPath = join(tmpdir(), `yolo-${modelName}-${Date.now()}.onnx`);
-      writeFileSync(tempPath, modelBuffer);
+      // Keep database metadata out of filesystem paths. A private directory also
+      // prevents concurrent loads or a pre-existing symlink from sharing the file.
+      const tempDir = mkdtempSync(join(tmpdir(), 'mintenance-yolo-'));
+      const tempPath = join(tempDir, 'model.onnx');
+      try {
+        writeFileSync(tempPath, modelBuffer, { flag: 'wx', mode: 0o600 });
+      } catch (error) {
+        try {
+          if (existsSync(tempPath)) unlinkSync(tempPath);
+          rmdirSync(tempDir);
+        } catch {
+          // Preserve the original write error if best-effort cleanup fails.
+        }
+        throw error;
+      }
 
       // Register cleanup on process exit
       process.once('exit', () => {
@@ -381,6 +393,7 @@ export class LocalYOLOInferenceService {
           if (existsSync(tempPath)) {
             unlinkSync(tempPath);
           }
+          rmdirSync(tempDir);
         } catch (err) {
           // Ignore cleanup errors
         }

@@ -40,6 +40,10 @@ Native (Expo 54) + Supabase/PostgreSQL + Stripe + Monorepo
 | Accessibility      | 72/100 | B-    | Better than expected              |
 | DevOps/CI          | 82/100 | A-    | Strong                            |
 
+> Credential values and identifying key fragments were redacted on 29 October 2026.
+> This does not revoke credentials or erase Git history. The credential owners must
+> verify rotation/revocation of any values previously copied into this report.
+
 ### Key Metrics
 
 | Metric                    | Value                                      |
@@ -71,7 +75,7 @@ Native (Expo 54) + Supabase/PostgreSQL + Stripe + Monorepo
 | LOW (Plan to Fix)      | 8     | Documentation gaps, minor code quality                                                                |
 
 > **IMMEDIATE ACTION REQUIRED**: The security agent discovered that `apps/web/.env.local` contains
-> the **live Stripe secret key (`sk_live_`)**, a **weak database password (`Iambald1995!`)**, and
+> the **live Stripe secret key (`sk_live_`)**, a **weak database password (`[REDACTED_DATABASE_PASSWORD]`)**, and
 > 10+ other production secrets (OpenAI, Twilio, SendGrid, Upstash Redis, encryption master key).
 > While these files are gitignored, all credentials should be considered compromised and rotated
 > immediately.
@@ -132,15 +136,15 @@ Stripe Transfer to Contractor's Connect Account
 
 - **Location**: `apps/web/.env.local`, `/.env.local` (not in git, but on disk)
 - **Finding**: Both `.env.local` files contain **live production secrets** including:
-  - `STRIPE_SECRET_KEY=sk_live_51SDXwD...` (live Stripe SECRET key -- can charge real cards, issue
+  - `STRIPE_SECRET_KEY=[REDACTED]` (live Stripe SECRET key -- can charge real cards, issue
     refunds)
   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...` (live publishable key)
-  - `DATABASE_URL` with password `Iambald1995!` (weak, personal password)
+  - `DATABASE_URL` with password `[REDACTED_DATABASE_PASSWORD]` (weak, personal password)
   - `SUPABASE_SERVICE_ROLE_KEY` (full admin access to database, bypasses RLS)
   - `JWT_SECRET` (can forge authentication tokens)
   - `OPENAI_API_KEY=sk-proj-...` (can incur AI costs)
   - `TWILIO_AUTH_TOKEN` (can send SMS as the app)
-  - `SENDGRID_API_KEY=SG.XMm...` (can send emails as the app)
+  - `SENDGRID_API_KEY=[REDACTED]` (can send emails as the app)
   - `ENCRYPTION_MASTER_KEY` (256-bit hex key for data encryption)
   - `UPSTASH_REDIS_REST_TOKEN` (Redis access)
   - `CSRF_SECRET` (can forge CSRF tokens)
@@ -162,7 +166,7 @@ Stripe Transfer to Contractor's Connect Account
 **2.2.1b Weak Database Password** | CRITICAL
 
 - **Location**: `apps/web/.env.local` (DATABASE_URL)
-- **Finding**: Database password is `Iambald1995!` -- a personal, guessable password. A TODO comment
+- **Finding**: Database password is `[REDACTED_DATABASE_PASSWORD]` -- a personal, guessable password. A TODO comment
   acknowledges this but it has not been addressed.
 - **Fix**: Generate new password:
   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and update in Supabase
@@ -248,7 +252,7 @@ Stripe Transfer to Contractor's Connect Account
 **2.2.8 Google Maps API Key Exposed Without Restrictions** | HIGH
 
 - **Location**: `apps/web/.env.local`, `apps/mobile/.env`
-- **Finding**: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyB82hZ...` -- Same API key used in both web and
+- **Finding**: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=[REDACTED]` -- Same API key used in both web and
   mobile without referrer restrictions
 - **Impact**: Anyone can extract and abuse this API key, incurring costs
 - **Fix**: Configure HTTP referrer restrictions for web key, and Android/iOS app restrictions for
@@ -951,7 +955,7 @@ growth features (social login, search, referrals) and infrastructure (caching, s
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
 | 1   | **ROTATE ALL SECRETS**: Stripe sk*live*, DB password, Supabase service key, JWT secret, OpenAI, Twilio, SendGrid, encryption key, Redis token, CSRF secret | Security | 2 hours |
 | 2   | Replace all `sk_live_`/`pk_live_` with `sk_test_`/`pk_test_` in local env files                                                                            | Security | 30 min  |
-| 3   | Change DB password from `Iambald1995!` to cryptographically random 64+ chars                                                                               | Security | 30 min  |
+| 3   | Change DB password from `[REDACTED_DATABASE_PASSWORD]` to cryptographically random 64+ chars                                                                               | Security | 30 min  |
 | 4   | Remove root `/.env.local` (only `apps/web/.env.local` should exist)                                                                                        | Security | 5 min   |
 | 5   | Add startup validation rejecting live keys when `NODE_ENV !== 'production'`                                                                                | Security | 1 hour  |
 
