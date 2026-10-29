@@ -118,6 +118,15 @@
       },
       "channel": "preview"
     },
+    "beta-login-test": {
+      "extends": "preview",
+      "channel": "beta-login-test",
+      "credentialsSource": "remote",
+      "env": {
+        "MINTENANCE_BETA_LOGIN_BUILD": "1",
+        "EXPO_PUBLIC_MOBILE_API_GATEWAY_URL": "https://ukrjudtlvapiajkjbcrd.supabase.co/functions/v1/mobile-api-relay"
+      }
+    },
     "internal": {
       "distribution": "internal",
       "node": "20.19.4",

@@ -39,6 +39,22 @@ validatePublicBuildEnvironment();
 
 require('./validate-release-env').validateReleaseEnvironment();
 
+// This opt-in binary uses its embedded bundle only. It cannot consume updates
+// intended for the older preview APK whose dirty build source is unavailable.
+const betaLoginBuild = process.env.MINTENANCE_BETA_LOGIN_BUILD === '1';
+if (betaLoginBuild) {
+  const projectUrl = 'https://ukrjudtlvapiajkjbcrd.supabase.co';
+  if (
+    process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') !== projectUrl ||
+    process.env.EXPO_PUBLIC_MOBILE_API_GATEWAY_URL !==
+      `${projectUrl}/functions/v1/mobile-api-relay`
+  ) {
+    throw new Error(
+      'Beta login build requires the reviewed Supabase project and relay.'
+    );
+  }
+}
+
 // Resolve a Firebase config file for googleServicesFile.
 // EAS file-type env vars contain the absolute path of the file on the build
 // VM (the file itself is NOT in the project upload — it is gitignored and
@@ -60,7 +76,7 @@ const resolveGoogleServicesFile = (envVar, localPath) => {
 
 module.exports = {
   expo: {
-    name: 'Mintenance',
+    name: betaLoginBuild ? 'Mintenance Beta' : 'Mintenance',
     slug: 'mintenance',
     owner: 'mintenance-ltd',
     version: '1.2.4',
@@ -148,7 +164,7 @@ module.exports = {
       // Bumped 2026-08-06: 22 and 23 are both already consumed on Play (22
       // rejected build 148c5786; 23 uploaded from chore/mobile-versioncode-23).
       // 24 carries the mobile Delete Job feature to the store.
-      versionCode: 40,
+      versionCode: betaLoginBuild ? 41 : 40,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',
@@ -197,10 +213,11 @@ module.exports = {
     scheme: 'mintenance',
     updates: {
       url: 'https://u.expo.dev/1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
+      ...(betaLoginBuild ? { enabled: false } : {}),
     },
     // SQLCipher and expo-crypto require a rebuilt native binary. Keep these
     // updates off older 1.2.4 runtimes that lack the required native code.
-    runtimeVersion: '1.2.4-sqlcipher1',
+    runtimeVersion: betaLoginBuild ? '1.2.4-beta-login1' : '1.2.4-sqlcipher1',
     plugins: [
       ['expo-sqlite', { useSQLCipher: true }],
       // Android security hardening: allowBackup=false, usesCleartextTraffic=false,
