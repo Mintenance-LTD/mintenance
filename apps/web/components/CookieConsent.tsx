@@ -3,6 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { logger } from '@/lib/logger';
 import Link from 'next/link';
+import {
+  COOKIE_CONSENT_KEY,
+  COOKIE_CONSENT_EVENT,
+} from '@/lib/analytics-consent';
 
 interface CookiePreferences {
   essential: boolean;
@@ -11,7 +15,7 @@ interface CookiePreferences {
   marketing: boolean;
 }
 
-const STORAGE_KEY = 'mintenance_cookie_consent';
+const STORAGE_KEY = COOKIE_CONSENT_KEY;
 const CONSENT_VERSION = '2.0';
 
 /**
@@ -135,6 +139,7 @@ export default function CookieConsent() {
       version: CONSENT_VERSION,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(consentData));
+    window.dispatchEvent(new Event(COOKIE_CONSENT_EVENT));
 
     if (prefs.analytics) {
       logger.info('Analytics cookies enabled');

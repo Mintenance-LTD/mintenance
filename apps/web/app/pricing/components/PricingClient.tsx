@@ -142,13 +142,6 @@ export function PricingClient() {
       return;
     }
 
-    // Handle enterprise plan
-    if (planId === 'enterprise') {
-      toast('Please contact our sales team for enterprise pricing.');
-      router.push('/contact?subject=Enterprise%20Plan%20Enquiry');
-      return;
-    }
-
     // Create subscription for paid plans
     setLoadingPlan(planId);
     try {
@@ -160,6 +153,7 @@ export function PricingClient() {
         },
         body: JSON.stringify({
           planType: planId,
+          billingCycle: isAnnual ? 'yearly' : 'monthly',
         }),
       });
 
@@ -249,8 +243,8 @@ export function PricingClient() {
                 className='text-sm md:text-base max-w-3xl mx-auto mb-8'
                 style={{ color: 'var(--me-brand-soft)' }}
               >
-                For homeowners and letting agencies. Find the plan that
-                fits your portfolio.
+                For homeowners and letting agencies. Find the plan that fits
+                your portfolio.
               </p>
             )}
             {userType === 'homeowner' && user?.role === 'homeowner' && (

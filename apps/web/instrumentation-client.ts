@@ -1,3 +1,4 @@
+import { observeAnalyticsConsent } from '@/lib/analytics-consent';
 /**
  * Sentry client-side initialization for Next.js 16 + Sentry SDK v10.
  *
@@ -105,12 +106,7 @@ if (SENTRY_DSN) {
       'ResizeObserver loop completed with undelivered notifications',
     ],
 
-    integrations: [
-      Sentry.replayIntegration({
-        maskAllText: true,
-        blockAllMedia: true,
-      }),
-    ],
+    integrations: [],
 
     // Propagate trace headers to our own APIs but NOT to third-party
     // services — avoids leaking internal trace IDs to Stripe/Supabase.
@@ -183,6 +179,22 @@ if (SENTRY_DSN) {
     initialScope: {
       tags: { component: 'web-client' },
     },
+  });
+  let replayAdded = false;
+  let wasAllowed = false;
+  observeAnalyticsConsent((allowed) => {
+    if (allowed === wasAllowed) return;
+    wasAllowed = allowed;
+    if (!allowed) {
+      void Sentry.getReplay()?.stop();
+    } else if (!replayAdded) {
+      Sentry.addIntegration(
+        Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true })
+      );
+      replayAdded = true;
+    } else {
+      Sentry.getReplay()?.start();
+    }
   });
 }
 

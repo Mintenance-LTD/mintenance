@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { syncHomeownerProviderState } from '../subscription/homeowner-provider-state';
+import { syncContractorProviderState } from '../subscription/contractor-provider-state';
 import { stripe, getSubscriptionPeriodBounds } from '@/lib/stripe';
 import type { SendNotificationFn } from './webhook-helpers';
 
@@ -55,6 +56,20 @@ export async function handleSubscriptionUpdated(
         subscriptionId: subscription.id,
         customerId,
       });
+      return;
+    }
+
+    if (user.role === 'contractor' && subscription.metadata?.dbSubscriptionId) {
+      const current = await stripe.subscriptions.retrieve(subscription.id);
+      const synced = await syncContractorProviderState(current, user.id);
+      if (synced.isCurrent && ['past_due', 'unpaid'].includes(current.status)) {
+        await sendNotification(
+          user.id,
+          'Subscription Payment Issue',
+          'Please update your payment method to avoid service interruption.',
+          'subscription_payment_issue'
+        );
+      }
       return;
     }
 
@@ -277,6 +292,20 @@ export async function handleSubscriptionDeleted(
         subscriptionId: subscription.id,
         customerId,
       });
+      return;
+    }
+
+    if (user.role === 'contractor' && subscription.metadata?.dbSubscriptionId) {
+      const current = await stripe.subscriptions.retrieve(subscription.id);
+      const synced = await syncContractorProviderState(current, user.id);
+      if (synced.isCurrent && ['past_due', 'unpaid'].includes(current.status)) {
+        await sendNotification(
+          user.id,
+          'Subscription Payment Issue',
+          'Please update your payment method to avoid service interruption.',
+          'subscription_payment_issue'
+        );
+      }
       return;
     }
 

@@ -320,7 +320,9 @@ export function SubscriptionClient({
                   }}
                 >
                   {formatCurrency(currentSubscription.amount)}/
-                  {currentSubscription.currency === 'gbp' ? 'month' : 'mo'}
+                  {currentSubscription.billingCycle === 'yearly'
+                    ? 'year'
+                    : 'month'}
                 </p>
               </div>
               <div

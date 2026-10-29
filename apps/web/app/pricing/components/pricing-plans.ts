@@ -155,7 +155,7 @@ export function getContractorPlans(isAnnual: boolean): PricingPlan[] {
       color: 'teal',
     },
     {
-      id: 'business',
+      id: 'enterprise',
       name: 'Business',
       icon: Crown,
       price: isAnnual ? 990 : 99,
@@ -170,7 +170,7 @@ export function getContractorPlans(isAnnual: boolean): PricingPlan[] {
         'Phone support',
         'Custom reports & data exports',
       ],
-      cta: 'Contact Sales',
+      cta: 'Go Business',
       color: 'purple',
     },
   ];
