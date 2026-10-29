@@ -10,6 +10,30 @@ const keys = forge.pki.rsa.generateKeyPair({ bits: 1024, e: 65537 });
 const message = 'Synthetic local security regression fixture';
 const makeDigest = () => forge.md.sha256.create().update(message);
 
+test('node-forge exception remains limited to the reviewed version and Expo consumers', () => {
+  const packages = require('../package-lock.json').packages;
+  const copies = Object.entries(packages).filter(([name]) =>
+    name.endsWith('/node-forge')
+  );
+  assert.equal(copies.length, 1);
+  assert.equal(copies[0][1].version, '1.4.0');
+  const consumers = Object.entries(packages)
+    .filter(([, metadata]) =>
+      [
+        'dependencies',
+        'devDependencies',
+        'optionalDependencies',
+        'peerDependencies',
+      ].some((kind) => metadata[kind]?.['node-forge'])
+    )
+    .map(([name]) => name)
+    .sort();
+  assert.deepEqual(consumers, [
+    'node_modules/@expo/cli',
+    'node_modules/@expo/code-signing-certificates',
+  ]);
+});
+
 test('valid RSA SHA-256 signatures still verify', () => {
   const signature = keys.privateKey.sign(makeDigest());
   assert.equal(

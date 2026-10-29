@@ -5,6 +5,13 @@
   "report-type": "important",
   "allowlist": [
     {
+      "GHSA-86w9-cpqp-85rv|node-forge": {
+        "active": true,
+        "notes": "Reviewed 2026-10-29: npm audit v2 can report the existing transitive node-forge 1.4.0 with effects=[]; audit-ci then emits this exact leaf path instead of the Expo ancestry paths below. This is the same source-hash-verified RSA mitigation and expiry, not a module-wide or advisory-wide exemption. Security regressions verify the locked version and only the reviewed Expo CLI/code-signing consumers, valid signatures, malformed nested elements and tamper refusal. The audit-policy fixture verifies unrelated advisories/paths and expired exceptions still fail. Recheck upstream before expiry.",
+        "expiry": "2026-11-03"
+      }
+    },
+    {
       "GHSA-mrhx-c7xc-m3w5|zod": {
         "active": true,
         "notes": "Reviewed 2026-10-23: app and OpenAI SDK require Zod 3.25.76; upstream will not release a v3 fix (colinhacks/zod#6653). scripts/patch-zod-v3.cjs verifies exact registry-source hashes and backports early rejection for oversized bounded arrays/sets, including async and ESM/CJS paths. prepare/build hooks apply it and the security gate verifies zero element-parser calls, one size issue, nested paths, valid inputs and tamper refusal. This matches the bounded-container scope of upstream PR 6652; unbounded schemas still require application input limits. Zod 4 tooling is upgraded to 4.6.7. Do not use unpatched --ignore-scripts installs for application builds. Remove after the separately validated Zod 4/SDK migration; recheck before expiry.",
