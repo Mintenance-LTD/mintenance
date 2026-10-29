@@ -5,7 +5,12 @@
  * authentication token handling.
  */
 
-import { ApiClient, RequestOptions, IApiError } from '@mintenance/api-client';
+import {
+  ApiClient,
+  RequestOptions,
+  IApiError,
+  responseAccessError,
+} from '@mintenance/api-client';
 import { supabase } from '../config/supabase';
 import { logger } from './logger';
 
@@ -19,6 +24,14 @@ import { logger } from './logger';
  * production/staging build that ships without the env wired.
  */
 function resolveApiBaseUrl(): string {
+  const gateway = process.env.EXPO_PUBLIC_MOBILE_API_GATEWAY_URL;
+  if (gateway) {
+    const expected = `${process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/, '')}/functions/v1/mobile-api-relay`;
+    if (gateway !== expected || !gateway.startsWith('https://')) {
+      throw new Error('Invalid mobile beta API gateway configuration');
+    }
+    return gateway;
+  }
   const fromEnv =
     process.env.EXPO_PUBLIC_API_URL ?? process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -199,6 +212,7 @@ class MobileApiClient extends ApiClient {
     url: string,
     options: RequestOptions = {}
   ): Promise<T> {
+    this.assertTrustedUrl(url);
     const token = await getAuthTokenWithDeadline(options.signal ?? undefined);
 
     const headers = {
@@ -226,12 +240,35 @@ class MobileApiClient extends ApiClient {
           // Refresh cannot renew an absolute session timeout or revocation.
           // Leave the protected navigation instead of stranding every screen.
           if ((retryError as IApiError).statusCode === 401) {
-            await supabase.auth.signOut({ scope: 'local' });
+            await this.signOutIfCurrent(newToken, token);
           }
           throw retryError;
         }
       }
       throw error;
+    }
+  }
+
+  /** Do not attach the user's bearer token to arbitrary absolute URLs. */
+  private assertTrustedUrl(url: string): void {
+    if (!url.startsWith('/') || url.startsWith('//') || url.includes('\\')) {
+      throw new Error('API requests must use a relative path');
+    }
+  }
+
+  private async signOutIfCurrent(
+    rejectedToken: string,
+    requestToken: string | null
+  ): Promise<void> {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (
+      session &&
+      (session.access_token === rejectedToken ||
+        session.access_token === requestToken)
+    ) {
+      await supabase.auth.signOut({ scope: 'local' });
     }
   }
 
@@ -252,10 +289,29 @@ class MobileApiClient extends ApiClient {
 
   private async performTokenRefresh(): Promise<string> {
     try {
+      const {
+        data: { session: originalSession },
+      } = await supabase.auth.getSession();
       const { data, error } = await supabase.auth.refreshSession();
       if (error || !data.session) {
-        logger.warn('Session refresh failed, signing out');
-        await supabase.auth.signOut();
+        // A timeout, network failure, rate limit or Auth outage does not revoke a session.
+        const terminal =
+          !error ||
+          [
+            'refresh_token_not_found',
+            'refresh_token_already_used',
+            'session_not_found',
+            'session_expired',
+            'user_banned',
+            'user_not_found',
+          ].includes(error.code ?? '');
+        if (terminal && originalSession)
+          await this.signOutIfCurrent(originalSession.access_token, null);
+        logger.warn(
+          terminal
+            ? 'Session expired'
+            : 'Session refresh unavailable; keeping sign-in'
+        );
         const refreshError = error || new Error('Session expired');
         this.refreshQueue.forEach(({ reject }) => reject(refreshError));
         this.refreshQueue = [];
@@ -291,7 +347,8 @@ class MobileApiClient extends ApiClient {
     formData: FormData,
     timeoutMs?: number
   ): Promise<T> {
-    const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+    this.assertTrustedUrl(url);
+    const fullUrl = `${API_BASE_URL}${url}`;
 
     const doRequest = async (token: string | null): Promise<Response> => {
       const controller = timeoutMs ? new AbortController() : undefined;
@@ -299,14 +356,26 @@ class MobileApiClient extends ApiClient {
         ? setTimeout(() => controller.abort(), timeoutMs)
         : undefined;
       try {
-        return await fetch(fullUrl, {
+        const response = await fetch(fullUrl, {
           method: 'POST',
           headers: {
             ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: formData,
           signal: controller?.signal,
+          redirect: 'manual',
         });
+        const accessError = responseAccessError(response);
+        if (accessError) throw accessError;
+        if (response.status === 401 || response.status === 403) {
+          const body = await response
+            .clone()
+            .json()
+            .catch(() => undefined);
+          const gateError = responseAccessError(response, body);
+          if (gateError) throw gateError;
+        }
+        return response;
       } finally {
         if (timer) clearTimeout(timer);
       }
@@ -320,7 +389,7 @@ class MobileApiClient extends ApiClient {
       const newToken = await this.waitForTokenRefresh();
       response = await doRequest(newToken);
       if (response.status === 401) {
-        await supabase.auth.signOut({ scope: 'local' });
+        await this.signOutIfCurrent(newToken, initialToken);
       }
     }
 
