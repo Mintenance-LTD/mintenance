@@ -107,7 +107,7 @@ try {
     await fs.readFile(
       path.join(
         root,
-        'supabase/migrations/20261029225000_operator_alert_delivery.sql'
+        'supabase/migrations/20261029224939_operator_alert_delivery.sql'
       ),
       'utf8'
     )
