@@ -43,6 +43,10 @@ file location, not the entire group or every configurable local file reader.
 
 ## Validation
 
+- Full web TypeScript check passed after building shared packages and restoring
+  the missing local Stripe 22.3.2 package from the lockfile URL/integrity hash.
+  No dependency manifest or lockfile changes were needed.
+
 - 14 focused Vitest tests passed (5 new filesystem tests plus 9 existing model
   evaluation/command-injection tests). Tests use real temporary files and mock
   only the database, Storage and ONNX boundaries; no live user data is accessed.
