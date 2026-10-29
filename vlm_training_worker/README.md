@@ -36,3 +36,10 @@ AI v2 architecture, training, deployment, and metrics.
 
 The draft `modal_train.py` and `modal_inference.py` files may still be useful as a template if
 anyone wants to migrate to LLaMA-Factory in the future. Delete if not relevant.
+
+## Testing the legacy worker
+
+The CLI uses a reproducible headless LLaMA-Factory package so patched Pillow
+13.0.0 can remain installed. See [package provenance and installation instructions](vendor/README.md).
+Run installation commands from the repository root. The Gradio web UI is not
+supported by this dependency profile.

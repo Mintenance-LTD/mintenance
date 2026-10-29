@@ -41,8 +41,16 @@ The existing security workflow now exercises the demo workflow too.
 
 - 36 workflow tests passed, including actual Bash execution of render arguments,
   rejection of shell payloads, and Android/iOS profile regressions.
-- 14 model/protobuf CPU tests passed, including Qwen/SFT imports, LoRA
-  train/save/reload/merge, torchvision operators and image preprocessing.
+- 17 package/model/protobuf tests passed after installing the full worker
+  requirements with Pillow 13.0.0. Includes the actual LLaMA-Factory CLI training
+  one LoRA step on a tiny local Qwen model and saving its adapter, Qwen/SFT imports,
+  LoRA train/save/reload/merge, torchvision operators and image preprocessing.
+- Normal uv installation and `uv pip check` passed for all 115 installed packages.
+  No Gradio package, dependency override or `--no-deps` installation was used.
+- The headless wheel reproduced byte-for-byte from the hash-verified upstream
+  wheel; the Modal image declaration imported successfully without deployment.
+- Linux/Python 3.11 wheel-only resolution now also passes for the complete legacy
+  worker and Modal training inputs. CI checks both inputs and wheel reproduction.
 - All three protobuf tests also passed with the pure Python implementation.
 - The recursion-limit test failed as expected on protobuf 4.25.9 in a separate
   ephemeral environment: the nested Any payload incorrectly parsed successfully.
@@ -53,13 +61,22 @@ The existing security workflow now exercises the demo workflow too.
 
 ## Remaining limitations and triage
 
-The legacy worker requirements and modal_train.py do NOT currently resolve.
-LLaMA-Factory 0.9.5 requires Gradio <=5.50.0, which requires Pillow <12, while
-this repository pins patched Pillow 13.0.0. Reproduced the identical error using
-unchanged main's requirements. No newer LLaMA-Factory release is published on
-PyPI at inspection. This pre-existing conflict remains; do not downgrade Pillow
-or claim the full legacy image build passed. The previously recorded resolution
-used Pillow 11.0.0 before the merge; it does not validate the final Pillow 13 stack.
+The LLaMA-Factory/Gradio conflict is resolved without lowering Pillow 13.0.0.
+Upstream 0.9.5 requires Gradio <=5.50.0, which requires Pillow <12. The worker
+only uses the headless CLI, so a reproducible local distribution
+`0.9.5+mintenance.1` makes Gradio an opt-in `webui` extra. All upstream Python
+code and licenses are byte-for-byte unchanged; only distribution metadata and
+RECORD change. All other upstream dependency constraints remain enforced.
+See `vlm_training_worker/vendor/README.md` for provenance and rebuild commands.
+The local requirements install that wheel, and Modal copies it into the image
+before resolving the pinned training stack. The web UI is not supported with
+this Pillow pin. Replace this packaging adaptation when upstream supports a
+compatible headless install.
+
+The earlier model test result used Pillow 11.0.0; the 17-test result above
+supersedes it and validates Pillow 13.0.0 with the complete headless stack.
+CPU tests and Linux dependency resolution do not validate GPU/QLoRA execution
+or an actual Modal image build. No Modal redeployment was requested this turn.
 
 The SQL groups 54458042 and 54457958 were inspected: the Python audit scripts
 use synthetic UUIDs/fixture strings, SyncStore allowlists table identifiers, and
