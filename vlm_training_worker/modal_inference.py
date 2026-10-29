@@ -56,6 +56,7 @@ infer_image = (
         "transformers==4.57.6",
         "peft==0.18.1",
         "accelerate==1.11.0",
+        "protobuf==7.36.2",
         "qwen-vl-utils==0.0.8",
         "supabase==2.10.0",
         "httpx==0.27.2",

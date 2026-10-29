@@ -70,7 +70,7 @@ class TorchRuntimeTests(unittest.TestCase):
         self.assertEqual(core_pins(active.read_text().splitlines()), pins)
 
     def test_modal_training_stack_stays_consistent(self):
-        packages = {"torch", "torchvision", "transformers", "peft", "accelerate", "trl", "llamafactory"}
+        packages = {"torch", "torchvision", "transformers", "peft", "accelerate", "trl", "llamafactory", "protobuf"}
         pins = core_pins((ROOT / "requirements.txt").read_text().splitlines(), packages)
         for filename in ("modal_train.py", "modal_inference.py"):
             with self.subTest(image=filename):

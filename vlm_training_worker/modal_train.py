@@ -51,6 +51,7 @@ vlm_image = (
         "peft==0.18.1",
         "trl==0.24.0",
         "accelerate==1.11.0",
+        "protobuf==7.36.2",
         "qwen-vl-utils==0.0.8",
         "datasets>=3.2.0",
         "supabase==2.10.0",
