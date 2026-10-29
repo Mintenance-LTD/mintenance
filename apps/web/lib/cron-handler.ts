@@ -24,6 +24,21 @@ import { handleAPIError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getClientIp } from '@/lib/request-ip';
+import { OperatorAlertService } from '@/lib/services/admin/OperatorAlertService';
+
+async function queueOperatorAlert(jobName: string, runId: string | null) {
+  // The delivery worker must not recursively alert on its own provider failure.
+  // Its existing outbox row remains pending for the next scheduled retry.
+  if (jobName === 'operator-alerts') return;
+  try {
+    await OperatorAlertService.enqueue(jobName, runId);
+  } catch (error) {
+    logger.error('Operator alert enqueue failed', error, {
+      service: jobName,
+      runId,
+    });
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -215,6 +230,7 @@ export function withCronHandler(
           )
       );
       if (itemFailures) {
+        await queueOperatorAlert(jobName, runId);
         await completeCronRun(
           runId,
           jobName,
@@ -249,6 +265,7 @@ export function withCronHandler(
 
       return NextResponse.json({ success: true, results: result });
     } catch (error) {
+      await queueOperatorAlert(jobName, runId);
       const durationMs = Date.now() - startTime;
       const errorMessage =
         error instanceof Error ? error.message : String(error);

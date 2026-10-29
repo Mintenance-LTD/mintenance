@@ -82,20 +82,28 @@ function CheckoutForm({
         return;
       }
 
-      const { error: confirmError } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: returnUrl,
-        },
-        redirect: 'if_required',
-      });
+      const { error: confirmError, paymentIntent } =
+        await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+            return_url: returnUrl,
+          },
+          redirect: 'if_required',
+        });
 
       if (confirmError) {
         setError(confirmError.message || 'Payment failed. Please try again.');
         setIsProcessing(false);
-      } else {
+      } else if (paymentIntent?.status === 'succeeded') {
         // Payment succeeded, redirect to subscription page
         router.push(successRedirectPath);
+      } else {
+        setError(
+          paymentIntent?.status === 'processing'
+            ? 'Your payment is processing. Your plan will activate once payment is confirmed.'
+            : 'Payment has not completed. Please try again.'
+        );
+        setIsProcessing(false);
       }
     } catch (err) {
       setError(

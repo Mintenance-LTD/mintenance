@@ -5,6 +5,10 @@ const m = vi.hoisted(() => ({
   finish: vi.fn(),
   warn: vi.fn(),
   handler: vi.fn(),
+  alert: vi.fn(),
+}));
+vi.mock('@/lib/services/admin/OperatorAlertService', () => ({
+  OperatorAlertService: { enqueue: m.alert },
 }));
 vi.mock('@mintenance/shared', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@mintenance/shared')>()),
@@ -29,6 +33,7 @@ beforeEach(() => {
   m.start.mockResolvedValue({ data: { id: 'run' }, error: null });
   m.finish.mockResolvedValue({ error: null });
   m.handler.mockResolvedValue({ processed: 1 });
+  m.alert.mockResolvedValue(undefined);
 });
 const request = new NextRequest('http://localhost/api/cron/example');
 it('reports returned tracking errors without replaying successful business work', async () => {
@@ -68,6 +73,30 @@ it('keeps the original job failure when completion tracking also fails', async (
   );
   expect(m.handler).toHaveBeenCalledTimes(1);
 });
+it('queues an operator alert for a thrown job failure', async () => {
+  m.handler.mockRejectedValue(new Error('private provider payload'));
+  expect(
+    (await withCronHandler('payment-reconciliation', m.handler)(request)).status
+  ).toBe(500);
+  expect(m.alert).toHaveBeenCalledWith('payment-reconciliation', 'run');
+  expect(JSON.stringify(m.alert.mock.calls)).not.toContain(
+    'private provider payload'
+  );
+});
+it('keeps the job failed when alert persistence fails', async () => {
+  m.handler.mockRejectedValue(new Error('failed'));
+  m.alert.mockRejectedValue(new Error('outbox unavailable'));
+  expect((await withCronHandler('example', m.handler)(request)).status).toBe(
+    500
+  );
+});
+it('does not recursively enqueue alerts for the email worker', async () => {
+  m.handler.mockResolvedValue({ failed: 1 });
+  expect(
+    (await withCronHandler('operator-alerts', m.handler)(request)).status
+  ).toBe(500);
+  expect(m.alert).not.toHaveBeenCalled();
+});
 it.each([
   { failed: 1 },
   { errors: 2 },
@@ -76,6 +105,7 @@ it.each([
   m.handler.mockResolvedValue(result);
   const response = await withCronHandler('example', m.handler)(request);
   expect(response.status).toBe(500);
+  expect(m.alert).toHaveBeenCalledWith('example', 'run');
   expect(await response.json()).toMatchObject({
     success: false,
     results: result,
