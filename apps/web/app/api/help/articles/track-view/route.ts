@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
 import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { getClientIp } from '@/lib/request-ip';
 
 const trackViewSchema = z.object({
   articleTitle: z.string().min(1).max(500),
@@ -26,23 +24,11 @@ export const POST = withApiHandler(
     }
     const { articleTitle, category } = parsed.data;
 
-    // Optional auth — null for anonymous views
-    const user = await getCurrentUserFromCookies();
-    const userId = user?.id || null;
-
-    // Audit P2 (2026-04-23): help_article_views.ip_address is stored
-    // for analytics — using the spoofable first XFF entry would let
-    // anyone fake unique IPs and inflate view counts. getClientIp
-    // reads Vercel's edge-validated header instead.
-    const ipAddress = getClientIp(request);
-    const userAgent = request.headers.get('user-agent') || 'unknown';
-
+    // Popularity needs article totals, not visitor identity. Keep IP-based
+    // abuse protection in withApiHandler without retaining it in analytics.
     const { error } = await serverSupabase.from('help_article_views').insert({
       article_title: articleTitle,
       category: category,
-      user_id: userId,
-      ip_address: ipAddress,
-      user_agent: userAgent,
     });
 
     if (error) {
@@ -50,7 +36,6 @@ export const POST = withApiHandler(
         service: 'help_articles',
         articleTitle,
         category,
-        userId: userId || undefined,
       });
       throw new InternalServerError('Failed to track help article view');
     }

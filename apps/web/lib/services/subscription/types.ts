@@ -35,6 +35,7 @@ export interface Subscription {
   planName: string;
   status: SubscriptionStatus;
   amount: number;
+  billingCycle?: 'monthly' | 'yearly';
   currency: string;
   trialStart: Date | null;
   trialEnd: Date | null;

@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { logger } from '@/lib/logger';
 import Link from 'next/link';
+import {
+  COOKIE_CONSENT_KEY,
+  COOKIE_CONSENT_EVENT,
+  COOKIE_PREFERENCES_EVENT,
+} from '@/lib/analytics-consent';
 
 interface CookiePreferences {
   essential: boolean;
@@ -11,7 +16,7 @@ interface CookiePreferences {
   marketing: boolean;
 }
 
-const STORAGE_KEY = 'mintenance_cookie_consent';
+const STORAGE_KEY = COOKIE_CONSENT_KEY;
 const CONSENT_VERSION = '2.0';
 
 /**
@@ -37,6 +42,30 @@ export default function CookieConsent() {
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
   const lastFocusableRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const openPreferences = () => {
+      let saved: Partial<CookiePreferences> = {};
+      try {
+        const record = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+        if (record?.version === CONSENT_VERSION)
+          saved = record.preferences || {};
+      } catch {
+        // Missing or unreadable consent always defaults to optional categories off.
+      }
+      setPreferences({
+        essential: true,
+        analytics: saved.analytics === true,
+        functional: saved.functional === true,
+        marketing: saved.marketing === true,
+      });
+      setShowSettings(true);
+      setShowBanner(true);
+    };
+    window.addEventListener(COOKIE_PREFERENCES_EVENT, openPreferences);
+    return () =>
+      window.removeEventListener(COOKIE_PREFERENCES_EVENT, openPreferences);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -135,6 +164,7 @@ export default function CookieConsent() {
       version: CONSENT_VERSION,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(consentData));
+    window.dispatchEvent(new Event(COOKIE_CONSENT_EVENT));
 
     if (prefs.analytics) {
       logger.info('Analytics cookies enabled');
@@ -313,14 +343,13 @@ export default function CookieConsent() {
                         Analytics Cookies
                       </legend>
                       <p className='text-sm text-gray-600'>
-                        These cookies help us understand how visitors interact
-                        with our website by collecting and reporting information
-                        anonymously. This helps us improve the user experience
-                        and site performance.
+                        Optional analytics help us understand how visitors use
+                        the site. This includes Sentry session replay when
+                        configured, with text and media masked. You can withdraw
+                        this choice at any time in the cookie preferences.
                       </p>
                       <p className='text-xs text-gray-500 mt-2'>
-                        Examples: Google Analytics, page visit tracking, feature
-                        usage statistics
+                        Examples: Session replay and feature usage statistics
                       </p>
                     </div>
                     <div className='ml-4 flex-shrink-0'>

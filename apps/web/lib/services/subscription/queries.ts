@@ -175,6 +175,8 @@ export async function getContractorSubscription(
       planName: subscription.plan_name,
       status: subscription.status as Subscription['status'],
       amount: parseFloat(subscription.amount.toString()),
+      billingCycle:
+        subscription.billing_cycle === 'yearly' ? 'yearly' : 'monthly',
       currency: subscription.currency,
       trialStart: subscription.trial_start
         ? new Date(subscription.trial_start)

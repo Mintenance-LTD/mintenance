@@ -1,6 +1,5 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 interface VerificationRules {
   requireProfileComplete: boolean;
@@ -40,8 +39,7 @@ interface BatchResult {
  *
  * Evaluates unverified contractors against a set of criteria (profile
  * completeness, photo, completed jobs, rating, email verification) and
- * promotes eligible contractors to verified status without manual admin
- * intervention.
+ * identifies candidates for manual review. Eligibility alone never awards a badge.
  */
 export class AutoVerificationService {
   /**
@@ -277,95 +275,14 @@ export class AutoVerificationService {
             continue;
           }
 
-          // Update profile to verified
-          const { error: updateError } = await serverSupabase
-            .from('profiles')
-            .update({
-              admin_verified: true,
-              verified_at: new Date().toISOString(),
-            })
-            .eq('id', contractor.id);
-
-          if (updateError) {
-            logger.error('Failed to update contractor verification status', {
-              service: 'AutoVerificationService',
-              contractorId: contractor.id,
-              error: updateError.message,
-            });
-            result.errors++;
-            result.details.push({
-              contractorId: contractor.id,
-              status: 'error',
-              reason: `Profile update failed: ${updateError.message}`,
-            });
-            continue;
-          }
-
-          // Log to audit_logs table
-          const { error: auditError } = await serverSupabase
-            .from('audit_logs')
-            .insert({
-              action: 'auto_verify_contractor',
-              resource_type: 'profile',
-              resource_id: contractor.id,
-              details: {
-                rules: { ...DEFAULT_RULES, ...rules },
-                results: {
-                  passedRules: evaluation.passedRules,
-                  failedRules: evaluation.failedRules,
-                },
-              },
-              status: 'success',
-            });
-
-          if (auditError) {
-            logger.error('Failed to write audit log for auto-verification', {
-              service: 'AutoVerificationService',
-              contractorId: contractor.id,
-              error: auditError.message,
-            });
-            // Non-fatal: continue even if audit log fails
-          }
-
-          // 2026-05-01 audit follow-up: route through NotificationService so
-          // newly verified contractors actually get a push (and so this
-          // respects their notification preferences). The previous direct
-          // insert silently dropped push entirely.
-          try {
-            await NotificationService.createNotification({
-              userId: contractor.id,
-              type: 'verification_approved',
-              title: 'Account Verified',
-              message:
-                'Your contractor account has been automatically verified. You now have full access to the platform.',
-              actionUrl: '/contractor/dashboard-enhanced',
-              metadata: { event: 'verification_approved' },
-            });
-          } catch (notifError) {
-            logger.error(
-              'Failed to create notification for auto-verified contractor',
-              {
-                service: 'AutoVerificationService',
-                contractorId: contractor.id,
-                error:
-                  notifError instanceof Error
-                    ? notifError.message
-                    : String(notifError),
-              }
-            );
-            // Non-fatal: verification still succeeded
-          }
-
-          result.verified++;
+          // Completeness does not prove identity, insurance or trade credentials.
+          // Approval remains with the existing admin review flow.
+          result.skipped++;
           result.details.push({
             contractorId: contractor.id,
-            status: 'verified',
-          });
-
-          logger.info('Contractor auto-verified', {
-            service: 'AutoVerificationService',
-            contractorId: contractor.id,
-            passedRules: evaluation.passedRules,
+            status: 'skipped',
+            reason:
+              'Eligible profile; manual business and credential review required',
           });
         } catch (contractorError) {
           logger.error(

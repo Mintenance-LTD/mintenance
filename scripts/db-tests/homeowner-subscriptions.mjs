@@ -37,7 +37,7 @@ export async function testHomeownerSubscriptions({
     await fs.readFile(
       path.join(
         root,
-        'supabase/migrations/20261007234517_homeowner_subscription_transitions.sql'
+        'supabase/migrations/20261029202626_homeowner_subscription_transitions.sql'
       ),
       'utf8'
     )

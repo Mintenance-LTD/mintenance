@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { createRequire } = require('node:module');
 const { applyPatches, patchSource } = require('./apply-security-patches.cjs');
+require('./audit-policy.test.cjs');
 
 applyPatches();
 const forge = require('node-forge');
