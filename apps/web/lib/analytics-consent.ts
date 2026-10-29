@@ -1,5 +1,6 @@
 export const COOKIE_CONSENT_KEY = 'mintenance_cookie_consent';
 export const COOKIE_CONSENT_EVENT = 'mintenance:cookie-consent';
+export const COOKIE_PREFERENCES_EVENT = 'mintenance:cookie-preferences';
 export function hasAnalyticsConsent(): boolean {
   if (typeof window === 'undefined') return false;
   try {

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPageLayout } from '@/components/legal/LegalPageLayout';
+import { CookiePreferencesButton } from '@/components/CookiePreferencesButton';
 
 export const metadata: Metadata = {
   title: 'Cookie Policy | Mintenance',
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function CookiesPage() {
   return (
-    <LegalPageLayout title='Cookie Policy' lastUpdated='16 December 2025'>
+    <LegalPageLayout title='Cookie Policy' lastUpdated='29 October 2026'>
       <section className='mb-8'>
         <h2 className='text-2xl font-semibold text-gray-900 mb-4'>
           What Are Cookies?
@@ -54,6 +55,12 @@ export default function CookiesPage() {
         <h2 className='text-2xl font-semibold text-gray-900 mb-4'>
           Managing Cookies
         </h2>
+        <p className='text-gray-600'>
+          Change your optional cookie and analytics choices here. Withdrawing
+          analytics consent stops session replay; essential security and error
+          reporting remain enabled.
+        </p>
+        <CookiePreferencesButton />
         <p className='text-gray-600 mb-4'>
           You can control and manage cookies in your browser settings. However,
           disabling certain cookies may affect the functionality of our website.
@@ -77,7 +84,10 @@ export default function CookiesPage() {
           include:
         </p>
         <ul className='list-disc pl-6 space-y-2 text-gray-600 mb-4'>
-          <li>Google Analytics for website analytics</li>
+          <li>
+            Sentry for error reporting and optional, consent-controlled session
+            replay
+          </li>
           <li>Stripe for payment processing</li>
           <li>Social media platforms for sharing features</li>
         </ul>

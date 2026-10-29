@@ -1,4 +1,5 @@
 import { LegalPageLayout } from '@/components/legal/LegalPageLayout';
+import { CookiePreferencesButton } from '@/components/CookiePreferencesButton';
 
 export const metadata = {
   title: 'Privacy Policy | Mintenance',
@@ -7,7 +8,7 @@ export const metadata = {
 };
 
 // Date of the last committed document revision, not the build date.
-const POLICY_REVISION_DATE = '18 May 2026';
+const POLICY_REVISION_DATE = '29 October 2026';
 
 const h2Style: React.CSSProperties = {
   fontFamily: 'var(--me-font-display)',
@@ -297,6 +298,12 @@ export default function PrivacyPolicyPage() {
 
         <section className='mb-8'>
           <h2 style={h2Style}>9. Cookies and Tracking Technologies</h2>
+          <p style={pStyle}>
+            You can change optional analytics choices, including session replay,
+            at any time. Withdrawing consent stops replay; essential security
+            and error reporting remain enabled.
+          </p>
+          <CookiePreferencesButton />
           <p style={pStyle}>We use cookies and similar technologies to:</p>
           <ul className='list-disc pl-6 mb-4 space-y-2' style={listStyle}>
             <li>Keep you signed in</li>
@@ -374,10 +381,10 @@ export default function PrivacyPolicyPage() {
               Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY
             </p>
             <p>
-              <strong>ICO Registration:</strong> Pending: Mintenance Ltd
-              has applied to the ICO and will update this page with the
-              registration number once confirmed. Processing of personal data is
-              conducted in compliance with UK GDPR in the interim.
+              <strong>ICO Registration:</strong> Pending: Mintenance Ltd has
+              applied to the ICO and will update this page with the registration
+              number once confirmed. Processing of personal data is conducted in
+              compliance with UK GDPR in the interim.
             </p>
           </div>
         </section>
