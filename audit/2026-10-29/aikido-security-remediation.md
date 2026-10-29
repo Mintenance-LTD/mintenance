@@ -246,3 +246,12 @@ node-forge paths including the previously excepted Expo consumers. All seven
 policy tests pass, including inactive/expired exception rejection. The actual
 production audit gate also passes; it still reports the documented Zod 3 advisory
 under its existing scoped mitigation and expiry, plus lower-severity findings.
+
+The new CI run passed Code Quality & Testing (including full web/mobile tests
+and lint) and the Security Scan workflow, but CodeQL's separate alert gate
+reported js/xss-through-dom at the Markdown anchor href. Added contextual URL
+encoding of quotes and angle brackets after preserving raw URL data; existing
+percent escapes and query delimiters are left intact, and scheme validation
+remains mandatory. The regression checks decoded query values as well as absence
+of injected attributes. All 33 Markdown tests and targeted ESLint pass.
+Reference: https://codeql.github.com/codeql-query-help/javascript/js-xss-through-dom/

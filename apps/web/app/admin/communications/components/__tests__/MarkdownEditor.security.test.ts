@@ -167,7 +167,10 @@ describe('React Markdown preview — XSS resistance', () => {
       'text/html'
     );
     const link = document.querySelector('a');
-    expect(link?.getAttribute('href')).toBe(url);
+    expect(link?.getAttribute('href')).toBe(url.replace(/"/g, '%22'));
+    expect(new URL(link!.getAttribute('href')!).searchParams.get('b')).toBe(
+      '" onmouseover="alert'
+    );
     expect(link?.hasAttribute('onmouseover')).toBe(false);
   });
 
@@ -178,6 +181,12 @@ describe('React Markdown preview — XSS resistance', () => {
     );
     expect(document.querySelector('a')?.getAttribute('href')).toBe(
       'javascript&#58;alert'
+    );
+  });
+
+  it('encodes URL metacharacters while preserving existing URL escapes', () => {
+    expect(sanitizeUrlScheme("https://example.com/<tag>'?q=%26%3C")).toBe(
+      'https://example.com/%3Ctag%3E%27?q=%26%3C'
     );
   });
 });

@@ -14,6 +14,12 @@ const CONTENT_MAX_LENGTH = 5000;
 export function sanitizeUrlScheme(url: string): string {
   // Trim and remove ASCII control chars
   const href = url.trim().replace(/[\x00-\x1f\x7f]/g, '');
+  // URL-encode HTML metacharacters without re-encoding existing percent escapes
+  // or query delimiters. Scheme validation below is still required.
+  const encodedHref = href.replace(
+    /[<>"']/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+  );
   let cleaned = href;
 
   // Canonicalize encoded payloads (e.g. javascript%3a...)
@@ -38,7 +44,7 @@ export function sanitizeUrlScheme(url: string): string {
   // Allow explicit safe schemes
   // Canonicalize only for validation: decoding the returned href changes
   // encoded path/query delimiters, while stripping spaces changes link data.
-  if (/^(https?:|mailto:)/i.test(cleaned)) return href;
+  if (/^(https?:|mailto:)/i.test(cleaned)) return encodedHref;
 
   // Allow safe relative references
   if (
@@ -48,11 +54,11 @@ export function sanitizeUrlScheme(url: string): string {
     cleaned.startsWith('./') ||
     cleaned.startsWith('../')
   ) {
-    return href;
+    return encodedHref;
   }
 
   // Allow plain relative paths with no scheme (e.g. "docs/page")
-  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(cleaned)) return href;
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(cleaned)) return encodedHref;
 
   return '#';
 }
