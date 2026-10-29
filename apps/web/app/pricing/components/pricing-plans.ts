@@ -183,9 +183,9 @@ export const PRICING_FAQS = [
       "Yes! You can upgrade, downgrade, or cancel your plan at any time. Changes take effect immediately, and we'll prorate any charges.",
   },
   {
-    question: 'Is there a free trial for premium plans?',
+    question: 'Can I start without a paid subscription?',
     answer:
-      'Yes, we offer a 14-day free trial for all premium plans. No credit card required to start.',
+      'Yes. Homeowners can use the Free plan and contractors can use Basic without a paid subscription. Paid plans are billed through Stripe when you subscribe.',
   },
   {
     question: 'What payment methods do you accept?',

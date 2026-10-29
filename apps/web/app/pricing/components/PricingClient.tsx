@@ -1,7 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { logger } from '@mintenance/shared';
+import {
+  logger,
+  PLATFORM_FEE_RATE_BY_TIER,
+  formatPlatformFeePercent,
+} from '@mintenance/shared';
 import { Check, X, Shield, HelpCircle, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -576,7 +580,7 @@ export function PricingClient() {
                     fontWeight: 500,
                   }}
                 >
-                  15%
+                  {formatPlatformFeePercent(PLATFORM_FEE_RATE_BY_TIER.basic)}
                 </p>
                 <p className='text-sm' style={{ color: 'var(--me-ink-2)' }}>
                   platform fee per job
@@ -604,10 +608,19 @@ export function PricingClient() {
                     fontWeight: 500,
                   }}
                 >
-                  10%
+                  {formatPlatformFeePercent(
+                    PLATFORM_FEE_RATE_BY_TIER.professional
+                  )}
                 </p>
                 <p className='text-sm' style={{ color: 'var(--me-brand-2)' }}>
-                  Save 33% on fees
+                  Save{' '}
+                  {Math.round(
+                    (1 -
+                      PLATFORM_FEE_RATE_BY_TIER.professional /
+                        PLATFORM_FEE_RATE_BY_TIER.basic) *
+                      100
+                  )}
+                  % on fees
                 </p>
               </div>
               <div
@@ -631,10 +644,19 @@ export function PricingClient() {
                     fontWeight: 500,
                   }}
                 >
-                  7%
+                  {formatPlatformFeePercent(
+                    PLATFORM_FEE_RATE_BY_TIER.enterprise
+                  )}
                 </p>
                 <p className='text-sm' style={{ color: 'var(--me-brand-2)' }}>
-                  Save 53% on fees
+                  Save{' '}
+                  {Math.round(
+                    (1 -
+                      PLATFORM_FEE_RATE_BY_TIER.enterprise /
+                        PLATFORM_FEE_RATE_BY_TIER.basic) *
+                      100
+                  )}
+                  % on fees
                 </p>
               </div>
             </div>
