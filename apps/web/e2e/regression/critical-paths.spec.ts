@@ -13,6 +13,7 @@
 import { test, expect } from '../fixtures';
 import type { Page } from '@playwright/test';
 import { establishSessionInContext, TEST_USERS } from '../helpers/auth';
+import { expectJobsListContent } from '../helpers/jobs-list';
 import {
   createTestJob,
   createTestBid,
@@ -107,15 +108,7 @@ test.describe('Regression: Job Creation Flow', () => {
     await auth(page, TEST_USERS.homeowner);
     await navigateAuthenticated(page, '/jobs');
 
-    const hasJobCards =
-      (await page.locator('[data-testid="job-card"]').count()) > 0 ||
-      (await page.locator('table tbody tr').count()) > 0;
-    const hasEmptyState = await page
-      .getByText(/no.*job|no.*result|create.*job|post.*job/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
-    expect(hasJobCards || hasEmptyState).toBeTruthy();
+    await expectJobsListContent(page);
   });
 });
 

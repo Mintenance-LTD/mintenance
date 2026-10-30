@@ -1,3 +1,8 @@
+import { TenancyInspections } from './components/TenancyInspections';
+import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSwitcher';
+import { usePropertyView } from '../../hooks/usePropertyView';
+import { showPropertyTool } from '@mintenance/shared';
+import { RoomPhotoAlbums } from './components/RoomPhotoAlbums';
 import React, { useState } from 'react';
 import {
   View,
@@ -122,6 +127,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const propertyId = params?.propertyId;
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { view } = usePropertyView();
   const [refreshing, setRefreshing] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -757,6 +763,17 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   const renderManageTab = () => (
     <>
+      <TenancyInspections
+        key={`tenancies:${user?.id}:${propertyId}`}
+        propertyId={propertyId}
+      />
+      {propertyId && (
+        <RoomPhotoAlbums
+          key={`${user?.id}:${propertyId}`}
+          propertyId={propertyId}
+          editable={caps.canEdit}
+        />
+      )}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>MANAGE THIS PROPERTY</Text>
         <TouchableOpacity
@@ -780,7 +797,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           </TouchableOpacity>
         )}
       </View>
-      {caps.canManageReporting && (
+      {showPropertyTool(view, 'rental') && caps.canManageReporting && (
         <TenantReportingLinks propertyId={propertyId} />
       )}
       <Text style={styles.sectionTitle}>PEOPLE AND ACCESS</Text>
@@ -794,8 +811,12 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           viewer-role team member doesn't see an editor whose actions
           all 403 server-side. */}
       {caps.canManageContacts && <PropertyContacts propertyId={propertyId} />}
-      {caps.canManageContacts && <TenantContacts propertyId={propertyId} />}
-      {caps.canManageTeam && <TeamAccess propertyId={propertyId} />}
+      {showPropertyTool(view, 'rental') && caps.canManageContacts && (
+        <TenantContacts propertyId={propertyId} />
+      )}
+      {showPropertyTool(view, 'team') && caps.canManageTeam && (
+        <TeamAccess propertyId={propertyId} />
+      )}
 
       {(caps.canEdit || caps.canRunAssessment || caps.canDelete) && (
         <View style={styles.section}>
@@ -973,6 +994,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           />
         }
       >
+        <PropertyViewSwitcher />
         <View style={styles.addressCard}>
           <Text style={styles.addressSectionLabel}>PROPERTY IDENTITY</Text>
           <View style={styles.addressIconWrap}>

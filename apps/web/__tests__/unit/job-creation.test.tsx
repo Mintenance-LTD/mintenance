@@ -35,7 +35,8 @@ vi.mock('next/navigation', async (importOriginal) => {
 vi.mock('@/hooks/useCurrentUser');
 vi.mock('@/lib/hooks/useCSRF');
 vi.mock('@/app/jobs/create/utils/submitJob');
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 const { mockToast } = vi.hoisted(() => ({

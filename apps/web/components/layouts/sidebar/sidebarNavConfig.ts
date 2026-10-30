@@ -1,5 +1,7 @@
 'use client';
 
+import { usePropertyView } from '@/hooks/usePropertyView';
+import { propertyNavigationVisible } from '@mintenance/shared';
 import { useMemo } from 'react';
 import {
   Home,
@@ -35,6 +37,7 @@ import type { NavSection } from './SidebarNavItems';
 export function useNavSections(
   userRole: 'homeowner' | 'contractor' | 'admin'
 ): NavSection[] {
+  const { view } = usePropertyView();
   const homeownerSections: NavSection[] = useMemo(
     () => [
       {
@@ -383,5 +386,18 @@ export function useNavSections(
     ? adminSections
     : userRole === 'contractor'
       ? contractorSections
-      : homeownerSections;
+      : homeownerSections
+          .map((section) => ({
+            ...section,
+            name:
+              section.name === 'LANDLORD'
+                ? view === 'agency'
+                  ? 'AGENCY'
+                  : 'RENTALS'
+                : section.name,
+            items: section.items.filter((item) =>
+              propertyNavigationVisible(view, item.href)
+            ),
+          }))
+          .filter((section) => section.items.length > 0);
 }

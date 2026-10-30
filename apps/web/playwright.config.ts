@@ -2,7 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'path';
 
-const localHttps = process.env.CI && process.env.PLAYWRIGHT_TEST_BASE_URL === 'https://localhost:3000';
+const localHttps =
+  process.env.CI &&
+  process.env.PLAYWRIGHT_TEST_BASE_URL === 'https://localhost:3000';
 
 // Load environment variables from .env.local for E2E tests
 // This ensures Supabase credentials are available for test data seeding
@@ -134,7 +136,8 @@ export default defineConfig({
     // do so.
     {
       name: 'regression-critical',
-      testMatch: /regression\/critical-paths\.spec\.ts/,
+      testMatch:
+        /regression\/critical-paths\.spec\.ts|jobs-list-readiness\.spec\.ts|client-ip-isolation\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/homeowner.json',
@@ -194,7 +197,11 @@ export default defineConfig({
   // Start web server before running tests
   // CI uses production build (already built in workflow); local dev reuses existing server
   webServer: {
-    command: localHttps ? 'node ../../scripts/ci/start-e2e-https.cjs' : process.env.CI ? 'npm run start' : 'npm run dev',
+    command: localHttps
+      ? 'node ../../scripts/ci/start-e2e-https.cjs'
+      : process.env.CI
+        ? 'npm run start'
+        : 'npm run dev',
     url: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
     ignoreHTTPSErrors: !!localHttps,
     timeout: 120 * 1000,

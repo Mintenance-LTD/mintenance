@@ -10,6 +10,7 @@
  * "home, taken care of" rather than "look at my numbers".
  */
 
+import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSwitcher';
 import React, { useState } from 'react';
 import {
   View,
@@ -46,6 +47,8 @@ import { GettingStartedCard } from '../../components/onboarding/GettingStartedCa
 import { FinishSetupCard } from './components/FinishSetupCard';
 import { PushPermissionRecoveryBanner } from '../../components/onboarding/PushPermissionRecoveryBanner';
 
+// Metro resolves bundled image assets through a static require.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const appIcon = require('../../../assets/icon.png');
 
 export const HomeownerDashboard: React.FC = () => {
@@ -260,6 +263,8 @@ export const HomeownerDashboard: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
+
+        <PropertyViewSwitcher />
 
         {/* Editorial greeting — caption + serif headline + subtitle */}
         <FadeIn duration={400}>

@@ -1,4 +1,5 @@
 'use client';
+import { PropertyViewSwitcher } from '@/components/properties/PropertyViewSwitcher';
 
 import React, {
   ReactNode,
@@ -27,10 +28,7 @@ import {
 } from 'lucide-react';
 import { HomeownerBottomTabBar } from '@/components/ui/HomeownerBottomTabBar';
 import { useNavSections } from '@/components/layouts/sidebar/sidebarNavConfig';
-import type {
-  NavItem,
-  NavSection,
-} from '@/components/layouts/sidebar/SidebarNavItems';
+import type { NavSection } from '@/components/layouts/sidebar/SidebarNavItems';
 
 type HomeownerSummary = {
   first_name?: string | null;
@@ -400,7 +398,7 @@ export function ProfessionalHomeownerLayout({
         {/* Header */}
         <header className='sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm'>
           <div className='h-16 px-4 lg:px-8 flex items-center justify-between'>
-            <div className='flex items-center gap-4 flex-1'>
+            <div className='flex min-w-0 items-center gap-2 flex-1'>
               {isMobile && (
                 <button
                   onClick={() => setIsMobileOpen(true)}
@@ -410,7 +408,7 @@ export function ProfessionalHomeownerLayout({
                   <Menu className='w-6 h-6 text-gray-600' />
                 </button>
               )}
-              <h1 className='text-xl lg:text-2xl font-bold text-gray-900'>
+              <h1 className='min-w-0 truncate text-xl lg:text-2xl font-bold text-gray-900'>
                 {pageTitle}
               </h1>
             </div>
@@ -425,6 +423,7 @@ export function ProfessionalHomeownerLayout({
                   className='w-64 pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all'
                 />
               </div>
+              <PropertyViewSwitcher />
               {userId ? (
                 <NotificationDropdown userId={userId} />
               ) : (
