@@ -10,6 +10,26 @@ import { loginAsHomeowner, loginAsContractor } from './helpers/auth';
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 
+async function getHeadingIssues(page: Page) {
+  // Streaming can retain an entire duplicate tree under a hidden container.
+  // Audit the accessible outline, including visually hidden screen-reader text.
+  return page.getByRole('heading').evaluateAll((headings) => {
+    const levels = headings.map((heading) =>
+      Number(heading.getAttribute('aria-level') || heading.tagName[1])
+    );
+    const issues: string[] = [];
+    levels.forEach((level, index) => {
+      const previousLevel = levels[index - 1];
+      if (previousLevel && level > previousLevel + 1) {
+        issues.push(`Heading skipped from h${previousLevel} to h${level}`);
+      }
+    });
+    const h1Count = levels.filter((level) => level === 1).length;
+    if (h1Count > 1) issues.push(`Multiple h1 elements found (${h1Count})`);
+    return issues;
+  });
+}
+
 async function waitForAccessiblePage(page: Page, path: string) {
   const main = page.locator('main').first();
   await expect(main).toBeVisible();
@@ -44,6 +64,34 @@ async function waitForAccessiblePage(page: Page, path: string) {
 }
 
 test.describe('Accessibility readiness', () => {
+  test('ignores a hidden streamed heading duplicate', async ({ page }) => {
+    await page.setContent(
+      '<main><h1>Dashboard</h1><h2>Jobs</h2></main><div hidden id="S:0"><h1>Dashboard</h1></div>'
+    );
+    expect(await getHeadingIssues(page)).toEqual([]);
+  });
+
+  test('rejects accessible duplicate headings and skipped levels', async ({
+    page,
+  }) => {
+    await page.setContent(
+      '<main><h1>Dashboard</h1><h3>Jobs</h3><h1>Duplicate</h1></main>'
+    );
+    expect(await getHeadingIssues(page)).toEqual([
+      'Heading skipped from h1 to h3',
+      'Multiple h1 elements found (2)',
+    ]);
+  });
+
+  test('includes visually hidden screen-reader headings', async ({ page }) => {
+    await page.setContent(
+      '<main><h1>Dashboard</h1><h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Duplicate</h1></main>'
+    );
+    expect(await getHeadingIssues(page)).toEqual([
+      'Multiple h1 elements found (2)',
+    ]);
+  });
+
   test('ignores a hidden profile duplicate outside main', async ({ page }) => {
     await page.setContent(`
       <main><span>Profile Completion</span></main>
@@ -53,7 +101,9 @@ test.describe('Accessibility readiness', () => {
   });
 
   for (const state of ['ready', 'error']) {
-    test(`waits for the map ${state} state before scanning`, async ({ page }) => {
+    test(`waits for the map ${state} state before scanning`, async ({
+      page,
+    }) => {
       await page.setContent('<main><div id="map">Loading map...</div></main>');
       await page.evaluate((nextState) => {
         setTimeout(() => {
@@ -63,7 +113,10 @@ test.describe('Accessibility readiness', () => {
         }, 200);
       }, state);
       await waitForAccessiblePage(page, '/contractor/discover');
-      await expect(page.locator('#map')).toHaveAttribute('data-map-state', state);
+      await expect(page.locator('#map')).toHaveAttribute(
+        'data-map-state',
+        state
+      );
     });
   }
 });
@@ -289,37 +342,8 @@ test.describe('Accessibility Tests', () => {
   // Test heading hierarchy
   test('headings should follow proper hierarchy', async ({ page }) => {
     await page.goto('/dashboard');
-
-    const headingIssues = await page.evaluate(() => {
-      const headings = Array.from(
-        document.querySelectorAll('h1, h2, h3, h4, h5, h6')
-      );
-      const issues: string[] = [];
-      let previousLevel = 0;
-
-      headings.forEach((heading) => {
-        const currentLevel = parseInt(heading.tagName[1]);
-
-        // Check for skipped levels
-        if (previousLevel > 0 && currentLevel > previousLevel + 1) {
-          issues.push(
-            `Heading skipped from h${previousLevel} to h${currentLevel}`
-          );
-        }
-
-        previousLevel = currentLevel;
-      });
-
-      // Check for multiple h1s
-      const h1Count = document.querySelectorAll('h1').length;
-      if (h1Count > 1) {
-        issues.push(`Multiple h1 elements found (${h1Count})`);
-      }
-
-      return issues;
-    });
-
-    expect(headingIssues).toHaveLength(0);
+    await waitForAccessiblePage(page, '/dashboard');
+    expect(await getHeadingIssues(page)).toHaveLength(0);
   });
 
   // Test modal accessibility
