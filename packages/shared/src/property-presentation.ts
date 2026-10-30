@@ -54,7 +54,16 @@ export interface DatedRoomPhoto {
 // UTC is explicit on both platforms: changing device timezone must not move a
 // photo to another album. These are upload dates, never inferred capture dates.
 function uploadTime(value: string | null): number | null {
-  if (!value || !/T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(value)) return null;
+  // Accept only bounded ISO timestamps, including PostgreSQL microseconds.
+  // An unanchored wildcard could repeatedly scan a malformed value for "T".
+  if (
+    !value ||
+    value.length > 32 ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/i.test(
+      value
+    )
+  )
+    return null;
   const time = Date.parse(value);
   return Number.isFinite(time) ? time : null;
 }

@@ -20,6 +20,25 @@ const photo = (
   file_name: 'room.png',
 });
 describe('room upload albums', () => {
+  it('bounds malformed timestamps while preserving database microseconds and offsets', () => {
+    for (const value of [
+      't'.repeat(100_000),
+      `${'t'.repeat(100_000)}Z`,
+      '2026-10-30T12:00:00.1234567Z',
+      'prefix2026-10-30T12:00:00Z',
+    ]) {
+      expect(uploadedPhotoLabel(value)).toBe('Upload date unknown');
+      expect(
+        groupRoomPhotoAlbums([photo('invalid', value)], 'kitchen')[0].date
+      ).toBe('unknown');
+    }
+    expect(uploadedPhotoLabel('2026-10-30T12:00:00.123456+01:00')).toContain(
+      '11:00 UTC'
+    );
+    expect(uploadedPhotoLabel('2026-10-30T12:00:00.123Z')).toContain(
+      '12:00 UTC'
+    );
+  });
   it('uses the same UTC day across offset timestamps, sorts newest first and isolates rooms', () => {
     const input = [
       photo('older', '2026-10-29T12:00:00Z'),
