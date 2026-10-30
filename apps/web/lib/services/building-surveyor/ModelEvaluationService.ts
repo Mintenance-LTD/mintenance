@@ -10,7 +10,8 @@
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { existsSync, readFileSync } from 'fs';
+import { mkdtempSync, rmSync, rmdirSync } from 'fs';
+import { tmpdir } from 'os';
 import { execFileSync } from 'child_process';
 import path from 'path';
 
@@ -27,6 +28,7 @@ import {
   calculateLinearTrend,
 } from './model-evaluation/metrics-math';
 import { parseMetricsFromLogs } from './model-evaluation/log-parser';
+import { readEvaluationArtifact } from './model-evaluation/artifact-reader';
 import { generateRecommendation } from './model-evaluation/recommendation';
 
 // Re-export types and standalone functions for backwards compatibility
@@ -57,15 +59,18 @@ export class ModelEvaluationService {
     outputDir: string
   ): Promise<ModelEvaluationMetrics> {
     try {
-      // Read metrics from JSON file written by Python training script
-      const metricsPath = path.join(outputDir, `metrics-${modelVersion}.json`);
+      // A version identifies a file, never a path (including Windows separators).
+      if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(modelVersion)) {
+        throw new Error('Invalid model version');
+      }
+      const metricsContent = readEvaluationArtifact(outputDir, `metrics-${modelVersion}.json`);
 
-      if (!existsSync(metricsPath)) {
+      if (metricsContent === undefined) {
         // Fallback: Parse from training logs
         return parseMetricsFromLogs(outputDir);
       }
 
-      const metricsJson = JSON.parse(readFileSync(metricsPath, 'utf-8'));
+      const metricsJson = JSON.parse(metricsContent);
 
       // Transform to our standard format
       const metrics: ModelEvaluationMetrics = {
@@ -118,8 +123,13 @@ export class ModelEvaluationService {
     modelPath: string,
     options: EvaluationOptions = {}
   ): Promise<ModelEvaluationMetrics> {
+    let evaluationDirectory: string | undefined;
     try {
       const modelVersion = path.basename(modelPath, path.extname(modelPath));
+      // A private directory prevents collisions, stale results and pre-created
+      // output symlinks. Model names never determine the output filename.
+      evaluationDirectory = mkdtempSync(path.join(tmpdir(), 'mintenance-evaluation-'));
+      const evaluationPath = path.join(evaluationDirectory, 'evaluation.json');
 
       // Prepare evaluation command
       const args = [
@@ -139,7 +149,7 @@ export class ModelEvaluationService {
         '--batch',
         String(options.batch_size || 1),
         '--output-json',
-        `evaluation-${modelVersion}.json`,
+        evaluationPath,
       ];
 
       if (options.verbose) {
@@ -159,10 +169,9 @@ export class ModelEvaluationService {
       const evaluationTime = (Date.now() - startTime) / 1000;
 
       // Parse evaluation results
-      const evaluationPath = `evaluation-${modelVersion}.json`;
-      const evaluationResults = JSON.parse(
-        readFileSync(evaluationPath, 'utf-8')
-      );
+      const evaluationContent = readEvaluationArtifact(evaluationDirectory, 'evaluation.json');
+      if (evaluationContent === undefined) throw new Error('Evaluation result file was not created');
+      const evaluationResults = JSON.parse(evaluationContent);
 
       // Create metrics object
       const metrics: ModelEvaluationMetrics = {
@@ -203,6 +212,15 @@ export class ModelEvaluationService {
     } catch (error) {
       logger.error('Model evaluation failed', { error, modelPath });
       throw error;
+    } finally {
+      if (evaluationDirectory) {
+        try {
+          rmSync(path.join(evaluationDirectory, 'evaluation.json'), { force: true });
+          rmdirSync(evaluationDirectory);
+        } catch (error) {
+          logger.warn('Failed to clean up evaluation output', { error, evaluationDirectory });
+        }
+      }
     }
   }
 

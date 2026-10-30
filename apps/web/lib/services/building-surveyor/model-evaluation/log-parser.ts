@@ -2,21 +2,18 @@
  * Fallback parser for extracting metrics from YOLO training log files
  */
 
-import { existsSync, readFileSync } from 'fs';
-import path from 'path';
+import { readEvaluationArtifact } from './artifact-reader';
 import type { ModelEvaluationMetrics } from './types';
 import { calculateF1Score } from './metrics-math';
 
 export async function parseMetricsFromLogs(outputDir: string): Promise<ModelEvaluationMetrics> {
   // Fallback implementation for parsing metrics from log files
   // This would parse the training output logs if JSON file is not available
-  const logPath = path.join(outputDir, 'training.log');
+  const logContent = readEvaluationArtifact(outputDir, 'training.log');
 
-  if (!existsSync(logPath)) {
+  if (logContent === undefined) {
     throw new Error('No metrics file or training logs found');
   }
-
-  const logContent = readFileSync(logPath, 'utf-8');
 
   // Parse metrics using regex (example patterns for YOLO output)
   const mAP50Match = logContent.match(/mAP50:\s*([\d.]+)/);
