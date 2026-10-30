@@ -43,7 +43,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        env:
+          ONNXRUNTIME_NODE_INSTALL: 'skip'
         run: npm ci --ignore-scripts=false
+
+      - name: Verify ONNX CPU runtime
+        run: node scripts/ci/verify-onnx-cpu.cjs
+        timeout-minutes: 1
 
       - name: Build shared packages
         run: npm run build:packages
@@ -143,7 +149,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        env:
+          ONNXRUNTIME_NODE_INSTALL: 'skip'
         run: npm ci --ignore-scripts=false
+
+      - name: Verify ONNX CPU runtime
+        run: node scripts/ci/verify-onnx-cpu.cjs
+        timeout-minutes: 1
 
       - name: Build shared packages
         run: npm run build:packages
@@ -177,7 +189,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        env:
+          ONNXRUNTIME_NODE_INSTALL: 'skip'
         run: npm ci --ignore-scripts=false
+
+      - name: Verify ONNX CPU runtime
+        run: node scripts/ci/verify-onnx-cpu.cjs
+        timeout-minutes: 1
 
       - name: Build shared packages
         run: npm run build:packages

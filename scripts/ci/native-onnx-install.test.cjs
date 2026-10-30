@@ -12,6 +12,7 @@ const targets = {
   'mobile-build.yml': ['pre-build-checks', 'build-android', 'build-ios'],
   'ci-cd.yml': ['build-staging', 'build-production'],
   'deploy-staging.yml': ['build-mobile-staging'],
+  'mobile-tests.yml': ['unit-tests', 'integration-tests', 'service-tests'],
 };
 
 for (const [file, jobs] of Object.entries(targets)) {
