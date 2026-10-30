@@ -1,6 +1,6 @@
 # Mintenance Production Deployment Runbook
 
-Last updated: 2026-03-17
+Release and migration procedure updated: 2026-10-30
 Version: 1.2.4
 
 ---
@@ -81,13 +81,15 @@ Complete every item before merging to `main`. Do not skip steps.
 
 - **Platform:** Vercel (Next.js)
 - **Region:** `lhr1` (London)
-- **Build command:** `bash scripts/vercel-build.sh` (copies public assets, runs `next build --webpack`)
+- **Build command:** `node scripts/vercel-build.js`; the legacy shell entry point delegates to it. It checks required migrations before compilation.
 - **Output directory:** `apps/web/.next`
 - **Framework:** Next.js with App Router
 
 ### 2.2 Standard Deployment (merge to main)
 
-**Step 1: Merge the PR**
+**Step 1: Apply reviewed database prerequisites, then merge the PR**
+
+Test each new, backwards-compatible migration on staging and apply that exact SQL to production before merging code that requires it. Follow section 4.2. Keep Vercel Authentication enabled for all deployments during beta.
 
 ```bash
 # On GitHub, merge the approved PR to main
@@ -99,19 +101,17 @@ Complete every item before merging to `main`. Do not skip steps.
 The `deploy.yml` workflow runs these steps in order:
 1. Checkout code
 2. Install dependencies (`npm ci`)
-3. TypeScript type check (`npm run type-check:web`)
-4. Lint (`npm run lint:web`)
-5. Build (`npm run build:web`)
-6. Push Supabase migrations to production
-7. Verify schema sync
-8. Deploy to Vercel (production)
-9. Post-deploy health check
+3. Release guard regression tests
+4. Production migration preflight on pushes to main (missing credentials fail)
+5. TypeScript type check, lint, build and web tests
+
+Vercel's Git integration builds independently of GitHub Actions. Its build command runs the same mandatory production migration preflight, so a missing migration or unavailable check stops publication. CI does not mutate the database. Do not promote a staging preview to production: preview builds use staging credentials and do not verify the production schema. Build production from the reviewed main commit with production configuration.
 
 **Step 3: Monitor the deployment**
 
 1. Watch the GitHub Actions run: `https://github.com/<org>/mintenance/actions/workflows/deploy.yml`
 2. Check the Vercel dashboard for deployment status
-3. Verify the health check step passed
+3. Verify the migration preflight passed in the Vercel build log and perform authenticated post-deploy checks
 
 **Step 4: Post-deploy verification**
 
@@ -167,8 +167,8 @@ git push origin main
 # List recent deployments
 vercel ls --prod
 
-# Promote a specific deployment
-vercel promote <deployment-url> --token=$VERCEL_TOKEN
+# Roll back to a previously verified production deployment
+vercel rollback <prior-production-deployment-url>
 ```
 
 ### 2.5 DNS and Domain Configuration
@@ -353,34 +353,19 @@ eas update --branch production --message "Rollback to <version>"
 
 ### 4.2 Running Migrations Against Production
 
-**Automated (recommended):**
+Apply only reviewed migration SQL, first to staging (`pzothyoipifjwnypzcuv`) and then production (`ukrjudtlvapiajkjbcrd`), recording it in Supabase migration history. Do not run a bulk `db push` against the legacy history: some migrations were recorded with different timestamps, and some bundles were deliberately deferred.
 
-Migrations run automatically as part of the `deploy.yml` workflow when code is pushed to `main`:
+`scripts/check-release-migrations.cjs` uses the service-role-only `release_migration_status()` RPC. `VERCEL_ENV=production` always requires the check; `REQUIRE_SCHEMA_CHECK=true` enables it for staging preview builds. A missing key, wrong project, unavailable response or missing required migration blocks the build. Never print the service key or expose it as a public environment variable.
 
-```yaml
-# From .github/workflows/deploy.yml
-- name: Run Supabase Migrations (Production)
-  run: npx supabase db push --db-url "${{ secrets.SUPABASE_DB_URL }}"
-```
+`supabase/release-baseline.json` fixes the hashes of historical SQL as of commit `075aa36c01c0abd3a9ad0b9b25df911107edb6b4`. It is not evidence that all historical SQL was applied. Every migration added after the baseline, including backdated filenames, is required. Do not refresh the baseline to hide an unapplied migration. Keep applied SQL immutable and use a new migration for corrections. Unique descriptive names allow matching migrations recorded by MCP under a different timestamp.
 
-**Manual (emergency or debugging):**
-
-```bash
-# Check what would be applied
-npx supabase db diff --db-url "$SUPABASE_DB_URL" --schema public
-
-# Push migrations
-npx supabase db push --db-url "$SUPABASE_DB_URL"
-
-# Verify no drift remains
-npx supabase db diff --db-url "$SUPABASE_DB_URL" --schema public
-```
+The baseline predates two unresolved legacy bundles: `readiness_storage_boundaries` and the full `onboarding_journeys_and_early_access_notices`. Their effects require separate reconciliation; a passing release guard does not certify them. The two chargeback migrations are explicitly required despite being in the baseline.
 
 ### 4.3 Migration Verification Steps
 
 After migration runs:
 
-1. **Schema diff check** -- The CI workflow automatically runs `supabase db diff` and warns if drift is detected.
+1. **Migration preflight** -- Confirm the service-only RPC returns each required migration and the build preflight passes. This checks migration history, not a full schema diff or SQL-content checksum in the database. Review affected objects and permissions separately.
 
 2. **Spot check critical tables:**
 
@@ -693,12 +678,12 @@ For native code changes, there is no instant rollback. Submit a hotfix build thr
 npx supabase db execute --db-url "$SUPABASE_DB_URL" < rollback.sql
 ```
 
-4. Remove or fix the migration file in the repository
+4. Record the correction in a new migration; never remove or edit an applied historical migration.
 
 **If the migration caused data corruption:**
 
 1. Stop the application (enable maintenance mode -- see 7.6)
-2. Restore from Supabase point-in-time recovery (available in Supabase dashboard)
+2. Restore from a verified recovery backup. The current Free plan has no managed backups or point-in-time recovery; do not assume either exists. Before engine upgrades, obtain a database backup and rehearse restoration in an isolated database. Database dumps do not include Storage object contents, which need separate recovery coverage.
 3. Re-apply only safe migrations
 
 ### 7.5 Emergency Contacts and Escalation
@@ -786,11 +771,12 @@ npm run test:mobile -- --watchAll=false  # Run all mobile tests
 
 # === DATABASE ===
 npx supabase db diff --local    # Check local migration diff
-npx supabase db push --db-url "$DB_URL"  # Push migrations
+# Apply reviewed individual migrations using section 4.2; no bulk history push.
+node scripts/check-release-migrations.cjs  # With production environment/key loaded securely
 
 # === DEPLOYMENT ===
 vercel ls --prod                # List production deployments
-vercel promote <url>            # Promote deployment to production
+vercel rollback <prior-production-url>  # Verified production rollback only
 eas build:list --platform all   # List recent EAS builds
 eas update:list --branch production  # List OTA updates
 
