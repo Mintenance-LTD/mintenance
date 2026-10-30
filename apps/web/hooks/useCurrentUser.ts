@@ -13,7 +13,7 @@ export function useCurrentUser() {
 
   // Expose refresh function to manually trigger refetch
   const refresh = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
     setLoading(true);
   }, []);
 
@@ -26,10 +26,15 @@ export function useCurrentUser() {
         const current = await fetchCurrentUser(controller.signal);
         if (mounted) {
           setUser(current);
+          setError(null);
         }
       } catch (err) {
         // Ignore abort errors - these are expected during unmount/route changes
-        if (err && typeof err === 'object' && (err as { name?: string }).name === 'AbortError') {
+        if (
+          err &&
+          typeof err === 'object' &&
+          (err as { name?: string }).name === 'AbortError'
+        ) {
           return;
         }
         if (mounted) {
@@ -58,4 +63,3 @@ export function useCurrentUser() {
 
   return { user, loading, error, refresh };
 }
-

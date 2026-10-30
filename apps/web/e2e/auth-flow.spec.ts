@@ -10,7 +10,7 @@
  */
 
 import { test, expect } from './fixtures';
-import { createHash, randomBytes, randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 
 /**
  * Fill every field the register schema requires.
@@ -41,19 +41,6 @@ async function fillSignUpForm(
 }
 
 test.describe('Authentication Flow', () => {
-  test.beforeEach(async ({ context, baseURL }, testInfo) => {
-    if (!process.env.CI) return;
-    if (baseURL !== 'https://localhost:3000' ||
-        process.env.E2E_SUPABASE_URL !== 'http://127.0.0.1:56321') {
-      throw new Error('Client-IP isolation is restricted to the disposable local CI stack.');
-    }
-    // Simulate distinct users at the trusted edge. All requests within a test
-    // retain the same IP and real Redis limits; tests/browsers do not share a
-    // three-per-hour reset budget. Never send this header to a hosted app.
-    const id = createHash('sha256').update(`${testInfo.testId}:${testInfo.retry}`).digest('hex').slice(0, 24);
-    await context.setExtraHTTPHeaders({ 'x-vercel-forwarded-for': `2001:db8:${id.match(/.{4}/g)!.join(':')}` });
-  });
-
   test.describe('Sign Up Flow', () => {
     test('user can create new account with valid details', async ({ page }) => {
       // Navigate to signup page
@@ -238,7 +225,10 @@ test.describe('Authentication Flow', () => {
         for (let attempt = 0; attempt < 4; attempt++) {
           const response = await fetch('/api/auth/forgot-password', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': token,
+            },
             body: JSON.stringify({ email: 'reset-limit-fixture@example.com' }),
           });
           results.push(response.status);

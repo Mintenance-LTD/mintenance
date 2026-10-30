@@ -6,6 +6,7 @@
  */
 
 import { test as base, expect } from '@playwright/test';
+import { isolatedClientHeaders } from '../../../scripts/ci/e2e-client-ip.cjs';
 
 /**
  * Must stay in sync with components/CookieConsent.tsx (STORAGE_KEY and
@@ -18,6 +19,17 @@ const CONSENT_STORAGE_KEY = 'mintenance_cookie_consent';
 const CONSENT_VERSION = '2.0';
 
 export const test = base.extend({
+  extraHTTPHeaders: async ({ extraHTTPHeaders, baseURL }, use, testInfo) => {
+    await use(
+      isolatedClientHeaders(
+        process.env,
+        baseURL,
+        testInfo.testId,
+        testInfo.retry,
+        extraHTTPHeaders
+      )
+    );
+  },
   /**
    * Pre-accept the cookie banner for every test.
    *

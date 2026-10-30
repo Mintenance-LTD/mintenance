@@ -123,7 +123,7 @@ jobs:
 
       - name: Verify environment isolation
         run: |
-          node --test scripts/ci/check-e2e-environment.test.cjs
+          node --test scripts/ci/check-e2e-environment.test.cjs scripts/ci/e2e-client-ip.test.cjs
           node scripts/ci/check-e2e-environment.cjs
 
       - name: Build web app
