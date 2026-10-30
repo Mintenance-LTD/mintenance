@@ -2,7 +2,8 @@
 import { render } from '@testing-library/react';
 import JobCreationError from '../error';
 
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
@@ -11,14 +12,16 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('lucide-react', () => ({
-  AlertTriangle: () => <span data-testid="icon" />,
-  RefreshCw: () => <span data-testid="icon" />,
-  ArrowLeft: () => <span data-testid="icon" />,
-  Save: () => <span data-testid="icon" />,
+  AlertTriangle: () => <span data-testid='icon' />,
+  RefreshCw: () => <span data-testid='icon' />,
+  ArrowLeft: () => <span data-testid='icon' />,
+  Save: () => <span data-testid='icon' />,
 }));
 
 vi.mock('@/components/ui/Button', () => ({
-  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  Button: ({ children, ...props }: any) => (
+    <button {...props}>{children}</button>
+  ),
 }));
 
 describe('JobCreationError', () => {

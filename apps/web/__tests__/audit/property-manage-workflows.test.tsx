@@ -1,6 +1,9 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MintEditorialPropertyManage } from '@/app/properties/[id]/components/MintEditorialPropertyManage';
+vi.mock('@/hooks/usePropertyView', () => ({
+  usePropertyView: () => ({ view: 'rentals' }),
+}));
 const mocks = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ default: mocks }));
 vi.mock('@/lib/csrf-client', () => ({ getCsrfToken: async () => 'test' }));

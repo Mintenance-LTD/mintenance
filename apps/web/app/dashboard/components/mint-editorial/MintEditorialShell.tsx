@@ -1,4 +1,5 @@
 'use client';
+import { PropertyViewSwitcher } from '@/components/properties/PropertyViewSwitcher';
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
@@ -132,6 +133,7 @@ export function MintEditorialShell({
           className='me-content'
           style={{ padding: contentPadding, flex: 1 }}
         >
+          <PropertyViewSwitcher />
           {children}
         </main>
       </div>

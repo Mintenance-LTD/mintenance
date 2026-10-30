@@ -1,4 +1,5 @@
 'use client';
+import { PropertyViewSwitcher } from '@/components/properties/PropertyViewSwitcher';
 
 import React, {
   ReactNode,
@@ -27,10 +28,7 @@ import {
 } from 'lucide-react';
 import { HomeownerBottomTabBar } from '@/components/ui/HomeownerBottomTabBar';
 import { useNavSections } from '@/components/layouts/sidebar/sidebarNavConfig';
-import type {
-  NavItem,
-  NavSection,
-} from '@/components/layouts/sidebar/SidebarNavItems';
+import type { NavSection } from '@/components/layouts/sidebar/SidebarNavItems';
 
 type HomeownerSummary = {
   first_name?: string | null;
@@ -517,7 +515,10 @@ export function ProfessionalHomeownerLayout({
 
         {/* Main Content Area — pb-20 on mobile leaves room for the bottom tab bar */}
         <main className='flex-1 p-4 lg:p-8 pb-20 lg:pb-8'>
-          <div className='max-w-7xl mx-auto'>{children}</div>
+          <div className='max-w-7xl mx-auto'>
+            <PropertyViewSwitcher />
+            {children}
+          </div>
         </main>
       </div>
 

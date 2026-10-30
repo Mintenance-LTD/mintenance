@@ -1,42 +1,28 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Camera, Upload, X, Loader2, ImagePlus } from 'lucide-react';
+import { Camera, Upload, Loader2, ImagePlus } from 'lucide-react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { getCsrfHeaders } from '@/lib/csrf-client';
-
-const ROOM_TYPES = [
-  { value: 'kitchen', label: 'Kitchen' },
-  { value: 'bathroom', label: 'Bathroom' },
-  { value: 'bedroom', label: 'Bedroom' },
-  { value: 'living_room', label: 'Living Room' },
-  { value: 'dining_room', label: 'Dining Room' },
-  { value: 'garage', label: 'Garage' },
-  { value: 'garden', label: 'Garden' },
-  { value: 'exterior', label: 'Exterior' },
-  { value: 'roof', label: 'Roof' },
-  { value: 'hallway', label: 'Hallway' },
-  { value: 'office', label: 'Office' },
-  { value: 'utility', label: 'Utility' },
-  { value: 'other', label: 'Other' },
-] as const;
-
-interface RoomPhoto {
-  id: string;
-  room_type: string;
-  photo_url: string;
-  file_name: string;
-  created_at: string;
-}
+import {
+  ROOM_PHOTO_TYPES as ROOM_TYPES,
+  groupRoomPhotoAlbums,
+  uploadedPhotoLabel,
+  type DatedRoomPhoto as RoomPhoto,
+} from '@mintenance/shared';
 
 interface RoomPhotoGalleryProps {
   propertyId: string;
 }
 
-export default function RoomPhotoGallery({ propertyId }: RoomPhotoGalleryProps) {
+export default function RoomPhotoGallery({
+  propertyId,
+}: RoomPhotoGalleryProps) {
   const [photos, setPhotos] = useState<RoomPhoto[]>([]);
-  const [grouped, setGrouped] = useState<Record<string, RoomPhoto[]>>({});
+  const [error, setError] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('all');
+  const requestId = useRef(0);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -44,29 +30,48 @@ export default function RoomPhotoGallery({ propertyId }: RoomPhotoGalleryProps) 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchPhotos = useCallback(async () => {
+    const request = ++requestId.current;
+    setLoading(true);
+    setError(false);
+    setPhotos([]);
     try {
       const res = await fetch(`/api/properties/${propertyId}/room-photos`);
-      if (!res.ok) return;
+      if (!res.ok) throw new Error('Photos unavailable');
       const data = await res.json();
-      setPhotos(data.photos || []);
-      setGrouped(data.grouped || {});
+      if (!Array.isArray(data.photos)) throw new Error('Invalid response');
+      if (request === requestId.current) {
+        setPhotos(data.photos);
+        setSelectedDate('all');
+      }
     } catch {
-      // silent
+      if (request === requestId.current) setError(true);
     } finally {
-      setLoading(false);
+      if (request === requestId.current) setLoading(false);
     }
   }, [propertyId]);
 
-  useEffect(() => { fetchPhotos(); }, [fetchPhotos]);
+  useEffect(() => {
+    void fetchPhotos();
+    return () => {
+      requestId.current++;
+    };
+  }, [fetchPhotos]);
 
   const handleUpload = async (files: FileList) => {
     if (!selectedRoom || !files.length) return;
+    if (
+      files.length > 10 ||
+      Array.from(files).some((file) => file.size > 5 * 1024 * 1024)
+    ) {
+      toast.error('Choose up to 10 photos, each smaller than 5 MB.');
+      return;
+    }
     setUploading(true);
 
     try {
       const formData = new FormData();
       formData.append('room_type', selectedRoom);
-      Array.from(files).forEach(f => formData.append('photos', f));
+      Array.from(files).forEach((f) => formData.append('photos', f));
 
       const csrfHeaders = await getCsrfHeaders();
       const res = await fetch(`/api/properties/${propertyId}/room-photos`, {
@@ -81,7 +86,9 @@ export default function RoomPhotoGallery({ propertyId }: RoomPhotoGalleryProps) 
         return;
       }
 
-      toast.success(`${data.uploaded} photo${data.uploaded > 1 ? 's' : ''} uploaded`);
+      toast.success(
+        `${data.uploaded} photo${data.uploaded > 1 ? 's' : ''} uploaded`
+      );
       if (data.warnings?.length) {
         toast.error(`${data.warnings.length} file(s) failed`);
       }
@@ -95,6 +102,8 @@ export default function RoomPhotoGallery({ propertyId }: RoomPhotoGalleryProps) 
   };
 
   const handleDelete = async (photoId: string) => {
+    if (!window.confirm('Delete this room photo? This cannot be undone.'))
+      return;
     setDeleting(photoId);
     try {
       const csrfHeaders = await getCsrfHeaders();
@@ -115,39 +124,53 @@ export default function RoomPhotoGallery({ propertyId }: RoomPhotoGalleryProps) 
     }
   };
 
-  const roomPhotos = selectedRoom ? (grouped[selectedRoom] || []) : [];
+  const roomPhotos = photos.filter((photo) => photo.room_type === selectedRoom);
+  const albums = groupRoomPhotoAlbums(photos, selectedRoom ?? '');
+  const visibleAlbums = albums.filter(
+    (album) => selectedDate === 'all' || album.date === selectedDate
+  );
   const totalPhotos = photos.length;
 
   return (
-    <div className="p-5 bg-white border border-gray-200 rounded-xl h-full">
-      <div className="flex items-center gap-2 mb-3">
-        <Camera className="w-4 h-4 text-teal-600" />
-        <h4 className="text-sm font-semibold text-gray-900">Room Photos</h4>
-        <span className="text-xs text-gray-400 ml-auto">{totalPhotos} photo{totalPhotos !== 1 ? 's' : ''}</span>
+    <div className='p-5 bg-white border border-gray-200 rounded-xl h-full'>
+      <div className='flex items-center gap-2 mb-3'>
+        <Camera className='w-4 h-4 text-teal-600' />
+        <h4 className='text-sm font-semibold text-gray-900'>Room Photos</h4>
+        <span className='text-xs text-gray-600 ml-auto'>
+          {totalPhotos} photo{totalPhotos !== 1 ? 's' : ''}
+        </span>
       </div>
 
-      <p className="text-xs text-gray-500 mb-3">
-        Upload photos organized by room for documentation and maintenance tracking.
+      <p className='text-xs text-gray-500 mb-3'>
+        Albums group photos by upload date (UTC). When a photo was taken is not
+        recorded.
       </p>
 
       {/* Room selector pills */}
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {ROOM_TYPES.map(room => {
-          const count = grouped[room.value]?.length || 0;
+      <div className='flex flex-wrap gap-1.5 mb-4'>
+        {ROOM_TYPES.map((room) => {
+          const count = photos.filter(
+            (photo) => photo.room_type === room.value
+          ).length;
           const isActive = selectedRoom === room.value;
           return (
             <button
               key={room.value}
-              onClick={() => setSelectedRoom(isActive ? null : room.value)}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+              aria-pressed={isActive}
+              onClick={() => {
+                setSelectedRoom(isActive ? null : room.value);
+                setSelectedDate('all');
+              }}
+              className={`min-h-11 px-3 py-2 rounded-full text-xs font-medium transition-colors ${
                 isActive
-                  ? 'bg-teal-600 text-white'
+                  ? 'bg-teal-800 text-white'
                   : count > 0
                     ? 'bg-teal-50 text-teal-700 hover:bg-teal-100'
                     : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
             >
-              {room.label}{count > 0 && ` (${count})`}
+              {room.label}
+              {count > 0 && ` (${count})`}
             </button>
           );
         })}
@@ -155,24 +178,29 @@ export default function RoomPhotoGallery({ propertyId }: RoomPhotoGalleryProps) 
 
       {/* Upload area */}
       {selectedRoom && (
-        <div className="mb-4">
+        <div className='mb-4'>
           <input
             ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
+            type='file'
+            accept='image/jpeg,image/png,image/webp,image/gif'
             multiple
-            className="hidden"
-            onChange={e => e.target.files && handleUpload(e.target.files)}
+            className='hidden'
+            onChange={(e) => e.target.files && handleUpload(e.target.files)}
           />
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-xs font-medium text-gray-500 hover:border-teal-400 hover:text-teal-600 transition-colors disabled:opacity-50"
+            className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-xs font-medium text-gray-500 hover:border-teal-400 hover:text-teal-600 transition-colors disabled:opacity-50'
           >
             {uploading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
+              <>
+                <Loader2 className='w-4 h-4 animate-spin' /> Uploading...
+              </>
             ) : (
-              <><Upload className="w-4 h-4" /> Upload photos to {ROOM_TYPES.find(r => r.value === selectedRoom)?.label}</>
+              <>
+                <Upload className='w-4 h-4' /> Upload photos to{' '}
+                {ROOM_TYPES.find((r) => r.value === selectedRoom)?.label}
+              </>
             )}
           </button>
         </div>
@@ -180,51 +208,113 @@ export default function RoomPhotoGallery({ propertyId }: RoomPhotoGalleryProps) 
 
       {/* Loading state */}
       {loading && (
-        <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+        <div className='flex items-center justify-center py-6'>
+          <Loader2 className='w-5 h-5 animate-spin text-gray-600' />
         </div>
       )}
 
-      {/* Photo grid */}
-      {!loading && selectedRoom && roomPhotos.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {roomPhotos.map(photo => (
-            <div key={photo.id} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100">
-              <Image
-                src={photo.photo_url}
-                alt={photo.file_name}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 33vw, 120px"
-              />
-              <button
-                onClick={() => handleDelete(photo.id)}
-                disabled={deleting === photo.id}
-                className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-              >
-                {deleting === photo.id ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <X className="w-3 h-3" />
-                )}
-              </button>
-            </div>
-          ))}
+      {error && (
+        <div
+          role='alert'
+          className='rounded-lg bg-red-50 p-3 text-sm text-red-900'
+        >
+          Photos could not be loaded.{' '}
+          <button
+            type='button'
+            className='min-h-11 underline font-semibold'
+            onClick={() => void fetchPhotos()}
+          >
+            Retry photos
+          </button>
         </div>
       )}
+      {!loading && !error && albums.length > 0 && (
+        <div className='mb-4'>
+          <label
+            className='block text-sm font-semibold mb-2'
+            htmlFor={`album-date-${propertyId}`}
+          >
+            Upload date (UTC)
+          </label>
+          <select
+            id={`album-date-${propertyId}`}
+            value={selectedDate}
+            onChange={(event) => setSelectedDate(event.target.value)}
+            className='min-h-11 w-full rounded-lg border border-gray-300 p-2 text-sm'
+          >
+            <option value='all'>All dates</option>
+            {albums.map((album) => (
+              <option key={album.date} value={album.date}>
+                {album.label} ({album.photos.length})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {!loading &&
+        !error &&
+        visibleAlbums.map((album) => (
+          <section key={album.date} className='mb-5' aria-label={album.label}>
+            <h5 className='mb-2 text-sm font-semibold text-gray-900'>
+              {album.label} · {album.photos.length} photo
+              {album.photos.length === 1 ? '' : 's'}
+            </h5>
+            <div className='grid grid-cols-2 sm:grid-cols-3 gap-3'>
+              {album.photos.map((photo) => (
+                <figure
+                  key={photo.id}
+                  className='min-w-0 rounded-lg border border-gray-200 overflow-hidden'
+                >
+                  <a
+                    href={photo.photo_url}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    aria-label={`View ${photo.file_name || 'room photo'} full size`}
+                    className='relative block aspect-square bg-gray-100 focus-visible:outline focus-visible:outline-2'
+                  >
+                    <Image
+                      src={photo.photo_url}
+                      alt={photo.file_name || 'Room photo'}
+                      fill
+                      className='object-contain'
+                      sizes='(max-width: 640px) 42vw, 180px'
+                    />
+                  </a>
+                  <figcaption className='p-2 text-xs text-gray-700 break-words'>
+                    {uploadedPhotoLabel(photo.created_at)}
+                  </figcaption>
+                  <button
+                    type='button'
+                    onClick={() => handleDelete(photo.id)}
+                    disabled={deleting === photo.id}
+                    aria-label={`Delete ${photo.file_name || 'room photo'}`}
+                    className='min-h-11 w-full text-xs font-semibold text-red-800 hover:bg-red-50'
+                  >
+                    {deleting === photo.id ? 'Deleting…' : 'Delete photo'}
+                  </button>
+                </figure>
+              ))}
+            </div>
+          </section>
+        ))}
 
       {/* Empty states */}
-      {!loading && selectedRoom && roomPhotos.length === 0 && (
-        <div className="flex flex-col items-center py-6 text-gray-400">
-          <ImagePlus className="w-8 h-8 mb-2" />
-          <p className="text-xs">No photos in {ROOM_TYPES.find(r => r.value === selectedRoom)?.label} yet</p>
+      {!loading && !error && selectedRoom && roomPhotos.length === 0 && (
+        <div className='flex flex-col items-center py-6 text-gray-600'>
+          <ImagePlus className='w-8 h-8 mb-2' />
+          <p className='text-xs'>
+            No photos in{' '}
+            {ROOM_TYPES.find((r) => r.value === selectedRoom)?.label} yet
+          </p>
         </div>
       )}
 
-      {!loading && !selectedRoom && (
-        <div className="flex flex-col items-center py-6 text-gray-400">
-          <Camera className="w-8 h-8 mb-2" />
-          <p className="text-xs">Select a room above to view or upload photos</p>
+      {!loading && !error && !selectedRoom && (
+        <div className='flex flex-col items-center py-6 text-gray-600'>
+          <Camera className='w-8 h-8 mb-2' />
+          <p className='text-xs'>
+            Select a room above to view or upload photos
+          </p>
         </div>
       )}
     </div>

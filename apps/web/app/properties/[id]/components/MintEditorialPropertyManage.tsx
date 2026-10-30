@@ -1,4 +1,6 @@
 'use client';
+import { usePropertyView } from '@/hooks/usePropertyView';
+import { showPropertyTool } from '@mintenance/shared';
 
 import React, { useState } from 'react';
 import { TenantReportingCard } from './TenantReportingCard';
@@ -54,6 +56,7 @@ export function MintEditorialPropertyManage({
   propertyName,
   jobs,
 }: Props) {
+  const { view } = usePropertyView();
   const [section, setSection] = useState('work');
   const sections = [
     {
@@ -75,6 +78,8 @@ export function MintEditorialPropertyManage({
       icon: FolderOpen,
     },
   ];
+  const visibleSection =
+    view === 'home' && section === 'people' ? 'records' : section;
   return (
     <div className='col me-legacy-fit' style={{ gap: 24 }}>
       <header>
@@ -87,30 +92,35 @@ export function MintEditorialPropertyManage({
           aria-label='Property management sections'
           className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6'
         >
-          {sections.map(({ id, title, detail, icon: Icon }) => (
-            <button
-              key={id}
-              type='button'
-              aria-pressed={section === id}
-              aria-controls={`manage-${id}`}
-              onClick={() => setSection(id)}
-              className='rounded-2xl border p-5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4'
-              style={{
-                background: section === id ? 'var(--me-brand)' : 'white',
-                color: section === id ? 'white' : 'var(--me-ink)',
-                borderColor:
-                  section === id ? 'var(--me-brand)' : 'var(--me-border)',
-              }}
-            >
-              <Icon size={22} aria-hidden='true' className='mb-3' />
-              <span className='block font-semibold'>{title}</span>
-              <span className='block text-sm mt-1'>{detail}</span>
-            </button>
-          ))}
+          {sections
+            .filter((item) => view !== 'home' || item.id !== 'people')
+            .map(({ id, title, detail, icon: Icon }) => (
+              <button
+                key={id}
+                type='button'
+                aria-pressed={visibleSection === id}
+                aria-controls={`manage-${id}`}
+                onClick={() => setSection(id)}
+                className='rounded-2xl border p-5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4'
+                style={{
+                  background:
+                    visibleSection === id ? 'var(--me-brand)' : 'white',
+                  color: visibleSection === id ? 'white' : 'var(--me-ink)',
+                  borderColor:
+                    visibleSection === id
+                      ? 'var(--me-brand)'
+                      : 'var(--me-border)',
+                }}
+              >
+                <Icon size={22} aria-hidden='true' className='mb-3' />
+                <span className='block font-semibold'>{title}</span>
+                <span className='block text-sm mt-1'>{detail}</span>
+              </button>
+            ))}
         </nav>
       </header>
       <section
-        hidden={section !== 'work'}
+        hidden={visibleSection !== 'work'}
         id='manage-work'
         aria-labelledby='manage-work-title'
         className='scroll-mt-24'
@@ -125,9 +135,11 @@ export function MintEditorialPropertyManage({
           <FeatureGateCard featureId='HOMEOWNER_RECURRING_MAINTENANCE'>
             <RecurringMaintenance propertyId={propertyId} />
           </FeatureGateCard>
-          <FeatureGateCard featureId='HOMEOWNER_BULK_OPERATIONS'>
-            <BulkOperations propertyId={propertyId} jobs={jobs} />
-          </FeatureGateCard>
+          {showPropertyTool(view, 'team') && (
+            <FeatureGateCard featureId='HOMEOWNER_BULK_OPERATIONS'>
+              <BulkOperations propertyId={propertyId} jobs={jobs} />
+            </FeatureGateCard>
+          )}
         </div>
         <details className='mt-5 rounded-2xl border bg-white p-5'>
           <summary className='cursor-pointer font-semibold'>
@@ -139,7 +151,7 @@ export function MintEditorialPropertyManage({
         </details>
       </section>
       <section
-        hidden={section !== 'people'}
+        hidden={visibleSection !== 'people'}
         id='manage-people'
         aria-labelledby='manage-people-title'
         className='scroll-mt-24'
@@ -158,22 +170,28 @@ export function MintEditorialPropertyManage({
           Review tenant reports across your properties
         </Link>
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-5 items-start'>
-          <FeatureGateCard featureId='HOMEOWNER_TENANT_REPORTING'>
-            <TenantReportingCard
-              propertyId={propertyId}
-              propertyName={propertyName}
-            />
-          </FeatureGateCard>
-          <FeatureGateCard featureId='HOMEOWNER_TENANT_CONTACTS'>
-            <TenantContacts propertyId={propertyId} />
-          </FeatureGateCard>
-          <FeatureGateCard featureId='HOMEOWNER_TEAM_ACCESS'>
-            <TeamAccess propertyId={propertyId} />
-          </FeatureGateCard>
+          {showPropertyTool(view, 'rental') && (
+            <FeatureGateCard featureId='HOMEOWNER_TENANT_REPORTING'>
+              <TenantReportingCard
+                propertyId={propertyId}
+                propertyName={propertyName}
+              />
+            </FeatureGateCard>
+          )}
+          {showPropertyTool(view, 'rental') && (
+            <FeatureGateCard featureId='HOMEOWNER_TENANT_CONTACTS'>
+              <TenantContacts propertyId={propertyId} />
+            </FeatureGateCard>
+          )}
+          {showPropertyTool(view, 'team') && (
+            <FeatureGateCard featureId='HOMEOWNER_TEAM_ACCESS'>
+              <TeamAccess propertyId={propertyId} />
+            </FeatureGateCard>
+          )}
         </div>
       </section>
       <section
-        hidden={section !== 'records'}
+        hidden={visibleSection !== 'records'}
         id='manage-records'
         aria-labelledby='manage-records-title'
         className='scroll-mt-24'
@@ -189,9 +207,11 @@ export function MintEditorialPropertyManage({
           <FeatureGateCard featureId='HOMEOWNER_ROOM_PHOTOS'>
             <RoomPhotoGallery propertyId={propertyId} />
           </FeatureGateCard>
-          <FeatureGateCard featureId='HOMEOWNER_PORTFOLIO_ANALYTICS'>
-            <PortfolioAnalyticsCard />
-          </FeatureGateCard>
+          {showPropertyTool(view, 'rental') && (
+            <FeatureGateCard featureId='HOMEOWNER_PORTFOLIO_ANALYTICS'>
+              <PortfolioAnalyticsCard />
+            </FeatureGateCard>
+          )}
         </div>
       </section>
     </div>

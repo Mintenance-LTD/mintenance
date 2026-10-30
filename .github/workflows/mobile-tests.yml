@@ -8,6 +8,7 @@ on:
       - 'packages/**'
       - '.github/workflows/mobile-tests.yml'
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main, develop]
     paths:
       - 'apps/mobile/**'
@@ -248,7 +249,8 @@ jobs:
     name: E2E Tests (Android)
     runs-on: ubuntu-latest
     needs: [unit-tests, e2e-secrets-gate]
-    if: needs.e2e-secrets-gate.outputs.has-staging == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
+    # Draft PRs run JavaScript tests without compiling native apps.
+    if: (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.e2e-secrets-gate.outputs.has-staging == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -307,7 +309,8 @@ jobs:
     name: E2E Tests (iOS)
     runs-on: macos-latest
     needs: [unit-tests, e2e-secrets-gate]
-    if: needs.e2e-secrets-gate.outputs.has-staging == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
+    # Draft PRs run JavaScript tests without compiling native apps.
+    if: (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.e2e-secrets-gate.outputs.has-staging == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -372,7 +375,7 @@ jobs:
     name: Quality Gate
     runs-on: ubuntu-latest
     needs: [unit-tests, integration-tests, service-tests, e2e-android, e2e-ios]
-    if: github.event_name == 'pull_request'
+    if: always() && github.event_name == 'pull_request'
 
     steps:
       - name: Check test results
@@ -385,7 +388,7 @@ jobs:
             echo "❌ Tests failed - blocking PR"
             exit 1
           else
-            echo "✅ All tests passed - PR can be merged"
+            echo "✅ Required tests passed; review skipped native checks before release"
           fi
 
       - name: Comment on PR
@@ -410,7 +413,7 @@ jobs:
             ${statusEmoji(e2eIos)} **E2E iOS**: ${e2eIos}
 
             ${unitTests === 'success' && integrationTests === 'success' && serviceTests === 'success'
-              ? '✅ All tests passed! This PR is ready to merge.'
+              ? '✅ Required tests passed. Native tests may be skipped; this does not authorize a build or release.'
               : '❌ Some tests failed. Please fix the issues before merging.'}
             `;
 

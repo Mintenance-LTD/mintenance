@@ -1,4 +1,6 @@
 'use client';
+import { usePropertyView } from '@/hooks/usePropertyView';
+import { showPropertyTool } from '@mintenance/shared';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -106,6 +108,7 @@ export default function PropertyDetailsClient({
 }: PropertyDetailsClientProps) {
   const router = useRouter();
   const confirm = useConfirm();
+  const { view } = usePropertyView();
   const [activeTab, setActiveTab] = useState<
     'overview' | 'jobs' | 'assessments' | 'manage'
   >('overview');
@@ -704,7 +707,7 @@ export default function PropertyDetailsClient({
               </div>
 
               {/* Spending Trend Chart — gated: landlord + agency */}
-              {jobs.length > 0 && (
+              {jobs.length > 0 && showPropertyTool(view, 'rental') && (
                 <FeatureGateCard featureId='HOMEOWNER_PORTFOLIO_ANALYTICS'>
                   <div className='bg-white rounded-xl border border-gray-200 p-6'>
                     <h2 className='text-lg font-semibold text-gray-900 mb-4'>
@@ -907,62 +910,64 @@ export default function PropertyDetailsClient({
               </FeatureGateCard>
 
               {/* Tenant Reporting */}
-              <FeatureGateCard featureId='HOMEOWNER_TENANT_REPORTING'>
-                <div className='p-5 bg-white border border-gray-200 rounded-xl h-full'>
-                  <div className='flex items-center gap-2 mb-3'>
-                    <Link2 className='w-4 h-4 text-teal-600' />
-                    <h4 className='text-sm font-semibold text-gray-900'>
-                      Tenant Reporting Links
-                    </h4>
-                  </div>
-                  <p className='text-xs text-gray-500 mb-3'>
-                    Share a link with tenants to report maintenance issues
-                    without an account.
-                  </p>
-                  <button
-                    onClick={handleGenerateReportToken}
-                    disabled={isGeneratingToken}
-                    className='w-full px-3 py-2 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 transition-colors disabled:opacity-50 mb-2'
-                  >
-                    {isGeneratingToken
-                      ? 'Generating...'
-                      : 'Generate Report Link'}
-                  </button>
-                  {reportTokens.length > 0 && (
-                    <div className='space-y-2 mt-2'>
-                      {reportTokens.slice(0, 3).map((token) => (
-                        <div
-                          key={token.id}
-                          className='flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs'
-                        >
-                          <span
-                            className={`${token.is_active ? 'text-green-600' : 'text-gray-400'} font-medium`}
-                          >
-                            {token.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                          <div className='flex items-center gap-1'>
-                            <button
-                              onClick={() => copyReportLink(token.token)}
-                              className='p-1 hover:bg-gray-200 rounded'
-                              title='Copy link'
-                            >
-                              <Copy className='w-3 h-3 text-gray-500' />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleToggleToken(token.id, token.is_active)
-                              }
-                              className='p-1 hover:bg-gray-200 rounded text-xs text-gray-500'
-                            >
-                              {token.is_active ? 'Disable' : 'Enable'}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+              {showPropertyTool(view, 'rental') && (
+                <FeatureGateCard featureId='HOMEOWNER_TENANT_REPORTING'>
+                  <div className='p-5 bg-white border border-gray-200 rounded-xl h-full'>
+                    <div className='flex items-center gap-2 mb-3'>
+                      <Link2 className='w-4 h-4 text-teal-600' />
+                      <h4 className='text-sm font-semibold text-gray-900'>
+                        Tenant Reporting Links
+                      </h4>
                     </div>
-                  )}
-                </div>
-              </FeatureGateCard>
+                    <p className='text-xs text-gray-500 mb-3'>
+                      Share a link with tenants to report maintenance issues
+                      without an account.
+                    </p>
+                    <button
+                      onClick={handleGenerateReportToken}
+                      disabled={isGeneratingToken}
+                      className='w-full px-3 py-2 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 transition-colors disabled:opacity-50 mb-2'
+                    >
+                      {isGeneratingToken
+                        ? 'Generating...'
+                        : 'Generate Report Link'}
+                    </button>
+                    {reportTokens.length > 0 && (
+                      <div className='space-y-2 mt-2'>
+                        {reportTokens.slice(0, 3).map((token) => (
+                          <div
+                            key={token.id}
+                            className='flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs'
+                          >
+                            <span
+                              className={`${token.is_active ? 'text-green-600' : 'text-gray-400'} font-medium`}
+                            >
+                              {token.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                            <div className='flex items-center gap-1'>
+                              <button
+                                onClick={() => copyReportLink(token.token)}
+                                className='p-1 hover:bg-gray-200 rounded'
+                                title='Copy link'
+                              >
+                                <Copy className='w-3 h-3 text-gray-500' />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleToggleToken(token.id, token.is_active)
+                                }
+                                className='p-1 hover:bg-gray-200 rounded text-xs text-gray-500'
+                              >
+                                {token.is_active ? 'Disable' : 'Enable'}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </FeatureGateCard>
+              )}
 
               {/* Recurring Maintenance */}
               <FeatureGateCard featureId='HOMEOWNER_RECURRING_MAINTENANCE'>
@@ -970,41 +975,49 @@ export default function PropertyDetailsClient({
               </FeatureGateCard>
 
               {/* Tenant Contacts */}
-              <FeatureGateCard featureId='HOMEOWNER_TENANT_CONTACTS'>
-                <TenantContacts propertyId={property.id} />
-              </FeatureGateCard>
+              {showPropertyTool(view, 'rental') && (
+                <FeatureGateCard featureId='HOMEOWNER_TENANT_CONTACTS'>
+                  <TenantContacts propertyId={property.id} />
+                </FeatureGateCard>
+              )}
 
               {/* Team Access */}
-              <FeatureGateCard featureId='HOMEOWNER_TEAM_ACCESS'>
-                <TeamAccess propertyId={property.id} />
-              </FeatureGateCard>
+              {showPropertyTool(view, 'team') && (
+                <FeatureGateCard featureId='HOMEOWNER_TEAM_ACCESS'>
+                  <TeamAccess propertyId={property.id} />
+                </FeatureGateCard>
+              )}
 
               {/* Portfolio Analytics */}
-              <FeatureGateCard featureId='HOMEOWNER_PORTFOLIO_ANALYTICS'>
-                <div className='p-5 bg-white border border-gray-200 rounded-xl h-full'>
-                  <div className='flex items-center gap-2 mb-2'>
-                    <BarChart2 className='w-4 h-4 text-teal-600' />
-                    <h4 className='text-sm font-semibold text-gray-900'>
-                      Portfolio Analytics
-                    </h4>
+              {showPropertyTool(view, 'rental') && (
+                <FeatureGateCard featureId='HOMEOWNER_PORTFOLIO_ANALYTICS'>
+                  <div className='p-5 bg-white border border-gray-200 rounded-xl h-full'>
+                    <div className='flex items-center gap-2 mb-2'>
+                      <BarChart2 className='w-4 h-4 text-teal-600' />
+                      <h4 className='text-sm font-semibold text-gray-900'>
+                        Portfolio Analytics
+                      </h4>
+                    </div>
+                    <p className='text-xs text-gray-500 mb-3'>
+                      Detailed spend tracking and maintenance analytics for this
+                      property.
+                    </p>
+                    <Link
+                      href='/properties/compliance'
+                      className='inline-flex px-3 py-2 bg-gray-100 rounded-lg text-xs font-medium text-teal-600 hover:bg-gray-200 transition-colors'
+                    >
+                      View Compliance Dashboard
+                    </Link>
                   </div>
-                  <p className='text-xs text-gray-500 mb-3'>
-                    Detailed spend tracking and maintenance analytics for this
-                    property.
-                  </p>
-                  <Link
-                    href='/properties/compliance'
-                    className='inline-flex px-3 py-2 bg-gray-100 rounded-lg text-xs font-medium text-teal-600 hover:bg-gray-200 transition-colors'
-                  >
-                    View Compliance Dashboard
-                  </Link>
-                </div>
-              </FeatureGateCard>
+                </FeatureGateCard>
+              )}
 
               {/* Bulk Operations */}
-              <FeatureGateCard featureId='HOMEOWNER_BULK_OPERATIONS'>
-                <BulkOperations propertyId={property.id} jobs={jobs} />
-              </FeatureGateCard>
+              {showPropertyTool(view, 'team') && (
+                <FeatureGateCard featureId='HOMEOWNER_BULK_OPERATIONS'>
+                  <BulkOperations propertyId={property.id} jobs={jobs} />
+                </FeatureGateCard>
+              )}
             </div>
           </div>
         )}
