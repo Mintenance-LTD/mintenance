@@ -373,6 +373,7 @@ apps/mobile/phase4-after-mocks.txt
 
 # Generated aggregate storage audit report
 /scripts/storage-integrity-report.json
+!supabase/release-baseline.json
 
 # Keep the scheduled k6 entry point despite the broad test-script ignore.
 !apps/web/load-tests/k6/smoke-test.js

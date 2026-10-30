@@ -2,11 +2,12 @@ name: Deploy to Vercel
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,34 +16,36 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Secret-presence flags (secrets context is not allowed in step-level `if:`
-    # directly — same pattern as HAS_SNYK in security-scan.yml). As of
-    # 2026-07-27 SUPABASE_DB_URL and VERCEL_ORG_ID do NOT exist in repo
-    # settings, so the migration + CLI-deploy steps below self-skip and this
-    # workflow acts as the PR/main quality gate (type-check, lint, build,
-    # tests) while the Vercel GitHub app handles actual deploys. Adding the
-    # secrets re-activates the steps.
-    env:
-      HAS_DB_URL: ${{ secrets.SUPABASE_DB_URL != '' }}
-      HAS_VERCEL_ORG: ${{ secrets.VERCEL_ORG_ID != '' }}
-      HAS_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL != '' }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
-          cache: 'npm'
+          cache: npm
 
       - name: Install dependencies
-        # CPU runners use bundled ONNX binaries; skip only the extra CUDA download.
         env:
-          ONNXRUNTIME_NODE_INSTALL: 'skip'
+          ONNXRUNTIME_NODE_INSTALL: skip
         run: npm ci --ignore-scripts=false
         timeout-minutes: 10
+
+      - name: Test release guard
+        run: node --test scripts/check-release-migrations.test.cjs scripts/vercel-build.test.cjs
+
+      # No secret-presence condition: missing credentials must block main.
+      # Apply reviewed, backwards-compatible migrations separately before release.
+      - name: Verify production migration prerequisites
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          VERCEL_ENV: production
+          NEXT_PUBLIC_SUPABASE_URL: https://ukrjudtlvapiajkjbcrd.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/check-release-migrations.cjs
 
       - name: Type check
         run: npm run type-check:web
@@ -58,116 +61,10 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
-      # Gate the production migration + deploy on the test suite. Steps in a job
-      # run sequentially and a non-zero exit aborts the job, so placing this
-      # BEFORE the prod-migration/deploy steps guarantees a broken merge cannot
-      # push migrations to the production DB or ship to Vercel. (Previously this
-      # workflow had no test step at all and ran in parallel with ci-cd.yml, so
-      # a semantically-broken merge could migrate prod before tests finished.)
       - name: Run tests (web)
         run: npm run test:web -- run
 
-      - name: Run Supabase Migrations (Production)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && env.HAS_DB_URL == 'true'
-        run: npx supabase db push --db-url "${{ secrets.SUPABASE_DB_URL }}"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Verify Schema (Production)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && env.HAS_DB_URL == 'true'
-        run: |
-          echo "Verifying database schema is in sync..."
-          npx supabase db diff --db-url "${{ secrets.SUPABASE_DB_URL }}" --schema public 2>&1 | tee /tmp/schema-diff.txt
-          if [ -s /tmp/schema-diff.txt ] && grep -q "CREATE\|ALTER\|DROP" /tmp/schema-diff.txt; then
-            echo "::warning::Schema drift detected after migration push. Review /tmp/schema-diff.txt"
-          else
-            echo "Schema is in sync."
-          fi
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Post-Deploy Health Check
-        if: success() && github.ref == 'refs/heads/main' && github.event_name == 'push' && env.HAS_APP_URL == 'true'
-        run: |
-          echo "Waiting for deployment to stabilise..."
-          sleep 30
-          HEALTH_URL="${{ secrets.NEXT_PUBLIC_APP_URL }}/api/health"
-          echo "Checking $HEALTH_URL..."
-          STATUS=$(curl -s -o /tmp/health.json -w "%{http_code}" "$HEALTH_URL" || echo "000")
-          if [ "$STATUS" = "200" ]; then
-            echo "Health check passed (HTTP $STATUS)"
-            cat /tmp/health.json | python3 -m json.tool 2>/dev/null || cat /tmp/health.json
-          elif [ "$STATUS" = "503" ]; then
-            echo "::error::Health check returned 503 — service unhealthy after deploy"
-            cat /tmp/health.json
-            exit 1
-          else
-            echo "::warning::Health check returned HTTP $STATUS — could not verify deployment"
-          fi
-
-      # ENABLE THESE STEPS AFTER CONFIGURING VERCEL SECRETS
-      # (VERCEL_ORG_ID is currently missing — note the malformed secret named
-      # "VERCEL_TOKEN_VERCEL_ORG_ID_VERCEL_PROJECT_ID" in repo settings, which
-      # looks like three names pasted as one. Until VERCEL_ORG_ID exists these
-      # steps self-skip; the Vercel GitHub app performs the real deploys.)
-      - name: Deploy to Vercel (Preview)
-        if: github.event_name == 'pull_request' && env.HAS_VERCEL_ORG == 'true'
-        run: |
-          npm install -g vercel
-          cd apps/web
-          vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-          vercel build --token=${{ secrets.VERCEL_TOKEN }}
-          vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Deploy to Vercel (Production)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && env.HAS_VERCEL_ORG == 'true'
-        run: |
-          npm install -g vercel
-          cd apps/web
-          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-          vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-
-      - name: Build Success Summary
-        if: success()
-        run: |
-          echo "# ✅ Build Successful" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The web application has been built successfully and is ready for deployment." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Vercel will automatically deploy this build" >> $GITHUB_STEP_SUMMARY
-          echo "- Check the Vercel dashboard for deployment URL" >> $GITHUB_STEP_SUMMARY
-
-      # NOTE: Uncomment when Vercel secrets are configured
-      # - name: Deploy to Vercel (Production)
-      #   if: github.ref == 'refs/heads/main'
-      #   run: |
-      #     npm install -g vercel
-      #     cd apps/web
-      #     vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
-      #   env:
-      #     VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      #     VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      #
-      # - name: Deploy to Vercel (Preview)
-      #   if: github.event_name == 'pull_request'
-      #   run: |
-      #     npm install -g vercel
-      #     cd apps/web
-      #     vercel --token=${{ secrets.VERCEL_TOKEN }}
-      #   env:
-      #     VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      #     VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      # Vercel Git builds independently. scripts/vercel-build.js also executes
+      # the same fail-closed preflight before compilation. Never run db push
+      # against all historical files here: legacy history includes bundled
+      # and deliberately deferred migrations. No automatic schema mutation.
