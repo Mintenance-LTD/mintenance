@@ -1,3 +1,4 @@
+import { TenancyInspections } from './components/TenancyInspections';
 import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSwitcher';
 import { usePropertyView } from '../../hooks/usePropertyView';
 import { showPropertyTool } from '@mintenance/shared';
@@ -762,6 +763,10 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   const renderManageTab = () => (
     <>
+      <TenancyInspections
+        key={`tenancies:${user?.id}:${propertyId}`}
+        propertyId={propertyId}
+      />
       {propertyId && (
         <RoomPhotoAlbums
           key={`${user?.id}:${propertyId}`}

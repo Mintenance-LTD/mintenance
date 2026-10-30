@@ -40,6 +40,7 @@ import TenantContacts from './TenantContacts';
 import TeamAccess from './TeamAccess';
 import BulkOperations from './BulkOperations';
 import RoomPhotoGallery from './RoomPhotoGallery';
+import TenancyInspections from './TenancyInspections';
 import YearOverYearComparison from './YearOverYearComparison';
 import PropertyAssessments from './PropertyAssessments';
 import { PropertyFileHub } from './PropertyFileHub';
@@ -898,6 +899,7 @@ export default function PropertyDetailsClient({
         {activeTab === 'manage' && (
           <div className='space-y-6'>
             <PropertyFileHub propertyId={property.id} />
+            <TenancyInspections key={property.id} propertyId={property.id} />
             <p className='text-sm text-gray-500'>
               Manage your property with premium tools. Features are available
               based on your subscription plan.

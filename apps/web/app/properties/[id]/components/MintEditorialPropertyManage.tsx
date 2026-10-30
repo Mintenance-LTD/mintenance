@@ -12,6 +12,7 @@ import TenantContacts from './TenantContacts';
 import TeamAccess from './TeamAccess';
 import BulkOperations from './BulkOperations';
 import RoomPhotoGallery from './RoomPhotoGallery';
+import TenancyInspections from './TenancyInspections';
 import { PropertyWorkQueue } from './PropertyWorkQueue';
 
 interface ManageJob {
@@ -203,7 +204,10 @@ export function MintEditorialPropertyManage({
           Keep room photos and supporting records organised. Job history is not
           proof of compliance.
         </p>
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 items-start'>
+        {visibleSection === 'records' && (
+          <TenancyInspections key={propertyId} propertyId={propertyId} />
+        )}
+        <div className='mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 items-start'>
           <FeatureGateCard featureId='HOMEOWNER_ROOM_PHOTOS'>
             <RoomPhotoGallery propertyId={propertyId} />
           </FeatureGateCard>

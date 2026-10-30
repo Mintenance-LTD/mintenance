@@ -1,3 +1,6 @@
+vi.mock('@/app/properties/[id]/components/TenancyInspections', () => ({
+  default: () => null,
+}));
 import { beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MintEditorialPropertyManage } from '@/app/properties/[id]/components/MintEditorialPropertyManage';
