@@ -39,10 +39,16 @@ beforeEach(() => {
   loseResponse = false;
   failSave = false;
   persisted = null;
-  m.rpc.mockImplementation(async () => ({
-    data: [{ ...attempt, transfer_id: persisted }],
-    error: null,
-  }));
+  m.rpc.mockImplementation(async (name, args) => {
+    if (name === 'record_escrow_transfer_balance_rejection') {
+      if (persisted || args.p_idempotency_key !== attempt.idempotency_key)
+        return { data: false, error: null };
+      attempt.idempotency_key += '_retry';
+      attempt.provider_attempt_started_at = new Date().toISOString();
+      return { data: true, error: null };
+    }
+    return { data: [{ ...attempt, transfer_id: persisted }], error: null };
+  });
   m.create.mockImplementation(async (params, { idempotencyKey }) => {
     const prior = provider.get(idempotencyKey);
     if (prior && prior.parameters !== JSON.stringify(params))
@@ -84,6 +90,106 @@ beforeEach(() => {
   }));
 });
 describe('escrow transfer recovery', () => {
+  const balanceRejection = () =>
+    Object.assign(new Error('Insufficient available balance'), {
+      type: 'StripeInvalidRequestError',
+      statusCode: 400,
+      code: 'balance_insufficient',
+      requestId: 'req_rejected',
+    });
+
+  it('retires a definitively rejected key and pays once after funds arrive', async () => {
+    m.create.mockRejectedValueOnce(balanceRejection());
+    await expect(
+      createEscrowTransfer('one', 43000, 'acct_one')
+    ).rejects.toThrow('Insufficient');
+    expect(provider.size).toBe(0);
+    expect(m.rpc).toHaveBeenCalledWith(
+      'record_escrow_transfer_balance_rejection',
+      {
+        p_escrow_id: 'one',
+        p_idempotency_key: 'escrow_release_one',
+        p_request_id: 'req_rejected',
+      }
+    );
+    await expect(
+      createEscrowTransfer('one', 43000, 'acct_one')
+    ).resolves.toEqual({ id: 'tr_one' });
+    await expect(
+      createEscrowTransfer('one', 43000, 'acct_one')
+    ).resolves.toEqual({ id: 'tr_one' });
+    expect(provider.size).toBe(1);
+    expect(m.create.mock.calls[1][1]).toEqual({
+      idempotencyKey: 'escrow_release_one_retry',
+    });
+    expect(m.create.mock.calls[0][0]).toEqual(m.create.mock.calls[1][0]);
+  });
+
+  it('coalesces concurrent rejected responses onto one replacement key', async () => {
+    m.create
+      .mockRejectedValueOnce(balanceRejection())
+      .mockRejectedValueOnce(balanceRejection());
+    const failures = await Promise.allSettled([
+      createEscrowTransfer('one', 43000, 'acct_one'),
+      createEscrowTransfer('one', 43000, 'acct_one'),
+    ]);
+    expect(failures.every((result) => result.status === 'rejected')).toBe(true);
+    expect(attempt.idempotency_key).toBe('escrow_release_one_retry');
+    await createEscrowTransfer('one', 43000, 'acct_one');
+    expect(provider.size).toBe(1);
+  });
+
+  it.each([
+    { type: 'StripeConnectionError', statusCode: 400 },
+    { type: 'StripeInvalidRequestError', statusCode: 500 },
+    {
+      type: 'StripeInvalidRequestError',
+      statusCode: 400,
+      requestId: undefined,
+    },
+    {
+      type: 'StripeInvalidRequestError',
+      statusCode: 400,
+      code: 'idempotency_key_in_use',
+    },
+  ])(
+    'keeps the original key for ambiguous or different provider errors: %j',
+    async (override) => {
+      m.create.mockRejectedValueOnce(
+        Object.assign(balanceRejection(), override)
+      );
+      await expect(
+        createEscrowTransfer('one', 43000, 'acct_one')
+      ).rejects.toThrow();
+      expect(m.rpc).toHaveBeenCalledTimes(1);
+      expect(attempt.idempotency_key).toBe('escrow_release_one');
+    }
+  );
+
+  it('fails closed if the rejected key cannot be journaled', async () => {
+    m.rpc.mockImplementation(async (name) =>
+      name === 'reserve_escrow_transfer'
+        ? { data: [attempt], error: null }
+        : { data: null, error: { message: 'Database unavailable' } }
+    );
+    m.create.mockRejectedValueOnce(balanceRejection());
+    await expect(
+      createEscrowTransfer('one', 43000, 'acct_one')
+    ).rejects.toThrow('requires reconciliation');
+    expect(attempt.idempotency_key).toBe('escrow_release_one');
+    expect(m.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the replacement key age without renewing an unresolved old key', async () => {
+    attempt.created_at = new Date(
+      Date.now() - 48 * 60 * 60 * 1000
+    ).toISOString();
+    attempt.provider_attempt_started_at = new Date().toISOString();
+    await expect(
+      createEscrowTransfer('one', 43000, 'acct_one')
+    ).resolves.toEqual({ id: 'tr_one' });
+  });
+
   it('times out an unknown provider result without saving success or issuing a second request', async () => {
     vi.useFakeTimers();
     try {

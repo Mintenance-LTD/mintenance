@@ -6,7 +6,8 @@
     "test": "node authoritative-mutations.mjs",
     "test:onboarding": "node onboarding.mjs",
     "test:operator-alerts": "node operator-alerts.mjs",
-    "test:chargebacks": "node stripe-chargebacks.mjs"
+    "test:chargebacks": "node stripe-chargebacks.mjs",
+    "test:transfer-recovery": "node transfer-balance-recovery.mjs"
   },
   "dependencies": {
     "embedded-postgres": "17.10.0-beta.17",
