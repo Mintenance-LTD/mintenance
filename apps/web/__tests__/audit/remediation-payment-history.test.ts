@@ -57,6 +57,7 @@ const request = () =>
   );
 describe('payment history balance boundary', () => {
   it('reports a completed payout as released and preserves recorded fees', async () => {
+    balances = [];
     rows = [
       {
         id,
@@ -77,6 +78,7 @@ describe('payment history balance boundary', () => {
   it.each(['failed', 'cancelled', 'pending_review', 'disputed'])(
     'does not turn %s into a pending payment',
     async (status) => {
+      balances = [];
       rows = [
         {
           id,
@@ -104,6 +106,28 @@ describe('payment history balance boundary', () => {
       refundNeedsReview: false,
       jobId: 'job',
     });
+  });
+  it('retains the partial refund balance after a split settlement completes', async () => {
+    rows = [
+      {
+        id,
+        amount: 120,
+        status: 'completed',
+        platform_fee: 3,
+        contractor_payout: 57,
+      },
+    ];
+    expect((await (await request()).json()).payments[0]).toMatchObject({
+      amount: 120,
+      remainingAmount: 60,
+      status: 'released',
+      platformFee: 3,
+      contractorPayout: 57,
+    });
+  });
+  it('rejects a refund balance exceeding the original payment', async () => {
+    balances = [{ escrow_id: id, remaining_minor: 10001, needs_review: false }];
+    await expect(request()).rejects.toThrow('requires reconciliation');
   });
   it('does not read private balances for a missing or unrelated transaction', async () => {
     rows = [];

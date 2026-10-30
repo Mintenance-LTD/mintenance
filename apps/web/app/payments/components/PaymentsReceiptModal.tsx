@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { paymentAmounts } from '@/lib/payments/payment-amounts';
 import { Download } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import {
@@ -20,6 +21,7 @@ export function PaymentsReceiptModal({
   onClose,
 }: PaymentsReceiptModalProps) {
   if (!isOpen || !transaction) return null;
+  const amounts = paymentAmounts(transaction);
   return (
     <Modal
       isOpen={isOpen}
@@ -33,6 +35,14 @@ export function PaymentsReceiptModal({
           <div>
             <dt>Recorded amount</dt>
             <dd>£{transaction.amount.toFixed(2)}</dd>
+          </div>
+          <div>
+            <dt>Refunded</dt>
+            <dd>£{amounts.refunded.toFixed(2)}</dd>
+          </div>
+          <div>
+            <dt>Amount after refunds</dt>
+            <dd>£{amounts.remaining.toFixed(2)}</dd>
           </div>
           <div>
             <dt>Status</dt>

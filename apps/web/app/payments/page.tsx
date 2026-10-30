@@ -3,6 +3,10 @@ import { explainCoolingOff } from './explain-cooling-off';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { readPendingRefund, submitRefund } from '@/lib/payments/refund-request';
+import {
+  paymentAmounts,
+  summarizePayments,
+} from '@/lib/payments/payment-amounts';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
@@ -315,7 +319,7 @@ export default function PaymentsPage2025() {
         t.status
       );
     } else if (filter === 'refunded') {
-      matchesStatus = t.status === 'refunded';
+      matchesStatus = paymentAmounts(t).refunded > 0;
     }
 
     let matchesDateRange = true;
@@ -337,30 +341,28 @@ export default function PaymentsPage2025() {
   // The "Across N transactions" subtitle must count THIS set, not
   // transactions.length, or the total and its caption disagree whenever a
   // pending row exists (e.g. £2.52 across 2 held rows shown as "3").
-  const paidTransactions = transactions.filter((t) =>
-    ['completed', 'released', 'release_pending', 'held'].includes(t.status)
-  );
-  const totalPaid = paidTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const paidTransactionCount = paidTransactions.length;
+  const { totalPaid, paidTransactionCount, inEscrowAmount, refundedAmount } =
+    summarizePayments(transactions);
   // The "Protected" stat card previously showed pre-charge `pending`
   // rows — money that hadn't actually hit Mintenance's escrow yet. Now
   // it reflects the real "held in escrow by the platform" total:
   // `held` (waiting for the contractor to finish) + `release_pending`
   // (Stripe transfer is mid-flight back to the contractor). `pending`
   // stays out because nothing has moved for those rows.
-  const inEscrowAmount = transactions
-    .filter((t) => ['held', 'release_pending'].includes(t.status))
-    .reduce((sum, t) => sum + t.amount, 0);
-  const refundedAmount = transactions
-    .filter((t) => t.status === 'refunded')
-    .reduce((sum, t) => sum + t.amount, 0);
 
   const handleExport = () => {
     if (filteredTransactions.length === 0) {
       toast.error('No transactions to export');
       return;
     }
-    const csvHeaders = ['Date', 'Description', 'Amount (GBP)', 'Status'];
+    const csvHeaders = [
+      'Date',
+      'Description',
+      'Amount (GBP)',
+      'Refunded (GBP)',
+      'Amount after refunds (GBP)',
+      'Status',
+    ];
     const csvRows = filteredTransactions.map((t) => {
       const date = new Date(t.created_at).toLocaleDateString('en-GB', {
         day: '2-digit',
@@ -373,10 +375,11 @@ export default function PaymentsPage2025() {
       // £1.00 (off by 100x). formatMoney on the stat cards already knew
       // this; the CSV path didn't.
       const amount = t.amount.toFixed(2);
+      const amounts = paymentAmounts(t);
       const status = t.status
         .replace(/_/g, ' ')
         .replace(/\b\w/g, (c) => c.toUpperCase());
-      return `"${date}","${description}","${amount}","${status}"`;
+      return `"${date}","${description}","${amount}","${amounts.refunded.toFixed(2)}","${amounts.remaining.toFixed(2)}","${status}"`;
     });
     const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

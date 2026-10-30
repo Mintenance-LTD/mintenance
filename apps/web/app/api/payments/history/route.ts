@@ -214,7 +214,8 @@ export const GET = withApiHandler(
       if (
         balance &&
         (!Number.isSafeInteger(balance.remaining_minor) ||
-          balance.remaining_minor < 0)
+          balance.remaining_minor < 0 ||
+          balance.remaining_minor > Math.round(Number(row.amount) * 100))
       ) {
         throw new InternalServerError(
           'Payment balance requires reconciliation'

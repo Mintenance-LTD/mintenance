@@ -22,6 +22,7 @@ import {
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { downloadPaymentRecord } from '@/lib/payments/payment-record';
+import { paymentAmounts } from '@/lib/payments/payment-amounts';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 // Animation variants
@@ -211,6 +212,7 @@ export default function TransactionDetailPage2025() {
     downloadPaymentRecord({
       id: transaction.id,
       amount: transaction.amount,
+      remainingAmount: transaction.remainingAmount,
       status: transaction.status,
       created_at: transaction.date,
       job_title: transaction.jobTitle,
@@ -456,6 +458,13 @@ export default function TransactionDetailPage2025() {
                 {/* Pricing Breakdown */}
                 <div className='mt-6'>
                   <p>Recorded amount: £{transaction.amount.toFixed(2)}</p>
+                  <p>
+                    Refunded: £{paymentAmounts(transaction).refunded.toFixed(2)}
+                  </p>
+                  <p>
+                    Amount after refunds: £
+                    {paymentAmounts(transaction).remaining.toFixed(2)}
+                  </p>
                   <p className='text-sm text-gray-600 mt-2'>
                     This is a payment record, not a VAT invoice. Request any tax
                     invoice from the contractor.
