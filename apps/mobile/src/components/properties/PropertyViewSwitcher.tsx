@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { PROPERTY_VIEWS } from '@mintenance/shared';
+import { PROPERTY_VIEWS, type PropertyView } from '@mintenance/shared';
 import { usePropertyView } from '../../hooks/usePropertyView';
 import { me } from '../../design-system/mint-editorial';
+import { PropertyChoice } from './PropertyChoice';
 
 export function PropertyViewSwitcher() {
   const { view, setView, ready, enabled, saved } = usePropertyView();
@@ -11,94 +12,59 @@ export function PropertyViewSwitcher() {
     useNavigation<NavigationProp<Record<string, object | undefined>>>();
   if (!enabled) return null;
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>Your view</Text>
-      <View style={styles.row}>
-        {PROPERTY_VIEWS.map((option) => (
-          <TouchableOpacity
-            key={option.value}
-            disabled={!ready}
-            accessibilityRole='button'
-            accessibilityState={{
-              selected: view === option.value,
-              disabled: !ready,
-            }}
-            onPress={() => setView(option.value)}
-            style={[styles.button, view === option.value && styles.active]}
-          >
-            <Text
-              style={[
-                styles.label,
-                view === option.value && styles.activeLabel,
-              ]}
-            >
-              {option.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <Text style={styles.detail}>
-        {PROPERTY_VIEWS.find((option) => option.value === view)?.description}{' '}
-        Your plan and property permissions still apply.
-      </Text>
-      <TouchableOpacity
-        accessibilityRole='button'
-        style={styles.plan}
-        onPress={() =>
-          navigation.navigate('ProfileTab', { screen: 'Subscription' })
-        }
+    <View style={styles.row}>
+      <PropertyChoice
+        label='Your view'
+        value={view}
+        options={PROPERTY_VIEWS}
+        disabled={!ready}
+        onChange={(value) => setView(value as PropertyView)}
       >
-        <Text style={styles.link}>Plan & features</Text>
-      </TouchableOpacity>
+        {(dismiss) => (
+          <>
+            <Text style={styles.detail}>
+              Your plan and property permissions still apply.
+            </Text>
+            <TouchableOpacity
+              accessibilityRole='button'
+              style={styles.linkButton}
+              onPress={() => {
+                dismiss();
+                navigation.navigate('ProfileTab', { screen: 'Subscription' });
+              }}
+            >
+              <Text style={styles.link}>Plan & features</Text>
+            </TouchableOpacity>
+            {!saved && (
+              <Text style={styles.detail}>
+                This view is temporary because device storage is unavailable.
+              </Text>
+            )}
+          </>
+        )}
+      </PropertyChoice>
       <TouchableOpacity
         accessibilityRole='button'
-        style={styles.plan}
+        style={styles.linkButton}
         onPress={() =>
           navigation.navigate('ProfileTab', { screen: 'Properties' })
         }
       >
-        <Text style={styles.link}>
-          {view === 'home'
-            ? 'Open property records'
-            : view === 'rentals'
-              ? 'Manage rental properties'
-              : 'Manage properties and teams'}
-        </Text>
+        <Text style={styles.link}>Property records</Text>
       </TouchableOpacity>
-      {!saved && (
-        <Text style={styles.detail}>
-          This view is temporary because device storage is unavailable.
-        </Text>
-      )}
     </View>
   );
 }
 const styles = StyleSheet.create({
-  card: {
-    margin: 16,
-    padding: 12,
-    backgroundColor: me.surface,
-    borderColor: me.line,
-    borderWidth: 1,
-    borderRadius: 16,
+  row: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 12,
   },
-  title: { color: me.ink, fontWeight: '700', marginBottom: 8 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  button: {
-    minHeight: 44,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: me.bg2,
-    borderRadius: 24,
-  },
-  active: { backgroundColor: me.brand2 },
-  label: { color: me.ink, fontWeight: '600' },
-  activeLabel: { color: me.onBrand },
-  detail: { color: me.ink2, fontSize: 13, lineHeight: 19, marginTop: 8 },
-  plan: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  link: {
-    color: me.brand2,
-    textDecorationLine: 'underline',
-    fontWeight: '600',
-  },
+  detail: { color: me.ink2, fontSize: 13, lineHeight: 19, marginTop: 12 },
+  linkButton: { minHeight: 44, justifyContent: 'center' },
+  link: { color: me.brand2, fontWeight: '600' },
 });

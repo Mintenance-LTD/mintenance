@@ -61,14 +61,44 @@ function Navigation({
 describe('property view controls', () => {
   it('selects a presentation preference without checkout or permission writes', () => {
     render(<PropertyViewSwitcher />);
+    fireEvent.click(
+      screen.getByRole('button', { name: /Change property view/ })
+    );
+    expect(
+      screen.getByText(/Your plan and property permissions still apply/)
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Agency' }));
     expect(state.setView).toHaveBeenCalledWith('agency');
+    expect(screen.queryByRole('button', { name: 'Agency' })).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: /Change property view/ })
+    );
     expect(
       screen.getByRole('link', { name: 'Plan & features' }).getAttribute('href')
     ).toBe('/homeowner/subscription');
     expect(
       screen.getByText(/Your plan and property permissions still apply/)
     ).toBeTruthy();
+  });
+  it('closes with Escape and outside presses, returning keyboard focus', () => {
+    render(<PropertyViewSwitcher />);
+    const trigger = screen.getByRole('button', {
+      name: /Change property view/,
+    });
+    fireEvent.click(trigger);
+    screen.getByRole('button', { name: 'Rentals' }).focus();
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Rentals' }), {
+      key: 'Escape',
+    });
+    expect(
+      screen.queryByRole('region', { name: 'Choose your view' })
+    ).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    fireEvent.click(trigger);
+    fireEvent.pointerDown(document.body);
+    expect(
+      screen.queryByRole('region', { name: 'Choose your view' })
+    ).toBeNull();
   });
   it('does not expose the preference before identity loads', () => {
     state.enabled = false;
@@ -126,15 +156,25 @@ describe('web dated room albums', () => {
     );
     render(<RoomPhotoGallery propertyId='property-one' />);
     await screen.findByText('3 photos');
-    fireEvent.click(screen.getByRole('button', { name: 'Kitchen (2)' }));
+    fireEvent.change(screen.getByLabelText('Room'), {
+      target: { value: 'kitchen' },
+    });
     expect(screen.getAllByRole('img')).toHaveLength(2);
     fireEvent.change(screen.getByLabelText('Upload date (UTC)'), {
       target: { value: '2026-09-01' },
     });
     expect(screen.getAllByRole('img')).toHaveLength(1);
     expect(screen.getByAltText('second.png')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Bathroom (1)' }));
+    fireEvent.change(screen.getByLabelText('Room'), {
+      target: { value: 'bathroom' },
+    });
     expect(screen.getByAltText('bath.png')).toBeTruthy();
+    expect(screen.queryByLabelText('Upload date (UTC)')).toBeNull();
+    expect(
+      screen
+        .getByRole('link', { name: 'View bath.png full size' })
+        .getAttribute('href')
+    ).toBe('/bath.png');
     expect(
       screen.getByText(/When a photo was taken is not recorded/)
     ).toBeTruthy();

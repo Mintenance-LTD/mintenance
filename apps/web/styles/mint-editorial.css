@@ -531,7 +531,7 @@
   background: var(--me-ink);
   color: var(--me-on-ink, #fff);
 }
-@media (max-width: 900px) {
+@media (max-width: 1400px) {
   .me-root .me-topnav {
     display: none;
   }

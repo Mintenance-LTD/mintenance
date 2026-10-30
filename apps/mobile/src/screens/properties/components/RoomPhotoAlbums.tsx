@@ -1,3 +1,4 @@
+import { PropertyChoice } from '../../../components/properties/PropertyChoice';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -184,35 +185,34 @@ export function RoomPhotoAlbums({
       ) : !allowed ? (
         <Text style={styles.detail}>
           Room photos require a Landlord or Agency plan, or eligible early
-          access. Review Plan & features above.
+          access. Review Plan & features in Your view.
         </Text>
       ) : (
         <>
           <View style={styles.options}>
-            {ROOM_PHOTO_TYPES.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                accessibilityRole='button'
-                accessibilityState={{ selected: room === option.value }}
-                style={[
-                  styles.button,
-                  room === option.value && styles.selected,
+            <PropertyChoice
+              label='Room'
+              value={room}
+              options={ROOM_PHOTO_TYPES}
+              onChange={(value) => {
+                setRoom(value);
+                setDate('all');
+              }}
+            />
+            {albums.length > 1 && (
+              <PropertyChoice
+                label='Upload date (UTC)'
+                value={date}
+                options={[
+                  { value: 'all', label: 'All dates' },
+                  ...albums.map((album) => ({
+                    value: album.date,
+                    label: album.label,
+                  })),
                 ]}
-                onPress={() => {
-                  setRoom(option.value);
-                  setDate('all');
-                }}
-              >
-                <Text
-                  style={[
-                    styles.label,
-                    room === option.value && styles.selectedText,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                onChange={setDate}
+              />
+            )}
           </View>
           {editable && (
             <View style={styles.options}>
@@ -252,33 +252,6 @@ export function RoomPhotoAlbums({
             </View>
           ) : (
             <>
-              {albums.length > 0 && (
-                <View style={styles.options}>
-                  {[{ date: 'all', label: 'All dates' }, ...albums].map(
-                    (album) => (
-                      <TouchableOpacity
-                        key={album.date}
-                        accessibilityRole='button'
-                        accessibilityState={{ selected: date === album.date }}
-                        style={[
-                          styles.button,
-                          date === album.date && styles.selected,
-                        ]}
-                        onPress={() => setDate(album.date)}
-                      >
-                        <Text
-                          style={[
-                            styles.label,
-                            date === album.date && styles.selectedText,
-                          ]}
-                        >
-                          {album.label}
-                        </Text>
-                      </TouchableOpacity>
-                    )
-                  )}
-                </View>
-              )}
               {albums.length === 0 && (
                 <Text style={styles.detail}>No photos in this room yet.</Text>
               )}

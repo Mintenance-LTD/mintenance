@@ -146,65 +146,80 @@ export default function RoomPhotoGallery({
         recorded.
       </p>
 
-      {/* Room selector pills */}
-      <div className='flex flex-wrap gap-1.5 mb-4'>
-        {ROOM_TYPES.map((room) => {
-          const count = photos.filter(
-            (photo) => photo.room_type === room.value
-          ).length;
-          const isActive = selectedRoom === room.value;
-          return (
-            <button
-              key={room.value}
-              aria-pressed={isActive}
-              onClick={() => {
-                setSelectedRoom(isActive ? null : room.value);
-                setSelectedDate('all');
-              }}
-              className={`min-h-11 px-3 py-2 rounded-full text-xs font-medium transition-colors ${
-                isActive
-                  ? 'bg-teal-800 text-white'
-                  : count > 0
-                    ? 'bg-teal-50 text-teal-700 hover:bg-teal-100'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}
-            >
-              {room.label}
-              {count > 0 && ` (${count})`}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Upload area */}
-      {selectedRoom && (
-        <div className='mb-4'>
-          <input
-            ref={fileInputRef}
-            type='file'
-            accept='image/jpeg,image/png,image/webp,image/gif'
-            multiple
-            className='hidden'
-            onChange={(e) => e.target.files && handleUpload(e.target.files)}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-xs font-medium text-gray-500 hover:border-teal-400 hover:text-teal-600 transition-colors disabled:opacity-50'
+      <div className='mb-4 flex flex-wrap items-end gap-2'>
+        <label className='min-w-0 flex-1 basis-36 text-xs font-semibold text-gray-700'>
+          Room
+          <select
+            value={selectedRoom ?? ''}
+            onChange={(event) => {
+              setSelectedRoom(event.target.value || null);
+              setSelectedDate('all');
+            }}
+            className='mt-1 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm'
           >
-            {uploading ? (
-              <>
-                <Loader2 className='w-4 h-4 animate-spin' /> Uploading...
-              </>
-            ) : (
-              <>
-                <Upload className='w-4 h-4' /> Upload photos to{' '}
-                {ROOM_TYPES.find((r) => r.value === selectedRoom)?.label}
-              </>
-            )}
-          </button>
-        </div>
-      )}
+            <option value=''>Choose a room</option>
+            {ROOM_TYPES.map((room) => {
+              const count = photos.filter(
+                (photo) => photo.room_type === room.value
+              ).length;
+              return (
+                <option key={room.value} value={room.value}>
+                  {room.label}
+                  {count > 0 ? ' (' + count + ')' : ''}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+        {!loading && !error && albums.length > 1 && (
+          <label className='min-w-0 flex-1 basis-40 text-xs font-semibold text-gray-700'>
+            Upload date (UTC)
+            <select
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+              className='mt-1 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm'
+            >
+              <option value='all'>All dates</option>
+              {albums.map((album) => (
+                <option key={album.date} value={album.date}>
+                  {album.label} ({album.photos.length})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {selectedRoom && (
+          <>
+            <input
+              ref={fileInputRef}
+              type='file'
+              accept='image/jpeg,image/png,image/webp,image/gif'
+              multiple
+              className='hidden'
+              onChange={(event) =>
+                event.target.files && handleUpload(event.target.files)
+              }
+            />
+            <button
+              type='button'
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              aria-label={
+                'Upload photos to ' +
+                ROOM_TYPES.find((room) => room.value === selectedRoom)?.label
+              }
+              className='flex min-h-11 items-center justify-center gap-2 rounded-lg bg-teal-800 px-3 text-sm font-semibold text-white hover:bg-teal-900 disabled:opacity-50'
+            >
+              {uploading ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : (
+                <Upload className='h-4 w-4' />
+              )}
+              {uploading ? 'Uploading…' : 'Add photos'}
+            </button>
+          </>
+        )}
+      </div>
 
       {/* Loading state */}
       {loading && (
@@ -228,29 +243,6 @@ export default function RoomPhotoGallery({
           </button>
         </div>
       )}
-      {!loading && !error && albums.length > 0 && (
-        <div className='mb-4'>
-          <label
-            className='block text-sm font-semibold mb-2'
-            htmlFor={`album-date-${propertyId}`}
-          >
-            Upload date (UTC)
-          </label>
-          <select
-            id={`album-date-${propertyId}`}
-            value={selectedDate}
-            onChange={(event) => setSelectedDate(event.target.value)}
-            className='min-h-11 w-full rounded-lg border border-gray-300 p-2 text-sm'
-          >
-            <option value='all'>All dates</option>
-            {albums.map((album) => (
-              <option key={album.date} value={album.date}>
-                {album.label} ({album.photos.length})
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
       {!loading &&
         !error &&
         visibleAlbums.map((album) => (
@@ -259,7 +251,7 @@ export default function RoomPhotoGallery({
               {album.label} · {album.photos.length} photo
               {album.photos.length === 1 ? '' : 's'}
             </h5>
-            <div className='grid grid-cols-2 sm:grid-cols-3 gap-3'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
               {album.photos.map((photo) => (
                 <figure
                   key={photo.id}
@@ -270,14 +262,14 @@ export default function RoomPhotoGallery({
                     target='_blank'
                     rel='noopener noreferrer'
                     aria-label={`View ${photo.file_name || 'room photo'} full size`}
-                    className='relative block aspect-square bg-gray-100 focus-visible:outline focus-visible:outline-2'
+                    className='relative block aspect-[4/3] bg-gray-100 focus-visible:outline focus-visible:outline-2'
                   >
                     <Image
                       src={photo.photo_url}
                       alt={photo.file_name || 'Room photo'}
                       fill
                       className='object-contain'
-                      sizes='(max-width: 640px) 42vw, 180px'
+                      sizes='(max-width: 640px) 90vw, 400px'
                     />
                   </a>
                   <figcaption className='p-2 text-xs text-gray-700 break-words'>

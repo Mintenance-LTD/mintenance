@@ -124,6 +124,7 @@ export function MintEditorialShell({
           </div>
           <MintEditorialTopNav />
           <div style={{ flex: 1 }} />
+          <PropertyViewSwitcher />
           <NotificationBell href='/notifications' />
         </div>
 
@@ -133,7 +134,6 @@ export function MintEditorialShell({
           className='me-content'
           style={{ padding: contentPadding, flex: 1 }}
         >
-          <PropertyViewSwitcher />
           {children}
         </main>
       </div>
