@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { paymentAmounts } from '@/lib/payments/payment-amounts';
 import { useRouter } from 'next/navigation';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { LoadingSpinner } from '@/components/ui';
@@ -20,6 +21,7 @@ import { MintEditorialTransactionList } from './MintEditorialTransactionList';
 interface Transaction {
   id: string;
   amount: number;
+  remainingAmount?: number;
   status:
     | 'pending'
     | 'held'
@@ -233,6 +235,12 @@ export function TransactionList({
                   <div className='text-sm font-bold text-gray-900'>
                     {formatMoney(transaction.amount, 'GBP')}
                   </div>
+                  {paymentAmounts(transaction).refunded > 0 && (
+                    <div className='text-xs text-gray-500'>
+                      {formatMoney(paymentAmounts(transaction).refunded, 'GBP')}{' '}
+                      refunded
+                    </div>
+                  )}
                   {transaction.platformFee != null &&
                     transaction.platformFee > 0 && (
                       <div className='text-[10px] text-gray-400 mt-0.5'>
@@ -324,6 +332,15 @@ export function TransactionList({
                     <div className='text-sm font-bold text-gray-900'>
                       {formatMoney(transaction.amount, 'GBP')}
                     </div>
+                    {paymentAmounts(transaction).refunded > 0 && (
+                      <div className='text-xs text-gray-500'>
+                        {formatMoney(
+                          paymentAmounts(transaction).refunded,
+                          'GBP'
+                        )}{' '}
+                        refunded
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className='flex items-center justify-between'>

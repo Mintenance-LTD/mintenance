@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import { paymentAmounts } from '@/lib/payments/payment-amounts';
 import styles from './transaction-list.module.css';
 import { useRouter } from 'next/navigation';
 import { formatMoney } from '@/lib/utils/currency';
@@ -18,6 +19,7 @@ import { FileText, ShieldCheck } from 'lucide-react';
 interface Transaction {
   id: string;
   amount: number;
+  remainingAmount?: number;
   status:
     | 'pending'
     | 'held'
@@ -190,6 +192,11 @@ export function MintEditorialTransactionList({
               style={{ width: 110, textAlign: 'right', fontSize: 18 }}
             >
               {formatMoney(tx.amount, 'GBP')}
+              {paymentAmounts(tx).refunded > 0 && (
+                <div className='t-meta' style={{ fontWeight: 400 }}>
+                  {formatMoney(paymentAmounts(tx).refunded, 'GBP')} refunded
+                </div>
+              )}
               {tx.platformFee && tx.platformFee > 0 ? (
                 <div className='t-meta' style={{ fontWeight: 400 }}>
                   {formatMoney(tx.platformFee, 'GBP')} fee

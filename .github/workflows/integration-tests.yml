@@ -60,6 +60,7 @@ jobs:
         run: node scripts/hydrate-symlinks.js
       - run: npm test --prefix scripts/db-tests
       - run: npm run test:operator-alerts --prefix scripts/db-tests
+      - run: npm run test:chargebacks --prefix scripts/db-tests
       - name: Check onboarding recovery and legacy migration compatibility
         run: |
           npm run test:onboarding --prefix scripts/db-tests

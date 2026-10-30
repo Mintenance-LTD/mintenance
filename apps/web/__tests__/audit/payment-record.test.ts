@@ -26,6 +26,19 @@ describe('downloadable payment record', () => {
     expect(html).toContain('&lt;script&gt;');
     expect(html).toContain("default-src 'none'");
   });
+  it('records both sides of a completed split settlement', () => {
+    const html = paymentRecordHtml({
+      ...record,
+      amount: 120,
+      remainingAmount: 60,
+      status: 'released',
+    });
+    expect(html).toContain('<th>Recorded amount (GBP)</th><td>£120.00</td>');
+    expect(html).toContain('<th>Refunded (GBP)</th><td>£60.00</td>');
+    expect(html).toContain(
+      '<th>Amount after refunds (GBP)</th><td>£60.00</td>'
+    );
+  });
   it('rejects invalid recorded amounts', () => {
     expect(() => paymentRecordHtml({ ...record, amount: NaN })).toThrow(
       'Invalid payment amount'
