@@ -5,6 +5,7 @@ const m = vi.hoisted(() => ({
   funding: vi.fn(),
   balance: vi.fn(),
   retrieve: vi.fn(),
+  disputes: vi.fn(),
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
@@ -24,7 +25,10 @@ vi.mock('@/lib/api/supabaseServer', () => ({
   },
 }));
 vi.mock('@/lib/stripe', () => ({
-  stripe: { paymentIntents: { retrieve: m.retrieve } },
+  stripe: {
+    paymentIntents: { retrieve: m.retrieve },
+    disputes: { list: m.disputes },
+  },
 }));
 vi.mock('@/lib/utils/api-timeout', () => ({
   stripeWithTimeout: (fn: () => unknown) => fn(),
@@ -33,6 +37,7 @@ import { verifyEscrowFunding } from '@/lib/services/payment/EscrowFundingService
 let intent: Record<string, any>;
 beforeEach(() => {
   vi.clearAllMocks();
+  m.disputes.mockResolvedValue({ data: [], has_more: false });
   m.balance.mockResolvedValue({ data: null, error: null });
   m.funding.mockResolvedValue({ data: null, error: null });
   m.single.mockResolvedValue({
@@ -64,6 +69,73 @@ beforeEach(() => {
   m.retrieve.mockImplementation(async () => intent);
 });
 describe('provider-backed escrow funding', () => {
+  it('accepts a won chargeback only after checking fresh matching provider evidence', async () => {
+    intent.latest_charge.disputed = true;
+    m.disputes.mockResolvedValue({
+      has_more: false,
+      data: [
+        {
+          status: 'won',
+          charge: 'ch_one',
+          payment_intent: 'pi_one',
+          currency: 'gbp',
+          livemode: intent.livemode,
+        },
+      ],
+    });
+    await expect(verifyEscrowFunding('escrow')).resolves.toBe('ch_one');
+    expect(m.disputes).toHaveBeenCalledWith({ charge: 'ch_one', limit: 100 });
+  });
+  it.each(['needs_response', 'under_review', 'lost'])(
+    'blocks provider dispute outcome %s',
+    async (status) => {
+      intent.latest_charge.disputed = true;
+      m.disputes.mockResolvedValue({
+        has_more: false,
+        data: [
+          {
+            status,
+            charge: 'ch_one',
+            payment_intent: 'pi_one',
+            currency: 'gbp',
+            livemode: intent.livemode,
+          },
+        ],
+      });
+      await expect(verifyEscrowFunding('escrow')).rejects.toThrow(
+        'reconciliation'
+      );
+    }
+  );
+  it.each([
+    { has_more: true },
+    { charge: 'ch_other' },
+    { payment_intent: 'pi_other' },
+    { livemode: true },
+    { currency: 'usd' },
+  ])(
+    'fails closed on incomplete or mismatched dispute proof %#',
+    async (change) => {
+      intent.latest_charge.disputed = true;
+      const { has_more = false, ...fields } = change;
+      m.disputes.mockResolvedValue({
+        has_more,
+        data: [
+          {
+            status: 'won',
+            charge: 'ch_one',
+            payment_intent: 'pi_one',
+            currency: 'gbp',
+            livemode: intent.livemode,
+            ...fields,
+          },
+        ],
+      });
+      await expect(verifyEscrowFunding('escrow')).rejects.toThrow(
+        'reconciliation'
+      );
+    }
+  );
   it('accepts 450 GBP captured cash plus a trusted 50 GBP credit reservation for 500 GBP gross', async () => {
     intent.amount_received = 45000;
     intent.latest_charge.amount = 45000;

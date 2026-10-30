@@ -49,6 +49,38 @@ export async function verifyEscrowFunding(
   );
   const charge =
     typeof intent.latest_charge === 'object' ? intent.latest_charge : null;
+  // Stripe keeps charge.disputed=true even after a chargeback is won. Require
+  // fresh provider evidence that every dispute is closed in our favour rather
+  // than permanently blocking legitimately restored funds or trusting DB state.
+  let unresolvedDispute = !!charge?.disputed;
+  if (charge?.disputed) {
+    const timeout =
+      deadlineAt === undefined
+        ? 10000
+        : Math.min(10000, deadlineAt - Date.now());
+    if (timeout <= 0)
+      throw new ConflictError('Funding verification time budget exhausted');
+    const disputes = await stripeWithTimeout(
+      () => stripe.disputes.list({ charge: charge.id, limit: 100 }),
+      'verify-chargeback-outcome',
+      timeout,
+      0
+    );
+    unresolvedDispute =
+      disputes.has_more ||
+      disputes.data.length === 0 ||
+      disputes.data.some(
+        (d) =>
+          !['won', 'warning_closed'].includes(d.status) ||
+          (typeof d.charge === 'string' ? d.charge : d.charge?.id) !==
+            charge.id ||
+          (typeof d.payment_intent === 'string'
+            ? d.payment_intent
+            : d.payment_intent?.id) !== escrow.payment_intent_id ||
+          d.currency !== 'gbp' ||
+          d.livemode !== intent.livemode
+      );
+  }
   let refundedMinor = 0;
   if (charge && (charge.amount_refunded !== 0 || charge.refunded)) {
     const { data: balance, error: balanceError } = await serverSupabase
@@ -91,7 +123,7 @@ export async function verifyEscrowFunding(
     !charge ||
     !charge.paid ||
     !charge.captured ||
-    charge.disputed ||
+    unresolvedDispute ||
     charge.refunded !== (refundedMinor === expectedMinor) ||
     charge.amount_refunded !== refundedMinor ||
     charge.currency !== 'gbp' ||
