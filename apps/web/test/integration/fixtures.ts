@@ -36,7 +36,8 @@ export async function createTestUser(opts: {
 }): Promise<TestUser> {
   const admin = createServiceClient();
   const email = opts.email ?? `${TEST_PREFIX}${randomUUID()}@test.local`;
-  const password = `TestPass_${randomUUID().slice(0, 8)}!`;
+  // UUID hex can contain only letters: guarantee every required character class.
+  const password = `TestPass9_${randomUUID().slice(0, 8)}!`;
 
   const { data, error } = await admin.auth.admin.createUser({
     email,
