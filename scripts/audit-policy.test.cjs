@@ -91,6 +91,18 @@ test('fixed node-forge has no audit exception, including the npm v2 leaf path', 
   await assert.rejects(audit(t), /Failed security audit/);
 });
 
+test('withdrawn braces advisory cannot hide a new braces vulnerability', async (t) => {
+  assert.ok(
+    policy.allowlist.every(
+      (entry) => !Object.keys(entry).some((key) => key.includes('braces'))
+    )
+  );
+  await assert.rejects(
+    audit(t, { id: 'GHSA-2222-3333-4444', name: 'braces' }),
+    /Failed security audit/
+  );
+});
+
 test('a node-forge regression through previously excepted Expo consumers blocks', async (t) => {
   for (const effect of ['@expo/cli', '@expo/code-signing-certificates']) {
     await assert.rejects(audit(t, { effect }), /Failed security audit/);

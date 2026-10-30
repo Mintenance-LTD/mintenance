@@ -73,7 +73,7 @@
     "test:accessibility": "node scripts/check-accessibility.js",
     "db:gen-types": "npx supabase gen types typescript --local > apps/web/lib/database.types.ts",
     "security:prepare": "node scripts/apply-security-patches.cjs",
-    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs scripts/node-forge-security.test.cjs scripts/zod-collection-bounds.test.cjs scripts/vercel-build.test.cjs scripts/i18next-security.test.cjs"
+    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs scripts/node-forge-security.test.cjs scripts/zod-collection-bounds.test.cjs scripts/vercel-build.test.cjs scripts/i18next-security.test.cjs scripts/dependency-url-security.test.cjs"
   },
   "keywords": [
     "marketplace",
@@ -148,7 +148,8 @@
     "@react-native/dev-middleware": "0.81.5",
     "@react-native/normalize-colors": "0.81.5",
     "fast-xml-parser": "5.7.0",
-    "fast-uri": "3.1.8",
+    "fast-uri": "3.1.9",
+    "qs": "6.17.1",
     "minimatch": "10.2.4",
     "adm-zip": "0.6.1",
     "sharp": "0.35.5",

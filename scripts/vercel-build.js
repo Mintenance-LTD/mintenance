@@ -21,6 +21,8 @@ console.log(`Node.js ${process.version}`);
 // reviewed dependency mitigations explicitly before any package or app build.
 console.log('=== Applying verified dependency security patches ===');
 run('node scripts/apply-security-patches.cjs');
+console.log('=== Verifying database release prerequisites ===');
+run('node scripts/check-release-migrations.cjs');
 console.log('=== Cleaning stale dist directories ===');
 run(
   'rm -rf packages/shared/dist packages/shared/tsconfig.tsbuildinfo packages/types/dist packages/types/tsconfig.tsbuildinfo packages/api-contracts/dist packages/api-contracts/tsconfig.tsbuildinfo packages/api-client/dist packages/api-client/tsconfig.tsbuildinfo packages/auth/dist packages/auth/tsconfig.tsbuildinfo packages/design-tokens/dist packages/design-tokens/tsconfig.tsbuildinfo packages/security/dist packages/security/tsconfig.tsbuildinfo packages/shared-ui/dist packages/shared-ui/tsconfig.tsbuildinfo',

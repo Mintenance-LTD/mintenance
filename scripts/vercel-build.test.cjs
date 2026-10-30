@@ -7,6 +7,14 @@ const vm = require('node:vm');
 // Exercise the real entrypoint without invoking external tools or touching
 // installed dependencies. A failed prerequisite must prevent app compilation.
 const source = fs.readFileSync(path.join(__dirname, 'vercel-build.js'), 'utf8');
+test('legacy dashboard shell command delegates to the checked entrypoint', () => {
+  const wrapper = fs.readFileSync(
+    path.join(__dirname, 'vercel-build.sh'),
+    'utf8'
+  );
+  assert.match(wrapper, /exec node scripts\/vercel-build\.js/);
+  assert.doesNotMatch(wrapper, /next build|non-fatal/);
+});
 function simulate(fail) {
   const commands = [];
   let exitCode;
@@ -15,13 +23,22 @@ function simulate(fail) {
     vm.runInNewContext(source, {
       require(name) {
         assert.equal(name, 'child_process');
-        return { execSync(command) {
-          commands.push(command);
-          if (fail?.(command)) throw Object.assign(new Error('failed'), { status: 7 });
-        } };
+        return {
+          execSync(command) {
+            commands.push(command);
+            if (fail?.(command))
+              throw Object.assign(new Error('failed'), { status: 7 });
+          },
+        };
       },
       console: { log() {} },
-      process: { version: process.version, exit(code) { exitCode = code; throw stopped; } },
+      process: {
+        version: process.version,
+        exit(code) {
+          exitCode = code;
+          throw stopped;
+        },
+      },
     });
   } catch (error) {
     if (error !== stopped) throw error;
@@ -38,6 +55,7 @@ test('explicit security preparation precedes compilation even with lifecycle scr
 
 for (const [stage, matches] of [
   ['security patch', (s) => s.includes('apply-security-patches')],
+  ['missing migration', (s) => s.includes('check-release-migrations')],
   ['shared package', (s) => s.includes('--workspace=packages/types')],
   ['public assets', (s) => s.startsWith('cp ')],
   ['type check', (s) => s === 'npx tsc --noEmit'],

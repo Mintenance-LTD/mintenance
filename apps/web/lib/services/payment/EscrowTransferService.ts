@@ -47,19 +47,52 @@ export async function createEscrowTransfer(
   }
   // Stripe may discard keys after 24h. An unresolved older operation must
   // be reconciled rather than risking a second transfer with an expired key.
-  const created = Date.parse(attempt.created_at);
+  const created = Date.parse(
+    attempt.provider_attempt_started_at ?? attempt.created_at
+  );
   if (!Number.isFinite(created) || Date.now() - created > 23 * 60 * 60 * 1000) {
     throw new InternalServerError('Payment transfer requires reconciliation');
   }
   await verifyEscrowFunding(escrowId, deadlineAt);
-  const transfer = await providerCall(
-    () =>
-      stripe.transfers.create(
-        attempt.stripe_parameters as Stripe.TransferCreateParams,
-        { idempotencyKey: attempt.idempotency_key }
-      ),
-    'create-escrow-transfer'
-  );
+  let transfer: Stripe.Transfer;
+  try {
+    transfer = await providerCall(
+      () =>
+        stripe.transfers.create(
+          attempt.stripe_parameters as Stripe.TransferCreateParams,
+          { idempotencyKey: attempt.idempotency_key }
+        ),
+      'create-escrow-transfer'
+    );
+  } catch (providerError: unknown) {
+    // Stripe caches an insufficient-balance rejection under its idempotency
+    // key. Reusing that key after funds arrive repeats the rejection forever.
+    // Only this definitive no-transfer response can retire a key. Timeouts,
+    // connection errors, 5xx responses and unknown outcomes retain it.
+    const rejection =
+      providerError as Partial<Stripe.errors.StripeError> | null;
+    if (
+      rejection?.type === 'StripeInvalidRequestError' &&
+      rejection.statusCode === 400 &&
+      rejection.code === 'balance_insufficient' &&
+      typeof rejection.requestId === 'string' &&
+      /^req_[A-Za-z0-9]+$/.test(rejection.requestId)
+    ) {
+      const { error: rejectionError } = await serverSupabase.rpc(
+        'record_escrow_transfer_balance_rejection',
+        {
+          p_escrow_id: escrowId,
+          p_idempotency_key: attempt.idempotency_key,
+          p_request_id: rejection.requestId,
+        }
+      );
+      if (rejectionError)
+        throw new InternalServerError(
+          'Payment transfer requires reconciliation'
+        );
+    }
+    throw providerError;
+  }
   const { data: saved, error: saveError } = await serverSupabase
     .from('escrow_transfer_attempts')
     .update({
