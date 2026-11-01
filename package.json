@@ -73,7 +73,7 @@
     "test:accessibility": "node scripts/check-accessibility.js",
     "db:gen-types": "npx supabase gen types typescript --local > apps/web/lib/database.types.ts",
     "security:prepare": "node scripts/apply-security-patches.cjs",
-    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs scripts/node-forge-security.test.cjs scripts/zod-collection-bounds.test.cjs scripts/vercel-build.test.cjs scripts/i18next-security.test.cjs scripts/dependency-url-security.test.cjs"
+    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs scripts/node-forge-security.test.cjs scripts/zod-collection-bounds.test.cjs scripts/vercel-build.test.cjs scripts/i18next-security.test.cjs scripts/dependency-url-security.test.cjs scripts/follow-redirects-security.test.cjs scripts/eas-archive-security.test.cjs"
   },
   "keywords": [
     "marketplace",
@@ -198,7 +198,8 @@
       "metro-symbolicate": "0.83.8",
       "metro-transform-plugins": "0.83.8",
       "metro-transform-worker": "0.83.8"
-    }
+    },
+    "follow-redirects": "1.16.2"
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.1",

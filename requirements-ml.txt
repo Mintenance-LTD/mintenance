@@ -1,0 +1,3 @@
+# ML tooling validation and readiness reporting only.
+# Python 3.10+ standard library is sufficient: no packages or network required.
+# This is NOT a GPU training environment; training/deployment remain on hold.
