@@ -1,0 +1,189 @@
+{
+  "checkedAt": "2026-11-01T21:31:09.73Z",
+  "advisories": [
+    {
+      "name": "rls_enabled_no_policy",
+      "level": "INFO",
+      "count": 95
+    },
+    {
+      "name": "security_definer_view",
+      "level": "ERROR",
+      "count": 1
+    },
+    {
+      "name": "rls_disabled_in_public",
+      "level": "ERROR",
+      "count": 1
+    },
+    {
+      "name": "extension_in_public",
+      "level": "WARN",
+      "count": 1
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "level": "WARN",
+      "count": 10
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "count": 11
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "level": "WARN",
+      "count": 1
+    }
+  ],
+  "operations": {
+    "crons": [
+      {
+        "job_name": "account-deletion-recovery",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:25.586+00:00",
+        "completed_at": "2026-11-01T21:25:25.797+00:00"
+      },
+      {
+        "job_name": "admin-dispute-assignments",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:13.911+00:00",
+        "completed_at": "2026-11-01T21:25:14.125+00:00"
+      },
+      {
+        "job_name": "admin-release-recovery",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:10.758+00:00",
+        "completed_at": "2026-11-01T21:25:10.96+00:00"
+      },
+      {
+        "job_name": "admin-verification-assignments",
+        "status": "success",
+        "started_at": "2026-11-01T21:20:10.674+00:00",
+        "completed_at": "2026-11-01T21:20:11.434+00:00"
+      },
+      {
+        "job_name": "dispute-resolution-recovery",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:29.532+00:00",
+        "completed_at": "2026-11-01T21:25:29.626+00:00"
+      },
+      {
+        "job_name": "escrow-auto-release",
+        "status": "success",
+        "started_at": "2026-11-01T21:00:05.573+00:00",
+        "completed_at": "2026-11-01T21:00:05.971+00:00"
+      },
+      {
+        "job_name": "notification-processor",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:28.777+00:00",
+        "completed_at": "2026-11-01T21:25:28.898+00:00"
+      },
+      {
+        "job_name": "operator-alerts",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:01.57+00:00",
+        "completed_at": "2026-11-01T21:25:02.275+00:00"
+      },
+      {
+        "job_name": "password-change-recovery",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:12.643+00:00",
+        "completed_at": "2026-11-01T21:25:12.768+00:00"
+      },
+      {
+        "job_name": "payment-reconciliation",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:29.632+00:00",
+        "completed_at": "2026-11-01T21:25:29.794+00:00"
+      },
+      {
+        "job_name": "push-receipts",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:28.507+00:00",
+        "completed_at": "2026-11-01T21:25:28.89+00:00"
+      },
+      {
+        "job_name": "recurring-job-creator",
+        "status": "success",
+        "started_at": "2026-11-01T21:15:08.696+00:00",
+        "completed_at": "2026-11-01T21:15:08.907+00:00"
+      },
+      {
+        "job_name": "refund-recovery",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:45.73+00:00",
+        "completed_at": "2026-11-01T21:25:45.845+00:00"
+      },
+      {
+        "job_name": "tenant-report-email",
+        "status": "success",
+        "started_at": "2026-11-01T21:25:03.561+00:00",
+        "completed_at": "2026-11-01T21:25:03.692+00:00"
+      }
+    ],
+    "reconciliation": [
+      {
+        "started_at": "2026-11-01T21:25:29.702587+00:00",
+        "completed_at": "2026-11-01T21:25:29.768+00:00",
+        "status": "completed",
+        "checked": 0,
+        "matched": 0,
+        "mismatched": 0,
+        "missing": 0,
+        "errors": 0
+      },
+      {
+        "started_at": "2026-11-01T21:20:29.698204+00:00",
+        "completed_at": "2026-11-01T21:20:29.845+00:00",
+        "status": "completed",
+        "checked": 0,
+        "matched": 0,
+        "mismatched": 0,
+        "missing": 0,
+        "errors": 0
+      }
+    ],
+    "operatorAlerts": {
+      "pending": 0,
+      "sent": 1,
+      "latestSent": "2026-11-01T15:55:02.75704+00:00"
+    },
+    "privacyQueue": null
+  },
+  "runtime": {
+    "deployment": "dpl_8HLvpcB2Jp9DmWCjnvkguTaBsQSG",
+    "since": "2026-11-01T17:35:00Z",
+    "errorGroupsReturned": 0,
+    "limitation": "Empty error-log result is limited to provider retention and queried window."
+  },
+  "android": {
+    "devices": 0,
+    "deferredByUser": true
+  },
+  "source": {
+    "deployed": "216f6efd35a25eb28946dd712f1565a791979e19",
+    "reviewed": "01f3dcb0e",
+    "applicationChanged": false
+  },
+  "remaining": {
+    "cancellationConsent": "No dedicated statutory early-start consent evidence found in reviewed contract acceptance/signature flow; implement after owner/legal process approval or keep early-start consumer bookings unavailable.",
+    "terms": "Draft only; contact/rules must be published consistently after approval.",
+    "mobile": "Physical Android deferred; Apple membership/signing/TestFlight unavailable.",
+    "hostedRecovery": "Fresh hosted cutover not tested; local full recovery passed earlier.",
+    "livePayout": "No new bank payout or money movement.",
+    "aikido": "MCP unavailable; no fresh SAST pass claimed."
+  },
+  "pendingSecurityRelease": {
+    "pr": 1455,
+    "url": "https://github.com/Mintenance-LTD/mintenance/pull/1455",
+    "state": "draft-open",
+    "merged": false,
+    "head": "a92c23200f40ce2fd489741b7cdf7d8a6993171c",
+    "testsReportedByAuthor": 47,
+    "deploymentVerified": false
+  },
+  "artifactValidation": "HTML structure and relative links checked; browser preview blocked by file-URL policy. No workaround attempted."
+}

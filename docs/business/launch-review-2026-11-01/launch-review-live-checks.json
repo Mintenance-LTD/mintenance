@@ -1,0 +1,90 @@
+{
+  "checkedAt": "2026-11-01T21:28:02.503Z",
+  "productionChanged": false,
+  "moneyMoved": false,
+  "migrations": {
+    "checked": 6,
+    "target": "ukrjudtlvapiajkjbcrd.supabase.co"
+  },
+  "spatialWriteGuards": [
+    {
+      "role": "anon",
+      "denied": true,
+      "sqlstate": "42501"
+    },
+    {
+      "role": "authenticated",
+      "denied": true,
+      "sqlstate": "42501"
+    },
+    {
+      "role": "service_role",
+      "denied": true,
+      "sqlstate": "42501"
+    }
+  ],
+  "directory": {
+    "owner": "profile_directory_reader",
+    "anon_select": false,
+    "authenticated_select": true,
+    "columns": [
+      "id",
+      "role",
+      "first_name",
+      "last_name",
+      "bio",
+      "city",
+      "country",
+      "profile_image_url",
+      "avatar_url",
+      "rating",
+      "total_jobs_completed",
+      "verified",
+      "admin_verified",
+      "skills",
+      "is_available",
+      "company_name",
+      "hourly_rate",
+      "years_experience",
+      "portfolio_images",
+      "created_at",
+      "latitude",
+      "longitude"
+    ]
+  },
+  "anonymousRoleHelpersDeny": 7,
+  "stripe": {
+    "chargesEnabled": true,
+    "payoutsEnabled": true,
+    "available": [
+      {
+        "amount": -25,
+        "currency": "gbp"
+      }
+    ],
+    "connectedAccounts": 7,
+    "payoutReady": 2
+  },
+  "brevo": {
+    "historicalDeliveryReconfirmed": true,
+    "newEmailSent": false,
+    "events": [
+      {
+        "event": "delivered",
+        "date": "2026-11-01T17:00:58.000Z",
+        "from": "noreply@mintenance.co.uk"
+      },
+      {
+        "event": "requests",
+        "date": "2026-11-01T17:00:57.655Z",
+        "from": "noreply@mintenance.co.uk"
+      }
+    ]
+  },
+  "betaGate": {
+    "enabled": true,
+    "webStatus": 302,
+    "mobileStatus": 401,
+    "checkedAt": "2026-11-01T21:28:06.758Z"
+  }
+}
