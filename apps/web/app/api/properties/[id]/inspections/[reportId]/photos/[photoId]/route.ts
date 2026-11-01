@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase as db } from '@/lib/api/supabaseServer';
 import { NotFoundError, ServiceUnavailableError } from '@/lib/errors/api-error';
+import { isPropertyRoomPhotoPath } from '@/lib/api/storage-object-path';
 import {
   getReport,
   uuid,
@@ -31,6 +32,7 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
   databaseError(photo.error);
   if (
     !photo.data ||
+    !isPropertyRoomPhotoPath(photo.data.storage_path, params.id) ||
     !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(
       photo.data.mime_type ?? ''
     )

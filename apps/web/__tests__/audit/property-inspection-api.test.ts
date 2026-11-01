@@ -13,6 +13,7 @@ const m = vi.hoisted(() => ({
   tier: vi.fn(),
   authorize: vi.fn(),
   photo: true,
+  photoPath: '',
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler:
@@ -77,7 +78,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
                     ? { source_photo_id: m.photo ? folder : null }
                     : table === 'property_room_photos'
                       ? {
-                          storage_path: 'safe/path.jpg',
+                          storage_path: m.photoPath,
                           mime_type: 'image/jpeg',
                         }
                       : { id: folder },
@@ -121,6 +122,7 @@ beforeEach(() => {
   m.entitled = true;
   m.error = null;
   m.photo = true;
+  m.photoPath = `property-room-photos/uploader/${property}/kitchen/photo.jpg`;
   m.download.mockResolvedValue({
     data: new Blob(['image'], { type: 'image/jpeg' }),
     error: null,
@@ -252,6 +254,17 @@ it('supports authenticated native images', async () => {
   expect(
     await (await photo(request('GET', undefined, '?format=base64'))).json()
   ).toEqual({ dataUrl: 'data:image/jpeg;base64,aW1hZ2U=' });
+});
+it.each([
+  'property-room-photos/uploader/foreign/kitchen/photo.jpg',
+  `property-room-photos/uploader/${property}/../../../victim.jpg`,
+  `property-room-photos/uploader/${property}/%2e%2e/victim.jpg`,
+  `property-room-photos/uploader/${property}/kitchen/photo.jpg?x=y`,
+  'job-photos/victim/private.jpg',
+])('does not download a forged room-photo reference %s', async (path) => {
+  m.photoPath = path;
+  await expect(photo(request())).rejects.toMatchObject({ statusCode: 404 });
+  expect(m.download).not.toHaveBeenCalled();
 });
 it('rejects invalid calendar dates and unbounded inputs', () => {
   for (const date of [
