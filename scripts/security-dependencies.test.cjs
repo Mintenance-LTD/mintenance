@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { createRequire } = require('node:module');
 const { applyPatches } = require('./apply-security-patches.cjs');
 require('./audit-policy.test.cjs');
+require('./glob-security.test.cjs');
 
 applyPatches();
 test('all locked PostCSS copies retain the reviewed security override', () => {
