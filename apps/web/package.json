@@ -139,6 +139,6 @@
     "vitest": "^4.1.12"
   },
   "overrides": {
-    "minimatch": "^10.2.4"
+    "minimatch": "11.0.3"
   }
 }
