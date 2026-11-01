@@ -25,6 +25,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { BadRequestError } from '@/lib/errors/api-error';
+import { isOwnedDocumentPath } from '@/lib/api/storage-object-path';
 
 const QuerySchema = z.object({
   status: z.enum(['pending', 'approved', 'rejected', 'all']).default('pending'),
@@ -102,8 +103,8 @@ export const GET = withApiHandler(
     }
 
     const paths = (rows ?? [])
-      .map((r) => r.storage_path as string | undefined)
-      .filter((p): p is string => !!p);
+      .filter((r) => isOwnedDocumentPath(r.storage_path, r.contractor_id))
+      .map((r) => r.storage_path as string);
     const signedMap = new Map<string, string>();
     if (paths.length) {
       const { data: signed } = await serverSupabase.storage
@@ -118,7 +119,11 @@ export const GET = withApiHandler(
       rows: (rows ?? []).map((r) => ({
         ...r,
         profile: profiles[r.contractor_id as string] ?? null,
-        signed_url: signedMap.get(r.storage_path as string) ?? null,
+        // Another row may legitimately sign the same path. Recheck each row
+        // so a forged reference cannot borrow that contractor's signed URL.
+        signed_url: isOwnedDocumentPath(r.storage_path, r.contractor_id)
+          ? (signedMap.get(r.storage_path as string) ?? null)
+          : null,
       })),
     });
   }

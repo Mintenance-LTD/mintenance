@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { validateDocumentUpload } from '@/lib/utils/fileValidation';
 import { z } from 'zod';
+import { isOwnedDocumentPath } from '@/lib/api/storage-object-path';
 
 const DOCUMENT_CATEGORIES = [
   'contracts',
@@ -23,15 +24,6 @@ const documentMetadataSchema = z
     category: z.enum(DOCUMENT_CATEGORIES).optional(),
   })
   .strict();
-
-// Database row ownership does not prove storage ownership: users can edit
-// their own document metadata through the Data API.
-function isOwnedDocumentPath(path: unknown, userId: string): path is string {
-  if (typeof path !== 'string' || /[%\\\x00-\x1f]/.test(path)) return false;
-  const parts = path.split('/');
-  return parts.length >= 2 && parts[0] === userId &&
-    parts.every(part => part !== '' && part !== '.' && part !== '..');
-}
 
 /**
  * GET /api/contractor/documents

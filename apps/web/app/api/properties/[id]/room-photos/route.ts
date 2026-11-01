@@ -9,6 +9,7 @@ import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import { validateImageUpload } from '@/lib/utils/fileValidation';
+import { isPropertyRoomPhotoPath } from '@/lib/api/storage-object-path';
 
 const supabase = serverSupabase;
 
@@ -301,7 +302,11 @@ export const DELETE = withApiHandler(
       .eq('property_id', propertyId)
       .single();
 
-    if (fetchError || !photo) {
+    if (
+      fetchError ||
+      !photo ||
+      !isPropertyRoomPhotoPath(photo.storage_path, propertyId)
+    ) {
       return NextResponse.json({ error: 'Photo not found' }, { status: 404 });
     }
 
