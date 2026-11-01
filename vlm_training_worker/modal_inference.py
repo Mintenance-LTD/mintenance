@@ -48,12 +48,17 @@ DEFAULT_TEMPERATURE = 0.1
 # ---------------------------------------------------------------------------
 infer_image = (
     modal.Image.debian_slim(python_version="3.11")
+    .add_local_file(
+        str(Path(__file__).with_name("vendor") / "transformers-4.57.6+mintenance.1-py3-none-any.whl"),
+        "/opt/wheels/transformers-4.57.6+mintenance.1-py3-none-any.whl",
+        copy=True,
+    )
     .pip_install(
         # Keep the matched pair in sync with requirements.txt and training.
         "torch==2.13.0",
         "torchvision==0.28.0",
         # Match the training stack when loading its LoRA adapters.
-        "transformers==4.57.6",
+        "transformers==4.57.6+mintenance.1",
         "peft==0.18.1",
         "accelerate==1.11.0",
         "protobuf==7.36.2",
@@ -63,6 +68,7 @@ infer_image = (
         "pillow==13.0.0",
         "fastapi==0.115.5",
         "uvicorn==0.32.1",
+        extra_options="--find-links=/opt/wheels",
     )
     .env({"HF_HOME": "/model-cache", "TRANSFORMERS_CACHE": "/model-cache"})
 )

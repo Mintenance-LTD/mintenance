@@ -18,6 +18,7 @@ class HeadlessTrainingTests(unittest.TestCase):
 
         self.assertEqual(importlib.metadata.version("pillow"), "13.0.0")
         self.assertEqual(importlib.metadata.version("llamafactory"), "0.9.5+mintenance.1")
+        self.assertEqual(importlib.metadata.version("transformers"), "4.57.6+mintenance.1")
         self.assertIsNone(importlib.util.find_spec("gradio"), "Run in a headless environment")
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
