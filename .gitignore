@@ -234,6 +234,7 @@ yolo11n.pt
 !scripts/**/*.ps1
 *.txt
 !README.txt
+!/requirements-ml.txt
 *.tmp
 *.msi
 *.bat

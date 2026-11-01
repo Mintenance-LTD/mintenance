@@ -5,6 +5,19 @@ const { applyPatches } = require('./apply-security-patches.cjs');
 require('./audit-policy.test.cjs');
 
 applyPatches();
+test('all locked PostCSS copies retain the reviewed security override', () => {
+  const lock = require('../package-lock.json');
+  const copies = Object.entries(lock.packages).filter(([name]) =>
+    name.endsWith('/postcss')
+  );
+  assert.ok(copies.length > 0);
+  for (const [name, pkg] of copies) {
+    assert.equal(pkg.version, '8.5.28', name);
+  }
+  const metroRequire = createRequire(require.resolve('@expo/metro-config'));
+  assert.equal(metroRequire('postcss/package.json').version, '8.5.28');
+});
+
 for (const consumer of ['@google-cloud/storage', 'gaxios', 'teeny-request']) {
   test(`${consumer} resolves patched UUID with its existing CommonJS v4 API`, () => {
     const localRequire = createRequire(require.resolve(consumer));
@@ -18,6 +31,10 @@ for (const consumer of ['@google-cloud/storage', 'gaxios', 'teeny-request']) {
 
 test('Metro patch release reads image assets without the vulnerable image-size package', () => {
   assert.equal(require('metro/package.json').version, '0.83.8');
+  const expoMetroRequire = createRequire(
+    require.resolve('@expo/metro/package.json')
+  );
+  assert.equal(expoMetroRequire('metro/package.json').version, '0.83.8');
   const { getAssetSize } = require('metro/private/Assets');
   const png = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j0l8AAAAASUVORK5CYII=',

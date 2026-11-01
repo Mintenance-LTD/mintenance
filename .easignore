@@ -126,6 +126,8 @@ scripts/
 !/scripts/
 /scripts/*
 !/scripts/rebuild-native.mjs
+!/scripts/apply-security-patches.cjs
+!/scripts/patch-zod-v3.cjs
 week3-test-plan.js
 analyze-coverage.js
 performance-budgets.json
