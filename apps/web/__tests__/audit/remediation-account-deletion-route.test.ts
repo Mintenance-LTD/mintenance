@@ -104,6 +104,36 @@ describe('account deletion response and recovery boundary', () => {
     expect(response.status).toBe(409);
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
+  it('records a review without deleting credentials when financial history prevents erasure', async () => {
+    mocks.rpc
+      .mockResolvedValueOnce({
+        data: null,
+        error: { code: 'P0001', message: 'ACCOUNT_ERASURE_REQUIRES_REVIEW' },
+      })
+      .mockResolvedValueOnce({ data: operationId, error: null });
+    const response = await call();
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      requestId: operationId,
+      blockers: [{ code: 'ERASURE_REVIEW_REQUIRED' }],
+    });
+    expect(mocks.rpc).toHaveBeenNthCalledWith(
+      2,
+      'queue_account_erasure_review',
+      { p_user_id: userId }
+    );
+    expect(mocks.run).not.toHaveBeenCalled();
+  });
+  it('does not claim a review was recorded when the queue write fails', async () => {
+    mocks.rpc
+      .mockResolvedValueOnce({
+        data: null,
+        error: { code: 'P0001', message: 'ACCOUNT_ERASURE_REQUIRES_REVIEW' },
+      })
+      .mockResolvedValueOnce({ data: null, error: { code: 'offline' } });
+    await expect(call()).rejects.toMatchObject({ statusCode: 500 });
+    expect(mocks.run).not.toHaveBeenCalled();
+  });
   it('fails closed when preflight queries fail', async () => {
     mocks.queryResult.error = { code: 'offline' };
     await expect(call()).rejects.toMatchObject({ statusCode: 500 });

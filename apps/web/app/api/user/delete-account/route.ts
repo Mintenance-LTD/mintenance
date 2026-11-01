@@ -20,8 +20,8 @@ const deleteAccountSchema = z.object({
  * POST /api/user/delete-account — GDPR Right to Erasure (HARD delete).
  *
  * Deletes eligible account data. Signed contract evidence is archived before
- * contract cascades. Provider cleanup is durably queued; financial retention
- * remains separate remediation work.
+ * contract cascades. Provider cleanup is durably queued. Accounts with financial
+ * history or shared organization data require an individual erasure review.
  *
  * Sprint 7 (1.6): narrowed sibling endpoint DELETE /api/account/delete
  * to a "deactivate" (soft-delete only — sets deleted_at). Call this one
@@ -258,6 +258,32 @@ export const POST = withApiHandler(
       'delete_account_with_recovery',
       { p_user_id: user.id }
     );
+    if (
+      deleteError?.code === 'P0001' &&
+      deleteError.message === 'ACCOUNT_ERASURE_REQUIRES_REVIEW'
+    ) {
+      const { data: requestId, error: reviewError } = await serverSupabase.rpc(
+        'queue_account_erasure_review',
+        { p_user_id: user.id }
+      );
+      if (reviewError || typeof requestId !== 'string') {
+        throw new InternalServerError(
+          'Your account has not been deleted. We could not record the review request. Please contact admin@mintenance.co.uk.'
+        );
+      }
+      const message =
+        'Your erasure request has been recorded for review because financial records or shared organization data need assessment. Your account has not been deleted. Contact admin@mintenance.co.uk with reference ' +
+        requestId +
+        '.';
+      return NextResponse.json(
+        {
+          error: message,
+          requestId,
+          blockers: [{ code: 'ERASURE_REVIEW_REQUIRED', message, count: 1 }],
+        },
+        { status: 409 }
+      );
+    }
     if (deleteError || typeof operationId !== 'string') {
       logger.error('Account data deletion failed', {
         service: 'user',
