@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { ownedProfileImagePath } from '@/lib/api/storage-object-path';
 import {
   BadRequestError,
   InternalServerError,
@@ -153,7 +154,7 @@ export const POST = withApiHandler(
     // not fatal — the user's new avatar is already live, the old
     // blob is just an orphan we'll garbage-collect on next upload.
     if (previousAvatarUrl && previousAvatarUrl !== publicUrl) {
-      const oldFileName = previousAvatarUrl.split('/').pop();
+      const oldFileName = ownedProfileImagePath(previousAvatarUrl, user.id, 'avatar');
       if (oldFileName) {
         const { error: removeError } = await serverSupabase.storage
           .from('avatars')
@@ -191,7 +192,7 @@ export const DELETE = withApiHandler(
     }
 
     if (profile?.profile_image_url) {
-      const fileName = profile.profile_image_url.split('/').pop();
+      const fileName = ownedProfileImagePath(profile.profile_image_url, user.id, 'avatar');
       if (fileName) {
         const { error: deleteError } = await serverSupabase.storage
           .from('avatars')

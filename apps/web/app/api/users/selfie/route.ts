@@ -31,6 +31,7 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { ownedProfileImagePath } from '@/lib/api/storage-object-path';
 import {
   BadRequestError,
   InternalServerError,
@@ -142,10 +143,8 @@ export const POST = withApiHandler(
     // Best-effort cleanup of the previous image; an orphan blob is not
     // worth failing an otherwise-successful upload.
     if (previousUrl && previousUrl !== publicUrl) {
-      const marker = `/${BUCKET}/`;
-      const idx = previousUrl.indexOf(marker);
-      if (idx !== -1) {
-        const oldPath = previousUrl.slice(idx + marker.length);
+      const oldPath = ownedProfileImagePath(previousUrl, user.id, 'profile');
+      if (oldPath) {
         const { error: removeError } = await serverSupabase.storage
           .from(BUCKET)
           .remove([oldPath]);

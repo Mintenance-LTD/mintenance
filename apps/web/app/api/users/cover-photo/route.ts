@@ -19,6 +19,7 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { ownedProfileImagePath } from '@/lib/api/storage-object-path';
 import { BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import {
@@ -136,7 +137,7 @@ export const POST = withApiHandler(
       typeof before.cover_photo_url === 'string' &&
       before.cover_photo_url !== publicUrl
     ) {
-      const oldFile = before.cover_photo_url.split('/').pop();
+      const oldFile = ownedProfileImagePath(before.cover_photo_url, user.id, 'cover');
       if (oldFile) {
         const { error: removeError } = await serverSupabase.storage
           .from(BUCKET)
@@ -174,7 +175,7 @@ export const DELETE = withApiHandler(
     }
 
     if (before?.cover_photo_url && typeof before.cover_photo_url === 'string') {
-      const oldFile = before.cover_photo_url.split('/').pop();
+      const oldFile = ownedProfileImagePath(before.cover_photo_url, user.id, 'cover');
       if (oldFile) {
         const { error: removeError } = await serverSupabase.storage
           .from(BUCKET)

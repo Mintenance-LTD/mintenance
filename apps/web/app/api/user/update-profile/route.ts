@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { ownedProfileImagePath } from '@/lib/api/storage-object-path';
 import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 import { AutomationPreferencesService } from '@/lib/services/agents/AutomationPreferencesService';
@@ -208,27 +209,19 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
     previousImageUrl &&
     previousImageUrl !== profileImageUrl
   ) {
-    // Only clean up files we previously wrote into this bucket. The
-    // canonical avatar route writes to `avatars/<file>` and the
-    // legacy profile-images bucket holds `avatars/<file>` (note the
-    // path-prefix overlap is intentional — same `avatars/` folder
-    // inside two different buckets). Match on the legacy bucket's
-    // `/profile-images/avatars/` substring so we don't accidentally
-    // try to delete an `/avatars/` blob from the wrong bucket.
-    if (previousImageUrl.includes('/profile-images/avatars/')) {
-      const trailing = previousImageUrl.split('/profile-images/').pop();
-      if (trailing) {
-        const { error: removeError } = await serverSupabase.storage
-          .from('profile-images')
-          .remove([trailing]);
-        if (removeError) {
-          logger.warn('Failed to remove previous profile image (non-fatal)', {
-            service: 'user',
-            userId: user.id,
-            path: trailing,
-            error: removeError.message,
-          });
-        }
+    // A profile URL alone cannot authorize a service-role deletion.
+    const trailing = ownedProfileImagePath(previousImageUrl, user.id, 'profile');
+    if (trailing) {
+      const { error: removeError } = await serverSupabase.storage
+        .from('profile-images')
+        .remove([trailing]);
+      if (removeError) {
+        logger.warn('Failed to remove previous profile image (non-fatal)', {
+          service: 'user',
+          userId: user.id,
+          path: trailing,
+          error: removeError.message,
+        });
       }
     }
   }
