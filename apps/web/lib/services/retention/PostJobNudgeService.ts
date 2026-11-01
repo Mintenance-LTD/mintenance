@@ -15,6 +15,11 @@ import { logger } from '@mintenance/shared';
 import { env } from '@/lib/env';
 import { EmailService } from '@/lib/email-service';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { isJobPhotoPath } from '@/lib/api/storage-object-path';
+import {
+  PRIVATE_PHOTO_PLACEHOLDER,
+  resignJobStorageUrls,
+} from '@/lib/api/job-storage';
 
 interface Result {
   evaluated: number;
@@ -91,6 +96,7 @@ async function alreadyNudged(
 
 async function firstAfterPhotoSignedUrl(
   jobId: string,
+  homeownerId: string,
   which: 'before' | 'after'
 ): Promise<string | null> {
   const { data } = await serverSupabase
@@ -102,11 +108,11 @@ async function firstAfterPhotoSignedUrl(
     .limit(1)
     .maybeSingle();
 
-  if (!data?.storage_path) return null;
-  const { data: signed } = await serverSupabase.storage
-    .from('job-attachments')
-    .createSignedUrl(data.storage_path as string, 60 * 60 * 24 * 7);
-  return signed?.signedUrl ?? null;
+  if (!isJobPhotoPath(data?.storage_path, jobId)) return null;
+  // Check the recipient against trusted Storage/job ownership before signing.
+  // Use the same private bucket and short TTL as authorized in-app readers.
+  const [url] = await resignJobStorageUrls([data.storage_path], homeownerId);
+  return url === PRIVATE_PHOTO_PLACEHOLDER ? null : url;
 }
 
 export class PostJobNudgeService {
@@ -182,8 +188,8 @@ export class PostJobNudgeService {
       }
 
       const [beforeUrl, afterUrl] = await Promise.all([
-        firstAfterPhotoSignedUrl(jobId, 'before'),
-        firstAfterPhotoSignedUrl(jobId, 'after'),
+        firstAfterPhotoSignedUrl(jobId, homeownerId, 'before'),
+        firstAfterPhotoSignedUrl(jobId, homeownerId, 'after'),
       ]);
 
       await NotificationService.createNotification({

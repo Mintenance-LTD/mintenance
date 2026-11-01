@@ -33,3 +33,14 @@ export function isPropertyRoomPhotoPath(
     parts[2] === propertyId
   );
 }
+
+// Before/after uploads use job-photos/<job>/...; older uploads use <job>/... .
+// Metadata rows are editable independently of the referenced Storage object.
+export function isJobPhotoPath(path: unknown, jobId: string): path is string {
+  const parts = objectPathParts(path);
+  return (
+    !!parts &&
+    ((parts.length >= 3 && parts[0] === 'job-photos' && parts[1] === jobId) ||
+      (parts.length >= 2 && parts[0] === jobId))
+  );
+}
