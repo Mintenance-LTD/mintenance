@@ -1,33 +1,12 @@
-// Metro config for monorepo - works with EAS builds
-// EAS builds use their own metro version on servers, so this config is mainly for local validation
+// Extend Expo's Metro defaults for both local exports and EAS builds.
 const path = require('path');
-
-let config;
-
-try {
-  // Try to load Expo's default config
-  const { getDefaultConfig } = require('expo/metro-config');
-
-  // Handle both sync and async getDefaultConfig
-  const defaultConfig = getDefaultConfig(__dirname);
-
-  if (defaultConfig && typeof defaultConfig.then === 'function') {
-    // Async version - return promise for EAS
-    module.exports = defaultConfig.then((config) => {
-      return extendConfig(config);
-    });
-  } else {
-    // Sync version
-    config = extendConfig(defaultConfig);
-    module.exports = config;
-  }
-} catch (_error) {
-  // If we can't load expo/metro-config (e.g., due to version mismatch),
-  // provide a minimal config that should work for EAS validation
-  // EAS will use its own metro config during the actual build
-  // Silently fallback - EAS will use its own metro config during builds
-  module.exports = getMinimalConfig();
-}
+const { getDefaultConfig } = require('expo/metro-config');
+const defaultConfig = getDefaultConfig(__dirname);
+// Preserve support for either Expo API shape; configuration failures must surface.
+module.exports =
+  defaultConfig && typeof defaultConfig.then === 'function'
+    ? defaultConfig.then(extendConfig)
+    : extendConfig(defaultConfig);
 
 function extendConfig(baseConfig) {
   const projectRoot = __dirname;
@@ -44,8 +23,11 @@ function extendConfig(baseConfig) {
 
   // Ensure proper node_modules resolution for monorepo
   baseConfig.watchFolders = [
-    path.join(monorepoRoot, 'packages'),
-    path.join(monorepoRoot, 'node_modules'),
+    ...new Set([
+      ...(baseConfig.watchFolders || []),
+      path.join(monorepoRoot, 'packages'),
+      path.join(monorepoRoot, 'node_modules'),
+    ]),
   ];
 
   if (!baseConfig.resolver) {
@@ -156,22 +138,4 @@ function extendConfig(baseConfig) {
   };
 
   return baseConfig;
-}
-
-function getMinimalConfig() {
-  return {
-    projectRoot: __dirname,
-    watchFolders: [
-      path.resolve(__dirname, '../../packages'),
-      path.resolve(__dirname, '../../node_modules'),
-    ],
-    resolver: {
-      resolverMainFields: ['react-native', 'browser', 'main'],
-      sourceExts: ['js', 'jsx', 'json', 'ts', 'tsx'],
-      nodeModulesPaths: [
-        path.resolve(__dirname, 'node_modules'),
-        path.resolve(__dirname, '../../node_modules'),
-      ],
-    },
-  };
 }

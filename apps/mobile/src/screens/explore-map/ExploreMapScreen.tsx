@@ -681,7 +681,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
             showsUserLocation={viewModel.locationGranted}
             showsMyLocationButton={false}
             userInterfaceStyle='light'
-            showsPointsOfInterests={false}
+            showsPointsOfInterest={false}
           >
             {/* Coverage overlay — the contractor's active service
                 areas (matches the notify-audience gating radius:

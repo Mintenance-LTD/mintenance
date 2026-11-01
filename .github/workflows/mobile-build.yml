@@ -121,6 +121,13 @@ jobs:
       - name: Check native dependency install policy (offline)
         run: node --test scripts/ci/native-onnx-install.test.cjs
 
+      - name: Check Expo Metro defaults (no native build)
+        run: node --test scripts/ci/mobile-metro-config.test.cjs
+
+      - name: Check Expo SDK dependency alignment (no native build)
+        working-directory: apps/mobile
+        run: npx expo install --check
+
       - name: Validate environment
         working-directory: apps/mobile
         # These secrets exist in repo settings but were never mapped into this
