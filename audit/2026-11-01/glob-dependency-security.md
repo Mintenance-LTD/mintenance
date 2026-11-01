@@ -40,3 +40,11 @@ license review and a fresh Aikido scan remain separate requirements.
 
 Production settings, payment state, beta gates and AI training holds were not
 changed. Security PR CI must pass before merging these dependency changes.
+
+The initial PR workflows that use npm 10.8.2 rejected the npm 11 lock because
+their resolver missed the generic override for archiver-utils/rimraf. Added
+explicit overrides for these two modern glob consumers, preserving the direct
+rimraf version with `$rimraf`, and extended the consumer regression coverage.
+An actual npm 10 clean install passed, followed by all 13 glob/consumer tests
+(52 unique security tests covered across the runs). Gitleaks and diff checks
+passed again. No vulnerable dependency was added to appease the older resolver.

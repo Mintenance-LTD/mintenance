@@ -69,6 +69,8 @@ for (const consumer of [
   '@expo/fingerprint',
   '@expo/metro-config',
   'expo-updates',
+  'archiver-utils',
+  'rimraf',
 ]) {
   test(`${consumer} resolves the patched glob with working synchronous matching`, () => {
     const consumerRequire = createRequire(
