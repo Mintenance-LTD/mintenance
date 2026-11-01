@@ -44,3 +44,44 @@ export function isJobPhotoPath(path: unknown, jobId: string): path is string {
       (parts.length >= 2 && parts[0] === jobId))
   );
 }
+
+/**
+ * Profile URLs are user-editable metadata, not proof of object ownership.
+ * Only accept public URLs and the owner-scoped filenames our upload routes
+ * generate. Check the raw path so URL parsing cannot normalize traversal.
+ * Unknown/legacy URL formats are left in storage rather than deleted with
+ * service-role privileges.
+ */
+export function ownedProfileImagePath(
+  value: unknown,
+  userId: string,
+  kind: 'avatar' | 'cover' | 'profile'
+): string | null {
+  if (typeof value !== 'string' || !userId) return null;
+  let origin: string;
+  try {
+    const base = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '');
+    if (!['https:', 'http:'].includes(base.protocol)) return null;
+    origin = base.origin;
+  } catch {
+    return null;
+  }
+  const bucket = kind === 'avatar' ? 'avatars' : 'profile-images';
+  const urlPrefix = `${origin}/storage/v1/object/public/${bucket}/`;
+  if (!value.startsWith(urlPrefix)) return null;
+  const path = value.slice(urlPrefix.length);
+  if (!objectPathParts(path)) return null;
+  const prefixes =
+    kind === 'avatar'
+      ? [`${userId}-`]
+      : kind === 'cover'
+        ? [`cover-${userId}-`]
+        : [`avatars/${userId}-`, `selfies/${userId}-`];
+  return prefixes.some(
+    (prefix) =>
+      path.startsWith(prefix) &&
+      /^\d+\.(?:jpe?g|png|webp)$/.test(path.slice(prefix.length))
+  )
+    ? path
+    : null;
+}
