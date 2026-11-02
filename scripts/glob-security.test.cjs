@@ -92,6 +92,7 @@ test('legacy lint and coverage consumers retain the callable minimatch API', () 
     const minimatch = consumerRequire('minimatch');
     assert.equal(minimatch('src/example.js', '**/*.js'), true);
     assert.equal(minimatch('src/example.ts', '**/*.js'), false);
+    assert.equal(minimatch('src/example.jsx', '**/*.{js,jsx}'), true);
   }
   const TestExclude = require('test-exclude');
   const coverage = new TestExclude({ cwd: process.cwd() });
@@ -119,3 +120,59 @@ test('legacy minimatch APIs do not perform the advisory globparts expansion', ()
     assert.equal(typeof matcher.firstPhasePreProcess, 'undefined');
   }
 });
+
+test('React Native codegen expands its native source extension pattern', () => {
+  const codegenRequire = createRequire(
+    require.resolve('@react-native/codegen/package.json')
+  );
+  const globRequire = createRequire(codegenRequire.resolve('glob'));
+  const minimatchRequire = createRequire(globRequire.resolve('minimatch'));
+  assert.equal(
+    minimatchRequire('brace-expansion/package.json').version,
+    '1.1.21'
+  );
+  assert.equal(typeof minimatchRequire('brace-expansion'), 'function');
+  const nativeSources = codegenRequire('glob').sync(
+    'src/**/*{,.fb}.{js,ts,tsx}',
+    {
+      cwd: path.dirname(
+        require.resolve('react-native-gesture-handler/package.json')
+      ),
+    }
+  );
+  assert.ok(
+    nativeSources.some((file) => file.endsWith('RNGestureHandlerModule.ts'))
+  );
+});
+
+for (const library of [
+  '@react-native-community/datetimepicker',
+  'react-native-gesture-handler',
+  '@react-native-async-storage/async-storage',
+]) {
+  test(`${library} generates a nonempty Android native schema`, (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mintenance-codegen-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const manifestPath = require.resolve(`${library}/package.json`);
+    const manifest = require(manifestPath);
+    const output = path.join(root, 'schema.json');
+    execFileSync(
+      process.execPath,
+      [
+        require.resolve('@react-native/codegen/lib/cli/combine/combine-js-to-schema-cli.js'),
+        '--platform',
+        'android',
+        output,
+        path.resolve(
+          path.dirname(manifestPath),
+          manifest.codegenConfig.jsSrcsDir
+        ),
+      ],
+      { timeout: 15000, stdio: 'pipe' }
+    );
+    assert.ok(
+      Object.keys(JSON.parse(fs.readFileSync(output, 'utf8')).modules).length >
+        0
+    );
+  });
+}
