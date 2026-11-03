@@ -269,7 +269,7 @@ export default function PrivacyPolicyPage() {
             </li>
           </ul>
           <p style={{ ...pStyle, marginBottom: 0 }}>
-            To exercise these rights, contact us at privacy@mintenance.app
+            To exercise these rights, contact us at admin@mintenance.co.uk
           </p>
         </section>
 
@@ -374,7 +374,7 @@ export default function PrivacyPolicyPage() {
             }}
           >
             <p>
-              <strong>Email:</strong> privacy@mintenance.app
+              <strong>Email:</strong> admin@mintenance.co.uk
             </p>
             <p>
               <strong>Post:</strong> Data Protection Officer, Mintenance Ltd,

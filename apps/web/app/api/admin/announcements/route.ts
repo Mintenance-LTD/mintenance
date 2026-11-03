@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { AdminCommunicationService } from '@/lib/services/admin/AdminCommunicationService';
-import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
-import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { z } from 'zod';
-import { sanitizeText, sanitizeMessage } from '@/lib/sanitizer';
 
 /**
  * GET /api/admin/announcements
@@ -35,91 +31,21 @@ export const GET = withApiHandler(
   }
 );
 
-const announcementSchema = z
-  .object({
-    title: z
-      .string()
-      .min(1)
-      .max(200)
-      .transform((val) => sanitizeText(val, 200)),
-    content: z
-      .string()
-      .min(1)
-      .max(5000)
-      .transform((val) => sanitizeMessage(val)),
-    announcement_type: z
-      .enum(['general', 'maintenance', 'security', 'feature'])
-      .optional(),
-    target_audience: z
-      .enum(['all', 'homeowners', 'contractors', 'verified_contractors'])
-      .optional(),
-    priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
-    is_published: z.boolean().optional(),
-    expires_at: z.string().nullable().optional(),
-    created_by: z.string().uuid(),
-  })
-  .strict();
-
 /**
  * POST /api/admin/announcements
  * Create a new announcement
  */
 export const POST = withApiHandler(
-  {
-    roles: ['admin'],
-    rateLimit: { maxRequests: 10 },
-    // Announcements are platform-wide push/email blasts — a stolen
-    // admin session could spam every user. The send/route.ts already
-    // gates on MFA below; gating creation here too closes the
-    // create-then-send pipeline.
-    requireMfaVerifiedWithinMinutes: 15,
-  },
-  async (request, { user }) => {
-    const body = await request.json();
-    const parsed = announcementSchema.safeParse(body);
-
-    if (!parsed.success) {
-      throw new BadRequestError(
-        'Invalid announcement data: ' + parsed.error.message
-      );
-    }
-
-    const {
-      title,
-      content,
-      announcement_type,
-      target_audience,
-      priority,
-      is_published,
-      expires_at,
-      created_by,
-    } = parsed.data;
-
-    const announcement = await AdminCommunicationService.createAnnouncement({
-      title,
-      content,
-      announcement_type: announcement_type || 'general',
-      target_audience: target_audience || 'all',
-      priority: priority || 'normal',
-      is_published: is_published || false,
-      expires_at: expires_at ?? undefined,
-      created_by,
-    });
-
-    if (!announcement) {
-      throw new InternalServerError('Failed to create announcement');
-    }
-
-    await AdminActivityLogger.logFromRequest(
-      request,
-      user.id,
-      'create_announcement',
-      'communication',
-      `Created announcement: ${title}`,
-      'announcement',
-      announcement.id
-    );
-
-    return NextResponse.json(announcement);
-  }
+  { roles: ['admin'], requireMfaVerifiedWithinMinutes: 15 },
+  async () =>
+    NextResponse.json(
+      {
+        error: {
+          message: 'Use Customer service to preview and send notifications.',
+          code: 'USE_CUSTOMER_SERVICE',
+        },
+        actionUrl: '/admin/support',
+      },
+      { status: 410 }
+    )
 );

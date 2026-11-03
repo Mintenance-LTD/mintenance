@@ -17,6 +17,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { HELP_LINKS } from '../config/links';
 import { me } from '../design-system/mint-editorial';
+import { CustomerSupport } from '../components/CustomerSupport';
 
 const QUICK_ACTION_STYLES: Record<
   string,
@@ -43,6 +44,7 @@ const HelpCenterScreen: React.FC = () => {
     useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
+  const [supportOpen, setSupportOpen] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
   const faqData = [
@@ -62,7 +64,7 @@ const HelpCenterScreen: React.FC = () => {
       id: '3',
       question: 'How does payment work?',
       answer:
-        'We use an escrow system for secure payments. When you accept a bid, the payment is held securely until the job is completed to your satisfaction. Then the payment is released to the contractor.',
+        'Payments are processed through Stripe. Review the total price, payment stages and release conditions in your agreement before paying. Contact support if a payment or completion is disputed.',
     },
     {
       id: '4',
@@ -74,13 +76,13 @@ const HelpCenterScreen: React.FC = () => {
       id: '5',
       question: 'How do I become a verified contractor?',
       answer:
-        'To become verified, complete your profile, upload required licenses and insurance documents, and pass our background check. Verified contractors get priority in search results.',
+        'Complete your profile and submit the identity, licence and insurance documents requested in the app. Verification indicates the checks recorded on your profile; it is not a guarantee of workmanship.',
     },
     {
       id: '6',
       question: 'Can I cancel a job after posting?',
       answer:
-        "Yes, you can cancel a job before accepting any bids without any fees. If you've already accepted a bid, cancellation policies may apply.",
+        'Review the cancellation information in your agreement. You can send a cancellation notice from the contract screen or contact the contractor and copy admin@mintenance.co.uk. Any refund or amount due needs separate review.',
     },
   ];
 
@@ -90,14 +92,14 @@ const HelpCenterScreen: React.FC = () => {
       title: 'Contact Support',
       description: 'Get help from our team',
       icon: 'headset',
-      action: () => handleContactSupport(),
+      action: () => setSupportOpen(true),
     },
     {
       id: 'chat',
-      title: 'Live Chat',
-      description: 'Chat in real-time',
+      title: 'My support cases',
+      description: 'Read replies and send a message',
       icon: 'chatbubbles',
-      action: () => handleLiveChat(),
+      action: () => setSupportOpen(true),
     },
     {
       id: 'call',
@@ -115,30 +117,11 @@ const HelpCenterScreen: React.FC = () => {
     {
       id: 'email',
       title: 'Email Support',
-      description: 'support@mintenance.co.uk',
+      description: 'admin@mintenance.co.uk',
       icon: 'mail',
       action: () => handleEmailSupport(),
     },
   ];
-
-  const handleContactSupport = () => {
-    Alert.alert(
-      'Contact Support',
-      "Choose how you'd like to contact our support team:",
-      [
-        { text: 'Email', onPress: handleEmailSupport },
-        { text: 'Phone', onPress: handlePhoneCall },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
-  };
-
-  const handleLiveChat = () => {
-    Alert.alert(
-      'Live Chat',
-      'Live chat is coming soon! Please use email or phone support for now.'
-    );
-  };
 
   const handlePhoneCall = () => {
     // Audit F4: previous `tel:+18006468435` (US 1-800 number) was a
@@ -153,7 +136,7 @@ const HelpCenterScreen: React.FC = () => {
   };
 
   const handleEmailSupport = () => {
-    Linking.openURL('mailto:support@mintenance.co.uk?subject=Support Request');
+    Linking.openURL('mailto:admin@mintenance.co.uk?subject=Support Request');
   };
 
   const toggleFaq = (id: string) => {
@@ -198,6 +181,10 @@ const HelpCenterScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <CustomerSupport
+        visible={supportOpen}
+        onClose={() => setSupportOpen(false)}
+      />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -358,7 +345,7 @@ const HelpCenterScreen: React.FC = () => {
           <Button
             variant='primary'
             title='Contact Support'
-            onPress={handleContactSupport}
+            onPress={() => setSupportOpen(true)}
             fullWidth
             style={{ marginTop: 16, borderRadius: 28 }}
           />

@@ -216,7 +216,9 @@ node_modules/
 # ============================================================================
 # LEGAL AND WEB ASSETS (Mobile assets MUST be included!)
 # ============================================================================
-LEGAL/
+# Only the root business documents are excluded. The shared legal source is
+# bundled into the app so customers can read and retain the approved policies.
+/LEGAL/
 apps/web/public/
 apps/web/assets/
 # DO NOT exclude apps/mobile/assets/ - required for app icon and splash screen!

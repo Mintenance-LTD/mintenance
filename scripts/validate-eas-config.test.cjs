@@ -9,6 +9,18 @@ const {
 } = require('./validate-eas-config.cjs');
 const { requiresNativeBuild } = require('./mobile-build-changes.cjs');
 
+test('EAS archive includes shared customer policies but excludes private root documents', () => {
+  const ignore = require('ignore')().add(
+    fs.readFileSync(path.join(__dirname, '../.easignore'), 'utf8')
+  );
+  for (const file of ['customer-terms.ts', 'privacy-policy.ts']) {
+    assert.equal(ignore.ignores(`packages/shared/src/legal/${file}`), false);
+  }
+  assert.equal(ignore.ignores('LEGAL/private-agreement.pdf'), true);
+  assert.equal(ignore.ignores('output/customer-service-apk.private.json'), true);
+  assert.equal(ignore.ignores('apps/mobile/.env.local'), true);
+});
+
 const workflow = yaml.load(
   fs.readFileSync(
     path.join(__dirname, '../.github/workflows/ci-cd.yml'),
@@ -173,7 +185,7 @@ test('isolated beta APK resolves the verified relay with OTA disabled and existi
   assert.equal(resolved.EXPO_PUBLIC_USE_MOCK, 'false');
   assert.equal(resolved.NODE_ENV, 'production');
   assert.equal(config.android.package, 'com.mintenance.app');
-  assert.equal(config.android.versionCode, 43);
+  assert.equal(config.android.versionCode, 44);
   assert.equal(config.name, 'Mintenance Beta');
   assert.equal(config.runtimeVersion, '1.2.4-beta-login1');
   assert.equal(config.updates.enabled, false);

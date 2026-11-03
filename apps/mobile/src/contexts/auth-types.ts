@@ -21,6 +21,8 @@ export interface SignUpUserData {
   // wired through performSignUp -> AuthService.signUp -> supabase.auth
   // signUp options.data, where the handle_new_user trigger picks it up.
   phone?: string;
+  termsVersion?: string;
+  termsAccepted?: boolean;
 }
 
 export interface AuthContextType {

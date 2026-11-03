@@ -65,7 +65,16 @@ const request = () =>
   POST(
     new NextRequest('http://localhost/api/contracts/test/accept', {
       method: 'POST',
-      body: JSON.stringify({ reason: 'Revise dates' }),
+      body: JSON.stringify({
+        legalConsent: {
+          termsVersion: '2026-11-03',
+          termsAccepted: true,
+          expectedUpdatedAt: '2026-11-03T00:00:00.000Z',
+          expectedReviewToken: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          earlyStartRequested: false,
+          fullPerformanceAcknowledged: false,
+        },
+      }),
     }),
     { params: Promise.resolve({ id: 'unused' }) }
   );

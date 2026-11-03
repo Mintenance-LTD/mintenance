@@ -4,6 +4,7 @@ import React from 'react';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { CUSTOMER_TERMS_VERSION } from '@mintenance/shared';
 
 /**
  * Register form schema + submit logic, extracted from RegisterForm so
@@ -105,6 +106,8 @@ export function useRegisterSubmit() {
           lastName: data.lastName,
           phone: data.phone,
           role: data.role,
+          termsVersion: CUSTOMER_TERMS_VERSION,
+          termsAccepted: data.acceptTerms,
         }),
       });
 

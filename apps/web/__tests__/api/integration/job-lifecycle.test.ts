@@ -142,6 +142,7 @@ vi.mock('@/lib/rate-limiter', () => ({
 }));
 
 vi.mock('@mintenance/shared', () => ({
+  CUSTOMER_TERMS_VERSION: '2026-11-03',
   logger: mocks.logger,
   JOB_STATUS: {
     POSTED: 'posted',
@@ -472,7 +473,21 @@ function createPostRequest(
       'x-forwarded-for': '127.0.0.1',
       'x-csrf-token': 'test-csrf-token',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(
+      url.includes('/contracts/') && url.endsWith('/accept')
+        ? {
+            ...body,
+            legalConsent: {
+              termsVersion: '2026-11-03',
+              termsAccepted: true,
+              expectedUpdatedAt: '2026-11-03T00:00:00.000Z',
+              expectedReviewToken: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+              earlyStartRequested: false,
+              fullPerformanceAcknowledged: false,
+            },
+          }
+        : body
+    ),
   });
 }
 
@@ -1210,7 +1225,7 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
     });
 
     mocks.supabaseRpc.mockImplementation(async (name: string) => {
-      if (name !== 'sign_contract_atomic')
+      if (name !== 'sign_contract_with_consent')
         throw new Error(`Unexpected RPC ${name}`);
       return {
         data: {
@@ -1353,7 +1368,7 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
     });
 
     mocks.supabaseRpc.mockImplementation(async (name: string) => {
-      if (name !== 'sign_contract_atomic')
+      if (name !== 'sign_contract_with_consent')
         throw new Error(`Unexpected RPC ${name}`);
       return {
         data: {
@@ -1603,7 +1618,11 @@ describe('Job Lifecycle - 7. Job started', () => {
               eq: vi.fn().mockReturnValue({
                 limit: vi.fn().mockReturnValue({
                   single: vi.fn().mockResolvedValue({
-                    data: { id: CONTRACT_ID, status: 'accepted' },
+                    data: {
+                      id: CONTRACT_ID,
+                      status: 'accepted',
+                      cancellation_deadline: '2020-01-01T00:00:00Z',
+                    },
                     error: null,
                   }),
                 }),
@@ -1704,7 +1723,11 @@ describe('Job Lifecycle - 7. Job started', () => {
               eq: vi.fn().mockReturnValue({
                 limit: vi.fn().mockReturnValue({
                   single: vi.fn().mockResolvedValue({
-                    data: { id: CONTRACT_ID, status: 'accepted' },
+                    data: {
+                      id: CONTRACT_ID,
+                      status: 'accepted',
+                      cancellation_deadline: '2020-01-01T00:00:00Z',
+                    },
                     error: null,
                   }),
                 }),

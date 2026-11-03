@@ -3,6 +3,7 @@ import { act } from '@testing-library/react-native';
 import { render, fireEvent, waitFor } from '../test-utils';
 import RegisterScreen from '../../screens/RegisterScreen';
 import { useAuth } from '../../contexts/AuthContext';
+import { CUSTOMER_TERMS_TEXT, PRIVACY_POLICY_TEXT } from '@mintenance/shared';
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
@@ -423,23 +424,28 @@ describe('RegisterScreen', () => {
   });
 
   it('shows the terms and conditions modal', async () => {
-    const { getByText, getByTestId } = render(<RegisterScreen />);
+    const { getByText, queryByText } = render(<RegisterScreen />);
 
     await act(async () => {
       fireEvent.press(getByText('Terms and Conditions'));
     });
 
-    expect(getByTestId('terms-modal')).toBeTruthy();
+    expect(getByText(CUSTOMER_TERMS_TEXT)).toBeTruthy();
+    expect(getByText('Save or share a copy')).toBeTruthy();
+    await act(async () => fireEvent.press(getByText('Close document')));
+    expect(queryByText(CUSTOMER_TERMS_TEXT)).toBeNull();
   });
 
   it('shows the privacy policy modal', async () => {
-    const { getByText, getByTestId } = render(<RegisterScreen />);
+    const { getByText, queryByText } = render(<RegisterScreen />);
 
     await act(async () => {
       fireEvent.press(getByText('Privacy Policy'));
     });
 
-    expect(getByTestId('privacy-modal')).toBeTruthy();
+    expect(getByText(PRIVACY_POLICY_TEXT)).toBeTruthy();
+    await act(async () => fireEvent.press(getByText('Close document')));
+    expect(queryByText(PRIVACY_POLICY_TEXT)).toBeNull();
   });
 
   it('renders the password input as secured by default', () => {

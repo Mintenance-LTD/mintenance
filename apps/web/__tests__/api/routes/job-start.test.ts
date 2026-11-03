@@ -235,7 +235,11 @@ function setupStartJobMocks(
     data:
       'contractData' in overrides
         ? overrides.contractData
-        : { id: 'contract-1', status: 'accepted' },
+        : {
+            id: 'contract-1',
+            status: 'accepted',
+            cancellation_deadline: '2020-01-01T00:00:00Z',
+          },
     error: null,
   };
   const escrowResult = {

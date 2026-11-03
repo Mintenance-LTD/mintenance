@@ -33,6 +33,7 @@ const API_GROUPS = new Set([
   'referrals',
   'report-conversation',
   'subscriptions',
+  'support',
   'user',
   'users',
   'verification',
@@ -44,7 +45,11 @@ export interface RelayDependencies {
   verifyUser: (
     token: string,
     signal: AbortSignal
-  ) => Promise<{ id: string; confirmed: boolean } | null>;
+  ) => Promise<{
+    id: string;
+    confirmed: boolean;
+    betaApproved?: boolean;
+  } | null>;
   fetch: typeof fetch;
   timeoutMs?: number;
 }
@@ -153,7 +158,10 @@ export function createMobileRelay(deps: RelayDependencies) {
         if (abort.signal.aborted) throw new Error('Timeout');
         if (!user)
           return reply(401, 'INVALID_TOKEN', 'Invalid or expired session');
-        if (!user.confirmed || !allowed.has(user.id.toLowerCase())) {
+        if (
+          !user.confirmed ||
+          !(user.betaApproved ?? allowed.has(user.id.toLowerCase()))
+        ) {
           return reply(
             403,
             'BETA_ACCESS_REQUIRED',

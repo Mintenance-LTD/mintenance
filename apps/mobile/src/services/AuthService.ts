@@ -36,6 +36,8 @@ import { restoreSessionFromBiometricTokens as runBiometricRestore } from './auth
 export type { TokenValidationResult } from './auth/jwt';
 
 export interface SignUpData {
+  termsVersion?: string;
+  termsAccepted?: boolean;
   email: string;
   password: string;
   firstName: string;
@@ -101,6 +103,9 @@ export class AuthService {
             first_name: userData.firstName,
             last_name: userData.lastName,
             role: userData.role,
+            ...(userData.termsVersion && userData.termsAccepted === true
+              ? { terms_version: userData.termsVersion, terms_accepted: true }
+              : {}),
             full_name: `${userData.firstName} ${userData.lastName}`,
             // 2026-05-23: snake_case to match the trigger's
             // raw_user_meta_data->>'phone' read.

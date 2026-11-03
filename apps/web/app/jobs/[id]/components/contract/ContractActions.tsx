@@ -11,6 +11,13 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import type { Contract } from './useContractData';
+import {
+  ContractConsentChoices,
+  emptyConsent,
+  type ConsentChoices,
+} from '@/components/legal/ContractConsentChoices';
+import { CUSTOMER_TERMS_VERSION } from '@mintenance/shared';
+import { ContractCancellation } from '@/components/legal/ContractCancellation';
 
 interface ContractActionsProps {
   contract: Contract;
@@ -24,7 +31,13 @@ interface ContractActionsProps {
   showRejectForm: boolean;
   rejectReason: string;
   error: string | null;
-  onSign: () => void;
+  onSign: (
+    consent: ConsentChoices & {
+      termsVersion: string;
+      expectedUpdatedAt: string;
+      expectedReviewToken: string;
+    }
+  ) => void;
   onReject: () => void;
   onDelete: () => void;
   onDownloadPdf: () => void;
@@ -54,6 +67,11 @@ export function ContractActions({
   // Hydration-safe theme detection — swap Sign-button gradient
   // for canonical `.btn-primary` on editorial.
   const [isMintEditorial, setIsMintEditorial] = useState(false);
+  const [consent, setConsent] = useState(emptyConsent);
+  useEffect(
+    () => setConsent(emptyConsent),
+    [contract.id, contract.updated_at, contract.review_token]
+  );
   useEffect(() => {
     if (typeof document === 'undefined') return;
     setIsMintEditorial(
@@ -61,8 +79,29 @@ export function ContractActions({
     );
   }, []);
 
+  const legacyReview =
+    userRole === 'homeowner' &&
+    contract.status === 'accepted' &&
+    !contract.cancellation_deadline;
   return (
     <>
+      {(canSign || legacyReview) && (
+        <ContractConsentChoices
+          value={consent}
+          onChange={setConsent}
+          homeowner={userRole === 'homeowner'}
+        />
+      )}
+      {userRole === 'homeowner' && !isDraft && (
+        <ContractCancellation contractId={contract.id} />
+      )}
+      {legacyReview && (
+        <p className='text-sm'>
+          This older agreement needs cancellation information before work
+          starts. Recording your choices provides a fresh 14-day review period
+          from today; it does not change the original agreement date.
+        </p>
+      )}
       {/* Actions Bar */}
       {!isDraft && (
         <div className='flex items-center gap-2 justify-end'>
@@ -108,11 +147,18 @@ export function ContractActions({
       )}
 
       {/* Sign / Request Changes Buttons */}
-      {canSign && !isDraft && (
+      {(canSign || legacyReview) && !isDraft && (
         <div className='space-y-3'>
           <button
-            onClick={onSign}
-            disabled={isSigning || isRejecting}
+            onClick={() =>
+              onSign({
+                ...consent,
+                termsVersion: CUSTOMER_TERMS_VERSION,
+                expectedUpdatedAt: contract.updated_at,
+                expectedReviewToken: contract.review_token,
+              })
+            }
+            disabled={isSigning || isRejecting || !consent.termsAccepted}
             className={
               isMintEditorial
                 ? 'btn btn-primary'
@@ -131,7 +177,10 @@ export function ContractActions({
               </>
             ) : (
               <>
-                <PenTool className='w-5 h-5' /> Sign Contract
+                <PenTool className='w-5 h-5' />{' '}
+                {legacyReview
+                  ? 'Record cancellation choices for this agreement'
+                  : 'Sign Contract'}
               </>
             )}
           </button>
