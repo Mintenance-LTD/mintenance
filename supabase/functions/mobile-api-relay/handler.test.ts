@@ -29,6 +29,37 @@ function fixture(overrides: Partial<RelayDependencies> = {}) {
   return { handler, calls, verifications: () => verifications };
 }
 
+test('database approval admits a confirmed user outside the original snapshot', async () => {
+  const f = fixture({
+    verifyUser: async () => ({
+      id: '22222222-2222-4222-8222-222222222222',
+      confirmed: true,
+      betaApproved: true,
+    }),
+  });
+  assert.equal((await f.handler(request('/api/support/tickets'))).status, 200);
+});
+test('database revocation overrides an originally approved account', async () => {
+  const f = fixture({
+    verifyUser: async () => ({ id, confirmed: true, betaApproved: false }),
+  });
+  assert.equal((await f.handler(request())).status, 403);
+  assert.equal(f.calls.length, 0);
+});
+test('beta approval cannot bypass email verification or admin route isolation', async () => {
+  const f = fixture({
+    verifyUser: async () => ({ id, confirmed: false, betaApproved: true }),
+  });
+  assert.equal((await f.handler(request())).status, 403);
+  const verified = fixture({
+    verifyUser: async () => ({ id, confirmed: true, betaApproved: true }),
+  });
+  assert.equal(
+    (await verified.handler(request('/api/admin/support'))).status,
+    403
+  );
+});
+
 test('approved user gets profile using their own bearer token and a fixed upstream', async () => {
   const f = fixture();
   const response = await f.handler(request('/api/users/profile?view=mobile'));

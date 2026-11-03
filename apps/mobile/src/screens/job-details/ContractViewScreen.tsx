@@ -32,6 +32,9 @@ import {
   StatusBar,
 } from 'react-native';
 import { SignatureCanvas } from '../../components/ui/SignatureCanvas';
+import { CustomerConsent, emptyConsent } from './components/CustomerConsent';
+import { CUSTOMER_TERMS_VERSION } from '@mintenance/shared';
+import { CustomerCancellation } from './components/CustomerCancellation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -80,6 +83,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [quoteLoading, setQuoteLoading] = useState(true);
   const [signing, setSigning] = useState(false);
+  const [consent, setConsent] = useState(emptyConsent);
   const [savingPdf, setSavingPdf] = useState(false);
   const pdfBusy = useRef(false);
   const [rejecting, setRejecting] = useState(false);
@@ -117,6 +121,9 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           homeowner_signed_at: row.homeowner_signed_at as string | null,
           terms: (row.terms as Record<string, unknown>) || {},
           created_at: row.created_at as string,
+          updated_at: row.updated_at as string,
+          review_token: row.review_token as string,
+          cancellation_deadline: row.cancellation_deadline as string | null,
           contractorName:
             c?.company_name ||
             [c?.first_name, c?.last_name].filter(Boolean).join(' ') ||
@@ -126,6 +133,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             'Homeowner',
         });
         setLoading(false);
+        setConsent(emptyConsent);
         // Fetch linked quote line items
         const qid = row.quote_id as string | null;
         if (qid) {
@@ -172,8 +180,15 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   // the canvas. handleSubmitSignature does the actual API call.
   const handleSign = useCallback(() => {
     if (!contract) return;
+    if (!consent.termsAccepted) {
+      Alert.alert(
+        'Review the terms',
+        'Please read and accept the customer terms before signing.'
+      );
+      return;
+    }
     setShowSignatureModal(true);
-  }, [contract]);
+  }, [contract, consent.termsAccepted]);
 
   const handleSubmitSignature = useCallback(
     async (signatureSvg: string) => {
@@ -191,6 +206,12 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           signatureImage: signatureSvg,
           signatureFormat: 'svg',
           platform: 'mobile',
+          legalConsent: {
+            ...consent,
+            termsVersion: CUSTOMER_TERMS_VERSION,
+            expectedUpdatedAt: contract.updated_at,
+            expectedReviewToken: contract.review_token,
+          },
         });
         HapticService.success();
         setShowSignatureModal(false);
@@ -203,7 +224,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         if (newStatus === 'accepted' && user?.role === 'homeowner') {
           Alert.alert(
             'Contract signed',
-            'Next step: pay into escrow so the contractor can start work.',
+            'Review payment, the agreed start date and your cancellation choices before work starts.',
             [
               { text: 'Later', onPress: () => void fetchContract() },
               {
@@ -233,9 +254,39 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         setSigning(false);
       }
     },
-    [contract, fetchContract, navigation, user?.role]
+    [contract, consent, fetchContract, navigation, user?.role]
   );
 
+  const legacyReview =
+    user?.role === 'homeowner' &&
+    contract?.status === 'accepted' &&
+    !contract.cancellation_deadline;
+  async function reviewLegacy() {
+    if (!contract || !consent.termsAccepted || signing) return;
+    setSigning(true);
+    try {
+      await mobileApiClient.post(`/api/contracts/${contract.id}/consent`, {
+        legalConsent: {
+          ...consent,
+          termsVersion: CUSTOMER_TERMS_VERSION,
+          expectedUpdatedAt: contract.updated_at,
+          expectedReviewToken: contract.review_token,
+        },
+      });
+      await fetchContract();
+      Alert.alert(
+        'Choices recorded',
+        'Your cancellation information has been saved.'
+      );
+    } catch (e) {
+      Alert.alert(
+        'Could not save',
+        e instanceof Error ? e.message : 'Refresh the agreement and try again.'
+      );
+    } finally {
+      setSigning(false);
+    }
+  }
   const handleViewPdf = useCallback(async () => {
     if (!contract || pdfBusy.current) return;
     pdfBusy.current = true;
@@ -406,6 +457,33 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           contractorName={contract.contractorName}
           homeownerName={contract.homeownerName}
         />
+        {(showSignButton || legacyReview) && (
+          <CustomerConsent
+            value={consent}
+            onChange={setConsent}
+            homeowner={userRole === 'homeowner'}
+          />
+        )}
+        {legacyReview && (
+          <View style={{ padding: 16 }}>
+            <Text>
+              This older agreement needs cancellation information before work
+              starts. Recording your choices provides a fresh 14-day review
+              period from today, without changing the original agreement date.
+            </Text>
+            <TouchableOpacity
+              accessibilityRole='button'
+              disabled={signing || !consent.termsAccepted}
+              onPress={() => void reviewLegacy()}
+              style={{ padding: 14 }}
+            >
+              <Text>Record cancellation choices</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {userRole === 'homeowner' && contract.status !== 'draft' && (
+          <CustomerCancellation contractId={contract.id} />
+        )}
 
         <View style={styles.amountCard}>
           <View style={styles.amountRow}>
@@ -417,7 +495,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
             <View style={styles.escrowBadge}>
               <Ionicons name='shield-checkmark' size={14} color={me.brand} />
-              <Text style={styles.escrowBadgeText}>Escrow protected</Text>
+              <Text style={styles.escrowBadgeText}>Stripe payments</Text>
             </View>
           </View>
         </View>

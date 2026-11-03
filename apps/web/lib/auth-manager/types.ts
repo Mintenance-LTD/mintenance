@@ -13,4 +13,7 @@ export interface LoginCredentials {
   password: string;
 }
 
-export type RegisterData = CreateUserData;
+export type RegisterData = CreateUserData & {
+  termsVersion?: string;
+  termsAccepted?: boolean;
+};

@@ -336,6 +336,11 @@ export function useNavSections(
             icon: Megaphone,
           },
           {
+            label: 'Customer service',
+            href: '/admin/support',
+            icon: MessageSquare,
+          },
+          {
             label: 'Building Assessments',
             href: '/admin/building-assessments',
             icon: Building2,

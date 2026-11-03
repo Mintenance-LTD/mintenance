@@ -84,6 +84,8 @@ export const POST = withApiHandler(
       last_name: lastName,
       role,
       phone: phone as string | undefined, // Type assertion for Zod preprocess result
+      termsVersion: validation.data.termsVersion,
+      termsAccepted: validation.data.termsAccepted,
     });
 
     if (!result.success || !result.user) {

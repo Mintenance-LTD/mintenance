@@ -54,7 +54,7 @@ export const GET = withApiHandler(
       id, job_id, contractor_id, homeowner_id, status, title, description, amount,
       start_date, end_date, terms, contractor_signed_at, homeowner_signed_at,
       contractor_company_name, contractor_license_registration, contractor_license_type,
-      quote_id, created_at, updated_at,
+      quote_id, created_at, updated_at, agreement_formed_at, cancellation_deadline, cancellation_requested_at,
       contractor:profiles!contractor_id(first_name, last_name, company_name, profile_image_url, insurance_expiry_date),
       homeowner:profiles!homeowner_id(first_name, last_name),
       quote:contractor_quotes!quote_id(id, subtotal, tax_rate, tax_amount, total_amount, line_items, terms, quote_number, valid_until)
@@ -130,6 +130,41 @@ export const GET = withApiHandler(
       );
     }
 
+    // Derive displayed agreement fields and the signing token from one snapshot.
+    const { data: reviews, error: reviewError } = await serverSupabase.rpc(
+      'contract_reviews',
+      { p_ids: (contracts || []).map((c) => c.id) }
+    );
+    if (reviewError)
+      throw new InternalServerError('Could not load the agreement revision');
+    const reviewById = new Map(
+      (reviews || []).map(
+        (r: {
+          id: string;
+          snapshot: {
+            contract: Record<string, unknown>;
+            quote: unknown;
+            bid: unknown;
+          };
+          review_token: string;
+        }) => [r.id, r]
+      )
+    );
+    for (const row of contracts || []) {
+      const review = reviewById.get(row.id) as
+        | {
+            snapshot: { contract: Record<string, unknown>; quote: unknown };
+            review_token: string;
+          }
+        | undefined;
+      if (!review)
+        throw new InternalServerError('Agreement revision unavailable');
+      Object.assign(row, review.snapshot.contract, {
+        quote: review.snapshot.quote,
+        review_token: review.review_token,
+      });
+    }
+
     // 2026-05-21 quote-id drift fallback: pre-2026-05-13 the
     // bid-accept flow created contracts without propagating
     // `quote_id` (and stamped a boilerplate description). Those rows
@@ -149,17 +184,18 @@ export const GET = withApiHandler(
       (r) => !r.quote_id && r.terms && typeof r.terms.bid_id === 'string'
     );
     if (needsFallback.length > 0) {
-      const bidIds = needsFallback
-        .map((r) => r.terms?.bid_id as string)
-        .filter(Boolean);
-      const { data: bids } = await serverSupabase
-        .from('bids')
-        .select(
-          'id, quote_id, message, description, estimated_duration_days, warranty_months, materials_included, quote:contractor_quotes!quote_id(id, subtotal, tax_rate, tax_amount, total_amount, line_items, terms, quote_number, valid_until)'
+      const bids = (reviews || [])
+        .map(
+          (r: {
+            snapshot: { bid: Record<string, unknown> | null; quote: unknown };
+          }) =>
+            r.snapshot.bid
+              ? { ...r.snapshot.bid, quote: r.snapshot.quote }
+              : null
         )
-        .in('id', bidIds);
-      const bidById = new Map(
-        (bids || []).map((b: Record<string, unknown>) => [b.id as string, b])
+        .filter(Boolean);
+      const bidById = new Map<string, Record<string, unknown>>(
+        (bids || []).map((b: Record<string, unknown>) => [b.id as string, b] as const)
       );
       for (const row of needsFallback) {
         const bid = bidById.get(row.terms!.bid_id as string);

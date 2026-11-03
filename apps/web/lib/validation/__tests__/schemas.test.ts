@@ -78,6 +78,8 @@ describe('registerSchema', () => {
     firstName: 'John',
     lastName: 'Doe',
     role: 'homeowner' as const,
+    termsVersion: '2026-11-03',
+    termsAccepted: true,
     phone: '+441234567890',
   };
 

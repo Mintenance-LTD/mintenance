@@ -26,6 +26,9 @@ export interface Contract {
   homeowner_signed_at: string | null;
   terms: Record<string, unknown>;
   created_at: string;
+  updated_at: string;
+  review_token: string;
+  cancellation_deadline?: string | null;
   contractorName: string;
   homeownerName: string;
 }

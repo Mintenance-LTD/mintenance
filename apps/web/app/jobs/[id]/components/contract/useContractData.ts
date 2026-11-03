@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import type { ConsentChoices } from '@/components/legal/ContractConsentChoices';
 
 export interface ContractorProfile {
   first_name: string | null;
@@ -72,6 +73,8 @@ export interface Contract {
   quote: ContractQuote | null;
   created_at: string;
   updated_at: string;
+  review_token: string;
+  cancellation_deadline?: string | null;
   contractor: ContractorProfile | null;
   homeowner: HomeownerProfile | null;
 }
@@ -120,16 +123,26 @@ export function useContractData(jobId: string, userRole: string) {
     ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
   };
 
-  const handleSignContract = async () => {
+  const handleSignContract = async (
+    legalConsent: ConsentChoices & {
+      termsVersion: string;
+      expectedUpdatedAt: string;
+      expectedReviewToken: string;
+    }
+  ) => {
     if (!contract || isSigning) return;
     setIsSigning(true);
     setError(null);
     try {
-      const response = await fetch(`/api/contracts/${contract.id}/accept`, {
-        method: 'POST',
-        headers,
-        credentials: 'same-origin',
-      });
+      const response = await fetch(
+        `/api/contracts/${contract.id}/${contract.status === 'accepted' && !contract.cancellation_deadline ? 'consent' : 'accept'}`,
+        {
+          method: 'POST',
+          headers,
+          credentials: 'same-origin',
+          body: JSON.stringify({ legalConsent }),
+        }
+      );
       if (!response.ok) {
         const d = await response.json().catch(() => ({}));
         throw new Error(d.error?.message || d.error || 'Failed to sign');

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { CUSTOMER_TERMS_VERSION } from '@mintenance/shared';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface RegistrationFormState {
@@ -246,6 +247,8 @@ export function useRegistrationForm(options: UseRegistrationFormOptions = {}) {
           lastName: payload.lastName,
           role: payload.role,
           phone: payload.phone,
+          termsVersion: CUSTOMER_TERMS_VERSION,
+          termsAccepted: form.termsAccepted,
         });
       }
       const registeredEmail = payload.email;

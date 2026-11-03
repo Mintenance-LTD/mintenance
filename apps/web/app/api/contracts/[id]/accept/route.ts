@@ -15,6 +15,7 @@ import { notifyPaymentEvent } from '@/lib/services/notifications/NotificationHel
 import { EmailService } from '@/lib/email-service';
 import { validateSignaturePayload } from '@/lib/services/contracts/ContractSignatureService';
 import { getClientIp } from '@/lib/request-ip';
+import { parseContractConsent } from '@/lib/services/contracts/customer-consent';
 import {
   getIdempotencyKeyFromRequest,
   checkIdempotency,
@@ -68,13 +69,20 @@ export const POST = withApiHandler(
       throw new BadRequestError('Request body too large');
     }
 
-    let signaturePayload: ReturnType<typeof validateSignaturePayload> = null;
+    const rawText = await request.text();
+    if (new TextEncoder().encode(rawText).length > SIGNATURE_BODY_LIMIT)
+      throw new BadRequestError('Request body too large');
+    let rawBody: Record<string, unknown>;
     try {
-      const rawBody = await request.clone().json();
-      signaturePayload = validateSignaturePayload(rawBody);
+      rawBody = JSON.parse(rawText);
     } catch {
-      // Body absent / not JSON — legacy click-sign, nothing to do.
+      throw new BadRequestError('Review the terms before signing');
     }
+    const legalConsent = parseContractConsent(
+      rawBody?.legalConsent,
+      user.role === 'contractor'
+    );
+    const signaturePayload = validateSignaturePayload(rawBody);
 
     // The contract has no payer_user_id column; the designated payer is
     // stored on the linked job. Use the service client only with the
@@ -117,7 +125,10 @@ export const POST = withApiHandler(
       idempotencyKey,
       'contract_accept',
       true,
-      { userId: user.id, request: { contractId, signaturePayload } }
+      {
+        userId: user.id,
+        request: { contractId, signaturePayload, legalConsent },
+      }
     );
     if (idem?.isDuplicate && idem.cachedResult) {
       logger.info('Duplicate contract_accept — returning cached result', {
@@ -169,10 +180,11 @@ export const POST = withApiHandler(
 
         // Evidence and signature state share one database transaction.
         const { data: updatedContract, error: signatureError } =
-          await serverSupabase.rpc('sign_contract_atomic', {
+          await serverSupabase.rpc('sign_contract_with_consent', {
             p_contract_id: contractId,
             p_signer_id: user.id,
             p_signature: signaturePayload,
+            p_legal: legalConsent,
             p_ip: getClientIp(request) ?? null,
             p_user_agent:
               request.headers.get('user-agent')?.slice(0, 1024) ?? null,

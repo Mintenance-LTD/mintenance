@@ -172,6 +172,15 @@ async function checkFile(file: string, routes: string[]): Promise<Finding[]> {
       // not runtime navigation.
       if (isInsideComment(text, idx)) continue;
 
+      // Downloads in public/ are real destinations even though they have no page.tsx.
+      // Keep resolution inside public so a traversal cannot exempt a broken link.
+      const publicRoot = path.resolve(APP_ROOT, '..', 'public');
+      const assetPath = path.resolve(publicRoot, '.' + url.split(/[?#]/)[0]);
+      if (assetPath.startsWith(publicRoot + path.sep)) {
+        const asset = await fs.stat(assetPath).catch(() => null);
+        if (asset?.isFile()) continue;
+      }
+
       const matches = routes.some((r) => urlMatchesRoute(url, r));
       if (!matches) {
         const line = text.slice(0, idx).split('\n').length;

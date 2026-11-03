@@ -1,0 +1,90 @@
+Mintenance customer terms
+Version 2026-11-03
+Effective 3 November 2026
+
+1. Who we are
+Mintenance is operated by MINTENANCE LTD, company number 16542104, registered in England and Wales. Our registered office is Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY. Contact us at admin@mintenance.co.uk. These terms cover our website and mobile apps.
+
+2. Our service and your work agreement
+Mintenance connects homeowners and other property customers with independent contractors and provides tools for quotes, job agreements, messages, payments and reviews. The contractor identified in your job agreement is responsible for carrying out the work. Mintenance is responsible for the platform services it provides.
+
+Before agreeing to work, check the contractor's identity, the scope, materials, total price including applicable taxes, payment stages, start date and completion arrangements. The job agreement should record those details and any cancellation information. Changes to the work or price must be agreed by both parties before the changed work is undertaken. A contractor's independent status does not remove our responsibility for our own acts or promises.
+
+Accepting a bid selects a contractor and starts preparation of the job agreement. The platform records the job agreement as accepted when the required parties have signed it. You can review the scope, total price and cancellation information before signing.
+
+3. Accounts and safe use
+You must be at least 18 and authorised to arrange the work. Provide accurate details, protect your sign-in information and tell us promptly about suspected misuse. Do not upload unlawful material, harass others, manipulate reviews, impersonate another person or interfere with the platform. We may restrict access for a proportionate security, safety or legal reason and explain the reason where it is lawful and safe to do so.
+
+Customers must have authority to grant access and should tell the contractor about relevant hazards and access restrictions. Contractors must maintain the qualifications, registrations, permissions and insurance required for the work they undertake.
+
+4. Prices and fees
+There is no homeowner job-listing fee. The price and payment stages for the work are shown in the job agreement and payment screen. Any optional paid platform service must be separately selected and priced before purchase.
+
+The current contractor platform commission is 12% for Free/Basic, 8% for Professional and 5% for Business/Enterprise, subject to any expressly agreed and displayed founding-member arrangement. Each payment has a minimum commission of 50p, capped at the payment amount, with no general maximum commission. The commission is deducted from the contractor's payment; the reviewed settlement flow does not additionally deduct Stripe processing fees from the contractor. For example, a £100 payment leaves £88, £92 or £95 after the corresponding platform commission. Confirm the applicable total, tax treatment and tier before accepting a job.
+
+A subscription, where offered, is a separate purchase with its own price, billing frequency, renewal and cancellation information. These job-payment terms do not authorise an undisclosed recurring charge.
+
+5. Payments, release and bank payouts
+Payments are processed through Stripe. Contractors receiving payments must complete the applicable Stripe connected-account onboarding and terms. A payment may require bank authentication such as 3D Secure. We do not treat a failed, cancelled or unfinished authentication as a successful payment.
+
+A successful payment and a payment released to a contractor are different stages. The platform records the payment and applies the job's release conditions before instructing a transfer. Contractor bank arrival then depends on Stripe's payout process and the receiving bank. A release confirmation is not a promise of immediate bank receipt.
+
+Normally, homeowner approval is followed by a 48-hour platform release hold. Where offered, the owning homeowner can expressly choose to approve and release immediately, waiving that platform hold. This does not waive statutory cancellation rights or rights relating to defective work.
+
+Where automatic release is enabled for a job, it depends on the displayed eligibility date and applicable completion, evidence, dispute and risk checks. The seven-day automatic-approval timer is an eligibility condition, not an unconditional promise of a bank payout. An active dispute, security review, payment-provider restriction or other unresolved release condition can delay release. Raise concerns through the job and contact us promptly so we can investigate the payment status.
+
+This process does not provide an independent guarantee of workmanship, insurance cover or a guarantee that every loss can be refunded. Your statutory and card-provider rights remain available.
+
+6. Cancellation rights
+If you enter a qualifying distance or off-premises service contract as a consumer, you will generally have 14 days after the day the contract is made to cancel without giving a reason. Tell the contractor clearly before the deadline and copy Mintenance so the payment can be reviewed. You can use the form below, but you do not have to use it.
+
+If you expressly request a service to start during that period and the required information has been supplied, you may have to pay a proportionate amount for the service supplied before you cancel. Starting work does not by itself remove the cancellation right. The right may end on full performance only where the required prior request/consent and acknowledgement have been obtained. An urgent repair specifically requested by you can have a limited exception; additional services or goods outside the requested repair may still have cancellation rights.
+
+Separate rules can apply to goods, bespoke materials and mixed work-and-material contracts. The contractor must explain applicable arrangements before you agree. Outside statutory cancellation rights, any cancellation charge must have been fairly and clearly agreed and must not remove your legal rights.
+
+7. Problems, refunds and complaints
+Contact the contractor through the job if work is late, incomplete, unsafe or not as agreed. Contact Mintenance at admin@mintenance.co.uk with the job reference, the problem and your requested outcome if you need help. Do not include full card details or account passwords.
+
+We can review the available records, seek information from both parties, and administer payment holds, releases or refunds within our role and applicable rules. Our internal decision does not prevent you using a court, an applicable independent dispute process or your payment provider. An internal reporting or review deadline does not shorten statutory rights.
+
+Where a refund is agreed or required, we will explain the amount and whether it has been submitted, is pending, has succeeded or has failed. An accepted refund request is not proof that the money has reached your bank. Processing and bank times vary; any statutory deadline still applies. Where money has already been transferred or a card dispute is open, recovery may require additional review. We will not issue duplicate refunds for the same amount.
+
+Consumers retain their rights to services carried out with reasonable care and skill, and applicable remedies such as repeat performance or a price reduction. We will provide an update on your complaint and explain the next step; any published response target will reflect the support coverage we actually provide.
+
+8. Checks, reviews and AI tools
+A verification badge describes only the checks identified for that badge, at the recorded time. It is not a guarantee of future conduct or workmanship. Check suitability for your specific work and ask the contractor for relevant current evidence. Reviews must reflect genuine experience; disclose any incentive or relationship that could affect them.
+
+Any AI-generated estimate or image-based suggestion is indicative and may be wrong. It is not a professional survey, safety certification or emergency service. Get an appropriately qualified professional's assessment before relying on a diagnosis or undertaking safety-critical work. Do not use the app to delay contacting the emergency services where there is immediate danger.
+
+9. Your content and personal information
+You retain rights in the content you upload. You permit us to store, display and process it as needed to provide the requested platform service, administer the job, protect users and meet applicable obligations. This clause does not grant an unrestricted right to use private job photographs in advertising. Marketing or model-training use needs its own appropriate permission and legal basis.
+
+Our privacy notice explains the personal information we use, recipients, retention and your rights. Privacy and deletion requests can be sent to admin@mintenance.co.uk. Some records may need to be retained for a stated lawful reason; we will assess a request individually and explain the outcome. Keeping a financial record does not justify keeping every item of account data indefinitely.
+
+10. Our responsibility to you
+We are responsible for foreseeable loss or damage caused by our breach of these terms or failure to use reasonable care and skill in providing our services. We do not exclude liability for death or personal injury caused by our negligence, fraud, fraudulent misrepresentation or any liability that cannot lawfully be limited. The contractor remains responsible for the work it supplies. Nothing here removes a consumer's statutory rights.
+
+These consumer terms do not impose a blanket customer indemnity or cap our liability at fees paid. Business-customer and contractor-specific liability provisions, if needed, should be agreed separately and must be lawful and fair.
+
+11. Ending use and changes
+You may stop using Mintenance and request account closure. Existing work, payments, complaints and lawful recordkeeping will need to be dealt with appropriately. Account closure and a request to erase personal information are separate processes. We will not treat an unresolved payment as an automatic reason to refuse every privacy request.
+
+We will give reasonable notice of material changes to these terms and obtain agreement where required. A later change will not retrospectively alter an already agreed job price or remove accrued rights. During beta, access is limited to invited users; being invited does not mean the service is available to the general public.
+
+12. Law and resolving disagreements
+These terms use the law of England and Wales, subject to any mandatory consumer protections that apply where you live. They do not deprive a consumer of the right to bring a claim in a competent court in their home part of the United Kingdom. Please contact us first if you want us to try to resolve a complaint.
+
+Early-start choices (optional and separate)
+I expressly request that the contractor starts the agreed service before the end of my 14-day cancellation period. If I cancel after it starts, I understand that I may have to pay a proportionate amount for the service supplied before cancellation, where the law allows.
+
+I understand that, once the service has been fully performed following my express request, I will lose the cancellation right where the legal conditions for this are met.
+
+Cancellation notice (optional form)
+To: [contractor name and contact], copied to admin@mintenance.co.uk
+I give notice that I cancel my contract for the following service: [service]
+Job/contract reference: [reference]
+Date agreed: [date]
+Customer name: [name]
+Address: [address]
+Date: [date]
+Signature (only if sent on paper): [signature]

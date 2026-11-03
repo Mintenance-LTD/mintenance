@@ -3,6 +3,7 @@
  */
 import { z } from 'zod';
 import { sanitizeText, sanitizeEmail } from '@/lib/sanitizer';
+import { CUSTOMER_TERMS_VERSION } from '@mintenance/shared';
 
 export const loginSchema = z
   .object({
@@ -17,6 +18,8 @@ export const loginSchema = z
 
 export const registerSchema = z
   .object({
+    termsVersion: z.literal(CUSTOMER_TERMS_VERSION),
+    termsAccepted: z.literal(true),
     email: z.string().transform((val) => sanitizeEmail(val)),
     password: z
       .string()

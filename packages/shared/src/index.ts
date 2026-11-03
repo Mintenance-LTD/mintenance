@@ -171,3 +171,6 @@ export {
 export * from './property-presentation';
 export * from './property-view-store';
 export * from './property-inspections';
+export * from './legal/customer-terms';
+
+export * from './legal/privacy-policy';

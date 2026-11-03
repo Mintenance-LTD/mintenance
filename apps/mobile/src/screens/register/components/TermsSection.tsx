@@ -1,7 +1,9 @@
 import React from 'react';
+import { PRIVACY_POLICY_TEXT } from '@mintenance/shared';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
+import { CustomerTerms } from '../../../components/CustomerTerms';
 
 interface TermsSectionProps {
   termsAccepted: boolean;
@@ -75,23 +77,12 @@ interface TermsModalProps {
 export const TermsModal: React.FC<TermsModalProps> = ({
   visible,
   title,
-  testID,
   onClose,
 }) => {
   if (!visible) return null;
-
-  return (
-    <View testID={testID}>
-      <Text>{title} Content</Text>
-      <TouchableOpacity
-        onPress={onClose}
-        accessibilityRole='button'
-        accessibilityLabel={`Close ${title}`}
-      >
-        <Text>Close</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  return title.toLowerCase().includes('privacy') ? (
+    <CustomerTerms visible={visible} onClose={onClose} title='Privacy policy' document={PRIVACY_POLICY_TEXT} />
+  ) : <CustomerTerms visible={visible} onClose={onClose} />;
 };
 
 const styles = StyleSheet.create({
