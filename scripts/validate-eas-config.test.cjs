@@ -9,6 +9,18 @@ const {
 } = require('./validate-eas-config.cjs');
 const { requiresNativeBuild } = require('./mobile-build-changes.cjs');
 
+test('EAS archive includes shared customer policies but excludes private root documents', () => {
+  const ignore = require('ignore')().add(
+    fs.readFileSync(path.join(__dirname, '../.easignore'), 'utf8')
+  );
+  for (const file of ['customer-terms.ts', 'privacy-policy.ts']) {
+    assert.equal(ignore.ignores(`packages/shared/src/legal/${file}`), false);
+  }
+  assert.equal(ignore.ignores('LEGAL/private-agreement.pdf'), true);
+  assert.equal(ignore.ignores('output/customer-service-apk.private.json'), true);
+  assert.equal(ignore.ignores('apps/mobile/.env.local'), true);
+});
+
 const workflow = yaml.load(
   fs.readFileSync(
     path.join(__dirname, '../.github/workflows/ci-cd.yml'),
