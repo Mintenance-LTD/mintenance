@@ -41,8 +41,14 @@ export const GET = withApiHandler(
     if (nameError) throw new InternalServerError('Could not load operators');
     return NextResponse.json({
       tickets,
-      operators: operators?.map((o) => {
-        const p = names?.find((n) => n.id === o.admin_id);
+      operators: names?.map((p) => {
+        const o = operators?.find((entry) => entry.admin_id === p.id) || {
+          admin_id: p.id,
+          available: false,
+          capacity: 20,
+          can_broadcast: false,
+          can_manage_team: false,
+        };
         return {
           ...o,
           name:

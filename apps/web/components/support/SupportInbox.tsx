@@ -14,6 +14,7 @@ type Reply = {
   body: string;
   created_at: string;
   author_id: string | null;
+  author_label: string;
 };
 export function SupportInbox({ signedIn }: { signedIn: boolean }) {
   const { csrfToken } = useCSRF();
@@ -41,11 +42,18 @@ export function SupportInbox({ signedIn }: { signedIn: boolean }) {
     const controller = new AbortController();
     const timer = setInterval(async () => {
       try {
-        const response = await fetch(`/api/support/tickets/${selected}`, {signal:controller.signal});
-        if(response.ok) setReplies((await response.json()).messages);
-      } catch { /* Keep the draft and current conversation during a network interruption. */ }
+        const response = await fetch(`/api/support/tickets/${selected}`, {
+          signal: controller.signal,
+        });
+        if (response.ok) setReplies((await response.json()).messages);
+      } catch {
+        /* Keep the draft and current conversation during a network interruption. */
+      }
     }, 15000);
-    return () => { clearInterval(timer); controller.abort(); };
+    return () => {
+      clearInterval(timer);
+      controller.abort();
+    };
   }, [selected]);
   async function open(id: string) {
     try {
@@ -109,7 +117,7 @@ export function SupportInbox({ signedIn }: { signedIn: boolean }) {
     }
   }
   return (
-    <div className='grid gap-6 md:grid-cols-[260px_1fr]'>
+    <div className='grid gap-6 md:grid-cols-[260px_1fr] [&_button]:min-h-11 [&_button]:rounded-lg [&_button]:px-3 [&_button]:py-2 [&_button]:border [&_button]:border-gray-200 [&_button]:disabled:opacity-50'>
       <aside>
         <button
           className='btn-primary mb-4'
@@ -142,6 +150,7 @@ export function SupportInbox({ signedIn }: { signedIn: boolean }) {
             <p className='text-xs'>Reference: {selected}</p>
             {replies.map((r) => (
               <article key={r.id} className='rounded bg-gray-50 p-3'>
+                <strong className='text-sm'>{r.author_label}</strong>
                 <p className='whitespace-pre-wrap'>{r.body}</p>
                 <time className='text-xs'>
                   {new Date(r.created_at).toLocaleString('en-GB')}

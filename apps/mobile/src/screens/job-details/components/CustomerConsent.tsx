@@ -32,7 +32,9 @@ export function CustomerConsent({
     disabled = false
   ) => (
     <Pressable
+      accessible
       accessibilityRole='checkbox'
+      accessibilityLabel={label}
       accessibilityState={{ checked, disabled }}
       disabled={disabled}
       onPress={press}

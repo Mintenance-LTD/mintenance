@@ -44,7 +44,9 @@ export async function readCase(id: string, userId: string, isAdmin = false) {
   if (!ticket) throw new NotFoundError('Case not found');
   let messages = db
     .from('support_messages')
-    .select('id,author_id,body,internal,created_at')
+    .select(
+      'id,author_id,body,internal,created_at,author:profiles!author_id(first_name,role)'
+    )
     .eq('ticket_id', id)
     .order('created_at', { ascending: false })
     .limit(200);
@@ -53,7 +55,23 @@ export async function readCase(id: string, userId: string, isAdmin = false) {
   if (threadError) throw new InternalServerError('Could not load replies');
   return {
     ticket,
-    messages: (thread || []).reverse(),
+    messages: (thread || []).reverse().map(({ author, ...message }) => {
+      const profile = (Array.isArray(author) ? author[0] : author) as {
+        first_name?: string;
+        role?: string;
+      } | null;
+      return {
+        ...message,
+        author_label:
+          message.author_id === userId
+            ? 'You'
+            : profile?.role === 'admin'
+              ? isAdmin
+                ? profile.first_name || 'Support operator'
+                : 'Mintenance support'
+              : profile?.first_name || 'Customer',
+      };
+    }),
     olderMessagesMayExist: (thread || []).length === 200,
   };
 }

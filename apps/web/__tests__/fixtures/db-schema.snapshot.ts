@@ -17,7 +17,8 @@
  * select strings are never executed against a real schema.
  *
  * Generated from the LIVE schema (project ukrjudtlvapiajkjbcrd) on
- * 2026-08-30 via the linked Supabase schema. REGENERATE after any migration that
+ * 2026-08-30 via the linked Supabase schema. Contracts refreshed from staging
+ * pzothyoipifjwnypzcuv on 2026-11-03 after the consent migrations. REGENERATE after any migration that
  * touches these tables:
  *
  *   SELECT table_name, string_agg(column_name, ',' ORDER BY column_name)
@@ -31,7 +32,10 @@
 
 export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
   // Generated from isolated readiness migrations on 2026-10-04.
-  profile_directory: 'admin_verified,avatar_url,bio,city,company_name,country,created_at,first_name,hourly_rate,id,is_available,last_name,latitude,longitude,portfolio_images,profile_image_url,rating,role,skills,total_jobs_completed,verified,years_experience'.split(','),
+  profile_directory:
+    'admin_verified,avatar_url,bio,city,company_name,country,created_at,first_name,hourly_rate,id,is_available,last_name,latitude,longitude,portfolio_images,profile_image_url,rating,role,skills,total_jobs_completed,verified,years_experience'.split(
+      ','
+    ),
   appointments:
     'appointment_date,cancellation_reason,cancelled_at,client_email,client_id,client_response,client_response_at,client_name,client_phone,completed_at,contractor_id,created_at,description,duration_minutes,end_time,id,job_id,location_address,location_type,notes,reminder_sent,reminder_sent_at,start_time,status,title,updated_at,video_call_url'.split(
       ','
@@ -40,7 +44,7 @@ export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
     ','
   ),
   contracts:
-    'amount,contract_version,contractor_company_name,contractor_id,contractor_license_registration,contractor_license_type,contractor_signed_at,created_at,description,end_date,homeowner_id,homeowner_signed_at,id,job_id,notes,quote_id,start_date,status,terms,title,updated_at'.split(
+    'agreement_formed_at,cancellation_deadline,cancellation_information_provided_at,cancellation_requested_at,amount,contract_version,contractor_company_name,contractor_id,contractor_license_registration,contractor_license_type,contractor_signed_at,created_at,description,end_date,homeowner_id,homeowner_signed_at,id,job_id,notes,quote_id,start_date,status,terms,title,updated_at'.split(
       ','
     ),
   notifications:

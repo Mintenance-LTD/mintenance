@@ -11,7 +11,12 @@ import {
 import * as Crypto from 'expo-crypto';
 import { mobileApiClient } from '../utils/mobileApiClient';
 type Ticket = { id: string; subject: string; status: string };
-type Message = { id: string; body: string; created_at: string };
+type Message = {
+  id: string;
+  body: string;
+  created_at: string;
+  author_label: string;
+};
 export function CustomerSupport({
   visible,
   onClose,
@@ -145,6 +150,7 @@ export function CustomerSupport({
                     borderRadius: 10,
                   }}
                 >
+                  <Text style={{ fontWeight: '600' }}>{m.author_label}</Text>
                   <Text selectable>{m.body}</Text>
                   <Text style={{ fontSize: 11 }}>
                     {new Date(m.created_at).toLocaleString('en-GB')}

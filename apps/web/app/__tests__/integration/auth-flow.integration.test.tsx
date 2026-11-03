@@ -93,6 +93,7 @@ vi.mock('@/lib/logger', () => ({
 
 // Mock @mintenance/shared logger (used by /register and /login pages)
 vi.mock('@mintenance/shared', () => ({
+  CUSTOMER_TERMS_VERSION: '2026-11-03',
   logger: {
     info: vi.fn(),
     error: vi.fn(),

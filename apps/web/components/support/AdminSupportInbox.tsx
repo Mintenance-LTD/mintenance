@@ -31,6 +31,7 @@ type Reply = {
   internal: boolean;
   created_at: string;
   author_id: string | null;
+  author_label: string;
 };
 type Delivery = {
   id: string;
@@ -62,27 +63,27 @@ export function AdminSupportInbox() {
   const [mine, setMine] = useState(false);
   const [closed, setClosed] = useState(false);
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
-  const api = useCallback(async <T,>(
-    path: string,
-    method = 'GET',
-    payload?: unknown
-  ): Promise<T> => {
-    const r = await fetch(path, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-csrf-token': csrfToken || '',
-      },
-      ...(payload ? { body: JSON.stringify(payload) } : {}),
-    });
-    const d = await r.json();
-    if (d.requiresStepUp) {
-      setMfa(true);
-      throw new Error('Verify MFA, then retry the action.');
-    }
-    if (!r.ok) throw new Error(d.error?.message || d.error || 'Request failed');
-    return d;
-  }, [csrfToken]);
+  const api = useCallback(
+    async <T,>(path: string, method = 'GET', payload?: unknown): Promise<T> => {
+      const r = await fetch(path, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || '',
+        },
+        ...(payload ? { body: JSON.stringify(payload) } : {}),
+      });
+      const d = await r.json();
+      if (d.requiresStepUp) {
+        setMfa(true);
+        throw new Error('Verify MFA, then retry the action.');
+      }
+      if (!r.ok)
+        throw new Error(d.error?.message || d.error || 'Request failed');
+      return d;
+    },
+    [csrfToken]
+  );
   const load = useCallback(async () => {
     setData(
       await api<Inbox>(
@@ -120,7 +121,7 @@ export function AdminSupportInbox() {
     (o) => o.admin_id === data.currentAdminId
   );
   return (
-    <main className='mx-auto max-w-7xl p-6 space-y-6'>
+    <main className='mx-auto max-w-7xl p-6 space-y-6 [&_button]:min-h-11 [&_button]:rounded-lg [&_button]:px-3 [&_button]:py-2 [&_button]:border [&_button]:border-gray-200 [&_button]:disabled:opacity-50'>
       <header>
         <h1 className='text-3xl font-semibold'>Customer service</h1>
         <p>
@@ -208,8 +209,8 @@ export function AdminSupportInbox() {
                 >
                   <strong className='text-xs'>
                     {m.internal
-                      ? 'Private team note'
-                      : 'Customer-visible reply'}
+                      ? `Private team note · ${m.author_label}`
+                      : m.author_label}
                   </strong>
                   <p className='whitespace-pre-wrap'>{m.body}</p>
                   <time className='text-xs'>

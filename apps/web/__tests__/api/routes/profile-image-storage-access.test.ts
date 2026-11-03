@@ -28,6 +28,7 @@ vi.mock('@/lib/api/with-api-handler', () => ({
     },
 }));
 vi.mock('@mintenance/shared', () => ({
+  CUSTOMER_TERMS_VERSION: '2026-11-03',
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 vi.mock('@/lib/utils/fileValidation', () => ({

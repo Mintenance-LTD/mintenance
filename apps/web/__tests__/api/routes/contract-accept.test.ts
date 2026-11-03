@@ -49,6 +49,7 @@ vi.mock('@/lib/rate-limiter', () => ({
 }));
 
 vi.mock('@mintenance/shared', () => ({
+  CUSTOMER_TERMS_VERSION: '2026-11-03',
   logger: mocks.logger,
   CONTRACT_STATUS: {
     DRAFT: 'draft',
@@ -173,6 +174,16 @@ vi.mock('@/lib/idempotency', () => ({
 function createPostRequest(url: string): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
     method: 'POST',
+    body: JSON.stringify({
+      legalConsent: {
+        termsVersion: '2026-11-03',
+        termsAccepted: true,
+        expectedUpdatedAt: '2026-11-03T00:00:00.000Z',
+        expectedReviewToken: 'a'.repeat(32),
+        earlyStartRequested: false,
+        fullPerformanceAcknowledged: false,
+      },
+    }),
     headers: {
       'Content-Type': 'application/json',
       'x-forwarded-for': '127.0.0.1',
@@ -707,13 +718,23 @@ describe('POST /api/contracts/[id]/accept', () => {
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          legalConsent: {
+            termsVersion: '2026-11-03',
+            termsAccepted: true,
+            expectedUpdatedAt: '2026-11-03T00:00:00.000Z',
+            expectedReviewToken: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            earlyStartRequested: false,
+            fullPerformanceAcknowledged: false,
+          },
+        }),
       }
     );
     const res = await POST(req, segmentData('contract-1'));
     expect(res.status).toBe(200);
     expect(mocks.supabaseRpc).toHaveBeenCalledWith(
-      'sign_contract_atomic',
+      'sign_contract_with_consent',
       expect.objectContaining({
         p_contract_id: 'contract-1',
         p_signature: payload,

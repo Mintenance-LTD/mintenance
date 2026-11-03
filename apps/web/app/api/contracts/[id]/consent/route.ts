@@ -14,7 +14,7 @@ export const GET = withApiHandler(
     const { data: c, error } = await serverSupabase
       .from('contracts')
       .select(
-        'id,job_id,homeowner_id,contractor_id,agreement_formed_at,cancellation_deadline,cancellation_requested_at'
+        'id,job_id,homeowner_id,contractor_id,agreement_formed_at,cancellation_information_provided_at,cancellation_deadline,cancellation_requested_at'
       )
       .eq('id', params.id)
       .maybeSingle();

@@ -36,6 +36,16 @@ vi.mock('@/lib/api/with-api-handler', () => ({
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
+    rpc: async (_name: string, args: { p_ids: string[] }) => ({
+      error: null,
+      data: fixture.rows
+        .filter((r) => args.p_ids.includes(r.id))
+        .map((r) => ({
+          id: r.id,
+          snapshot: { contract: r, quote: null, bid: null },
+          review_token: 'a'.repeat(32),
+        })),
+    }),
     from: () => {
       let rows = [...fixture.rows];
       const query = {

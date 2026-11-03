@@ -3,7 +3,7 @@
 BEGIN;
 DO $$
 DECLARE h uuid; k uuid; a uuid; outsider uuid; j uuid; c uuid; t uuid; req uuid:=gen_random_uuid();
- legal jsonb; r jsonb; n integer; m uuid; campaign uuid; revision integer; q uuid;
+ legal jsonb; r jsonb; n integer; m uuid; campaign uuid; revision integer; q uuid; b uuid;
 BEGIN
  SELECT id INTO STRICT h FROM public.profiles WHERE role='homeowner' AND deleted_at IS NULL ORDER BY id LIMIT 1;
  SELECT id INTO STRICT outsider FROM public.profiles WHERE role='homeowner' AND deleted_at IS NULL AND id<>h ORDER BY id LIMIT 1;
@@ -11,7 +11,9 @@ BEGIN
  SELECT id INTO STRICT a FROM public.profiles WHERE role='admin' AND deleted_at IS NULL ORDER BY id LIMIT 1;
  INSERT INTO public.jobs(title,description,location,homeowner_id,contractor_id,status) VALUES('ROLLBACK consent regression','Synthetic test','London',h,k,'assigned') RETURNING id INTO j;
  INSERT INTO public.contractor_quotes(contractor_id,client_name,client_email,title,quote_number,subtotal,tax_rate,tax_amount,total_amount,line_items,notes) VALUES(k,'Synthetic customer','test@example.invalid','Test quote','ROLLBACK-'||gen_random_uuid(),100,0,0,100,'[]','PRIVATE NOTE MUST NOT LEAK') RETURNING id INTO q;
+ INSERT INTO public.bids(job_id,contractor_id,amount,description,status,quote_id,warranty_months,materials_included) VALUES(j,k,100,'Synthetic bid','accepted',q,12,true) RETURNING id INTO b;
  INSERT INTO public.contracts(job_id,homeowner_id,contractor_id,title,description,amount,status,quote_id) VALUES(j,h,k,'Synthetic agreement','Test scope',100,'pending_contractor',q) RETURNING id INTO c;
+ UPDATE public.contracts SET terms=jsonb_build_object('bid_id',b) WHERE id=c;
  IF public.contract_review_snapshot(c)::text LIKE '%PRIVATE NOTE%' THEN RAISE EXCEPTION 'Private quote notes leaked'; END IF;
  SELECT jsonb_build_object('termsVersion','2026-11-03','termsAccepted',true,'expectedUpdatedAt',updated_at,'expectedReviewToken',md5(public.contract_review_snapshot(c)::text),'earlyStartRequested',false,'fullPerformanceAcknowledged',false) INTO legal FROM public.contracts WHERE id=c;
  BEGIN PERFORM public.sign_contract_with_consent(c,h,NULL,NULL,NULL,legal-'termsAccepted'); RAISE EXCEPTION 'Missing acceptance allowed'; EXCEPTION WHEN check_violation THEN NULL; END;
@@ -20,15 +22,19 @@ BEGIN
  BEGIN PERFORM public.sign_contract_with_consent(c,h,NULL,NULL,NULL,legal||'{"expectedReviewToken":"00000000000000000000000000000000"}'); RAISE EXCEPTION 'Stale review accepted'; EXCEPTION WHEN check_violation THEN NULL; END;
  PERFORM public.sign_contract_with_consent(c,k,NULL,NULL,NULL,legal);
  BEGIN UPDATE public.contractor_quotes SET total_amount=200 WHERE id=q; RAISE EXCEPTION 'Signed quote changed'; EXCEPTION WHEN check_violation THEN NULL; END;
+ BEGIN UPDATE public.bids SET warranty_months=0 WHERE id=b; RAISE EXCEPTION 'Signed warranty changed'; EXCEPTION WHEN check_violation THEN NULL; END;
+ BEGIN UPDATE public.bids SET materials_included=false WHERE id=b; RAISE EXCEPTION 'Signed materials changed'; EXCEPTION WHEN check_violation THEN NULL; END;
  SELECT legal||jsonb_build_object('expectedUpdatedAt',updated_at,'expectedReviewToken',md5(public.contract_review_snapshot(c)::text)) INTO legal FROM public.contracts WHERE id=c;
  PERFORM public.sign_contract_with_consent(c,h,NULL,NULL,NULL,legal);
  IF NOT EXISTS(SELECT 1 FROM public.contracts WHERE id=c AND status='accepted' AND cancellation_deadline>now()+interval '14 days' AND agreement_formed_at IS NOT NULL) THEN RAISE EXCEPTION 'Formation/deadline missing'; END IF;
  IF (SELECT count(*) FROM public.contract_consents WHERE contract_id=c)<>2 THEN RAISE EXCEPTION 'Consent evidence missing'; END IF;
  IF (SELECT count(*) FROM public.customer_communication_outbox WHERE event_key LIKE 'agreement-formed:'||c||':%')<>2 THEN RAISE EXCEPTION 'Durable confirmation missing'; END IF;
  BEGIN UPDATE public.jobs SET status='in_progress' WHERE id=j; RAISE EXCEPTION 'Early start without request allowed'; EXCEPTION WHEN check_violation THEN NULL; END;
+ INSERT INTO public.escrow_transactions(job_id,payer_id,payee_id,amount,status) VALUES(j,h,k,100,'held');
  t:=public.request_contract_cancellation(c,h,'Please cancel this synthetic agreement',req);
  IF t<>public.request_contract_cancellation(c,h,'Please cancel this synthetic agreement',req) THEN RAISE EXCEPTION 'Duplicate cancellation case'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.contracts WHERE id=c AND cancellation_requested_at IS NOT NULL) THEN RAISE EXCEPTION 'Notice not retained'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.escrow_transactions WHERE job_id=j AND status='held' AND admin_hold_status='pending_review') THEN RAISE EXCEPTION 'Cancellation did not hold unclaimed funds'; END IF;
  BEGIN PERFORM public.reply_support_case(t,outsider,'Not my case',false,gen_random_uuid()); RAISE EXCEPTION 'Cross-customer access allowed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  BEGIN PERFORM public.reply_support_case(t,h,'Forged private note',true,gen_random_uuid()); RAISE EXCEPTION 'Customer private note allowed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  SELECT count(*) INTO n FROM public.customer_communication_outbox;

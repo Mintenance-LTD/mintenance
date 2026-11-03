@@ -243,8 +243,9 @@ export class AuthManager {
               role: userData.role,
               phone: userData.phone || null,
               full_name: `${userData.first_name} ${userData.last_name}`,
-              terms_version: userData.termsVersion,
-              terms_accepted: userData.termsAccepted === true,
+              ...(userData.termsVersion && userData.termsAccepted === true
+                ? { terms_version: userData.termsVersion, terms_accepted: true }
+                : {}),
             },
             emailRedirectTo: `${getAppUrl()}/auth/callback`,
           },
