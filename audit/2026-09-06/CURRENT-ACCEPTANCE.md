@@ -113,3 +113,28 @@ accepted price. Historical reconciliation, atomic bid/quote acceptance,
 deployed relay MFA/native sign-in enforcement, fresh-build browser/device
 visual checks and full release acceptance remain open. The beta gate remains
 enabled; nothing was pushed, deployed or changed in live customer records.
+
+### Customer review and pre-signature application — 6 November 2026
+
+The latest screenshot audit records publication, authorized customer approval/
+rejection, contractor withdrawal and atomic application to an unsigned contract
+before any consent or financial footprint. The original quote remains immutable;
+a new quote supplies the revised bid/contract price, the contract returns to
+draft, and superseded quotes are excluded from current-value summaries. Signed,
+funded or invoiced variations remain blocked and are not implemented here.
+
+Final local checks passed 266 web tests / 16 files, full web TypeScript, clean
+changed-file lint, the existing history SQL checks and 27 new disposable Postgres
+approval/application scenarios plus permission checks. No mobile tests were
+rerun. Local rendering and SQL fixtures do not establish physical-device or
+multi-session/deployed journey acceptance.
+
+The user explicitly authorized production schema-only rollout as an exception
+to no deployment. This supersedes the preceding checkpoint's unapplied-schema
+status. Only quote_amendment_history (20261106163935) and quote_amendment_approval
+(20261106163946) were applied to production ukrjudtlvapiajkjbcrd. Read-only catalog,
+grant/RLS and advisor checks verified the rollout. No live approval/application
+operation or financial mutation was performed; no git push or app deployment
+occurred. The beta gate remains enabled. Full release acceptance, device MFA/
+native challenge enforcement, fresh-build visuals, signed/funded variations,
+notification delivery and historical reconciliation remain open.

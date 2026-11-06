@@ -689,3 +689,152 @@ Remaining acceptance and rollout gaps
 - Full release acceptance remains incomplete. Beta gate and release/relay
   configuration are unchanged and remain enforced. No live customer/financial
   record was mutated, no customer message sent and no balance adjusted.
+
+Customer review and pre-signature amendment application — 6 November 2026
+=======================================================================
+
+Scope and authorization
+-----------------------
+- Started at 1d108b8c5 with a clean worktree. Existing quote/screenshot work
+  was inspected and preserved. Root/web AGENTS.md, the saved acceptance
+  ledger, installed Next route/cache docs and Supabase guidance were checked.
+- The user explicitly clarified the otherwise conflicting rollout instruction:
+  "Apply to production—schema only, no financial data changes". This section
+  supersedes the previous section's not-yet-applied schema status. Application
+  code remains local; no git push or web/mobile/Edge deployment occurred.
+- Existing signed-proposal, contract-consent/review-token and accepted-bid
+  financial guards were inspected, including the deployed bid guard definition.
+  Applying pricing to a signed/funded agreement is deliberately NOT implemented.
+
+Completed workflow
+------------------
+- Contractors submit an immutable pricing proposal for customer review from
+  quote history. The reason and complete before/after breakdown become visible
+  on /jobs/[id]/amendments, linked from both homeowner job-detail themes and
+  contractor history. Publication does not send email or push notifications.
+- The job's designated payer, or homeowner when no payer is designated, can
+  approve or reject. The contractor cannot approve their own proposal. Other
+  job participants can read the review without receiving approval controls.
+  Server page checks and service-only RPCs enforce participant/actor authority;
+  private quote notes are stripped from customer review responses.
+- Publication, approval, rejection, withdrawal and application are versioned
+  transitions with append-only actor/time/note events. Exact retries return
+  the recorded result; stale or conflicting requests fail. One open proposal
+  per source quote prevents competing simultaneously published replacements.
+  Changing the responsible payer invalidates prior approval before application.
+- Approval alone changes neither quote pricing nor contract/bid amounts.
+  Application requires an assigned job, matching accepted bid/current quote,
+  and exactly one matching unsigned contract without signature/consent evidence.
+  Existing escrow, reservations, invoices, payments, payment tracking, tax-payment
+  records or payout-credit events block application, regardless of their state.
+  Historical amount mismatches fail closed; no reconciliation is guessed.
+- Application runs in one database transaction: preserve the original accepted
+  quote; insert a new quote with the approved breakdown; update the linked bid
+  and unsigned contract; increment the contract version; return it to draft;
+  and record the application event/new quote id. A late failure rolls everything
+  back. No Stripe/payment/refund/escrow operation is invoked. The existing
+  signing flow still requires a fresh review token and updated-at snapshot.
+- The accepted-bid guard still rejects ordinary financial rewrites. Its narrow
+  amendment exception requires the approved application marker, original amount,
+  job/contractor identity and exact new quote/amount, within the transaction.
+  Direct service-role writes cannot forge that marker: the new tables grant
+  service SELECT only; writes go through the restricted RPC.
+- The service-only, security-invoker current_contractor_quotes view excludes
+  applied source quotes from the quote API, CRM/customer aggregates and cached
+  homeowner quote list. Original documents remain available by id. Superseded
+  quote history is labelled historical and offers no new amendment action.
+  This prevents original and replacement prices being counted twice.
+- Application expires the existing quote/bid cache tag. A cache-refresh failure
+  returns the confirmed application plus a warning, not a false failed mutation.
+- Web actions require explicit review, use CSRF-protected requests, prevent
+  overlapping submissions and retain the exact decision for ambiguous retries.
+  Reloading review refreshes eligibility. Errors do not become empty/success
+  states. The earlier proposal-save form now also uses the CSRF helper.
+
+Local verification
+------------------
+- Final Vitest run: 16 files / 266 tests passed. This comprises all 12 files
+  from the preceding 196-test batch plus:
+    __tests__/audit/quote-approval-api.test.ts
+    __tests__/audit/quote-approval-ui.test.tsx
+    __tests__/audit/quote-approval-page.test.tsx
+    lib/__tests__/csrf.test.ts
+  Existing history/API tests were extended for current-quote reads and archived
+  proposals. UI tests exercise the real CSRF request helper. Log:
+  output/quote-approval-web-tests.log. Earlier 109/265-test runs were intermediate,
+  not additional final coverage.
+- Full web TypeScript check passed (tsc --noEmit --pretty false). Changed/new
+  web source/tests ESLint passed with 0 errors and 0 warnings. Logs:
+  output/quote-approval-web-types.log and output/quote-approval-lint.log.
+- Both disposable PGlite checks passed:
+    node scripts/test-quote-amendment-history.mjs
+    node scripts/test-quote-amendment-approval.mjs
+  PGLITE_MODULE pointed to the existing local @electric-sql/pglite installation.
+  The approval script passed 27 scenarios plus grant/RLS checks. It uses the
+  repository quote/contract column definitions and the existing financial/signed
+  proposal guards. Cases include payer authority, retry binding, read privacy,
+  version conflicts, signed/consented/financial-footprint blocks, original
+  preservation, no duplicate accepted value, and rollback after a late contract
+  failure. Logs: output/quote-approval-history-sql.log / quote-approval-sql.log.
+- No mobile or relay source changed or tests were rerun in this batch. Earlier
+  66-mobile, 113-mobile, 22-relay and 43-web results remain historical evidence,
+  not fresh validation of the new web/database workflow.
+- Final staged review passed git diff --cached --check, check-no-hex.js and
+  check-edge-fn-currency.js. No beta-gate or release configuration changed.
+
+Production schema-only rollout and verification
+-----------------------------------------------
+- Target verified against configured app project: MintEnance,
+  ukrjudtlvapiajkjbcrd. Preflight inspected schema, evidence-table columns,
+  quote indexes/generated columns and the existing financial guard. New objects
+  were absent. No live quote/customer/financial record values were changed.
+- Applied only these reviewed migrations via Supabase apply_migration:
+  local 20261106132613_quote_amendment_history.sql
+    -> production 20261106163935 / quote_amendment_history
+  local 20261106135704_quote_amendment_approval.sql
+    -> production 20261106163946 / quote_amendment_approval
+  No blanket db push or unrelated pending migrations were run. Both calls
+  returned success. The first was prefixed with SET LOCAL lock_timeout='5s';
+  the second includes that timeout in the migration file.
+- Reviewed local SQL SHA-256 digests:
+  history: E4D144EC63EA75580FB08DE7317C580EA6431FB9FAB411378AA56F52314A4A2D
+  approval: 625EB695D23F6BF88747374EBEAA68C31793D16BB897406A3BE946DD9226CD85
+  Top-level SQL contains schema definitions/grants only, with no data backfill
+  or function invocation. DML exists inside the future operation definitions.
+- Read-only catalog checks confirmed migration ledger entries, installed guards,
+  RLS on all three history/approval/event tables, no anon/authenticated table
+  reads or RPC execution, service read-only table grants, service-only RPC
+  execution, postgres function ownership and fixed empty search paths. The
+  current-quote view is security_invoker and service-readable only. Approval
+  and decision tables both contained zero rows after rollout. No production
+  approval/application/proposal RPC was invoked and no real message was sent.
+- Supabase security advisors were checked before and after. Only three expected
+  INFO RLS-without-policy notices were added for the intentionally service-only
+  tables (105 -> 108). Existing ERROR/WARN category counts were unchanged; this
+  is not overall security clearance. Aikido tools remain unavailable.
+
+Remaining acceptance boundaries
+-------------------------------
+- Signed, partly signed, consented, funded or invoiced work needs a separately
+  designed contract/payment variation. This patch cannot change those records,
+  collect extra funding, issue refunds or reconstruct historical balances.
+  Customer approval is not a contract signature. A changed draft must return
+  through the existing contract review/signing process.
+- Application code has not been deployed. Production checks were schema and
+  permission inspection only. No real end-to-end customer approval/application,
+  PostgREST view-embedding journey, full migration replay, or concurrent live
+  sessions were exercised. Local tests do not establish those outcomes.
+- Native amendment UI and automatic publication/decision email or push delivery
+  remain unimplemented. Standalone quotes without an accepted job/bid cannot be
+  published through this workflow. Broader bid/quote creation atomicity and
+  sent-quote email-failure recovery remain separate work.
+- Android/iOS deployed-relay MFA status/enrolment/verification/disable/retry
+  still require device verification. Settings tests do not establish native
+  sign-in challenge enforcement across custom MFA and Supabase sessions.
+  Jest/Vitest does not replace fresh-build physical-device/browser checks for
+  visuals, larger text, keyboard, scroll and navigation. Escrow presentation
+  does not establish historical financial reconciliation.
+- Beta gate and release/relay configuration remain unchanged and enabled.
+  Push notifications and bank transfers retain their confirmed-working status.
+  No git push or application deployment occurred, and no live financial records
+  were mutated. Full release acceptance remains incomplete.

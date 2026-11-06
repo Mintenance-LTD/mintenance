@@ -36,7 +36,7 @@ export const GET = withApiHandler(
     const status = searchParams.get('status');
 
     let query = serverSupabase
-      .from('contractor_quotes')
+      .from('current_contractor_quotes')
       .select(
         'id, title, client_name, client_email, status, total_amount, subtotal, tax_amount, quote_date, created_at, updated_at, sent_at, valid_until, line_items, quote_number, template_id'
       )

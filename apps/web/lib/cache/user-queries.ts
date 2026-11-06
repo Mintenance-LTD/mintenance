@@ -185,7 +185,7 @@ export const getCachedUserQuotes = unstable_cache(
     }
 
     const { data, error } = await serverSupabase
-      .from('contractor_quotes')
+      .from('current_contractor_quotes')
       .select(
         `
         id,

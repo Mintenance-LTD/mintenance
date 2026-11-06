@@ -59,7 +59,7 @@ export const GET = withApiHandler(
     let query = serverSupabase
       .from('quote_revisions')
       .select(
-        'id, quote_id, revision_number, kind, reason, actor_id, before_snapshot, after_snapshot, created_at'
+        'id, quote_id, revision_number, kind, reason, actor_id, before_snapshot, after_snapshot, created_at, amendment:quote_amendments(status)'
       )
       .eq('quote_id', params.id)
       .eq('contractor_id', user.id)

@@ -17,6 +17,8 @@ import {
 
 export interface EditableQuote {
   id: string;
+  job_id?: string | null;
+  is_current?: boolean;
   quote_number?: string | null;
   title: string;
   client_name?: string | null;

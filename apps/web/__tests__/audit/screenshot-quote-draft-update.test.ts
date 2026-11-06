@@ -8,13 +8,15 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   list: vi.fn(),
   is: vi.fn(),
+  from: vi.fn(),
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler: (_: unknown, handler: unknown) => handler,
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-    from: () => {
+    from: (table: string) => {
+      mocks.from(table);
       let updating = false;
       const query = {
         select: () => query,
@@ -127,6 +129,7 @@ it('returns the saved amounts, breakdown and version to the mobile read path', a
     new NextRequest('http://localhost/api/contractor/quotes'),
     { user: { id: 'actor', role: 'contractor' }, params: {} as { id: string } }
   );
+  expect(mocks.from).toHaveBeenCalledWith('current_contractor_quotes');
   const { quotes } = await response.json();
   expect(quotes[0]).toMatchObject({
     total_amount: 46.5,

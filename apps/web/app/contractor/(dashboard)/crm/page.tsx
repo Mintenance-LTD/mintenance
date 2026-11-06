@@ -69,7 +69,7 @@ export default async function CRMDashboardPage() {
 
   // Get clients from accepted quotes
   const { data: acceptedQuotes } = await serverSupabase
-    .from('contractor_quotes')
+    .from('current_contractor_quotes')
     .select(
       `
       id,

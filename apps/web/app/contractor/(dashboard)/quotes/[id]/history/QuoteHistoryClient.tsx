@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { fetchWithCSRF } from '@/lib/hooks/useCSRF';
+import { PublishQuoteAmendment } from '@/components/quotes/PublishQuoteAmendment';
 import { useRouter } from 'next/navigation';
 import { calculateDraftQuotePricing } from '@mintenance/shared';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -35,6 +37,7 @@ type Snapshot = {
     | null;
 };
 type Revision = {
+  amendment?: { status: string } | null;
   id: string;
   revision_number: number;
   kind: string;
@@ -216,7 +219,7 @@ export function QuoteHistoryClient({
           pricing,
         });
       }
-      const response = await fetch(endpoint, {
+      const response = await fetchWithCSRF(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: pending.current,
@@ -275,23 +278,33 @@ export function QuoteHistoryClient({
       <p>
         History records changes from when recording was enabled. Earlier edits
         may not be available. An amendment proposal is saved for review only: it
-        is not sent, approved or applied to the accepted quote, bid, contract or
-        payments.
+        must be submitted for customer review before approval and application.
+        Saving a proposal alone does not change the accepted quote or payments.
       </p>
-      {quote.status === 'accepted' && !editing && !saved && (
-        <button
-          type='button'
-          className='btn btn-primary min-h-11'
-          disabled={!loaded || loading || Boolean(historyError)}
-          onClick={() => setEditing(true)}
-        >
-          Prepare amendment proposal
-        </button>
+      {quote.is_current === false && (
+        <p>
+          This is a historical quote. An applied amendment replaced its pricing;
+          the original record is preserved here.
+        </p>
       )}
+      {quote.status === 'accepted' &&
+        quote.is_current !== false &&
+        !editing &&
+        !saved && (
+          <button
+            type='button'
+            className='btn btn-primary min-h-11'
+            disabled={!loaded || loading || Boolean(historyError)}
+            onClick={() => setEditing(true)}
+          >
+            Prepare amendment proposal
+          </button>
+        )}
       {saved && (
         <p role='status'>
           Amendment proposal saved. The accepted quote is unchanged. Customer
-          approval and applying amendments are not yet available.
+          review is available below. Applying approved pricing requires an
+          unsigned, unfunded contract and does not move money.
         </p>
       )}
       {editing && (
@@ -392,7 +405,7 @@ export function QuoteHistoryClient({
             <h3 className='font-semibold'>
               Revision {revision.revision_number}:{' '}
               {revision.kind === 'amendment_proposed'
-                ? 'Amendment proposal — not applied'
+                ? 'Prepared amendment proposal'
                 : `Quote ${revision.kind}`}
             </h3>
             <p>
@@ -432,6 +445,22 @@ export function QuoteHistoryClient({
                 />
               </div>
             </details>
+            {revision.kind === 'amendment_proposed' &&
+              quote.job_id &&
+              (revision.amendment || quote.is_current === false ? (
+                <Link
+                  className='underline'
+                  href={`/jobs/${quote.job_id}/amendments`}
+                >
+                  Customer review:{' '}
+                  {revision.amendment?.status || 'quote superseded'}
+                </Link>
+              ) : (
+                <PublishQuoteAmendment
+                  jobId={quote.job_id}
+                  revisionId={revision.id}
+                />
+              ))}
           </article>
         ))}
         {next && !historyError && (

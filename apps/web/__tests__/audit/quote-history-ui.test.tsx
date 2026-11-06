@@ -14,6 +14,9 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock('@/components/ui/confirm-dialog', () => ({
   useConfirm: () => mocks.confirm,
 }));
+vi.mock('@/lib/hooks/useCSRF', () => ({
+  fetchWithCSRF: (...args: Parameters<typeof fetch>) => fetch(...args),
+}));
 const quote = {
   id: 'quote',
   title: 'Repair',
@@ -102,7 +105,7 @@ it('saves a versioned proposal and shows the preserved accepted price and new hi
     pricing: { line_items: quote.line_items, tax_rate_percent: 20 },
   });
   expect(
-    await screen.findByText('Revision 1: Amendment proposal — not applied')
+    await screen.findByText('Revision 1: Prepared amendment proposal')
   ).toBeInTheDocument();
   expect(screen.getByText('Accepted quote')).toBeInTheDocument();
 });
@@ -216,4 +219,18 @@ it('asks before leaving an active proposal', async () => {
   fireEvent.click(screen.getByText('Back to quote'));
   await waitFor(() => expect(mocks.confirm).toHaveBeenCalled());
   expect(screen.getByLabelText('Reason for amendment')).toHaveValue('New work');
+});
+it('preserves historical pricing without advertising another amendment on a superseded quote', async () => {
+  mocks.fetch.mockResolvedValueOnce(
+    history([{ ...revision, amendment: { status: 'applied' } }])
+  );
+  render(
+    <QuoteHistoryClient
+      quote={{ ...quote, job_id: 'job', is_current: false }}
+    />
+  );
+  await screen.findByText('Customer review: applied');
+  expect(screen.queryByText('Submit for customer review')).toBeNull();
+  expect(screen.queryByText('Prepare amendment proposal')).toBeNull();
+  expect(screen.getByText(/This is a historical quote/)).toBeInTheDocument();
 });

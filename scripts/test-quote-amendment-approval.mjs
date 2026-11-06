@@ -1,0 +1,426 @@
+// Local disposable PostgreSQL only. Never run these synthetic mutations on hosted data.
+import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+const { PGlite } = await import(
+  process.env.PGLITE_MODULE || '@electric-sql/pglite'
+);
+const db = new PGlite();
+const sql = (name) =>
+  readFileSync(
+    new URL(`../supabase/migrations/${name}`, import.meta.url),
+    'utf8'
+  );
+const snapshot = sql('20260805194939_uk_earnings_statement_bookkeeping.sql');
+const table = (name) =>
+  snapshot.match(
+    new RegExp(
+      `CREATE TABLE IF NOT EXISTS "public"\."${name}" \\([\\s\\S]*?\\n\\);`
+    )
+  )[0];
+await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
+ CREATE SCHEMA auth; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS 'SELECT NULL::uuid';
+ ${table('contractor_quotes')} ${table('contracts')}
+ ALTER TABLE contractor_quotes ADD PRIMARY KEY(id); ALTER TABLE contracts ADD PRIMARY KEY(id);
+ ALTER TABLE contracts ADD COLUMN agreement_formed_at timestamptz,ADD COLUMN cancellation_requested_at timestamptz,ADD COLUMN cancellation_deadline timestamptz;
+ CREATE TABLE jobs(id uuid PRIMARY KEY,homeowner_id uuid,payer_user_id uuid,contractor_id uuid,status text,budget numeric);
+ CREATE TABLE bids(id uuid PRIMARY KEY,job_id uuid,quote_id uuid,contractor_id uuid,amount numeric,status text,updated_at timestamptz);
+ CREATE TABLE escrow_transactions(id uuid DEFAULT gen_random_uuid(),job_id uuid);
+ CREATE TABLE payment_funding_reservations(job_id uuid);
+ CREATE TABLE invoices(job_id uuid); CREATE TABLE payments(job_id uuid); CREATE TABLE escrow_payments(job_id uuid);
+ CREATE TABLE payment_tracking(job_id uuid); CREATE TABLE tax_payment_records(job_id uuid); CREATE TABLE contractor_payout_credit_events(job_id uuid);
+ CREATE TABLE contract_signatories(contract_id uuid,signed_at timestamptz);
+ CREATE TABLE contract_signatures(contract_id uuid);
+ CREATE TABLE contract_acceptance_evidence(contract_id uuid);
+ CREATE TABLE contract_cosignature_evidence(contract_id uuid);
+ CREATE TABLE contract_consents(contract_id uuid);
+ GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO service_role;`);
+await db.exec(sql('20260908082735_protect_bid_financial_terms.sql'));
+await db.exec(sql('20261103122146_freeze_signed_bid_scope.sql'));
+await db.exec(`CREATE TRIGGER freeze_signed_bid BEFORE UPDATE OR DELETE ON bids FOR EACH ROW EXECUTE FUNCTION freeze_signed_proposal();
+ CREATE TRIGGER freeze_signed_quote BEFORE UPDATE OR DELETE ON contractor_quotes FOR EACH ROW EXECUTE FUNCTION freeze_signed_proposal();`);
+await db.exec(sql('20261106132613_quote_amendment_history.sql'));
+await db.exec(
+  `BEGIN; ${sql('20261106135704_quote_amendment_approval.sql')} COMMIT;`
+);
+const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const owner = id(1),
+  customer = id(2),
+  payer = id(3),
+  job = id(4),
+  quote = id(5),
+  bid = id(6),
+  contract = id(7),
+  outsider = id(8);
+const version = '2026-11-06T12:00:00Z';
+let revision;
+async function seed(hasPayer = false) {
+  await db.exec('BEGIN');
+  await db.query(`INSERT INTO jobs VALUES($1,$2,$3,$4,'assigned',100)`, [
+    job,
+    customer,
+    hasPayer ? payer : null,
+    owner,
+  ]);
+  await db.query(
+    `INSERT INTO contractor_quotes(id,contractor_id,job_id,client_name,client_email,title,subtotal,tax_rate,tax_amount,total_amount,status,updated_at,notes)
+ VALUES($1,$2,$3,'Synthetic','synthetic@example.test','Repair',100,0,0,100,'accepted',$4,'PRIVATE NOTE')`,
+    [quote, owner, job, version]
+  );
+  await db.query(`INSERT INTO bids VALUES($1,$2,$3,$4,100,'accepted',$5)`, [
+    bid,
+    job,
+    quote,
+    owner,
+    version,
+  ]);
+  await db.query(
+    `INSERT INTO contracts(id,job_id,contractor_id,homeowner_id,quote_id,amount,status,terms) VALUES($1,$2,$3,$4,$5,100,'pending_homeowner',$6)`,
+    [contract, job, owner, customer, quote, JSON.stringify({ bid_id: bid })]
+  );
+  await db.exec('SET LOCAL ROLE service_role');
+  const pricing = {
+    line_items: [
+      { description: 'Revised repair', quantity: 2, unitPrice: 60, total: 120 },
+    ],
+    subtotal: 120,
+    tax_rate: 0,
+    tax_amount: 0,
+    total_amount: 120,
+  };
+  revision = (
+    await db.query('SELECT * FROM propose_quote_amendment($1,$2,$3,$4,$5,$6)', [
+      quote,
+      owner,
+      id(20),
+      version,
+      'Extra part',
+      JSON.stringify(pricing),
+    ])
+  ).rows[0].id;
+}
+const transition = async (
+  action,
+  actor = owner,
+  expected = 0,
+  note = '',
+  jobId = job
+) =>
+  (
+    await db.query(
+      'SELECT transition_quote_amendment($1,$2,$3,$4,$5,$6) AS result',
+      [jobId, revision, actor, action, expected, note]
+    )
+  ).rows[0].result;
+const read = async (actor = customer) =>
+  (
+    await db.query('SELECT read_job_quote_amendments($1,$2) AS result', [
+      job,
+      actor,
+    ])
+  ).rows[0].result;
+const approve = async () => {
+  await transition('publish');
+  await transition('approve', customer, 1);
+};
+const one = async (query, params = []) =>
+  (await db.query(query, params)).rows[0];
+// Recover expected errors without aborting the surrounding synthetic transaction.
+async function rejects(fn, pattern) {
+  await db.exec('SAVEPOINT expected_error');
+  await assert.rejects(fn, pattern);
+  await db.exec('ROLLBACK TO SAVEPOINT expected_error');
+}
+let cases = 0;
+async function test(name, run, payerMode = false) {
+  await seed(payerMode);
+  try {
+    await run();
+    cases++;
+    console.log(`PASS ${name}`);
+  } finally {
+    await db.exec('ROLLBACK');
+  }
+}
+await test('publish, approve, apply, original preservation and exact retry', async () => {
+  const original = await one('SELECT * FROM contractor_quotes WHERE id=$1', [
+    quote,
+  ]);
+  assert.equal(
+    (await read()).amendments.length,
+    0,
+    'internal proposals are not shared'
+  );
+  const published = await transition('publish');
+  assert.equal(published.status, 'published');
+  assert.equal((await transition('publish')).id, published.id);
+  const review = await read();
+  assert.equal(review.can_approve, true);
+  assert.equal(review.amendments[0].before_snapshot.notes, undefined);
+  assert.equal(review.amendments[0].after_snapshot.notes, undefined);
+  await transition('approve', customer, 1, 'Reviewed the extra part');
+  assert.equal(
+    (await one('SELECT amount FROM bids WHERE id=$1', [bid])).amount,
+    '100'
+  );
+  await rejects(
+    () => db.query('UPDATE bids SET amount=120 WHERE id=$1', [bid]),
+    /approved amendment/
+  );
+  const applied = await transition('apply', owner, 2);
+  assert.equal(applied.status, 'applied');
+  assert.equal(
+    (await transition('apply', owner, 2)).applied_quote_id,
+    applied.applied_quote_id
+  );
+  assert.deepEqual(
+    await one('SELECT * FROM contractor_quotes WHERE id=$1', [quote]),
+    original
+  );
+  const currentBid = await one('SELECT * FROM bids WHERE id=$1', [bid]);
+  assert.equal(Number(currentBid.amount), 120);
+  assert.equal(currentBid.quote_id, applied.applied_quote_id);
+  const currentContract = await one('SELECT * FROM contracts WHERE id=$1', [
+    contract,
+  ]);
+  assert.equal(currentContract.amount, '120.00');
+  assert.equal(currentContract.status, 'draft');
+  assert.equal(currentContract.contract_version, 2);
+  assert.equal(currentContract.homeowner_signed_at, null);
+  assert.equal(currentContract.quote_id, applied.applied_quote_id);
+  assert.equal(
+    (await one('SELECT budget FROM jobs WHERE id=$1', [job])).budget,
+    '100'
+  );
+  assert.equal((await read()).amendments[0].events.length, 3);
+  assert.equal(
+    (await one('SELECT count(*)::int AS n FROM contractor_quotes')).n,
+    2
+  );
+  assert.equal(
+    (await one('SELECT count(*)::int AS n FROM current_contractor_quotes')).n,
+    1
+  );
+  assert.equal(
+    Number(
+      (
+        await one(
+          'SELECT sum(total_amount) AS amount FROM current_contractor_quotes'
+        )
+      ).amount
+    ),
+    120
+  );
+});
+await test(
+  'only designated payer approves; owner, occupant and outsiders cannot substitute',
+  async () => {
+    await transition('publish');
+    assert.equal((await read(customer)).can_approve, false);
+    assert.equal((await read(payer)).can_approve, true);
+    for (const actor of [owner, customer, outsider])
+      await rejects(() => transition('approve', actor, 1), /access denied/);
+    await rejects(
+      () => transition('approve', payer, 1, '', id(99)),
+      /access denied/
+    );
+    await transition('approve', payer, 1);
+  },
+  true
+);
+await test('read access, version binding, decision note binding and conflicting actions', async () => {
+  await rejects(() => read(outsider), /access denied/);
+  await rejects(() => transition('publish', customer), /access denied/);
+  await transition('publish');
+  await rejects(() => transition('approve', customer, 0), /changed/);
+  await transition('approve', customer, 1, 'Agreed');
+  await rejects(
+    () => transition('approve', customer, 1, 'Different'),
+    /changed/
+  );
+  await rejects(() => transition('reject', customer, 1), /changed/);
+  await transition('withdraw', owner, 2);
+  await rejects(() => transition('apply', owner, 3), /no longer/);
+});
+await test('reject preserves originals and prevents application', async () => {
+  await transition('publish');
+  await transition('reject', customer, 1, 'Not agreed');
+  await rejects(() => transition('apply', owner, 2), /no longer/);
+  assert.equal(
+    (await one('SELECT amount FROM bids WHERE id=$1', [bid])).amount,
+    '100'
+  );
+});
+for (const [name, change] of [
+  ['homeowner signature', `UPDATE contracts SET homeowner_signed_at=now()`],
+  ['contractor signature', `UPDATE contracts SET contractor_signed_at=now()`],
+  ['formed agreement', `UPDATE contracts SET agreement_formed_at=now()`],
+  ['null contract state', `UPDATE contracts SET status=NULL`],
+  [
+    'escrow even without successful funding',
+    `INSERT INTO escrow_transactions(job_id) VALUES('${job}')`,
+  ],
+  [
+    'funding reservation',
+    `INSERT INTO payment_funding_reservations VALUES('${job}')`,
+  ],
+  ...[
+    'invoices',
+    'payments',
+    'escrow_payments',
+    'payment_tracking',
+    'tax_payment_records',
+    'contractor_payout_credit_events',
+  ].map((table) => [table, `INSERT INTO ${table} VALUES('${job}')`]),
+  [
+    'co-signature',
+    `INSERT INTO contract_signatories VALUES('${contract}',now())`,
+  ],
+  [
+    'signature evidence',
+    `INSERT INTO contract_signatures VALUES('${contract}')`,
+  ],
+  [
+    'acceptance evidence',
+    `INSERT INTO contract_acceptance_evidence VALUES('${contract}')`,
+  ],
+  [
+    'cosignature evidence',
+    `INSERT INTO contract_cosignature_evidence VALUES('${contract}')`,
+  ],
+  ['legal consent', `INSERT INTO contract_consents VALUES('${contract}')`],
+  ['contract price mismatch', `UPDATE contracts SET amount=90`],
+])
+  await test(`blocks ${name} without partial writes`, async () => {
+    await approve();
+    await db.exec(change);
+    await rejects(() => transition('apply', owner, 2), /required|variation/);
+    assert.equal(
+      (await one('SELECT status FROM quote_amendments')).status,
+      'approved'
+    );
+    assert.equal(
+      (await one('SELECT count(*)::int AS n FROM contractor_quotes')).n,
+      1
+    );
+    assert.equal(
+      (await one('SELECT count(*)::int AS n FROM quote_amendment_events')).n,
+      2
+    );
+    assert.equal(
+      (await one('SELECT amount FROM bids WHERE id=$1', [bid])).amount,
+      '100'
+    );
+  });
+await test('payer reassignment invalidates approval before application', async () => {
+  await approve();
+  await db.query('UPDATE jobs SET payer_user_id=$1', [payer]);
+  await rejects(
+    () => transition('apply', owner, 2),
+    /responsible customer changed/
+  );
+  await transition('withdraw', owner, 2);
+});
+await test('event immutability and restricted direct application writes', async () => {
+  await db.query('UPDATE contractor_quotes SET updated_at=now() WHERE id=$1', [
+    quote,
+  ]);
+  await transition('publish');
+  await rejects(
+    () => db.exec("UPDATE quote_amendments SET status='applying'"),
+    /permission denied/
+  );
+  await rejects(
+    () => db.exec('DELETE FROM quote_amendment_events'),
+    /permission denied/
+  );
+  await db.exec('RESET ROLE');
+  await rejects(
+    () => db.exec("UPDATE quote_amendment_events SET note='tamper'"),
+    /append-only/
+  );
+});
+await test('discrepant historical bid amount is rejected without reconciliation', async () => {
+  await db.exec(
+    "UPDATE bids SET status='pending'; UPDATE bids SET amount=90; UPDATE bids SET status='accepted';"
+  );
+  await rejects(() => transition('publish'), /matching accepted bid/);
+  assert.equal(
+    (await one('SELECT amount FROM bids WHERE id=$1', [bid])).amount,
+    '90'
+  );
+});
+await test('late contract failure rolls back the new quote, bid and application marker', async () => {
+  await approve();
+  await db.exec('RESET ROLE');
+  await db.exec(`CREATE FUNCTION test_reject_contract() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic contract failure'; END $$;
+ CREATE TRIGGER test_reject_contract BEFORE UPDATE ON contracts FOR EACH ROW EXECUTE FUNCTION test_reject_contract();`);
+  await db.exec('SET LOCAL ROLE service_role');
+  await rejects(
+    () => transition('apply', owner, 2),
+    /synthetic contract failure/
+  );
+  assert.equal(
+    (await one('SELECT count(*)::int AS n FROM contractor_quotes')).n,
+    1
+  );
+  assert.equal(
+    Number((await one('SELECT amount FROM bids WHERE id=$1', [bid])).amount),
+    100
+  );
+  const state = await one(
+    'SELECT status,applied_quote_id FROM quote_amendments'
+  );
+  assert.equal(state.status, 'approved');
+  assert.equal(state.applied_quote_id, null);
+});
+await test('one open proposal per source quote', async () => {
+  await transition('publish');
+  const second = (
+    await db.query('SELECT * FROM propose_quote_amendment($1,$2,$3,$4,$5,$6)', [
+      quote,
+      owner,
+      id(21),
+      version,
+      'Alternative',
+      JSON.stringify({
+        line_items: [
+          { description: 'Repair', quantity: 1, unitPrice: 130, total: 130 },
+        ],
+        subtotal: 130,
+        tax_rate: 0,
+        tax_amount: 0,
+        total_amount: 130,
+      }),
+    ])
+  ).rows[0].id;
+  const first = revision;
+  revision = second;
+  await rejects(() => transition('publish'), /unique/);
+  revision = first;
+  assert.equal((await read()).amendments.length, 1);
+});
+for (const role of ['anon', 'authenticated']) {
+  await db.exec(`SET ROLE ${role}`);
+  await assert.rejects(
+    () => db.exec('SELECT * FROM quote_amendments'),
+    /permission denied/
+  );
+  await assert.rejects(
+    () => db.exec('SELECT * FROM current_contractor_quotes'),
+    /permission denied/
+  );
+  await assert.rejects(() => read(), /permission denied/);
+  await assert.rejects(() => transition('publish'), /permission denied/);
+  await db.exec('RESET ROLE');
+}
+const flags = (
+  await db.query(
+    "SELECT relrowsecurity FROM pg_class WHERE relname IN ('quote_amendments','quote_amendment_events')"
+  )
+).rows;
+assert.equal(flags.length, 2);
+assert.ok(flags.every((row) => row.relrowsecurity));
+await db.close();
+console.log(
+  `${cases} approval/application scenarios plus role and RLS checks passed.`
+);
