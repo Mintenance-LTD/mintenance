@@ -1,4 +1,5 @@
 'use client';
+import { QuoteDraftActions } from '../../components/QuoteDraftActions';
 
 /**
  * Mint Editorial port of /contractor/quotes/[id].
@@ -17,7 +18,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Printer, ArrowLeft, Mail, FileText } from 'lucide-react';
+import { Printer, ArrowLeft, FileText } from 'lucide-react';
 
 interface QuoteLineItem {
   description: string;
@@ -46,6 +47,7 @@ interface Quote {
   quote_date?: string;
   valid_until?: string;
   status: string;
+  updated_at?: string | null;
   created_at: string;
 }
 
@@ -174,9 +176,7 @@ export function MintEditorialQuoteDetailView({
             <ArrowLeft size={14} strokeWidth={1.75} /> Back
           </button>
           {quote.status === 'draft' && (
-            <button type='button' className='btn btn-secondary btn-sm'>
-              <Mail size={14} strokeWidth={1.75} /> Send to client
-            </button>
+            <QuoteDraftActions id={quote.id} version={quote.updated_at} />
           )}
           <button
             type='button'

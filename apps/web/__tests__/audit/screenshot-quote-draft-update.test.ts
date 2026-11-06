@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   eq: vi.fn(),
   update: vi.fn(),
   list: vi.fn(),
+  is: vi.fn(),
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler: (_: unknown, handler: unknown) => handler,
@@ -19,6 +20,10 @@ vi.mock('@/lib/api/supabaseServer', () => ({
         select: () => query,
         eq: (...args: unknown[]) => {
           mocks.eq(...args);
+          return query;
+        },
+        is: (...args: unknown[]) => {
+          mocks.is(...args);
           return query;
         },
         single: mocks.owner,
@@ -59,7 +64,14 @@ const call = (
   );
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.owner.mockResolvedValue({ data: { id: 'quote' }, error: null });
+  mocks.owner.mockResolvedValue({
+    data: {
+      id: 'quote',
+      status: 'draft',
+      updated_at: '2026-11-06T12:00:00.000Z',
+    },
+    error: null,
+  });
   mocks.list.mockResolvedValue({ data: [], error: null });
   mocks.saved.mockResolvedValue({
     data: { id: 'quote', status: 'draft', title: 'Updated title' },
@@ -139,18 +151,15 @@ it('does not recalculate prices during a details-only update', async () => {
   }
 });
 
-it.each([
-  { expected_status: undefined },
-  { expected_updated_at: undefined },
-  { total_amount: 1 },
-  { line_items: [] },
-  { status: 'accepted' },
-])('rejects incomplete or conflicting price updates: %j', async (overrides) => {
-  await expect(call({ ...priceEdit, ...overrides })).rejects.toMatchObject({
-    statusCode: 400,
-  });
-  expect(mocks.update).not.toHaveBeenCalled();
-});
+it.each([{ expected_status: undefined }, { expected_updated_at: undefined }])(
+  'rejects incomplete or conflicting price updates: %j',
+  async (overrides) => {
+    await expect(call({ ...priceEdit, ...overrides })).rejects.toMatchObject({
+      statusCode: 400,
+    });
+    expect(mocks.update).not.toHaveBeenCalled();
+  }
+);
 
 it.each([
   { tax_rate_percent: -1, line_items: priceEdit.pricing.line_items },
@@ -200,10 +209,11 @@ it('conditions the saved mutation on actor, id and draft status', async () => {
     expect.objectContaining({ title: 'Updated title' })
   );
   expect(mocks.update.mock.calls[0][0]).not.toHaveProperty('expected_status');
-  expect(mocks.eq.mock.calls.slice(-3)).toEqual([
+  expect(mocks.eq.mock.calls.slice(-4)).toEqual([
     ['id', 'quote'],
     ['contractor_id', 'actor'],
     ['status', 'draft'],
+    ['updated_at', '2026-11-06T12:00:00.000Z'],
   ]);
   expect((await response.json()).quote.id).toBe('quote');
 });
@@ -227,4 +237,47 @@ it('rejects unsupported expected statuses before querying', async () => {
 it('does not convert a database failure into a stale-draft conflict', async () => {
   mocks.saved.mockResolvedValue({ data: null, error: { message: 'offline' } });
   await expect(call()).rejects.toMatchObject({ statusCode: 500 });
+});
+
+it.each([
+  { total_amount: 1 },
+  { line_items: [] },
+  { status: 'draft' },
+  { status: 'sent' },
+])('rejects the old total/status bypass: %j', async (fields) => {
+  const res = await call({ title: 'Legacy edit', ...fields });
+  expect(res.status).toBe(400);
+  expect(mocks.update).not.toHaveBeenCalled();
+});
+it.each(['sent', 'viewed', 'accepted', 'rejected', 'expired'])(
+  'protects %s quotes even without a client status guard',
+  async (status) => {
+    mocks.owner.mockResolvedValue({
+      data: { id: 'quote', status },
+      error: null,
+    });
+    await expect(call({ title: 'Legacy edit' })).rejects.toMatchObject({
+      statusCode: 409,
+    });
+    expect(mocks.update).not.toHaveBeenCalled();
+  }
+);
+it('clears optional fields without altering the price or status', async () => {
+  await call({ title: 'Repair', terms: '', notes: '', valid_until: null });
+  expect(mocks.update).toHaveBeenCalledWith(
+    expect.objectContaining({ terms: '', notes: '', valid_until: null })
+  );
+  expect(mocks.update.mock.calls[0][0]).not.toHaveProperty('status');
+  expect(mocks.update.mock.calls[0][0]).not.toHaveProperty('total_amount');
+});
+it.each(['2026-02-30', '2026-13-01', '', 'tomorrow'])(
+  'rejects invalid expiry %s',
+  async (valid_until) => {
+    expect((await call({ valid_until })).status).toBe(400);
+    expect(mocks.update).not.toHaveBeenCalled();
+  }
+);
+it('guards an explicitly loaded null timestamp on an old draft', async () => {
+  await call({ ...priceEdit, expected_updated_at: null });
+  expect(mocks.is).toHaveBeenCalledWith('updated_at', null);
 });

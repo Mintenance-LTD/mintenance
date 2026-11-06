@@ -9,7 +9,15 @@ export interface Quote {
   jobTitle: string;
   customerName: string;
   customerEmail?: string;
-  status: 'draft' | 'sent' | 'accepted' | 'declined' | 'expired';
+  status:
+    | 'draft'
+    | 'sent'
+    | 'viewed'
+    | 'accepted'
+    | 'declined'
+    | 'rejected'
+    | 'expired';
+  updated_at?: string | null;
   amount: number;
   createdDate: string;
   sentDate?: string;
@@ -77,7 +85,11 @@ export function useQuotesData() {
   const filteredQuotes = useMemo(() => {
     let filtered = quotes;
     if (activeFilter !== 'all') {
-      filtered = filtered.filter((q) => q.status === activeFilter);
+      filtered = filtered.filter(
+        (q) =>
+          q.status === activeFilter ||
+          (activeFilter === 'declined' && q.status === 'rejected')
+      );
     }
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -111,7 +123,9 @@ export function useQuotesData() {
     {
       value: 'declined',
       label: 'Declined',
-      count: quotes.filter((q) => q.status === 'declined').length,
+      count: quotes.filter(
+        (q) => q.status === 'declined' || q.status === 'rejected'
+      ).length,
     },
   ];
 

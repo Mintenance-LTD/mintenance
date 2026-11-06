@@ -90,6 +90,10 @@ const mockQuote = {
 };
 
 describe('QuoteDetailsClient', () => {
+  it('renders an older quote without a recorded line-item breakdown', () => {
+    render(<QuoteDetailsClient quote={{ ...mockQuote, line_items: null }} />);
+    expect(screen.getByText('No line-item breakdown recorded.')).toBeDefined();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

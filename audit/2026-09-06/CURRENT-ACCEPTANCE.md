@@ -84,3 +84,13 @@ New checks passed 97 mobile tests and 50 web tests; these are separate from the
 previous batch. Accepted-quote amendments, legacy web total-only editing, deployed
 concurrency/delivery, and fresh-build device checks remain open. No historical
 financial data was changed; the beta gate remains enabled and nothing was deployed.
+
+### Legacy web quote editing follow-up — 6 November 2026
+
+The screenshot audit records draft-only web pricing, version-checked editing and
+both deletion routes, optional-field clearing, ownership filtering, and working
+review/edit/send navigation. The unsafe legacy total/status update contract now
+returns 400; web/API rollout must be coordinated. Verification passed 122 tests
+and the full web type check. Accepted-quote amendments, historical reconciliation,
+real deployed concurrency/delivery and fresh browser/device acceptance remain open.
+The beta gate remains enabled; no deployment or live mutation was performed.

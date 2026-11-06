@@ -417,3 +417,125 @@ Final checks for the quote-pricing commit
 - Staged git diff whitespace checks, new-color guard and Edge Function
   currency guard passed. Beta/config/relay files have no changes in this
   commit. Generated caches/logs and shared build output are excluded.
+
+Legacy web quote editing continuation — 6 November 2026
+======================================================
+Scope and evidence
+------------------
+- Started from clean b8c6e4a57; reviewed root/web AGENTS.md, the saved audit,
+  web edit/detail/list pages, both quote deletion endpoints, PUT callers,
+  the mobile quote service contract, and the bid quote creation/update path.
+- The legacy web editor independently changed total_amount and status, with
+  no item/tax recalculation or loaded-version guard. Optional fields were
+  omitted when cleared, so clearing them did not persist. Direct non-draft
+  edit URLs rendered the same editor. Quote details used the server database
+  client with only an id filter, missing contractor ownership filtering.
+- List duplicate/download/delete actions only displayed success toasts; both
+  detail themes displayed an inert send button. Real canonical deletion had
+  no status/version guard; the alternate delete route checked accepted status
+  only before deletion, leaving a race and inconsistent policy.
+
+Implemented and reviewed
+-------------------------
+- Replaced total-only/status editing with draft title/client/terms/notes/date
+  editing and explicit item-price replacement using the existing shared
+  calculator. Add/remove items, fractional quantities, unit prices, explicit
+  tax percent, and live rounded totals match the mobile draft pricing path.
+  No implicit tax inference, repricing on a details-only edit, or guessed
+  reconstruction of historical adjustments. Keep-saved-pricing discards the
+  pricing replacement while retaining other form edits.
+- Terms/notes clear as empty strings; expiry clears as null. Expiry validation
+  rejects invalid calendar dates. Title limit matches the stored 255-character
+  column. Removed the unsupported claim that notes are private/internal.
+- The web editor retains its original quote/version snapshot across background
+  refreshes. Failures retain inputs for retry; 409 conflicts block save/delete
+  until the user explicitly discards edits and reviews the latest quote.
+  A single synchronous lock prevents duplicate writes and save/delete overlap.
+  Save/deletion success must be confirmed by the response. Back/cancel prompt
+  before discarding dirty edits; beforeunload protects reload/close. Inputs
+  have labels, responsive rows and disabled/pending states.
+- PUT now rejects legacy top-level totals, line_items and manual status writes
+  (400), and always enforces draft status on read AND mutation. All writes use
+  actor/id and a version predicate. New clients supply the loaded timestamp;
+  older details-only callers use the server-read timestamp. Explicit null
+  timestamps use an IS NULL predicate. Pricing requests still require the
+  explicit draft guard plus a loaded version. Server recalculation is the only
+  supported price-edit path through this endpoint.
+- Both deletion endpoints share deleteDraftQuote: owner-scoped read, draft
+  eligibility, and actor/id/status/version predicates on DELETE, selecting the
+  deleted id before claiming success. Older bodyless mobile callers retain
+  support with a server-read version guard. Non-drafts and races return 409;
+  missing/unowned rows return 404; database failures return 500. No real quote
+  was deleted; all mutation/delivery checks here use mocks.
+- Direct non-draft edit URLs redirect to read-only details. Edit load errors
+  reach the existing quotes error boundary (Try again), rather than silently
+  returning to the list. Added contractor_id filtering to the detail page.
+  The legacy detail renderer now handles null/absent recorded item breakdowns.
+- Both detail themes now offer working Edit draft and versioned Send to client
+  actions for drafts. Sending prevents duplicate requests, shows structured
+  errors, and refreshes on success/conflict; stale sends stay blocked until
+  refreshed data arrives. List sending includes the reviewed version and goes
+  to detail to see fresh data. Expired quotes no longer advertise Send.
+- List stubs no longer claim duplication/download/deletion. Create new quote
+  opens the actual create flow; View / print quote opens the printable detail;
+  deletion is available in the guarded draft editor. Viewed/rejected cards
+  render correctly; the existing Declined filter includes rejected records.
+
+Compatibility and remaining boundaries
+--------------------------------------
+- This supersedes the previous audit's open legacy total-only web editing gap.
+  Old cached web clients sending total_amount/status/line_items directly now
+  receive 400 rather than corrupting a breakdown. Release the API and updated
+  web UI together, and verify an old-session refresh after rollout. Nothing
+  has been deployed. Older details-only callers without a loaded version are
+  guarded during their request, not against edits made before their request.
+- Accepted/sent quote amendment and revision-history workflows remain unbuilt.
+  This is a draft editing policy for these standard update/delete routes, not
+  a claim that every bid/acceptance workflow or direct database writer is
+  immutable. The bid-linked quote path remains a separate acceptance surface.
+- Duplication is not implemented or advertised as successful. Creating a new
+  quote does not copy/link the previous quote or create revision history.
+- Mixed tax rates, independent markup/discount controls, legacy financial
+  reconciliation, VAT-registration acceptance and existing send-email failure
+  recovery after a sent-state write remain separate unresolved work.
+- Component/API tests do not establish real database concurrency or deployed
+  relay/browser integration. No browser visual or physical-device acceptance
+  is claimed. Larger-text layout, native keyboard/scroll, platform MFA status/
+  enrolment/verification/disable/retry through the deployed relay still need
+  device checks. Settings tests do not establish native sign-in MFA challenge
+  enforcement across custom MFA and Supabase sessions. Escrow presentation
+  does not establish historical reconciliation. Full release remains unaccepted.
+- Beta gate enabled and unchanged. No push, deployment, migration, customer
+  communication, live mutation, or historical balance adjustment occurred.
+
+Verification for this batch
+--------------------------
+- Vitest: 8 files, 122 tests passed after final changes. Exact files:
+  __tests__/audit/web-quote-editor.test.tsx
+  __tests__/audit/web-quote-actions.test.tsx
+  __tests__/audit/quote-edit-pages.test.tsx
+  __tests__/audit/quote-draft-delete.test.ts
+  __tests__/audit/screenshot-quote-draft-update.test.ts
+  __tests__/audit/draft-quote-pricing.test.ts
+  __tests__/audit/quote-send-version.test.ts
+  app/contractor/(dashboard)/quotes/[id]/components/__tests__/QuoteDetailsClient.test.tsx
+  Log: output/web-quote-edit-2026-11-06-tests.log.
+- Web full TypeScript check: passed, exit 0.
+  Log: output/web-quote-edit-2026-11-06-types.log.
+- Earlier 105/121-test runs were intermediate subsets, not additional tests.
+  Prior mobile/relay/MFA results are not used as acceptance for this patch.
+  No mobile or relay source changed; the new API tests explicitly cover the
+  mobile-shaped versioned pricing request and older bodyless deletion.
+- React review checked stable keys, snapshot isolation, guarded mutations,
+  failure retention, confirmation, accessible input labels and pending states.
+  Next's installed route/component guides and Supabase filter docs were read;
+  changelog.md remains unsupported by the web reader.
+- Aikido scan/login tools remain unavailable after discovery; no security-scan
+  clearance claimed. Test caches/logs are local ignored output, not deliverables.
+- Changed web source/tests ESLint passed with 0 errors and 1 pre-existing
+  useQuotesData declaration-order/React compiler warning. All new files were
+  included explicitly, including files still untracked during the lint run.
+  Log: output/web-quote-edit-2026-11-06-lint.log.
+- Staged whitespace checks, new-color guard and Edge Function currency guard
+  passed (exit 0). Beta/mobile configuration and relay gate have no changes.
+  Generated logs/caches are excluded from the commit.

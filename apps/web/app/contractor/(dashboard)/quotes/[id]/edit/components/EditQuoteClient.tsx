@@ -1,380 +1,398 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Check, Loader2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { logger } from '@mintenance/shared';
+import {
+  calculateDraftQuotePricing,
+  type DraftQuotePricing,
+} from '@mintenance/shared';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import {
+  QuotePricingFields,
+  readQuotePricing,
+  type EditableQuoteItem,
+} from './QuotePricingFields';
 
-interface Quote {
+export interface EditableQuote {
   id: string;
   quote_number?: string | null;
   title: string;
   client_name?: string | null;
   total_amount: number | string;
   status: string;
+  updated_at: string | null;
   terms?: string | null;
   notes?: string | null;
   valid_until?: string | null;
+  line_items?:
+    | {
+        description?: string;
+        item_name?: string;
+        quantity?: number;
+        unitPrice?: number;
+        unit_price?: number;
+      }[]
+    | null;
 }
 
-interface EditQuoteClientProps {
-  quote: Quote;
+function responseError(data: unknown, fallback: string): string {
+  const error = (data as { error?: string | { message?: string } } | null)
+    ?.error;
+  return typeof error === 'string' ? error : error?.message || fallback;
 }
 
-const EDITABLE_STATUSES: ReadonlyArray<{
-  value: 'draft' | 'sent' | 'expired';
-  label: string;
-}> = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'sent', label: 'Sent' },
-  { value: 'expired', label: 'Expired' },
-];
-
-function toDateInput(value?: string | null): string {
-  if (!value) return '';
-  // Supabase returns YYYY-MM-DD for date columns; pass through.
-  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
-  try {
-    return new Date(value).toISOString().slice(0, 10);
-  } catch {
-    return '';
-  }
+export function EditQuoteClient({ quote }: { quote: EditableQuote }) {
+  return <DraftEditor key={quote.id} initialQuote={quote} />;
 }
 
-export function EditQuoteClient({ quote }: EditQuoteClientProps) {
+function DraftEditor({ initialQuote }: { initialQuote: EditableQuote }) {
+  // Keep the loaded snapshot until leaving/reloading. A background refresh must
+  // not give old edits a new version token and silently overwrite newer work.
+  const [quote] = useState(initialQuote);
   const router = useRouter();
   const confirm = useConfirm();
-
-  // Hydration-safe theme detection — match the rest of the contractor
-  // surfaces (legacy vs. Mint Editorial). The form is light enough that
-  // we apply canonical classes universally and let the cookie-scoped
-  // theme repaint via the global CSS.
-  const [isMintEditorial, setIsMintEditorial] = useState(false);
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    setIsMintEditorial(
-      document.documentElement.dataset.theme === 'mint-editorial'
-    );
-  }, []);
-
   const [title, setTitle] = useState(quote.title);
-  const [totalAmount, setTotalAmount] = useState<string>(
-    String(quote.total_amount ?? 0)
-  );
-  const [status, setStatus] = useState<string>(quote.status || 'draft');
+  const [clientName, setClientName] = useState(quote.client_name || '');
   const [terms, setTerms] = useState(quote.terms || '');
   const [notes, setNotes] = useState(quote.notes || '');
-  const [validUntil, setValidUntil] = useState(toDateInput(quote.valid_until));
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
+  const [validUntil, setValidUntil] = useState(
+    quote.valid_until?.slice(0, 10) || ''
+  );
+  const [pricingEnabled, setPricingEnabled] = useState(false);
+  const [tax, setTax] = useState('');
+  const [items, setItems] = useState<EditableQuoteItem[]>(() =>
+    (quote.line_items ?? []).map((item, key) => ({
+      key,
+      description: item.description ?? item.item_name ?? '',
+      quantity: String(item.quantity ?? ''),
+      unitPrice: String(item.unitPrice ?? item.unit_price ?? ''),
+    }))
+  );
+  const nextKey = useRef(items.length);
+  const lock = useRef(false);
+  const [busy, setBusy] = useState<'save' | 'delete' | null>(null);
+  const [error, setError] = useState('');
+  const [conflict, setConflict] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const dirty =
+    pricingEnabled ||
     title !== quote.title ||
-    Number(totalAmount) !== Number(quote.total_amount) ||
-    status !== (quote.status || 'draft') ||
+    clientName !== (quote.client_name || '') ||
     terms !== (quote.terms || '') ||
     notes !== (quote.notes || '') ||
-    validUntil !== toDateInput(quote.valid_until);
-
-  const handleSave = async () => {
-    if (saving) return;
-    const totalNum = parseFloat(totalAmount);
-    if (!Number.isFinite(totalNum) || totalNum < 0) {
-      toast.error('Total amount must be a positive number');
-      return;
-    }
-    if (!title.trim()) {
-      toast.error('Title cannot be empty');
-      return;
-    }
-    setSaving(true);
+    validUntil !== (quote.valid_until?.slice(0, 10) || '');
+  useEffect(() => {
+    if (!dirty || completed) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty, completed]);
+  let pricing: DraftQuotePricing | undefined;
+  let preview: ReturnType<typeof calculateDraftQuotePricing> | undefined;
+  let validation = '';
+  if (pricingEnabled) {
     try {
-      const body: Record<string, unknown> = {
-        title: title.trim(),
-        total_amount: totalNum,
-        status,
-        terms: terms.trim() || undefined,
-        notes: notes.trim() || undefined,
-        valid_until: validUntil || undefined,
-      };
+      pricing = readQuotePricing(items, tax);
+      preview = calculateDraftQuotePricing(pricing);
+    } catch (cause) {
+      validation =
+        cause instanceof Error ? cause.message : 'Check the pricing.';
+    }
+  }
+  const editable = quote.status === 'draft';
+  const detailPath = `/contractor/quotes/${quote.id}`;
+  const leave = async () => {
+    if (lock.current) return;
+    if (
+      dirty &&
+      !(await confirm({
+        title: 'Discard unsaved edits?',
+        confirmText: 'Discard edits',
+      }))
+    )
+      return;
+    setCompleted(true);
+    router.push(detailPath);
+    router.refresh();
+  };
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (
+      !editable ||
+      lock.current ||
+      conflict ||
+      completed ||
+      validation ||
+      !dirty ||
+      !title.trim() ||
+      !clientName.trim()
+    )
+      return;
+    lock.current = true;
+    setBusy('save');
+    setError('');
+    try {
       const res = await fetch(`/api/contractor/quotes/${quote.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expected_status: 'draft',
+          expected_updated_at: quote.updated_at,
+          title: title.trim(),
+          client_name: clientName.trim(),
+          terms: terms.trim(),
+          notes: notes.trim(),
+          valid_until: validUntil || null,
+          ...(pricingEnabled ? { pricing } : {}),
+        }),
       });
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string;
-      };
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to save quote');
+        setConflict(res.status === 409);
+        throw new Error(responseError(data, 'Could not save quote.'));
       }
+      if (data?.quote?.id !== quote.id)
+        throw new Error(
+          'The save could not be confirmed. Review the latest quote before trying again.'
+        );
+      setCompleted(true);
       toast.success('Quote updated');
-      router.push(`/contractor/quotes/${quote.id}`);
+      router.push(detailPath);
       router.refresh();
-    } catch (err) {
-      logger.error('Quote save failed', err, {
-        service: 'quotes-edit',
-        quoteId: quote.id,
-      });
-      toast.error(err instanceof Error ? err.message : 'Failed to save quote');
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Could not save quote.'
+      );
     } finally {
-      setSaving(false);
+      lock.current = false;
+      setBusy(null);
     }
   };
-
-  const handleDelete = async () => {
-    if (deleting) return;
-    const ok = await confirm({
-      title: 'Delete quote?',
-      description: `Delete quote ${quote.quote_number || quote.id}? This cannot be undone.`,
-      confirmText: 'Delete',
-      destructive: true,
-    });
-    if (!ok) {
-      return;
-    }
-    setDeleting(true);
+  const remove = async () => {
+    if (!editable || lock.current || conflict || completed) return;
+    lock.current = true;
+    setBusy('delete');
+    setError('');
     try {
+      if (
+        !(await confirm({
+          title: 'Delete draft quote?',
+          description:
+            'This deletes the saved draft and any unsaved edits. This cannot be undone.',
+          confirmText: 'Delete draft',
+          destructive: true,
+        }))
+      )
+        return;
       const res = await fetch(`/api/contractor/quotes/${quote.id}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expected_updated_at: quote.updated_at }),
       });
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        throw new Error(data.error || 'Failed to delete quote');
+        setConflict(res.status === 409);
+        throw new Error(responseError(data, 'Could not delete quote.'));
       }
-      toast.success('Quote deleted');
+      if (data?.success !== true)
+        throw new Error('Deletion could not be confirmed.');
+      setCompleted(true);
+      toast.success('Draft deleted');
       router.push('/contractor/quotes');
       router.refresh();
-    } catch (err) {
-      logger.error('Quote delete failed', err, {
-        service: 'quotes-edit',
-        quoteId: quote.id,
-      });
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to delete quote'
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Could not delete quote.'
       );
     } finally {
-      setDeleting(false);
+      lock.current = false;
+      setBusy(null);
     }
   };
-
-  const wrapperStyle: React.CSSProperties = isMintEditorial
-    ? { padding: '20px 24px', maxWidth: 820, margin: '0 auto' }
-    : { padding: '20px 24px', maxWidth: 820, margin: '0 auto' };
-
-  return (
-    <div style={wrapperStyle}>
-      <Link
-        href={`/contractor/quotes/${quote.id}`}
-        className={isMintEditorial ? 'btn btn-ghost btn-sm' : ''}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          marginBottom: 16,
-          textDecoration: 'none',
-          fontSize: 13,
-        }}
-      >
-        <ArrowLeft size={13} strokeWidth={1.75} /> Back to quote
-      </Link>
-
-      <div className='col' style={{ gap: 4, marginBottom: 20 }}>
-        <h1 className={isMintEditorial ? 't-h1' : 'text-3xl font-bold'}>
-          Edit quote
-        </h1>
-        <p className={isMintEditorial ? 't-body' : 'text-gray-600 text-sm'}>
-          {quote.quote_number ? `${quote.quote_number} · ` : ''}
-          {quote.client_name || 'No client name'}
+  if (!editable)
+    return (
+      <div className='mx-auto max-w-3xl p-6 space-y-4'>
+        <h1 className='text-2xl font-semibold'>This quote is read-only</h1>
+        <p>
+          Only drafts can be edited. Sent and accepted quotes need a separate
+          amendment workflow.
         </p>
+        <Link href={detailPath}>View quote</Link>
       </div>
-
-      <div className='card card-pad' style={{ marginBottom: 16 }}>
-        <div className='col' style={{ gap: 16 }}>
-          <div className='col' style={{ gap: 6 }}>
-            <label
-              htmlFor='quote-title'
-              className='t-meta'
-              style={{ fontWeight: 600 }}
-            >
-              Title
-            </label>
+    );
+  const fieldClass =
+    'field w-full rounded-lg border border-slate-300 px-3 py-2';
+  return (
+    <div className='mx-auto max-w-3xl p-6 space-y-6'>
+      <button
+        type='button'
+        className='min-h-11 underline'
+        disabled={!!busy}
+        onClick={leave}
+      >
+        Back to quote
+      </button>
+      <header>
+        <h1 className='text-3xl font-semibold'>Edit draft quote</h1>
+        <p>{quote.quote_number || quote.title}</p>
+      </header>
+      <form onSubmit={save} className='space-y-6'>
+        <fieldset disabled={!!busy || completed} className='space-y-5'>
+          <div>
+            <label htmlFor='quote-title'>Title</label>
             <input
               id='quote-title'
-              type='text'
-              className='field'
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              maxLength={500}
-              placeholder='Quote for kitchen tap replacement'
+              maxLength={255}
+              required
+              className={fieldClass}
             />
           </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 16,
-            }}
-          >
-            <div className='col' style={{ gap: 6 }}>
-              <label
-                htmlFor='quote-total'
-                className='t-meta'
-                style={{ fontWeight: 600 }}
-              >
-                Total amount (£)
-              </label>
-              <input
-                id='quote-total'
-                type='number'
-                step='0.01'
-                min='0'
-                className='field'
-                value={totalAmount}
-                onChange={(e) => setTotalAmount(e.target.value)}
-              />
-            </div>
-
-            <div className='col' style={{ gap: 6 }}>
-              <label
-                htmlFor='quote-status'
-                className='t-meta'
-                style={{ fontWeight: 600 }}
-              >
-                Status
-              </label>
-              <select
-                id='quote-status'
-                className='field'
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {EDITABLE_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className='col' style={{ gap: 6 }}>
-              <label
-                htmlFor='quote-valid-until'
-                className='t-meta'
-                style={{ fontWeight: 600 }}
-              >
-                Valid until
-              </label>
-              <input
-                id='quote-valid-until'
-                type='date'
-                className='field'
-                value={validUntil}
-                onChange={(e) => setValidUntil(e.target.value)}
-              />
-            </div>
+          <div>
+            <label htmlFor='quote-client'>Client name</label>
+            <input
+              id='quote-client'
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              maxLength={200}
+              required
+              className={fieldClass}
+            />
           </div>
-
-          <div className='col' style={{ gap: 6 }}>
-            <label
-              htmlFor='quote-terms'
-              className='t-meta'
-              style={{ fontWeight: 600 }}
+          <p>Current saved total: £{Number(quote.total_amount).toFixed(2)}</p>
+          {!pricingEnabled ? (
+            <button
+              type='button'
+              className='btn btn-secondary min-h-11'
+              onClick={() => setPricingEnabled(true)}
             >
-              Terms (optional)
-            </label>
+              Edit prices and items
+            </button>
+          ) : (
+            <>
+              <QuotePricingFields
+                items={items}
+                tax={tax}
+                onItems={setItems}
+                onTax={setTax}
+                preview={preview}
+                onAdd={() => {
+                  const key = nextKey.current++;
+                  setItems((current) => [
+                    ...current,
+                    { key, description: '', quantity: '1', unitPrice: '' },
+                  ]);
+                }}
+              />
+              {validation && (
+                <p role='alert' className='text-red-700'>
+                  {validation}
+                </p>
+              )}
+              <button
+                type='button'
+                className='min-h-11 underline'
+                onClick={() => setPricingEnabled(false)}
+              >
+                Keep saved pricing
+              </button>
+            </>
+          )}
+          <div>
+            <label htmlFor='quote-valid-until'>Valid until</label>
+            <input
+              id='quote-valid-until'
+              type='date'
+              value={validUntil}
+              onChange={(e) => setValidUntil(e.target.value)}
+              className={fieldClass}
+            />
+          </div>
+          <div>
+            <label htmlFor='quote-terms'>Terms (optional)</label>
             <textarea
               id='quote-terms'
-              className='field'
-              rows={3}
-              maxLength={5000}
               value={terms}
+              rows={3}
               onChange={(e) => setTerms(e.target.value)}
-              placeholder='Payment terms, scope notes, exclusions…'
-              style={{ resize: 'vertical', fontFamily: 'inherit' }}
+              maxLength={5000}
+              className={fieldClass}
             />
           </div>
-
-          <div className='col' style={{ gap: 6 }}>
-            <label
-              htmlFor='quote-notes'
-              className='t-meta'
-              style={{ fontWeight: 600 }}
-            >
-              Notes (optional, internal)
-            </label>
+          <div>
+            <label htmlFor='quote-notes'>Notes (optional)</label>
             <textarea
               id='quote-notes'
-              className='field'
-              rows={3}
-              maxLength={5000}
               value={notes}
+              rows={3}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder='Private notes, not visible to client'
-              style={{ resize: 'vertical', fontFamily: 'inherit' }}
+              maxLength={5000}
+              className={fieldClass}
             />
           </div>
-
-          <p
-            className='t-meta'
-            style={{ fontSize: 12, color: 'var(--me-ink-3)' }}
+        </fieldset>
+        {error && (
+          <div role='alert' className='text-red-700 space-y-2'>
+            <p>{error}</p>
+            <p>Your edits are kept here.</p>
+          </div>
+        )}
+        {conflict && (
+          <div className='space-y-2'>
+            <p>
+              This quote changed. Review the latest quote before editing again.
+            </p>
+            <button
+              type='button'
+              className='min-h-11 underline'
+              onClick={leave}
+            >
+              Discard edits and review latest quote
+            </button>
+          </div>
+        )}
+        <div className='flex flex-wrap gap-3'>
+          <button
+            type='submit'
+            className='btn btn-primary min-h-11'
+            disabled={
+              !!busy ||
+              completed ||
+              conflict ||
+              !dirty ||
+              !!validation ||
+              !title.trim() ||
+              !clientName.trim()
+            }
           >
-            Need to change line items, client details, or tax? Duplicate this
-            quote on the quotes list and create a fresh version — keeps the
-            audit trail of what was sent to your client.
-          </p>
-        </div>
-      </div>
-
-      <div
-        className='between'
-        style={{ alignItems: 'center', flexWrap: 'wrap', gap: 12 }}
-      >
-        <button
-          type='button'
-          onClick={handleDelete}
-          disabled={deleting}
-          className='btn btn-ghost btn-sm'
-          style={{ color: 'var(--me-err)' }}
-        >
-          {deleting ? (
-            <Loader2 size={13} strokeWidth={1.75} className='animate-spin' />
-          ) : (
-            <Trash2 size={13} strokeWidth={1.75} />
-          )}
-          Delete quote
-        </button>
-
-        <div className='row' style={{ gap: 8 }}>
-          <Link
-            href={`/contractor/quotes/${quote.id}`}
-            className='btn btn-secondary btn-sm'
-          >
-            Cancel
-          </Link>
+            {busy === 'save' ? 'Saving…' : 'Save changes'}
+          </button>
           <button
             type='button'
-            onClick={handleSave}
-            disabled={saving || !dirty}
-            className='btn btn-primary'
+            className='btn btn-secondary min-h-11'
+            disabled={!!busy}
+            onClick={leave}
           >
-            {saving ? (
-              <Loader2 size={14} strokeWidth={1.75} className='animate-spin' />
-            ) : (
-              <Check size={14} strokeWidth={1.75} />
-            )}
-            {saving ? 'Saving…' : 'Save changes'}
+            Cancel
+          </button>
+          <button
+            type='button'
+            className='min-h-11 text-red-700 underline'
+            disabled={!!busy || completed || conflict}
+            onClick={remove}
+          >
+            {busy === 'delete' ? 'Deleting…' : 'Delete draft'}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
