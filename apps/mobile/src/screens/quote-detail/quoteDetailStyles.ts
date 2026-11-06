@@ -2,6 +2,8 @@ import { StyleSheet } from 'react-native';
 import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
+  editorAction: { minHeight: 44, justifyContent: 'center' },
+  editorItem: { paddingVertical: 16, gap: 6 },
   editInput: {
     borderWidth: 1,
     borderColor: me.line,

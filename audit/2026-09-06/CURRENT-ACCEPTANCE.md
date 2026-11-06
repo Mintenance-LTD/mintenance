@@ -75,3 +75,12 @@ scroll checks remain outstanding, and settings tests do not prove native
 sign-in MFA enforcement. Escrow/finance display corrections do not establish
 historical reconciliation or bank-arrival dates. Local Android export was
 blocked by missing release environment configuration before bundling.
+
+### Draft quote pricing follow-up — 6 November 2026
+
+The screenshot audit now records locally tested draft price/line-item replacement,
+server-calculated totals, version-conflict recovery, and send/edit race protection.
+New checks passed 97 mobile tests and 50 web tests; these are separate from the
+previous batch. Accepted-quote amendments, legacy web total-only editing, deployed
+concurrency/delivery, and fresh-build device checks remain open. No historical
+financial data was changed; the beta gate remains enabled and nothing was deployed.

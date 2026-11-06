@@ -222,7 +222,7 @@ export const useCreateQuoteViewModel = (
         line_items: lineItems,
         markup_percentage: parseFloat(markupPercentage),
         discount_percentage: parseFloat(discountPercentage),
-        tax_rate: parseFloat(taxRate),
+        tax_rate: parseFloat(taxRate) / 100,
         valid_until: validUntil,
         terms_and_conditions: termsAndConditions,
         notes: notes,

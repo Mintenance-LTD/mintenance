@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, calculateDraftQuotePricing } from '@mintenance/shared';
 import {
   InternalServerError,
   NotFoundError,
   ConflictError,
+  BadRequestError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
@@ -19,6 +20,17 @@ const lineItemSchema = z.object({
 
 const updateQuoteSchema = z.object({
   expected_status: z.literal('draft').optional(),
+  expected_updated_at: z.string().datetime({ offset: true }).optional(),
+  pricing: z
+    .object({
+      line_items: z
+        .array(lineItemSchema.omit({ total: true }).strict())
+        .min(1)
+        .max(100),
+      tax_rate_percent: z.number().min(0).max(100),
+    })
+    .strict()
+    .optional(),
   title: z.string().min(1).max(500).optional(),
   client_name: z.string().max(200).optional(),
   total_amount: z.number().min(0).optional(),
@@ -38,20 +50,45 @@ export const PUT = withApiHandler(
     if (validation instanceof NextResponse) return validation;
     const payload = validation.data;
 
+    if (
+      payload.pricing &&
+      (payload.expected_status !== 'draft' ||
+        !payload.expected_updated_at ||
+        payload.total_amount !== undefined ||
+        payload.line_items !== undefined ||
+        payload.status !== undefined)
+    ) {
+      throw new BadRequestError(
+        'Price edits require a versioned draft and a complete pricing breakdown.'
+      );
+    }
+    let pricingUpdates;
+    if (payload.pricing) {
+      try {
+        pricingUpdates = calculateDraftQuotePricing(payload.pricing);
+      } catch (error) {
+        throw new BadRequestError(
+          error instanceof Error ? error.message : 'Invalid pricing.'
+        );
+      }
+    }
+
     // Verify ownership
-    const { data: existing } = await serverSupabase
+    const { data: existing, error: ownershipError } = await serverSupabase
       .from('contractor_quotes')
       .select('id')
       .eq('id', id)
       .eq('contractor_id', user.id)
-      .single();
+      .maybeSingle();
 
+    if (ownershipError) throw new InternalServerError('Failed to load quote');
     if (!existing) {
       throw new NotFoundError('Quote not found');
     }
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
+      ...pricingUpdates,
     };
     if (payload.title !== undefined) updates.title = payload.title;
     if (payload.client_name !== undefined)
@@ -76,6 +113,9 @@ export const PUT = withApiHandler(
     if (payload.expected_status) {
       updateQuery = updateQuery.eq('status', payload.expected_status);
     }
+    if (payload.expected_updated_at) {
+      updateQuery = updateQuery.eq('updated_at', payload.expected_updated_at);
+    }
     const { data: quote, error } = await updateQuery.select().maybeSingle();
 
     if (error) {
@@ -87,9 +127,9 @@ export const PUT = withApiHandler(
     }
 
     if (!quote) {
-      if (payload.expected_status) {
+      if (payload.expected_status || payload.expected_updated_at) {
         throw new ConflictError(
-          'Quote is no longer a draft. Reload before editing.'
+          'Quote changed since it was loaded. Reload before editing.'
         );
       }
       throw new NotFoundError('Quote not found');

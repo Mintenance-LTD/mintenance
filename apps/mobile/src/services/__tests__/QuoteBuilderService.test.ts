@@ -397,7 +397,7 @@ describe('Quote CRUD', () => {
         totalAmount: number;
       };
       expect(payload.subtotal).toBe(100);
-      expect(payload.taxRate).toBe(0.05);
+      expect(payload.taxRate).toBe(5);
       expect(payload.taxAmount).toBeCloseTo(5, 5);
       expect(payload.totalAmount).toBeCloseTo(105, 5);
     });
@@ -581,6 +581,35 @@ describe('Quote CRUD', () => {
   });
 
   describe('updateQuote', () => {
+    it('forwards versioned pricing intact without inventing a total', async () => {
+      api.put.mockResolvedValueOnce({ quote: { id: 'q-1' } } as never);
+      const data = {
+        expected_status: 'draft' as const,
+        expected_updated_at: '2026-11-06T12:00:00.000Z',
+        pricing: {
+          tax_rate_percent: 20,
+          line_items: [{ description: 'Labour', quantity: 1.5, unitPrice: 10 }],
+        },
+      };
+      await QuoteBuilderService.updateQuote('q-1', data);
+      expect(api.put).toHaveBeenCalledWith(
+        '/api/contractor/quotes/q-1',
+        expect.objectContaining(data)
+      );
+      expect(api.put.mock.calls[0][1]).toHaveProperty(
+        'total_amount',
+        undefined
+      );
+    });
+    it('preserves stale-draft conflicts for the editor recovery action', async () => {
+      const conflict = Object.assign(new Error('Changed elsewhere'), {
+        statusCode: 409,
+      });
+      api.put.mockRejectedValueOnce(conflict);
+      await expect(
+        QuoteBuilderService.updateQuote('q-1', { expected_status: 'draft' })
+      ).rejects.toBe(conflict);
+    });
     it('sends update payload and tracks "shared" when status changes', async () => {
       api.put.mockResolvedValueOnce({ quote: { id: 'q-1' } } as never);
       api.post.mockResolvedValueOnce({} as never); // trackQuoteInteraction
@@ -628,6 +657,19 @@ describe('Quote CRUD', () => {
   });
 
   describe('sendQuote', () => {
+    it('sends the version reviewed by the user and preserves conflicts', async () => {
+      const conflict = Object.assign(new Error('Changed elsewhere'), {
+        statusCode: 409,
+      });
+      api.post.mockRejectedValueOnce(conflict);
+      await expect(
+        QuoteBuilderService.sendQuote('q-1', '2026-11-06T12:00:00.000Z')
+      ).rejects.toBe(conflict);
+      expect(api.post).toHaveBeenCalledWith('/api/contractor/send-quote', {
+        quoteId: 'q-1',
+        expected_updated_at: '2026-11-06T12:00:00.000Z',
+      });
+    });
     it('sends the quote and tracks "sent"', async () => {
       api.post
         .mockResolvedValueOnce({ quote: { id: 'q-1' } } as never) // send-quote

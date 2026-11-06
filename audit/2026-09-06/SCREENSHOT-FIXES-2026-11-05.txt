@@ -292,3 +292,128 @@ Final verification after all source edits (6 November 2026)
 - Staged source guards passed: check-no-hex.js and
   check-edge-fn-currency.js (both exit 0). No active Git hook was configured;
   these guards were run explicitly without changing hook configuration.
+
+Quote price and line-item continuation — 6 November 2026
+=======================================================
+Scope and evidence
+------------------
+- Started from clean commit 6ae32ab17. Re-read root/web AGENTS.md, inspected
+  quote detail, create viewmodel, mobile quote service, list/update/send APIs,
+  web edit caller and saved contractor_quotes schema. No migrations required.
+- The existing PUT allowed independent total_amount and line_items writes;
+  it did not recalculate subtotal/tax. The mobile detail editor previously
+  changed title/client only. The stored line-item JSON uses description,
+  quantity, unitPrice and total; older mobile forms also use snake_case keys.
+- Existing creation callers disagree about tax units: the CreateQuote
+  viewmodel passed percentage points to a service that calculates using a
+  fraction, and that service persisted the fraction to the percentage-based
+  API. Corrected both boundaries for future creates. No historical values
+  were inferred or rewritten. Existing markup/discount adjustments are not
+  separately persisted by this create path and cannot be reconstructed.
+
+Implemented
+-----------
+- Draft quote editor now has explicit price/item editing: add/remove items,
+  descriptions, fractional quantities, GBP unit prices, explicit tax percent,
+  live line/subtotal/tax/total preview, save, cancel and keep-saved-pricing.
+  Initial tax is deliberately blank because saved legacy conventions vary.
+  The editor explains that saving replaces the full pricing breakdown and
+  asks the contractor to include agreed adjustments in unit prices. Merely
+  changing title/client sends no price fields and leaves all amounts intact.
+- Shared calculation validates 1–100 items, positive quantities (3 decimals),
+  nonnegative prices (2 decimals), tax 0–100% (2 decimals) and numeric(10,2)
+  limits. It rounds each line to pennies, then tax on the summed subtotal.
+  Free items and zero tax are supported; partial numbers, negative amounts,
+  non-finite values, excessive precision and overflow are rejected.
+- A separate pricing request object carries only inputs. Server recalculates
+  line totals, subtotal, percentage tax rate, tax amount and grand total in
+  one UPDATE; client-supplied totals cannot override this calculation. Price
+  writes require draft status and the loaded updated_at version. Both are
+  predicates on the mutation, along with actor/id ownership. Concurrent
+  changes return 409. Ordinary read failures return 500 rather than 404.
+- List response adds updated_at and pricing_edit_version:1; old API responses
+  do not enable price editing. Price-capable API and mobile must be released
+  together; no deployment was performed. No new permission or beta bypass.
+- Editor keeps failed edits inline for retry, blocks duplicate saves, locks
+  inputs during saving, hides send/edit actions while editing, and reloads
+  saved data. A conflict keeps edits visible for comparison and offers an
+  explicit discard/reload action before another save. Both canonical and
+  older snake_case item names/prices prefill without inventing missing data.
+- Send endpoint now performs a draft/version-conditional status update before
+  its email call; a concurrent price edit cannot send the earlier amount.
+  New mobile sends the reviewed version; older callers use the version read
+  by the server. Database predicates retain full timestamp precision, with
+  a null-version predicate for legacy rows. Non-draft sends return conflict.
+  The API returns the saved quote, matching the existing mobile service type.
+  Conflict reloads the mobile quote for review. All email calls in tests are
+  mocked: no actual email was sent.
+
+Verification for this continuation (separate from the previous batch)
+-------------------------------------------------------------------
+- Mobile Jest: 3 suites, 97 tests passed. Exact suites:
+  src/screens/quote-detail/__tests__/QuoteDetailScreen.test.tsx
+  src/services/__tests__/QuoteBuilderService.test.ts
+  src/screens/create-quote/viewmodels/__tests__/CreateQuoteViewModel.test.ts
+  Log: output/quote-pricing-2026-11-06-mobile.log.
+- Web Vitest: 3 files, 50 tests passed. Exact files:
+  __tests__/audit/screenshot-quote-draft-update.test.ts
+  __tests__/audit/draft-quote-pricing.test.ts
+  __tests__/audit/quote-send-version.test.ts
+  Log: output/quote-pricing-2026-11-06-web.log.
+- Mobile full TypeScript check passed (exit 0); shared package build passed
+  with tsc -b packages/shared. Logs:
+  output/quote-pricing-2026-11-06-mobile-types.log
+  output/quote-pricing-2026-11-06-shared-build.log
+- Changed mobile source/tests lint passed: 0 errors, 2 pre-existing test
+  import-order warnings. Changed web routes/tests and shared calculator lint
+  passed: 0 errors/warnings. Logs:
+  output/quote-pricing-2026-11-06-mobile-lint.log
+  output/quote-pricing-2026-11-06-web-lint.log
+  output/quote-pricing-2026-11-06-shared-lint.log
+- Initial test setup attempts failed on Windows temporary-cache permissions
+  and a non-existent root Vitest executable. Corrected to workspace cache/temp
+  and the web-local runner. Initial types needed rebuilding shared declarations;
+  a potentially absent array element was then guarded. Tests caught a missing
+  capability handler guard and send-version/response wiring, corrected before
+  the final passing runs. Failed intermediate runs are not acceptance evidence.
+- Aikido scan/login tools remain unavailable after discovery; no security scan
+  clearance claimed. React review checked stable item keys, controlled input,
+  account/quote isolation, keyboard scroll container, labels, touch target size,
+  draft eligibility, mutation guards, error retention and request races.
+  Installed Next route-handler docs and Supabase filter docs were checked;
+  the Supabase changelog markdown reader still reports unsupported content type.
+
+Acceptance boundaries retained
+------------------------------
+- These tests mock persistence and delivery; they do not prove real Postgres
+  concurrency, deployed API/relay parity, email delivery, or physical-device
+  keyboard, large-text and navigation behavior. No fresh Android/iOS build was
+  produced; the earlier missing release configuration remains unresolved.
+- This completes locally verified mobile DRAFT price/item replacement. Accepted
+  quote amendments, revision history and legacy web total-only editing are
+  separate workflows and remain unresolved. Legacy PUT callers that omit the
+  new pricing object still retain their prior behavior; this is not a global
+  immutability/reconciliation guarantee. Mixed item tax rates and separate
+  discount/markup controls are not introduced. Existing creation defaults and
+  broader VAT-registration policy still require their own acceptance review.
+- Email failure after the sent-state write remains an existing delivery/retry
+  limitation; no outbox or resend workflow was introduced in this patch.
+- Android/iOS MFA status/enrolment/verification/disable/retry through deployed
+  relay still need devices. Settings tests do not establish native sign-in MFA
+  challenge enforcement across custom MFA and Supabase sessions. Jest does not
+  replace fresh-build visual checks. Escrow presentation is not historical
+  financial reconciliation. Full release acceptance remains incomplete.
+- Beta gate stays enabled. No push, deploy, migration, live record/financial
+  mutation, or historical balance change occurred.
+
+Final checks for the quote-pricing commit
+-----------------------------------------
+- Web full TypeScript check passed after the final route/test edits (exit 0).
+  Log: output/quote-pricing-2026-11-06-web-types.log.
+- Final source/tests: mobile 97/97 and web 50/50 passed. The earlier 93-test
+  and 49-test runs were intermediate subsets; do not sum these counts.
+- No prior screenshot, relay or MFA results are being re-used as proof for
+  these new quote changes. Only the suites listed above were run this time.
+- Staged git diff whitespace checks, new-color guard and Edge Function
+  currency guard passed. Beta/config/relay files have no changes in this
+  commit. Generated caches/logs and shared build output are excluded.

@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -23,6 +22,8 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { me } from '../../design-system/mint-editorial';
 import { styles } from './quoteDetailStyles';
+import { DraftQuoteEditor } from './DraftQuoteEditor';
+import type { UpdateQuoteData } from '../../services/quotes/types';
 
 interface QuoteDetailScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteDetail'>;
@@ -51,8 +52,6 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState('');
-  const [clientName, setClientName] = useState('');
   const [saving, setSaving] = useState(false);
   const saveLock = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -89,35 +88,22 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
 
   const startEditing = () => {
     if (quote?.status !== 'draft') return;
-    setTitle(quote.project_title);
-    setClientName(quote.client_name);
     setEditing(true);
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
-  const saveDetails = async () => {
-    if (
-      !quote ||
-      quote.status !== 'draft' ||
-      saveLock.current ||
-      !title.trim() ||
-      !clientName.trim()
-    )
-      return;
+  const saveDetails = async (data: UpdateQuoteData) => {
+    if (!quote || quote.status !== 'draft' || saveLock.current) return;
+    const version = requestVersion.current;
     saveLock.current = true;
     setSaving(true);
     try {
-      const saved = await QuoteBuilderService.updateQuote(quote.id, {
-        expected_status: 'draft',
-        title: title.trim(),
-        client_name: clientName.trim(),
-      });
+      const saved = await QuoteBuilderService.updateQuote(quote.id, data);
       if (saved?.id !== quote.id)
         throw new Error('Quote update could not be confirmed');
+      if (version !== requestVersion.current) return;
       setEditing(false);
       await loadQuote();
-      toast.success('Quote details saved');
-    } catch {
-      toast.error('Could not save quote details. Your edits are kept here.');
+      toast.success('Quote saved');
     } finally {
       saveLock.current = false;
       setSaving(false);
@@ -132,11 +118,18 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
         onPress: async () => {
           if (!quote || !user) return;
           try {
-            await QuoteBuilderService.sendQuote(quote.id);
+            await QuoteBuilderService.sendQuote(quote.id, quote.updated_at);
             toast.success('Quote sent');
             await loadQuote();
-          } catch {
-            toast.error('Failed to send quote');
+          } catch (error) {
+            if ((error as { statusCode?: number })?.statusCode === 409) {
+              toast.error(
+                'Quote changed. Review the latest prices before sending.'
+              );
+              await loadQuote();
+            } else {
+              toast.error('Failed to send quote');
+            }
           }
         },
       },
@@ -193,7 +186,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
         {quote.status === 'draft' && !editing && (
           <TouchableOpacity
             accessibilityRole='button'
-            accessibilityLabel='Edit quote details'
+            accessibilityLabel='Edit quote'
             style={styles.headerButton}
             onPress={startEditing}
           >
@@ -214,45 +207,17 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
           showsVerticalScrollIndicator={false}
         >
           {editing && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>EDIT DRAFT DETAILS</Text>
-              <TextInput
-                accessibilityLabel='Quote title'
-                value={title}
-                onChangeText={setTitle}
-                maxLength={500}
-                editable={!saving}
-                style={styles.editInput}
-              />
-              <TextInput
-                accessibilityLabel='Client name'
-                value={clientName}
-                onChangeText={setClientName}
-                maxLength={200}
-                editable={!saving}
-                style={styles.editInput}
-              />
-              <Text style={styles.detailText}>
-                This edits the draft title and client name. Pricing and line
-                items remain as quoted.
-              </Text>
-              <TouchableOpacity
-                accessibilityRole='button'
-                disabled={saving || !title.trim() || !clientName.trim()}
-                onPress={saveDetails}
-              >
-                <Text style={styles.backLink}>
-                  {saving ? 'Saving…' : 'Save details'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                accessibilityRole='button'
-                disabled={saving}
-                onPress={() => setEditing(false)}
-              >
-                <Text style={styles.backLink}>Cancel editing</Text>
-              </TouchableOpacity>
-            </View>
+            <DraftQuoteEditor
+              key={quote.id + user?.id}
+              quote={quote}
+              saving={saving}
+              onSave={saveDetails}
+              onCancel={() => setEditing(false)}
+              onReload={() => {
+                setEditing(false);
+                void loadQuote();
+              }}
+            />
           )}
           {/* Status Card */}
           <View style={styles.statusCard}>
@@ -386,14 +351,14 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
           ) : null}
 
           {/* Actions */}
-          {quote.status === 'draft' && (
+          {quote.status === 'draft' && !editing && (
             <View style={styles.actionsSection}>
               <TouchableOpacity
                 style={styles.editButton}
                 onPress={startEditing}
               >
                 <Ionicons name='pencil-outline' size={18} color={me.ink2} />
-                <Text style={styles.editButtonText}>Edit details</Text>
+                <Text style={styles.editButtonText}>Edit quote</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
                 <Ionicons name='send-outline' size={18} color={me.onBrand} />

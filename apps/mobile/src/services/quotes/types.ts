@@ -1,3 +1,5 @@
+import type { DraftQuotePricing } from '@mintenance/shared';
+
 export interface QuoteTemplate {
   id: string;
   contractor_id: string;
@@ -27,6 +29,7 @@ export interface QuoteLineItemTemplate {
 }
 
 export interface ContractorQuote {
+  pricing_edit_version?: number;
   line_items?: {
     description?: string;
     item_name?: string;
@@ -151,6 +154,8 @@ export interface CreateQuoteData {
 
 export interface UpdateQuoteData {
   expected_status?: 'draft';
+  expected_updated_at?: string;
+  pricing?: DraftQuotePricing;
   title?: string;
   client_name?: string;
   client_email?: string;

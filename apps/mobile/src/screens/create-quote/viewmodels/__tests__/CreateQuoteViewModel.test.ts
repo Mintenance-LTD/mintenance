@@ -173,7 +173,10 @@ describe('saveQuote', () => {
     await act(async () => {
       await result.current.saveQuote();
     });
-    expect(mockCreateQuote).toHaveBeenCalledWith('u1', expect.any(Object));
+    expect(mockCreateQuote).toHaveBeenCalledWith(
+      'u1',
+      expect.objectContaining({ tax_rate: 0.2 })
+    );
     expect(alertSpy).toHaveBeenCalledWith('Success', expect.any(String));
   });
 
