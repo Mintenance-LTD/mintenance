@@ -931,44 +931,61 @@ describe('Quote analytics', () => {
 });
 
 // ---------------------------------------------------------------------------
-// QuoteRevisions (deferred no-op feature)
+// QuoteRevisions (recorded history, no invented success)
 // ---------------------------------------------------------------------------
-describe('Quote revisions (deferred stub)', () => {
-  it('getQuoteRevisions resolves to an empty array', async () => {
+describe('Quote revisions', () => {
+  it('returns empty history only after a successful API read', async () => {
+    api.get.mockResolvedValueOnce({ revisions: [], next_before: null });
     const result = await QuoteBuilderService.getQuoteRevisions('q-1');
     expect(result).toEqual([]);
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/contractor/quotes/q-1/revisions'
+    );
   });
 
-  it('createQuoteRevision returns a deferred placeholder shape', async () => {
-    const rev = await QuoteBuilderService.createQuoteRevision(
-      'q-1',
-      'Adjusted labour',
-      250,
-      300,
-      'user-1'
-    );
-    expect(rev).toEqual({
-      id: 'deferred',
-      quote_id: 'q-1',
-      changes_summary: 'Adjusted labour',
-      previous_total: 250,
-      new_total: 300,
-      revised_by: 'user-1',
-      created_at: new Date(0).toISOString(),
+  it('does not invent success for arbitrary total-only revisions', async () => {
+    await expect(
+      QuoteBuilderService.createQuoteRevision(
+        'q-1',
+        'Adjusted labour',
+        250,
+        300,
+        'user-1'
+      )
+    ).rejects.toThrow('No revision was saved');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('retains server order across history pages', async () => {
+    api.get.mockResolvedValueOnce({
+      revisions: [{ id: 'new' }],
+      next_before: 2,
     });
-  });
-
-  it('warns at most once per process across revision calls', async () => {
-    // The module-level `_warned` flag means warnDeferred fires only on the
-    // first revision call in this process. Both calls above already ran, so
-    // exactly one warn should have been recorded for the "deferred feature"
-    // message.
-    await QuoteBuilderService.getQuoteRevisions('q-2');
-    await QuoteBuilderService.createQuoteRevision('q-2', 's', 1, 2, 'u');
-
-    const deferredWarns = mockedLogger.warn.mock.calls.filter((c) =>
-      String(c[0]).includes('deferred feature called')
+    api.get.mockResolvedValueOnce({
+      revisions: [{ id: 'old' }],
+      next_before: null,
+    });
+    expect(await QuoteBuilderService.getQuoteRevisions('q/2')).toEqual([
+      { id: 'new' },
+      { id: 'old' },
+    ]);
+    expect(api.get).toHaveBeenLastCalledWith(
+      '/api/contractor/quotes/q%2F2/revisions?before=2'
     );
-    expect(deferredWarns.length).toBeLessThanOrEqual(1);
+  });
+  it('surfaces unavailable history rather than an empty success', async () => {
+    api.get.mockRejectedValueOnce(new Error('Service unavailable'));
+    await expect(QuoteBuilderService.getQuoteRevisions('q-1')).rejects.toThrow(
+      'Service unavailable'
+    );
+  });
+  it('rejects malformed history and looping pagination', async () => {
+    await expect(QuoteBuilderService.getQuoteRevisions('q-1')).rejects.toThrow(
+      'Could not read'
+    );
+    api.get.mockResolvedValue({ revisions: [], next_before: 2 });
+    await expect(QuoteBuilderService.getQuoteRevisions('q-1')).rejects.toThrow(
+      'Could not read'
+    );
   });
 });

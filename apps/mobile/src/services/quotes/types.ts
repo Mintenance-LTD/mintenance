@@ -88,10 +88,11 @@ export interface QuoteRevision {
   id: string;
   quote_id: string;
   revision_number: number;
-  changes_summary: string;
-  previous_total: number;
-  new_total: number;
-  revised_by: string;
+  kind: 'created' | 'updated' | 'deleted' | 'amendment_proposed';
+  reason: string | null;
+  actor_id: string | null;
+  before_snapshot: Record<string, unknown> | null;
+  after_snapshot: Record<string, unknown> | null;
   created_at: string;
 }
 

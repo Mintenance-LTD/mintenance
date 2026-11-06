@@ -42,6 +42,7 @@ export function QuotePricingFields({
   onTax,
   onAdd,
   preview,
+  amendment = false,
 }: {
   items: EditableQuoteItem[];
   tax: string;
@@ -49,6 +50,7 @@ export function QuotePricingFields({
   onTax: (value: string) => void;
   onAdd: () => void;
   preview?: ReturnType<typeof calculateDraftQuotePricing>;
+  amendment?: boolean;
 }) {
   const update = (
     key: number,
@@ -63,11 +65,16 @@ export function QuotePricingFields({
   const fieldClass =
     'field w-full rounded-lg border border-slate-300 px-3 py-2';
   return (
-    <section aria-label='Draft pricing' className='space-y-4'>
+    <section
+      aria-label={amendment ? 'Proposed pricing' : 'Draft pricing'}
+      className='space-y-4'
+    >
       <p>
-        Saving replaces this draft’s pricing with the breakdown below. Review
-        every item, include agreed adjustments in the unit prices, and enter the
-        applicable tax percentage (0 for no tax).
+        {amendment
+          ? 'Saving records a separate proposal. The accepted price stays unchanged.'
+          : 'Saving replaces this draft’s pricing with the breakdown below.'}{' '}
+        Review every item, include agreed adjustments in the unit prices, and
+        enter the applicable tax percentage (0 for no tax).
       </p>
       {items.map((item, index) => (
         <fieldset

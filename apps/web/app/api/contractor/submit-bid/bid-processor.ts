@@ -102,7 +102,8 @@ async function createBid(
  */
 async function updateBid(
   bidId: string,
-  payload: BidPayload
+  payload: BidPayload,
+  expectedStatus = 'pending'
 ): Promise<{ bid: unknown; error: unknown }> {
   const payloadRecord = payload as unknown as Record<string, unknown>;
   logger.debug('[BID_UPDATE] Updating bid with payload', {
@@ -118,6 +119,9 @@ async function updateBid(
     .from('bids')
     .update(payload)
     .eq('id', bidId)
+    .eq('contractor_id', payload.contractor_id)
+    .eq('job_id', payload.job_id)
+    .eq('status', expectedStatus)
     .select()
     .single();
 
@@ -219,7 +223,8 @@ export async function processBid(
     // Update existing bid
     const { bid, error: updateError } = await updateBid(
       existingBid.id,
-      bidPayload
+      bidPayload,
+      existingBid.status || 'pending'
     );
 
     if (updateError) {

@@ -1,5 +1,6 @@
 'use client';
 import { QuoteDraftActions } from '../../components/QuoteDraftActions';
+import Link from 'next/link';
 
 /**
  * Mint Editorial port of /contractor/quotes/[id].
@@ -178,6 +179,12 @@ export function MintEditorialQuoteDetailView({
           {quote.status === 'draft' && (
             <QuoteDraftActions id={quote.id} version={quote.updated_at} />
           )}
+          <Link
+            href={`/contractor/quotes/${quote.id}/history`}
+            className='btn btn-secondary btn-sm'
+          >
+            History / amendments
+          </Link>
           <button
             type='button'
             className='btn btn-primary btn-sm'

@@ -94,3 +94,22 @@ returns 400; web/API rollout must be coordinated. Verification passed 122 tests
 and the full web type check. Accepted-quote amendments, historical reconciliation,
 real deployed concurrency/delivery and fresh browser/device acceptance remain open.
 The beta gate remains enabled; no deployment or live mutation was performed.
+
+### Accepted quote proposals and recorded history — 6 November 2026
+
+The screenshot audit records separate internal pricing proposals, immutable
+prospective quote history, accepted-quote mutation protection, guarded bid
+resubmission/linking and corrected accepted/rejected status synchronization.
+The mobile revision stub no longer invents a saved revision. The new local
+migration has not been applied to any hosted database; a later rollout must
+apply it before exposing the API/UI.
+
+Verification passed 196 web tests (12 files), 66 mobile quote-service tests,
+both full TypeScript checks, and disposable Postgres migration/permission/
+snapshot/idempotency checks. This is not full-schema replay or simultaneous
+multi-session acceptance evidence. Customer approval and applying amendments
+to contracts/bids/payments remain unimplemented; proposals do not change an
+accepted price. Historical reconciliation, atomic bid/quote acceptance,
+deployed relay MFA/native sign-in enforcement, fresh-build browser/device
+visual checks and full release acceptance remain open. The beta gate remains
+enabled; nothing was pushed, deployed or changed in live customer records.

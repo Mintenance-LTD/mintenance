@@ -25,7 +25,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  *
  * This helper:
  *   - flips the accepted bid's `quote_id` → `accepted`
- *   - flips every losing bid's `quote_id` → `declined`
+ *   - flips rejected bids' `quote_id` → `rejected` (the stored quote status)
  *
  * All failures are swallowed — accept flow must not block on this.
  */
@@ -60,9 +60,9 @@ export async function syncLinkedQuoteStatuses(params: {
 
     for (const b of linkedBids) {
       if (!b.quote_id) continue;
-      if (b.id === acceptedBidId) {
+      if (b.id === acceptedBidId && b.status === 'accepted') {
         acceptedQuoteIds.push(b.quote_id);
-      } else {
+      } else if (b.status === 'rejected') {
         declinedQuoteIds.push(b.quote_id);
       }
     }
@@ -73,7 +73,9 @@ export async function syncLinkedQuoteStatuses(params: {
       const { error: acceptErr } = await serverSupabase
         .from('contractor_quotes')
         .update({ status: 'accepted', updated_at: updatedAt })
-        .in('id', acceptedQuoteIds);
+        .in('id', acceptedQuoteIds)
+        .eq('job_id', jobId)
+        .in('status', ['draft', 'sent', 'viewed']);
       if (acceptErr) {
         logger.warn('syncLinkedQuoteStatuses: accepted flip failed', {
           service: 'quotes',
@@ -86,8 +88,13 @@ export async function syncLinkedQuoteStatuses(params: {
     if (declinedQuoteIds.length > 0) {
       const { error: declineErr } = await serverSupabase
         .from('contractor_quotes')
-        .update({ status: 'declined', updated_at: updatedAt })
-        .in('id', declinedQuoteIds);
+        .update({ status: 'rejected', updated_at: updatedAt })
+        .in(
+          'id',
+          declinedQuoteIds.filter((id) => !acceptedQuoteIds.includes(id))
+        )
+        .eq('job_id', jobId)
+        .in('status', ['draft', 'sent', 'viewed']);
       if (declineErr) {
         logger.warn('syncLinkedQuoteStatuses: declined flip failed', {
           service: 'quotes',

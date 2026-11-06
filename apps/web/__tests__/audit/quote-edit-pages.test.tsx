@@ -3,6 +3,9 @@ import { beforeEach, it, expect, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ user: vi.fn(), read: vi.fn(), eq: vi.fn() }));
 vi.mock('@/lib/auth', () => ({ getCurrentUserFromCookies: mocks.user }));
 vi.mock('next/navigation', () => ({
+  notFound: () => {
+    throw new Error('notFound');
+  },
   redirect: (path: string) => {
     throw new Error(`redirect:${path}`);
   },
@@ -40,6 +43,11 @@ vi.mock(
 );
 import EditPage from '@/app/contractor/(dashboard)/quotes/[id]/edit/page';
 import DetailPage from '@/app/contractor/(dashboard)/quotes/[id]/page';
+vi.mock(
+  '@/app/contractor/(dashboard)/quotes/[id]/history/QuoteHistoryClient',
+  () => ({ QuoteHistoryClient: () => null })
+);
+import HistoryPage from '@/app/contractor/(dashboard)/quotes/[id]/history/page';
 const params = { params: Promise.resolve({ id: 'quote' }) };
 beforeEach(() => {
   vi.clearAllMocks();
@@ -49,7 +57,7 @@ beforeEach(() => {
     error: null,
   });
 });
-it.each([EditPage, DetailPage])(
+it.each([EditPage, DetailPage, HistoryPage])(
   'scopes the server-rendered quote to the current contractor',
   async (page) => {
     const result = await page(params);
@@ -84,4 +92,19 @@ it('does not disguise a loading failure as a missing quote', async () => {
 it('redirects a missing or unowned quote to the list', async () => {
   mocks.read.mockResolvedValue({ data: null, error: null });
   await expect(EditPage(params)).rejects.toThrow('redirect:/contractor/quotes');
+});
+it('keeps history behind contractor authentication', async () => {
+  for (const user of [null, { id: 'actor', role: 'homeowner' }]) {
+    mocks.user.mockResolvedValue(user);
+    await expect(HistoryPage(params)).rejects.toThrow('redirect:/login');
+  }
+  expect(mocks.read).not.toHaveBeenCalled();
+});
+it('routes history load failures to the error boundary and absent quotes to not-found', async () => {
+  mocks.read.mockResolvedValue({ data: null, error: { message: 'offline' } });
+  await expect(HistoryPage(params)).rejects.toThrow(
+    'Could not load quote history'
+  );
+  mocks.read.mockResolvedValue({ data: null, error: null });
+  await expect(HistoryPage(params)).rejects.toThrow('notFound');
 });

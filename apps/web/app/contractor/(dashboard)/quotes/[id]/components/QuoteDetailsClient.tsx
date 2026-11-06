@@ -2,6 +2,7 @@
 import { QuoteDraftActions } from '../../components/QuoteDraftActions';
 
 import React, { useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
@@ -114,6 +115,12 @@ export function QuoteDetailsClient({ quote }: QuoteDetailsClientProps) {
                 {quote.status === 'draft' && (
                   <QuoteDraftActions id={quote.id} version={quote.updated_at} />
                 )}
+                <Link
+                  href={`/contractor/quotes/${quote.id}/history`}
+                  className='underline'
+                >
+                  History / amendments
+                </Link>
               </div>
             </CardContent>
           </Card>
