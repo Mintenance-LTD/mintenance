@@ -66,3 +66,45 @@ it('shows a retry action after a failed load', async () => {
     expect(view.getByText('Unable to load actions. Tap to retry.')).toBeTruthy()
   );
 });
+
+it.each([true, false])(
+  'opens jobs only with explicit server permission (%s)',
+  async (allowed) => {
+    mockGet.mockResolvedValue({
+      items: [
+        {
+          id: 'job-1',
+          kind: 'job',
+          property_id: 'shared-home',
+          property_name: 'Home',
+          title: 'Repair',
+          next_action: 'Review progress',
+          can_open_job: allowed,
+        },
+      ],
+      total: 1,
+      hasMore: false,
+    });
+    const openJob = jest.fn();
+    const openProperty = jest.fn();
+    const view = render(
+      <QueryClientProvider client={client}>
+        <PortfolioActionQueue
+          initiallyExpanded
+          onOpenProperty={openProperty}
+          onOpenJob={openJob}
+        />
+      </QueryClientProvider>
+    );
+    await view.findByText('Repair');
+    fireEvent.press(view.getByText(allowed ? 'Open job →' : 'Open property →'));
+    if (allowed) {
+      expect(openJob).toHaveBeenCalledWith('job-1');
+      expect(openProperty).not.toHaveBeenCalled();
+    } else {
+      expect(openProperty).toHaveBeenCalledWith('shared-home');
+      expect(openJob).not.toHaveBeenCalled();
+    }
+    view.unmount();
+  }
+);

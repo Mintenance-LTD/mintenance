@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,12 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { logger } from '@mintenance/shared';
 import { me } from '../../design-system/mint-editorial';
@@ -50,6 +53,14 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
 }) => {
   const { propertyId, propertyAddress } = route.params || {};
   const { user } = useAuth();
+
+  const scrollRef = useRef<ScrollView>(null);
+  const stepPositions = useRef<Record<string, number>>({});
+  const pendingScrollStep = useRef<string | null>(null);
+  const submitting = useRef(false);
+  const propertyEdited = useRef(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [activeStep, setActiveStep] = useState<string | null>(null);
 
   // Step management
   const [assessmentSteps, setAssessmentSteps] =
@@ -115,9 +126,12 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
           bedrooms?: number | null;
           year_built?: number | null;
         }>(`/api/properties/${propertyId}`);
-        if (cancelled || !p) return;
+        if (cancelled || !p || propertyEdited.current) return;
         setPropertyInfo((prev) => ({
-          propertyType: p.property_type || prev.propertyType,
+          propertyType: p.property_type
+            ? p.property_type.charAt(0).toUpperCase() +
+              p.property_type.slice(1).toLowerCase()
+            : prev.propertyType,
           bedrooms: p.bedrooms != null ? String(p.bedrooms) : prev.bedrooms,
           yearBuilt:
             p.year_built != null ? String(p.year_built) : prev.yearBuilt,
@@ -133,10 +147,12 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
     };
   }, [propertyId, updateStepStatus]);
 
+  const requiredSteps = assessmentSteps.filter((step) => step.required);
+  const completedRequired = requiredSteps.filter(
+    (step) => step.status === 'completed'
+  ).length;
   const progressPercentage = Math.round(
-    (assessmentSteps.filter((s) => s.status === 'completed').length /
-      assessmentSteps.length) *
-      100
+    (completedRequired / requiredSteps.length) * 100
   );
 
   // ---------------------------------------------------------------------------
@@ -149,6 +165,8 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
     }
     updateStepStatus('property_info', 'completed');
     setShowPropertyForm(false);
+    setActiveStep(null);
+    Keyboard.dismiss();
   };
 
   // ---------------------------------------------------------------------------
@@ -238,9 +256,20 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
   // Step press router
   // ---------------------------------------------------------------------------
   const handleStepPress = (step: AssessmentStep) => {
+    if (isSubmitting || submitted) return;
+    Keyboard.dismiss();
+    setActiveStep(step.id);
+    pendingScrollStep.current = step.id;
+    setShowPropertyForm(false);
+    setShowNotes(false);
+    setShowReview(false);
+    scrollRef.current?.scrollTo({
+      y: stepPositions.current[step.id] ?? 0,
+      animated: true,
+    });
     switch (step.id) {
       case 'property_info':
-        setShowPropertyForm((prev) => !prev);
+        setShowPropertyForm(true);
         if (step.status === 'pending')
           updateStepStatus('property_info', 'in_progress');
         break;
@@ -255,7 +284,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
         ]);
         break;
       case 'manual_notes':
-        setShowNotes((prev) => !prev);
+        setShowNotes(true);
         if (step.status === 'pending')
           updateStepStatus('manual_notes', 'in_progress');
         break;
@@ -280,12 +309,20 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
       );
       return;
     }
-    updateStepStatus('review', 'completed');
+    updateStepStatus('review', 'in_progress');
     setShowReview(true);
   };
 
   const handleSubmitAssessment = async () => {
-    if (isSubmitting) return;
+    if (submitting.current || submitted) return;
+    if (!propertyInfo.propertyType || !videoUri) {
+      Alert.alert(
+        'Incomplete Assessment',
+        'Complete property information and a video walkthrough before submitting.'
+      );
+      return;
+    }
+    submitting.current = true;
     setIsSubmitting(true);
 
     try {
@@ -328,6 +365,10 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
               ? roomMetadata
               : undefined,
         });
+        if (!createResp?.assessment?.id)
+          throw new Error(
+            'Assessment save could not be confirmed. Check assessment history before retrying.'
+          );
         assessment = createResp.assessment
           ? { id: createResp.assessment.id }
           : null;
@@ -387,6 +428,8 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
         void triggerAIAnalysis(assessment.id);
       }
 
+      setSubmitted(true);
+      updateStepStatus('review', 'completed');
       if (photoFailed) {
         Alert.alert(
           'Saved, but the photos did not upload',
@@ -406,6 +449,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
       logger.error('Assessment submission failed', { error });
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
@@ -421,114 +465,145 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
       />
       <ProgressBar
         percentage={progressPercentage}
-        completedSteps={
-          assessmentSteps.filter((s) => s.status === 'completed').length
-        }
-        totalSteps={assessmentSteps.length}
+        completedSteps={completedRequired}
+        totalSteps={requiredSteps.length}
+        requiredOnly
       />
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Assessment Steps */}
-        <View style={styles.stepsSection}>
-          <Text style={styles.sectionTitle}>Assessment Steps</Text>
-          {assessmentSteps.map((step, index) => (
-            <StepCard
-              key={step.id}
-              step={step}
-              stepNumber={index + 1}
-              onPress={() => handleStepPress(step)}
-            />
-          ))}
-        </View>
-
-        {/* Step 1: Property Info Form */}
-        {showPropertyForm && (
-          <PropertyInfoForm
-            propertyInfo={propertyInfo}
-            setPropertyInfo={setPropertyInfo}
-            roomMetadata={roomMetadata}
-            setRoomMetadata={setRoomMetadata}
-            onSave={handlePropertyInfoSave}
-          />
-        )}
-
-        {/* Step 2: Video indicator */}
-        {videoUri && (
-          <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Video Captured</Text>
-            <View style={styles.videoDoneRow}>
-              <Icon name='check-circle' size={20} color={me.brand} />
-              <Text style={styles.videoDoneText}>
-                Video walkthrough recorded
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Step 3: Photos grid */}
-        {photos.length > 0 && (
-          <PhotosGrid
-            photos={photos}
-            onTakePhoto={handleTakePhoto}
-            onPickFromGallery={handlePickFromGallery}
-            onRemovePhoto={handleRemovePhoto}
-          />
-        )}
-
-        {/* Step 4: Manual Notes */}
-        {showNotes && (
-          <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Manual Notes</Text>
-            <TextInput
-              style={styles.notesInput}
-              multiline
-              numberOfLines={5}
-              placeholder='Add your observations, context, or notes about the property...'
-              placeholderTextColor={me.ink3}
-              value={manualNotes}
-              onChangeText={(text) => {
-                setManualNotes(text);
-                updateStepStatus(
-                  'manual_notes',
-                  text.length > 0 ? 'completed' : 'in_progress'
-                );
-              }}
-              textAlignVertical='top'
-            />
-          </View>
-        )}
-
-        {/* Step 5: Review & Submit */}
-        {showReview && (
-          <ReviewSummary
-            propertyAddress={propertyAddress}
-            propertyInfo={propertyInfo}
-            videoUri={videoUri}
-            photosCount={photos.length}
-            manualNotes={manualNotes}
-            progressPercentage={progressPercentage}
-            isSubmitting={isSubmitting}
-            onSubmit={handleSubmitAssessment}
-          />
-        )}
-
-        {/* Quick actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.primaryAction}
-            onPress={handleStartVideoCapture}
-            activeOpacity={0.8}
+        <ScrollView
+          ref={scrollRef}
+          onContentSizeChange={() => {
+            const target = pendingScrollStep.current;
+            if (target) {
+              scrollRef.current?.scrollTo({
+                y: stepPositions.current[target] ?? 0,
+                animated: true,
+              });
+              pendingScrollStep.current = null;
+            }
+          }}
+          keyboardShouldPersistTaps='handled'
+          keyboardDismissMode='on-drag'
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Assessment Steps */}
+          <View
+            style={styles.stepsSection}
+            pointerEvents={isSubmitting || submitted ? 'none' : 'auto'}
           >
-            <Icon name='auto-awesome' size={22} color={me.onBrand} />
-            <Text style={styles.primaryActionText}>AI Video Walkthrough</Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={styles.sectionTitle}>Assessment Steps</Text>
+            {assessmentSteps.map((step, index) => (
+              <View
+                key={step.id}
+                onLayout={(event) => {
+                  stepPositions.current[step.id] = event.nativeEvent.layout.y;
+                }}
+              >
+                <StepCard
+                  step={step}
+                  stepNumber={index + 1}
+                  onPress={() => handleStepPress(step)}
+                />
+                {/* Step 1: Property Info Form */}
+                {step.id === 'property_info' && showPropertyForm && (
+                  <PropertyInfoForm
+                    propertyInfo={propertyInfo}
+                    setPropertyInfo={(value) => {
+                      propertyEdited.current = true;
+                      setPropertyInfo(value);
+                    }}
+                    roomMetadata={roomMetadata}
+                    setRoomMetadata={setRoomMetadata}
+                    onSave={handlePropertyInfoSave}
+                  />
+                )}
 
-        <TipsCard />
-      </ScrollView>
+                {/* Step 2: Video indicator */}
+                {step.id === 'video_walkthrough' && videoUri && (
+                  <View style={styles.formSection}>
+                    <Text style={styles.sectionTitle}>Video Captured</Text>
+                    <View style={styles.videoDoneRow}>
+                      <Icon name='check-circle' size={20} color={me.brand} />
+                      <Text style={styles.videoDoneText}>
+                        Video walkthrough recorded
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Step 3: Photos grid */}
+                {step.id === 'photos' &&
+                  activeStep === 'photos' &&
+                  photos.length > 0 && (
+                    <PhotosGrid
+                      photos={photos}
+                      onTakePhoto={handleTakePhoto}
+                      onPickFromGallery={handlePickFromGallery}
+                      onRemovePhoto={handleRemovePhoto}
+                    />
+                  )}
+
+                {/* Step 4: Manual Notes */}
+                {step.id === 'manual_notes' && showNotes && (
+                  <View style={styles.formSection}>
+                    <Text style={styles.sectionTitle}>Manual Notes</Text>
+                    <TextInput
+                      style={styles.notesInput}
+                      multiline
+                      numberOfLines={5}
+                      placeholder='Add your observations, context, or notes about the property...'
+                      placeholderTextColor={me.ink3}
+                      value={manualNotes}
+                      onChangeText={(text) => {
+                        setManualNotes(text);
+                        updateStepStatus(
+                          'manual_notes',
+                          text.trim().length > 0 ? 'completed' : 'in_progress'
+                        );
+                      }}
+                      textAlignVertical='top'
+                    />
+                  </View>
+                )}
+
+                {/* Step 5: Review & Submit */}
+                {step.id === 'review' && showReview && (
+                  <ReviewSummary
+                    propertyAddress={propertyAddress}
+                    propertyInfo={propertyInfo}
+                    videoUri={videoUri}
+                    photosCount={photos.length}
+                    manualNotes={manualNotes}
+                    progressPercentage={progressPercentage}
+                    isSubmitting={isSubmitting || submitted}
+                    onSubmit={handleSubmitAssessment}
+                  />
+                )}
+              </View>
+            ))}
+          </View>
+
+          {/* Quick actions */}
+          <View style={styles.quickActions}>
+            <TouchableOpacity
+              style={styles.primaryAction}
+              onPress={handleStartVideoCapture}
+              disabled={isSubmitting || submitted}
+              activeOpacity={0.8}
+            >
+              <Icon name='auto-awesome' size={22} color={me.onBrand} />
+              <Text style={styles.primaryActionText}>AI Video Walkthrough</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TipsCard />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

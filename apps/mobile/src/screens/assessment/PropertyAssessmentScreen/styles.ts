@@ -17,7 +17,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: me.ink3,
+    color: me.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 14,

@@ -1,59 +1,16 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { me } from '../../../design-system/mint-editorial';
-import { fmt } from './constants';
 import { styles } from './styles';
 
-interface BudgetOverviewProps {
-  budgeted: number;
-  spent: number;
-  left: number;
-  spentPct: number;
-}
-
-export const BudgetOverview: React.FC<BudgetOverviewProps> = ({
-  budgeted,
-  spent,
-  left,
-  spentPct,
-}) => {
-  return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Budget Overview</Text>
-        <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-      </View>
-
-      <View style={styles.budgetRow}>
-        <View style={styles.budgetItem}>
-          <Text style={styles.budgetLabel}>Budgeted</Text>
-          <Text style={styles.budgetValue}>{fmt(budgeted)}</Text>
-        </View>
-        <View style={styles.budgetItem}>
-          <Text style={styles.budgetLabel}>Spent</Text>
-          <Text style={[styles.budgetValue, { color: me.errFg }]}>
-            {fmt(spent)}
-          </Text>
-        </View>
-        <View style={styles.budgetItem}>
-          <Text style={styles.budgetLabel}>Left</Text>
-          <Text style={[styles.budgetValue, { color: me.brand }]}>
-            {fmt(left)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.budgetBarBg}>
-        <View style={[styles.budgetBarFill, { width: `${spentPct}%` }]} />
-      </View>
-      <Text style={styles.budgetHint}>
-        {spentPct < 80
-          ? 'You are on track!'
-          : spentPct < 100
-            ? 'Getting close to budget'
-            : 'Over budget'}
-      </Text>
-    </View>
-  );
-};
+/** Payment totals do not establish a spending budget or available balance. */
+export const BudgetOverview: React.FC = () => (
+  <View style={styles.sectionCard}>
+    <Text style={styles.sectionTitle}>Budget information</Text>
+    <Text style={styles.budgetHint}>
+      No spending budget is available here. Released payments, escrow and
+      refunds are payment records; they do not show a budget or money available
+      to spend. The monthly figure groups released records by their creation
+      date, not the date money reached a bank.
+    </Text>
+  </View>
+);

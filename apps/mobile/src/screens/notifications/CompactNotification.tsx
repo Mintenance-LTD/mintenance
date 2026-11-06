@@ -50,7 +50,6 @@ export const CompactNotification: React.FC<CompactNotificationProps> = ({
               styles.notifTitle,
               !notification.read && styles.notifTitleUnread,
             ]}
-            numberOfLines={1}
           >
             {stripEmoji(notification.title)}
           </Text>
@@ -58,9 +57,7 @@ export const CompactNotification: React.FC<CompactNotificationProps> = ({
             {formatRelativeTime(notification.createdAt)}
           </Text>
         </View>
-        <Text style={styles.notifBody} numberOfLines={2}>
-          {notification.body}
-        </Text>
+        <Text style={styles.notifBody}>{notification.body}</Text>
       </View>
       {!notification.read && (
         <TouchableOpacity
@@ -99,11 +96,9 @@ const styles = StyleSheet.create({
     borderLeftColor: me.brand,
   },
   markReadBtn: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 36,
-    height: 36,
+    marginLeft: 4,
+    width: 44,
+    height: 44,
     borderRadius: 18,
     backgroundColor: me.brandSoft,
     alignItems: 'center',
@@ -122,17 +117,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notifHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 4,
     marginBottom: 3,
   },
   notifTitle: {
     fontSize: 15,
     fontWeight: '500',
     color: me.ink,
-    flex: 1,
-    marginRight: 8,
+    flexShrink: 1,
   },
   notifTitleUnread: {
     fontWeight: '700',
@@ -144,7 +137,7 @@ const styles = StyleSheet.create({
   },
   notifTime: {
     fontSize: 12,
-    color: me.ink3,
-    flexShrink: 0,
+    color: me.ink2,
+    flexShrink: 1,
   },
 });

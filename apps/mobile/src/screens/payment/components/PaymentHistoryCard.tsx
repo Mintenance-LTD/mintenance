@@ -69,15 +69,6 @@ export const getStatusLabel = (status: string): string => {
   }
 };
 
-const getRefundExpectedDate = (createdAt: string): string => {
-  const refundDate = new Date(createdAt);
-  refundDate.setDate(refundDate.getDate() + 10);
-  return refundDate.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-  });
-};
-
 // 2026-05-24 audit-27 P2: list of statuses that count as "paid" for
 // receipt-button purposes. Previously only `completed` and `succeeded`
 // got the receipt action even though `released` (the escrow_released
@@ -130,7 +121,7 @@ export const PaymentCard: React.FC<{
       <View style={styles.refundTimeline}>
         <Ionicons name='time-outline' size={14} color={me.warnFg} />
         <Text style={styles.refundTimelineText}>
-          Expected by {getRefundExpectedDate(payment.createdAt)}
+          Refund recorded. Bank arrival date is not available here.
         </Text>
       </View>
     )}

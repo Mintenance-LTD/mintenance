@@ -3,7 +3,7 @@ import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSw
 import { usePropertyView } from '../../hooks/usePropertyView';
 import { showPropertyTool } from '@mintenance/shared';
 import { RoomPhotoAlbums } from './components/RoomPhotoAlbums';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,9 @@ import {
   RefreshControl,
   Alert,
   StatusBar,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -130,6 +133,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const { view } = usePropertyView();
   const [refreshing, setRefreshing] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isFavorite, setIsFavorite] = useState(false);
   const [jobFilter, setJobFilter] = useState<'open' | 'all'>('open');
@@ -485,7 +489,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
             <Text style={[styles.statNumber, { color: '#3B82F6' }]}>
               {activeJobs.length}
             </Text>
-            <Text style={styles.statLabel}>Active</Text>
+            <Text style={styles.statLabel}>Open jobs</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={[styles.statNumber, { color: me.brand }]}>
@@ -755,8 +759,15 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   const renderMaintenanceTab = () => (
     <>
-      <RecurringMaintenance propertyId={propertyId} />
-      <ComplianceCertificates propertyId={propertyId} />
+      <RecurringMaintenance
+        key={`${user?.id}:${propertyId}`}
+        propertyId={propertyId}
+        editable={caps.canManageMaintenance}
+      />
+      <ComplianceCertificates
+        key={`${user?.id}:${propertyId}`}
+        propertyId={propertyId}
+      />
       {caps.canManageMaintenance && <PropertyFiles propertyId={propertyId} />}
     </>
   );
@@ -933,7 +944,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
       <View style={styles.screenHeader}>
         <Text style={styles.eyebrow}>Property</Text>
         <Text style={styles.headline} accessibilityRole='header'>
-          Property Details
+          {property.property_name || 'Property Details'}
         </Text>
         {property?.address ? (
           <Text style={styles.headerSub} numberOfLines={1}>
@@ -958,13 +969,17 @@ export const PropertyDetailScreen: React.FC<Props> = ({
               caps.canRunAssessment
             );
           }
-          if (t.key === 'maintenance') return caps.canManageMaintenance;
+          if (t.key === 'maintenance') return true;
           return true;
         }).map((tab) => (
           <TouchableOpacity
             key={tab.key}
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => setActiveTab(tab.key)}
+            onPress={() => {
+              Keyboard.dismiss();
+              setActiveTab(tab.key);
+              scrollRef.current?.scrollTo({ y: 0, animated: false });
+            }}
           >
             <Ionicons
               name={tab.icon}
@@ -983,32 +998,31 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         ))}
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={me.brand}
-            colors={[me.brand]}
-          />
-        }
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <PropertyViewSwitcher />
-        <View style={styles.addressCard}>
-          <Text style={styles.addressSectionLabel}>PROPERTY IDENTITY</Text>
-          <View style={styles.addressIconWrap}>
-            <Ionicons name='home' size={24} color='#3B82F6' />
-          </View>
-          <Text style={styles.addressLine1}>{property.property_name}</Text>
-          <Text style={styles.addressCity}>{property.address}</Text>
-        </View>
-
-        {activeTab === 'overview' && renderOverviewTab()}
-        {activeTab === 'access' && renderAccessTab()}
-        {activeTab === 'maintenance' && renderMaintenanceTab()}
-        {activeTab === 'manage' && renderManageTab()}
-      </ScrollView>
+        <ScrollView
+          ref={scrollRef}
+          keyboardShouldPersistTaps='handled'
+          keyboardDismissMode='on-drag'
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={me.brand}
+              colors={[me.brand]}
+            />
+          }
+        >
+          <PropertyViewSwitcher />
+          {activeTab === 'overview' && renderOverviewTab()}
+          {activeTab === 'access' && renderAccessTab()}
+          {activeTab === 'maintenance' && renderMaintenanceTab()}
+          {activeTab === 'manage' && renderManageTab()}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

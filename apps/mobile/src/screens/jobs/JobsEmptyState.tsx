@@ -21,12 +21,21 @@ export const JobsEmptyState: React.FC<JobsEmptyStateProps> = ({
   isContractor,
   selectedFilter,
   onClearSearch,
-  onSortModeChange,
   onAddJob,
 }) => {
   const emptyMsg = !isContractor
     ? EMPTY_MESSAGES[selectedFilter]
-    : EMPTY_MESSAGES.all;
+    : selectedFilter === 'assigned'
+      ? {
+          title: 'No Assigned Jobs',
+          desc: 'Jobs appear here when a homeowner accepts your bid.',
+        }
+      : selectedFilter === 'all'
+        ? {
+            title: 'No jobs to show',
+            desc: 'Your assigned and completed work appears here. Use Find Jobs to discover available work.',
+          }
+        : EMPTY_MESSAGES[selectedFilter];
 
   return (
     <View style={styles.emptyContainer}>
@@ -44,7 +53,7 @@ export const JobsEmptyState: React.FC<JobsEmptyStateProps> = ({
       </View>
       <Text style={styles.emptyTitle}>{emptyMsg.title}</Text>
       <Text style={styles.emptyDescription}>{emptyMsg.desc}</Text>
-      {isContractor && (
+      {isContractor && selectedFilter === 'all' && (
         <View style={styles.emptySuggestions}>
           <TouchableOpacity
             style={styles.emptySuggestionRow}
@@ -52,20 +61,6 @@ export const JobsEmptyState: React.FC<JobsEmptyStateProps> = ({
           >
             <Ionicons name='refresh-outline' size={16} color={me.brand} />
             <Text style={styles.emptySuggestionText}>Clear search filters</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.emptySuggestionRow}
-            onPress={() => onSortModeChange('newest')}
-          >
-            <Ionicons name='time-outline' size={16} color={me.brand} />
-            <Text style={styles.emptySuggestionText}>Browse newest jobs</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.emptySuggestionRow}
-            onPress={() => onSortModeChange('map')}
-          >
-            <Ionicons name='map-outline' size={16} color={me.brand} />
-            <Text style={styles.emptySuggestionText}>Explore jobs on map</Text>
           </TouchableOpacity>
         </View>
       )}

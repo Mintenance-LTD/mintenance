@@ -17,7 +17,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: me.ink3,
+    color: me.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
@@ -36,7 +36,7 @@ export const styles = StyleSheet.create({
     color: me.ink,
     marginBottom: 10,
   },
-  freqRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
+  freqRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
   freqChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: me.line,
   },
-  scheduleInactive: { opacity: 0.5 },
+  scheduleInactive: { backgroundColor: me.bg2 },
   toggleBtn: { marginRight: 10 },
   scheduleInfo: { flex: 1 },
   scheduleTitle: {
@@ -76,6 +76,7 @@ export const styles = StyleSheet.create({
   textInactive: { textDecorationLine: 'line-through' },
   scheduleMeta: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
     marginTop: 4,

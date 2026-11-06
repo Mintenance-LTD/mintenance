@@ -54,7 +54,10 @@ export const StickyBottomCTA: React.FC<StickyBottomCTAProps> = memo(
           <View style={styles.priceSection}>
             <Text style={styles.priceText}>
               {'\u00A3'}
-              {price.toLocaleString()}
+              {price.toLocaleString('en-GB', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </Text>
             {priceLabel && <Text style={styles.priceLabel}>{priceLabel}</Text>}
           </View>

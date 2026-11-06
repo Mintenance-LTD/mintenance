@@ -63,3 +63,15 @@ The user has superseded this document's earlier prohibition on hosted migrations
 application migrations were applied to production and a fresh dry-run found zero remaining. See
 HOSTED-ROLLOUT-2026-09-22.md for sampled effective-permission checks and unresolved platform/advisor
 items. This does not close the unverified journeys or the additional property operations scope.
+
+## Screenshot continuation — 6 November 2026
+
+Local screenshot corrections and their exact verification are recorded in
+[SCREENSHOT-FIXES-2026-11-05.txt](SCREENSHOT-FIXES-2026-11-05.txt), including the
+preserved earlier batch. This does not close F1–F15 or full release acceptance.
+The beta gate remains enabled; no push, deployment, migration or live financial
+mutation occurred. Physical Android/iOS MFA and fresh-build visual/keyboard/
+scroll checks remain outstanding, and settings tests do not prove native
+sign-in MFA enforcement. Escrow/finance display corrections do not establish
+historical reconciliation or bank-arrival dates. Local Android export was
+blocked by missing release environment configuration before bundling.

@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { InternalServerError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  InternalServerError,
+  NotFoundError,
+  ConflictError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
@@ -14,6 +18,7 @@ const lineItemSchema = z.object({
 });
 
 const updateQuoteSchema = z.object({
+  expected_status: z.literal('draft').optional(),
   title: z.string().min(1).max(500).optional(),
   client_name: z.string().max(200).optional(),
   total_amount: z.number().min(0).optional(),
@@ -61,13 +66,17 @@ export const PUT = withApiHandler(
     if (payload.valid_until !== undefined)
       updates.valid_until = payload.valid_until;
 
-    const { data: quote, error } = await serverSupabase
+    let updateQuery = serverSupabase
       .from('contractor_quotes')
       .update(updates)
       .eq('id', id)
-      .eq('contractor_id', user.id)
-      .select()
-      .single();
+      .eq('contractor_id', user.id);
+    // The mobile draft-details editor must not overwrite a quote that was
+    // sent or accepted after it loaded. Keep this predicate on the UPDATE.
+    if (payload.expected_status) {
+      updateQuery = updateQuery.eq('status', payload.expected_status);
+    }
+    const { data: quote, error } = await updateQuery.select().maybeSingle();
 
     if (error) {
       logger.error('Error updating quote', error, {
@@ -77,6 +86,14 @@ export const PUT = withApiHandler(
       throw new InternalServerError('Failed to update quote');
     }
 
+    if (!quote) {
+      if (payload.expected_status) {
+        throw new ConflictError(
+          'Quote is no longer a draft. Reload before editing.'
+        );
+      }
+      throw new NotFoundError('Quote not found');
+    }
     return NextResponse.json({ quote });
   }
 );

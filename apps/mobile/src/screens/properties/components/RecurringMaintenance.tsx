@@ -32,6 +32,7 @@ interface Schedule {
 
 interface Props {
   propertyId: string;
+  editable?: boolean;
 }
 
 // 2026-05-24 audit-31 P1: live recurring_schedules_frequency_check
@@ -41,10 +42,10 @@ interface Props {
 // labels now mirror the live constraint exactly. 'biannual' colour
 // reused from quarterly's family for visual rhythm.
 const FREQ_COLORS: Record<string, string> = {
-  monthly: '#3B82F6',
-  quarterly: '#F59E0B',
-  biannual: '#8B5CF6',
-  annual: '#10B981',
+  monthly: me.infoFg,
+  quarterly: me.warnFg,
+  biannual: me.infoFg,
+  annual: me.okFg,
 };
 
 const FREQ_OPTIONS = ['monthly', 'quarterly', 'biannual', 'annual'] as const;
@@ -56,7 +57,10 @@ const FREQ_LABEL: Record<string, string> = {
   annual: 'Annual',
 };
 
-export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
+export const RecurringMaintenance: React.FC<Props> = ({
+  propertyId,
+  editable = false,
+}) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const creating = useRef(false);
@@ -90,17 +94,33 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
   const {
     data: schedules = [],
     isLoading,
+    isFetching,
     error: loadError,
     refetch,
   } = useQuery({
     queryKey: ['recurring-maintenance', propertyId, user?.id],
-    enabled: !!user,
-    queryFn: async () => {
+    enabled: !!user && !!propertyId,
+    retry: false,
+    queryFn: async ({ signal }) => {
       const res = await mobileApiClient.get<
         { schedules: Schedule[] } | Schedule[]
-      >(`/api/properties/${propertyId}/recurring-maintenance`);
+      >(`/api/properties/${propertyId}/recurring-maintenance`, {
+        signal,
+        timeout: 15000,
+        retries: 0,
+      });
       const rows = Array.isArray(res) ? res : res?.schedules;
-      if (!Array.isArray(rows))
+      if (
+        !Array.isArray(rows) ||
+        rows.some(
+          (row) =>
+            !row ||
+            typeof row.id !== 'string' ||
+            typeof row.title !== 'string' ||
+            typeof row.next_due_date !== 'string' ||
+            typeof row.is_active !== 'boolean'
+        )
+      )
         throw new Error('Schedule response was incomplete');
       return rows;
     },
@@ -169,8 +189,18 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
         data?: { requiresSubscription?: boolean; message?: string };
       };
       const apiErr = err as ApiErr;
-      const status = apiErr.response?.status ?? apiErr.status;
-      const data = apiErr.response?.data ?? apiErr.data;
+      const status =
+        apiErr.response?.status ??
+        (err as { statusCode?: number }).statusCode ??
+        apiErr.status;
+      const data =
+        apiErr.response?.data ??
+        apiErr.data ??
+        (
+          err as {
+            details?: { message?: string; requiresSubscription?: boolean };
+          }
+        ).details;
       if (status === 402 || data?.requiresSubscription) {
         Alert.alert(
           'Landlord plan required',
@@ -273,6 +303,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
   };
 
   const handleCreate = () => {
+    if (!editable) return;
     if (favouriteOnly && !preferredId) {
       Alert.alert(
         'Choose a contractor',
@@ -313,32 +344,34 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>RECURRING MAINTENANCE</Text>
-        <TouchableOpacity
-          accessibilityRole='button'
-          accessibilityLabel={
-            showForm ? 'Close schedule form' : 'Add recurring schedule'
-          }
-          disabled={createMutation.isPending}
-          onPress={() => {
-            setEditing(null);
-            setCategory('handyman');
-            setPreferredId(null);
-            setFavouriteOnly(false);
-            setTitle('');
-            setFirstDueDate('');
-            setFrequency('monthly');
-            setShowForm(!showForm);
-          }}
-        >
-          <Ionicons
-            name={showForm ? 'close' : 'add-circle-outline'}
-            size={22}
-            color={me.brand}
-          />
-        </TouchableOpacity>
+        {editable && (
+          <TouchableOpacity
+            accessibilityRole='button'
+            accessibilityLabel={
+              showForm ? 'Close schedule form' : 'Add recurring schedule'
+            }
+            disabled={createMutation.isPending}
+            onPress={() => {
+              setEditing(null);
+              setCategory('handyman');
+              setPreferredId(null);
+              setFavouriteOnly(false);
+              setTitle('');
+              setFirstDueDate('');
+              setFrequency('monthly');
+              setShowForm(!showForm);
+            }}
+          >
+            <Ionicons
+              name={showForm ? 'close' : 'add-circle-outline'}
+              size={22}
+              color={me.brand}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {showForm && (
+      {editable && showForm && (
         <View style={styles.form}>
           <TextInput
             style={styles.input}
@@ -358,7 +391,6 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
           />
           <Text style={styles.emptyText}>Trade category</Text>
           <View style={[styles.freqRow, { flexWrap: 'wrap' }]}>
-
             {[
               'plumbing',
               'electrical',
@@ -467,7 +499,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
         </View>
       )}
 
-      {isLoading ? (
+      {isLoading || isFetching ? (
         <Text>Loading recurring schedules...</Text>
       ) : loadError ? (
         <TouchableOpacity
@@ -475,7 +507,13 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
           accessibilityLabel='Retry loading schedules'
           onPress={() => refetch()}
         >
-          <Text>Could not load schedules. Tap to retry.</Text>
+          <Text style={{ color: me.ink }}>
+            {[401, 403, 404].includes(
+              (loadError as { statusCode?: number }).statusCode ?? 0
+            )
+              ? 'Access unavailable. Check your account or ask the property owner, then tap to retry.'
+              : 'Could not load schedules. Tap to retry.'}
+          </Text>
         </TouchableOpacity>
       ) : schedules.length === 0 && !showForm ? (
         <View style={styles.emptyWrap}>
@@ -491,21 +529,23 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
               !s.is_active && styles.scheduleInactive,
             ]}
           >
-            <TouchableOpacity
-              style={styles.toggleBtn}
-              disabled={toggleMutation.isPending}
-              accessibilityRole='button'
-              accessibilityLabel={`${s.is_active ? 'Pause' : 'Resume'} ${s.title}`}
-              onPress={() =>
-                toggleMutation.mutate({ id: s.id, is_active: s.is_active })
-              }
-            >
-              <Ionicons
-                name={s.is_active ? 'checkmark-circle' : 'ellipse-outline'}
-                size={22}
-                color={s.is_active ? me.brand : me.ink3}
-              />
-            </TouchableOpacity>
+            {editable && (
+              <TouchableOpacity
+                style={styles.toggleBtn}
+                disabled={toggleMutation.isPending}
+                accessibilityRole='button'
+                accessibilityLabel={`${s.is_active ? 'Pause' : 'Resume'} ${s.title}`}
+                onPress={() =>
+                  toggleMutation.mutate({ id: s.id, is_active: s.is_active })
+                }
+              >
+                <Ionicons
+                  name={s.is_active ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={22}
+                  color={s.is_active ? me.brand : me.ink3}
+                />
+              </TouchableOpacity>
+            )}
             <View style={styles.scheduleInfo}>
               <Text
                 style={[
@@ -521,7 +561,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
                     styles.freqBadge,
                     {
                       backgroundColor:
-                        (FREQ_COLORS[s.frequency] || '#999') + '20',
+                        (FREQ_COLORS[s.frequency] || me.ink2) + '20',
                     },
                   ]}
                 >
@@ -531,7 +571,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
                       { color: FREQ_COLORS[s.frequency] || '#999' },
                     ]}
                   >
-                    {s.frequency}
+                    {FREQ_LABEL[s.frequency] || s.frequency}
                   </Text>
                 </View>
                 {s.next_due_date && (
@@ -545,31 +585,35 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
                 )}
               </View>
             </View>
-            <TouchableOpacity
-              accessibilityRole='button'
-              accessibilityLabel={`Edit ${s.title}`}
-              disabled={createMutation.isPending}
-              onPress={() => {
-                setEditing(s);
-                setCategory(s.category || 'handyman');
-                setPreferredId(s.preferred_contractor_id ?? null);
-                setFavouriteOnly(s.notification_audience === 'preferred');
-                setTitle(s.title);
-                setFrequency(s.frequency);
-                setFirstDueDate(s.next_due_date.slice(0, 10));
-                setShowForm(true);
-              }}
-            >
-              <Text style={styles.dueDate}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              accessibilityRole='button'
-              accessibilityLabel={`Remove ${s.title}`}
-              disabled={deleteMutation.isPending}
-              onPress={() => handleDelete(s.id, s.title)}
-            >
-              <Ionicons name='trash-outline' size={18} color={me.errFg} />
-            </TouchableOpacity>
+            {editable && (
+              <>
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  accessibilityLabel={`Edit ${s.title}`}
+                  disabled={createMutation.isPending}
+                  onPress={() => {
+                    setEditing(s);
+                    setCategory(s.category || 'handyman');
+                    setPreferredId(s.preferred_contractor_id ?? null);
+                    setFavouriteOnly(s.notification_audience === 'preferred');
+                    setTitle(s.title);
+                    setFrequency(s.frequency);
+                    setFirstDueDate(s.next_due_date.slice(0, 10));
+                    setShowForm(true);
+                  }}
+                >
+                  <Text style={styles.dueDate}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  accessibilityLabel={`Remove ${s.title}`}
+                  disabled={deleteMutation.isPending}
+                  onPress={() => handleDelete(s.id, s.title)}
+                >
+                  <Ionicons name='trash-outline' size={18} color={me.errFg} />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         ))
       )}

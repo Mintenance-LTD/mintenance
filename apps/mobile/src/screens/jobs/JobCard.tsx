@@ -1,3 +1,4 @@
+import { displayAddress } from '../../utils/displayAddress';
 import React from 'react';
 import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,8 +47,9 @@ export const JobCard: React.FC<JobCardProps> = ({
   const photos = firstPhotoUrls(item.photos, item.images);
   const hasPhotos = photos.length > 0;
 
-  const rawLocation =
-    typeof item.location === 'string' ? item.location : item.city || '';
+  const rawLocation = displayAddress(
+    typeof item.location === 'string' ? item.location : item.city || ''
+  );
   const locationStr =
     item.city || rawLocation.split(',').slice(-2, -1)[0]?.trim() || rawLocation;
 

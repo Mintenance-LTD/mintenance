@@ -21,7 +21,7 @@ export const StatCardsRow: React.FC<StatCardsRowProps> = ({
       <View style={styles.statCard}>
         <Ionicons name='card-outline' size={16} color={me.brand} />
         <Text style={styles.statCardValue}>{fmt(totalSpent)}</Text>
-        <Text style={styles.statCardLabel}>Spent</Text>
+        <Text style={styles.statCardLabel}>Released</Text>
       </View>
       <View style={styles.statCard}>
         <Ionicons name='lock-closed-outline' size={16} color='#3B82F6' />

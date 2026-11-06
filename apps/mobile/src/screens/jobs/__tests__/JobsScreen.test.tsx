@@ -534,7 +534,7 @@ describe('JobsScreen', () => {
     // budget uses `?? `: job c budget:0 stays 0 (not budget_min), job d null->0.
     // Only 200 + 400 count -> avg 300.
     expect(getByTestId('hero-avgbudget').props.children).toBe('300');
-    expect(getByTestId('hero-active').props.children).toBe('1'); // in_progress
+    expect(getByTestId('hero-active').props.children).toBe('2'); // assigned + in_progress
     expect(getByTestId('hero-completed').props.children).toBe('1');
     expect(getByTestId('hero-newtoday').props.children).toBe('1');
     expect(getByTestId('hero-bids').props.children).toBe('2');

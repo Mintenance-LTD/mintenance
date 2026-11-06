@@ -3,6 +3,7 @@ import { JobService } from '../../../services/JobService';
 import { UserService } from '../../../services/UserService';
 import { Job } from '@mintenance/types';
 import { logger } from '../../../utils/logger';
+import { isActiveJob } from '../../../utils/jobActivity';
 
 interface UserStats {
   totalJobs: number;
@@ -38,10 +39,9 @@ export function useProfileStats(user: AuthUser | null) {
 
       try {
         setLoading(true);
-        const joinDate = new Date(user.createdAt || Date.now()).toLocaleDateString(
-          'en-US',
-          { year: 'numeric', month: 'long' }
-        );
+        const joinDate = new Date(
+          user.createdAt || Date.now()
+        ).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
 
         if (user.role === 'contractor') {
           const stats = await UserService.getContractorStats(user.id);
@@ -57,10 +57,9 @@ export function useProfileStats(user: AuthUser | null) {
           const jobs: Job[] = await JobService.getJobsByHomeowner(user.id);
           setUserStats({
             totalJobs: jobs.length,
-            completedJobs: jobs.filter((job) => job.status === 'completed').length,
-            activeJobs: jobs.filter(
-              (job) => job.status === 'in_progress' || job.status === 'assigned'
-            ).length,
+            completedJobs: jobs.filter((job) => job.status === 'completed')
+              .length,
+            activeJobs: jobs.filter(isActiveJob).length,
             rating: 0,
             responseTime: 'N/A',
             joinDate,

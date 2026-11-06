@@ -490,7 +490,11 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <View>
               <Text style={styles.amountLabel}>Contract amount</Text>
               <Text style={styles.amountValue}>
-                £{Number(contract.amount).toLocaleString('en-GB')}
+                £
+                {Number(contract.amount).toLocaleString('en-GB', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </Text>
             </View>
             <View style={styles.escrowBadge}>

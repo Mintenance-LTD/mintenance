@@ -1,0 +1,294 @@
+Screenshot fixes continuation - 5 November 2026
+
+Scope and starting state
+------------------------
+Worked in internal-apk-nov1, starting at d58fef7ff with existing uncommitted
+MFA relay, timeline and active-job-count edits. Preserved and reviewed those
+edits before extending them. Reviewed CURRENT-ACCEPTANCE.md,
+MOBILE-SETTINGS-REMEDIATION-2026-09-30.txt, PROPERTY-OPERATIONS-USER-BRIEF.md,
+the supplied screenshot set and the pasted four-stage roadmap as reference.
+This is a completed correction batch, not acceptance of all 79 screenshots.
+
+The beta approval gate remains enforced. No gate/configuration changes,
+deployment, APK build, commit, push or production data writes were performed.
+Push notifications and bank transfers are user-confirmed working; this batch
+does not reopen or claim to independently revalidate either service.
+
+Correctness changes
+-------------------
+1. MFA: retained the exact method/path relay allowlist for status, TOTP
+   enrollment, verification and disable. Verified that unrelated auth routes
+   remain blocked and revoked/unapproved beta accounts remain rejected.
+   Mobile settings tests cover status retry and recovery codes only after
+   enrollment verification. Web tests cover status, identity/disable and
+   enrollment/service behavior. No authentication bypass was introduced.
+2. Active jobs: shared predicate counts nonarchived assigned/in_progress jobs
+   across the home hero, active project cards, Jobs and Profile statistics.
+   Posted jobs remain eligible for bid lookup. The Jobs filter is named
+   "In progress" to distinguish that subset from the combined active count.
+   Property statistics retain the broader open-job definition and now label
+   it "Open jobs".
+3. Timeline: accepted is the actual signed-contract status. Contract,
+   funding, approval and release checkmarks use their own evidence; a later
+   job status no longer invents these milestones. Escrow release is labelled
+   separately from a bank payout.
+4. Escrow: account-scoped query and separate sections for attention, held,
+   pending, released and refunded/cancelled records. Terminal records take
+   precedence over stale release-block reasons. Refunded funds no longer
+   appear as actively held/working. Blocked held funds remain in the held
+   total, with an explanation and support entry point. Payment progress
+   describes payment states rather than inferring physical work progress.
+   No financial records or payment calculations were reconciled remotely.
+5. Contract display: hides bid_id/source/created_from implementation fields,
+   retains customer-facing terms, displays booleans as Yes/No and amounts
+   with two decimal places in the contract and sticky payment CTA.
+
+Property workflows
+------------------
+1. Search by property name, address, city or postcode, including multiple
+   case-insensitive search terms and a clear-search/filter empty state.
+2. Reset account-specific favorites/search state on account changes; apply
+   empty favorite responses rather than retaining stale favorites.
+3. Expand the portfolio maintenance action queue on the property list.
+   Display returned action dates, validate the queue response, and open a
+   job directly only when the server's can_open_job flag permits it.
+   Otherwise open the property. Use kind plus id for follow-up identity.
+4. Keep property identity in the page header and remove the large repeated
+   identity card from each tab, bringing tab-specific work into view sooner.
+   Existing server-side permissions and feature entitlements are unchanged.
+
+Verification
+------------
+Mobile: 12 targeted Jest suites, 113 tests passed in the final combined run.
+Includes HomeownerDashboard, JobsScreen, jobActivity, jobTimelineProgress,
+screenshot-presentation, escrowPresentation, EscrowDashboardScreen,
+PortfolioActionQueue, SharedPropertyList, PropertyManagementParity,
+PropertyPresentation and mfa-settings-flow.
+Command from apps/mobile:
+  node ../../node_modules/jest/bin/jest.js --cacheDirectory ../../output/jest-screenshot-cache --runInBand --runTestsByPath <the above test paths>
+Evidence: output/screenshot-tests-final.log.
+
+Relay: 22 tests passed.
+  node --import tsx --test supabase/functions/mobile-api-relay/handler.test.ts
+
+Web MFA: 4 Vitest suites, 43 tests passed: remediation-mfa-status,
+remediation-mfa-disable-identity, remediation-mfa-settings-client,
+and lib/mfa/__tests__/mfa-service.test.ts.
+Evidence: output/screenshot-web-tests.log. TEMP/TMP pointed to the workspace
+output/vitest-temp directory for the run.
+
+Mobile TypeScript: full tsc --noEmit --pretty false passed after final edits.
+Evidence: output/screenshot-typecheck.log (empty on success).
+Changed mobile source/test ESLint: 0 errors, 16 existing warnings (test
+requires/import order, unused disable directive, duplicate existing imports).
+Evidence: output/screenshot-lint.log. git diff --check passed.
+
+Default Windows sandbox temporary caches produced EPERM rename failures in
+test runners; workspace-local cache/temp paths allowed the tests to run.
+Early test harness failures (stubbed FlatList empty slot and named escrow
+export) were corrected; the final combined suite passed.
+React review covered hook ordering, account-scoped queries, callback typing,
+queue permission checks and existing property permission regressions.
+Aikido scanning was unavailable: no Aikido scan tool was exposed in this
+session. No security-scan result is claimed.
+
+Remaining acceptance / next batch
+---------------------------------
+- Actual Android/iOS MFA status, setup, verification, disable and retry
+  through the deployed relay need device verification. Settings tests do
+  not establish native sign-in MFA challenge enforcement across the custom
+  MFA service and Supabase sessions; retain the earlier audit limitation.
+- Visual/layout checks on a fresh mobile build, including larger text,
+  navigation, action queue dates, keyboard behavior and scroll positions.
+  Jest rendering is not a physical-device screenshot comparison.
+- Investigate the property assessment step navigation/progress shown in
+  screenshots 48-53, recurring/certificate loading and error recovery,
+  remaining property forms/permissions, notification date clipping and
+  remaining encoding/contrast issues. They are not closed by this batch.
+- Finance overview/budget semantics, historical reconciliation and refund
+  arrival estimates require separate verification against authoritative
+  records; escrow presentation fixes do not resolve historical balances.
+- Full release acceptance remains incomplete. Keep the beta gate enabled.
+
+Continuation - 6 November 2026
+==============================
+Repository and evidence
+-----------------------
+Located the active worktree at internal-apk-nov1 (branch
+feat/launch-terms-support-nov2, starting HEAD d58fef7ff). The parent download
+folder is not a Git repository. Both MOBILE-SETTINGS-REMEDIATION-2026-09-30.txt
+and PROPERTY-OPERATIONS-USER-BRIEF.md are under audit/2026-09-06 here.
+Read root AGENTS.md, web AGENTS.md and the four requested audit/reference
+files. Inspected existing staged/unstaged work before extending it. There
+were no staged changes initially. Preserved the prior screenshot batch,
+including the exact MFA relay route allowlist and its beta-account checks.
+
+The prior 113 mobile tests/12 suites and 43 web tests/4 suites are confirmed
+by the saved log summaries, and the saved mobile TypeScript log is empty.
+The prior relay result was recorded as 22 in this audit; a fresh run below
+independently passed those 22. None of those old runs substitutes for this
+batch's verification.
+
+Reviewed homeowner screenshots 48-53 (154817, 154915, 154936, 154944, 154948,
+155004), property/finance screenshots 32-47 and 54-69, and contractor contact
+sheets covering 1-48. Screenshot details remain reference evidence only;
+no personal screenshot details were added to new fixtures. The prior audit
+did not contain a detailed contractor checklist beyond its remaining scope;
+contractor observations were checked against the supplied images and code.
+
+Completed locally
+-----------------
+1. Assessment navigation/progress:
+   - Completed cards can be reopened. The selected property/notes/review form
+     appears directly below its step; opening another closes the previous
+     editor. Scroll positioning is adjusted after the content changes.
+   - Progress counts the three required steps. Optional notes/photos do not
+     prevent completion. Opening review is in-progress, not completed;
+     confirmed submission completes it. Duplicate submission is latched.
+   - Invalid create responses no longer report success. Failed saves keep the
+     form. A late prefill no longer overwrites typed property information.
+   - Added keyboard avoidance, handled taps and drag dismissal; removed the
+     inert header menu. Replaced missing react-native-vector-icons imports in
+     this assessment flow with the already installed Expo MaterialIcons.
+2. Property workflows/recovery:
+   - Recurring/certificate reads pass cancellation signals, a 15-second HTTP
+     timeout and zero HTTP retries; React Query also does not stack retries.
+     Existing session-acquisition deadline still applies before HTTP starts.
+   - Pending retry has an explicit loading state. Access failures explain the
+     account/owner recovery path; malformed schedule records fail visibly.
+   - Viewers can read the Maintenance tab but cannot create/edit/pause/delete
+     schedules. Management capability remains required for those controls;
+     API authorization and subscriptions remain enforced. Corrected 402
+     handling to use the API client's statusCode/details shape.
+   - Property edits use account-scoped query keys, block direct viewer edit
+     routes, hide the previous account's draft on account changes and retain
+     unsaved input during a background refresh. Numeric inputs reject partial
+     parseInt values instead of silently truncating them.
+   - Removed Add Property's unpersisted Purchase / Build Date field. Preserved
+     zero latitude during geocoding. Added room-modal handled keyboard taps.
+   - Tab changes dismiss the keyboard and reset scroll. Tabs/frequency labels
+     wrap; certificate and maintenance text use stronger foreground colours.
+3. Notifications/accessibility:
+   - Dates sit below notification titles; the 44-point mark-read button is in
+     the layout rather than positioned over the date. Title/body text can
+     wrap instead of being clipped to fixed line counts.
+   - Removed the corrupted apostrophe in accessibility copy. Silver mode
+     remains accurately scoped to the job-posting form, not app-wide controls.
+4. Contractor screens:
+   - Jobs header describes the contractor's own work, not nearby tailored
+     opportunities. Assigned no longer means Awaiting Contract; Active means
+     assigned plus in-progress. Empty states use role/status-specific guidance
+     and point to Find Jobs instead of sorting existing jobs as discovery.
+   - Address display removes repeated comma-separated components in job cards
+     and details. Stored addresses are not rewritten.
+   - Quote details show a fallback reference, actual recorded line items and
+     tax amount without an unavailable rate. Failed loads expose retry rather
+     than claiming the quote does not exist. Stale load responses are ignored.
+   - Accepted/sent/viewed quotes have no mobile edit pencil. Draft title/client
+     editing updates the selected quote, retains errors/typed input and never
+     opens a new quote. Send controls are hidden while editing.
+   - The new draft save supplies expected_status=draft. The authenticated PUT
+     retains actor/id filters and adds status=draft to the UPDATE itself;
+     a changed status returns 409. The optional guard preserves old callers,
+     so this is not a claim of universal finalized-quote immutability.
+   - Quote creation now sends description/quantity/unitPrice/total as required
+     by the actual server line-item schema; an absent optional email is omitted.
+   - Time tracking correctly tells users to tap + to log hours.
+5. Finance semantics:
+   - Removed fabricated Budgeted/Left/on-track figures derived by adding paid,
+     held and refunded amounts. Explicitly says no spending budget is available.
+   - Released totals and the creation-date basis of the monthly figure are
+     labelled. Existing payment amounts and historical records are unchanged.
+   - Removed refund-arrival dates guessed as original payment date + 10 days.
+     The display now states that bank arrival is unavailable here.
+
+No schema/migration/RLS changes, live customer/financial writes, push or
+deployment. No beta gate or release configuration changes. Push notifications
+and bank transfers remain user-confirmed working; missing local build settings
+are not evidence that either deployed service is broken.
+
+Fresh verification (Node 20.19.4)
+--------------------------------
+- Mobile combined: 23 Jest suites, 319 tests passed.
+  output/screenshot-2026-11-06-mobile-tests.log
+  Exact path list: output/screenshot-2026-11-06-test-paths.json.
+  Run from apps/mobile with node ../../node_modules/jest/bin/jest.js
+  --cacheDirectory ../../output/jest-screenshot-cache --runInBand
+  --runTestsByPath <path list>.
+- After final assessment layout/quote changes, reran assessment, quote-detail
+  and QuoteBuilderService suites; see final follow-up result below.
+- Relay: 22/22 passed via node --import tsx --test
+  supabase/functions/mobile-api-relay/handler.test.ts.
+  output/screenshot-2026-11-06-relay-tests.log
+- Web MFA: 43/43 across the same four saved-audit suites passed.
+  output/screenshot-2026-11-06-web-tests.log
+- New web quote guard: 5/5 passed (actor/id/status UPDATE predicates, conflict,
+  failed ownership, invalid expected status, and database error).
+  output/screenshot-2026-11-06-quote-web-tests.log
+  Uses mocked database responses; no real database concurrency run is claimed.
+- Mobile and web full tsc --noEmit --pretty false runs: see final status below.
+  output/screenshot-2026-11-06-typecheck.log
+  output/screenshot-2026-11-06-web-typecheck.log
+- Changed mobile source/tests ESLint: 0 errors, 28 existing warnings (legacy
+  test imports, unused declarations, duplicate imports and array style).
+  output/screenshot-2026-11-06-lint.log. Final changed assessment/quote files
+  have a separate follow-up lint log. Web route + new test linted explicitly
+  with --no-ignore, 0 errors/warnings.
+- Test harness/import and quote fixture-shape failures were corrected. A late
+  JSX delimiter error in the scroll callback was caught by formatting/tests/
+  TypeScript and corrected before final verification; failed intermediate
+  runs are not acceptance evidence.
+- Local Android export attempted using Expo offline mode, workspace temp and
+  output directories. It stopped before bundling: missing required release
+  values EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  EXPO_PUBLIC_API_BASE_URL, EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY. No bundle/APK
+  produced; no config bypass attempted. Log:
+  output/screenshot-2026-11-06-android-export.log.
+- Aikido scan unavailable: discovery exposed no Aikido scan/login tools. No
+  security scan clearance claimed. React review covered hook order, query
+  isolation, late requests, role-gated actions, retry behavior and typography.
+- Reviewed installed Next route-handler guidance and Supabase filter guidance
+  for the conditional update (https://supabase.com/docs/reference/javascript/using-filters).
+  The changelog markdown fetch was unsupported by the web reader.
+
+Remaining acceptance gaps
+-------------------------
+- Android/iOS MFA status, enrolment, verification, disable and retry through
+  the deployed relay need physical-device verification. Settings tests do not
+  establish native sign-in MFA challenge enforcement across the custom MFA
+  service and Supabase sessions.
+- Jest rendering is not a fresh-build physical-device visual check. Larger
+  system text, keyboard resize/dismissal, scroll targets, step revisits,
+  video return flow, camera/gallery permissions and actual upload/recovery
+  still need Android/iOS checks with the deployed services.
+- The recurring/certificate screenshot captures loading, not an HTTP error.
+  Local recovery is now bounded/tested; the original deployed loading cause
+  is not established without device/network evidence. Fresh permission and
+  entitlement journeys remain required; no entitlement or server role bypass.
+- Draft quote editing here covers title/client only. Price/line-item revisions,
+  accepted-quote amendment policy and older API callers need a separate
+  authoritative workflow. The server draft guard must ship with the mobile
+  editor; nothing was deployed. Real SQL race verification remains separate.
+- No backend purchase-date or actual spending-budget feature was invented.
+  No authoritative refund initiation/arrival evidence or historical financial
+  reconciliation was available. Escrow presentation fixes do not establish
+  historical reconciliation; original displayed balances were not rewritten.
+- Full release acceptance remains incomplete. Keep the beta gate enabled.
+Final verification after all source edits (6 November 2026)
+---------------------------------------------------------
+- Assessment, quote-detail and QuoteBuilderService follow-up: 3 suites,
+  69 tests passed. This reruns a subset of the 319-test combined mobile batch;
+  do not add these counts together as unique tests. Log:
+  output/screenshot-2026-11-06-final-followup.log.
+- Mobile and web full TypeScript checks passed after the final changes.
+  Logs: output/screenshot-2026-11-06-typecheck.log and
+  output/screenshot-2026-11-06-web-typecheck.log (both empty, exit 0).
+- Final assessment/quote/service follow-up lint passed, 0 errors/warnings;
+  web route and quote guard test lint passed, 0 errors/warnings.
+- Web verification totals: 43 MFA tests plus 5 quote draft guard tests.
+  Relay verification: 22 tests passed. No remote customer data was touched.
+- Git diff whitespace checks passed. Generated test caches are excluded.
+  The commit includes inspected existing screenshot work and this continuation.
+- Staged source guards passed: check-no-hex.js and
+  check-edge-fn-currency.js (both exit 0). No active Git hook was configured;
+  these guards were run explicitly without changing hook configuration.

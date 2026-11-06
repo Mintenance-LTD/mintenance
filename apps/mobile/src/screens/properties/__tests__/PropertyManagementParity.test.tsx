@@ -97,7 +97,7 @@ it('preserves a native schedule edit after a revision conflict and sends the loa
   mockPatch.mockRejectedValue(
     new Error('Schedule changed. Reload before editing.')
   );
-  const view = wrap(<RecurringMaintenance propertyId='property' />);
+  const view = wrap(<RecurringMaintenance propertyId='property' editable />);
   await waitFor(() =>
     expect(view.getByLabelText('Edit Boiler service')).toBeTruthy()
   );
@@ -177,7 +177,7 @@ it('uses the selected first due date and suppresses duplicate create taps', asyn
       finish = resolve;
     })
   );
-  const view = wrap(<RecurringMaintenance propertyId='property' />);
+  const view = wrap(<RecurringMaintenance propertyId='property' editable />);
   fireEvent.press(view.getByLabelText('Add recurring schedule'));
   fireEvent.changeText(
     view.getByLabelText('Schedule title'),
@@ -228,7 +228,7 @@ it('uses shared open statuses and describes budgets by creation date', () => {
 it('rejects an impossible due date without sending a schedule', async () => {
   mockGet.mockResolvedValue({ schedules: [] });
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-  const view = wrap(<RecurringMaintenance propertyId='property' />);
+  const view = wrap(<RecurringMaintenance propertyId='property' editable />);
   fireEvent.press(view.getByLabelText('Add recurring schedule'));
   fireEvent.changeText(
     view.getByLabelText('Schedule title'),
@@ -249,7 +249,7 @@ it('preserves schedule input when the server does not confirm the created record
   mockGet.mockResolvedValue({ schedules: [] });
   mockPost.mockResolvedValue({});
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-  const view = wrap(<RecurringMaintenance propertyId='property' />);
+  const view = wrap(<RecurringMaintenance propertyId='property' editable />);
   fireEvent.press(view.getByLabelText('Add recurring schedule'));
   fireEvent.changeText(
     view.getByLabelText('Schedule title'),
@@ -281,7 +281,7 @@ it('preserves a schedule after a connection failure, suppresses double taps, and
         rejectSave = reject;
       })
   );
-  const view = wrap(<RecurringMaintenance propertyId='property' />);
+  const view = wrap(<RecurringMaintenance propertyId='property' editable />);
   fireEvent.press(view.getByLabelText('Add recurring schedule'));
   fireEvent.changeText(
     view.getByLabelText('Schedule title'),
@@ -308,4 +308,81 @@ it('preserves a schedule after a connection failure, suppresses double taps, and
   await waitFor(() => expect(view.queryByText('Add Schedule')).toBeNull());
   expect(mockPost).toHaveBeenCalledTimes(2);
   expect(mockPost.mock.calls[1][1]).toEqual(originalPayload);
+});
+
+it('shows a pending retry and hides stale certificates after a failed refresh', async () => {
+  let finish!: (value: unknown) => void;
+  mockGet.mockRejectedValueOnce(new Error('offline')).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  const view = wrap(<ComplianceCertificates propertyId='property' />);
+  await waitFor(() =>
+    expect(view.getByLabelText('Retry loading certificates')).toBeTruthy()
+  );
+  fireEvent.press(view.getByLabelText('Retry loading certificates'));
+  await waitFor(() =>
+    expect(view.getByText('Loading certificate records...')).toBeTruthy()
+  );
+  expect(view.queryByLabelText('Retry loading certificates')).toBeNull();
+  await act(async () =>
+    finish({ certificates: [{ id: 'cert', cert_type: 'epc' }] })
+  );
+  await waitFor(() => expect(view.getByText('EPC')).toBeTruthy());
+  expect(mockGet).toHaveBeenLastCalledWith(
+    '/api/properties/property/compliance',
+    expect.objectContaining({
+      timeout: 15000,
+      retries: 0,
+      signal: expect.anything(),
+    })
+  );
+});
+it('rejects malformed schedules and permits a manual retry', async () => {
+  mockGet
+    .mockResolvedValueOnce({ schedules: [null] })
+    .mockResolvedValueOnce({ schedules: [] });
+  const view = wrap(<RecurringMaintenance propertyId='property' editable />);
+  await waitFor(() =>
+    expect(view.getByLabelText('Retry loading schedules')).toBeTruthy()
+  );
+  fireEvent.press(view.getByLabelText('Retry loading schedules'));
+  await waitFor(() =>
+    expect(view.getByText('No recurring schedules yet')).toBeTruthy()
+  );
+  expect(mockGet).toHaveBeenCalledTimes(2);
+});
+it('keeps schedule viewing available without offering mutation controls to viewers', async () => {
+  mockGet.mockResolvedValue({
+    schedules: [
+      {
+        id: 'schedule',
+        title: 'Boiler service',
+        frequency: 'annual',
+        next_due_date: '2027-01-01',
+        is_active: true,
+      },
+    ],
+  });
+  const view = wrap(<RecurringMaintenance propertyId='property' />);
+  await waitFor(() => expect(view.getByText('Boiler service')).toBeTruthy());
+  expect(view.queryByLabelText('Add recurring schedule')).toBeNull();
+  expect(view.queryByLabelText('Edit Boiler service')).toBeNull();
+  expect(view.queryByLabelText('Pause Boiler service')).toBeNull();
+  expect(view.queryByLabelText('Remove Boiler service')).toBeNull();
+});
+it('reports a denied certificate request as access unavailable, without automatic retry', async () => {
+  mockGet.mockRejectedValue(
+    Object.assign(new Error('Forbidden'), { statusCode: 403 })
+  );
+  const view = wrap(<ComplianceCertificates propertyId='property' />);
+  await waitFor(() =>
+    expect(view.getByText(/Access unavailable/)).toBeTruthy()
+  );
+  expect(mockGet).toHaveBeenCalledTimes(1);
+  expect(
+    view.queryByText('No certificate records have been added.')
+  ).toBeNull();
 });

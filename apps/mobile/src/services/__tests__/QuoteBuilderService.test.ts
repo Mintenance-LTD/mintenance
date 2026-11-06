@@ -316,15 +316,27 @@ describe('Quote CRUD', () => {
         taxRate: number;
         taxAmount: number;
         totalAmount: number;
-        lineItems: Array<{ subtotal: number }>;
+        lineItems: {
+          total: number;
+          description: string;
+          quantity: number;
+          unitPrice: number;
+        }[];
       };
       expect(payload.subtotal).toBe(250);
       expect(payload.taxRate).toBe(0);
       expect(payload.taxAmount).toBeCloseTo(0, 5);
       expect(payload.totalAmount).toBeCloseTo(250, 5);
       // per-line subtotals attached
-      expect(payload.lineItems[0].subtotal).toBe(200);
-      expect(payload.lineItems[1].subtotal).toBe(50);
+      expect(payload.lineItems[0]).toEqual(
+        expect.objectContaining({
+          description: expect.any(String),
+          quantity: 2,
+          unitPrice: 100,
+          total: 200,
+        })
+      );
+      expect(payload.lineItems[1].total).toBe(50);
     });
 
     it('applies markup and discount before VAT', async () => {

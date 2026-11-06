@@ -545,9 +545,7 @@ describe('TimeTrackingScreen', () => {
   it('shows the empty list state when there are no entries', () => {
     const { getByText } = render(<TimeTrackingScreen />);
     expect(getByText('No entries yet')).toBeTruthy();
-    expect(
-      getByText('Log your first hours from the Log hours CTA above.')
-    ).toBeTruthy();
+    expect(getByText('Tap the + button to log your first hours.')).toBeTruthy();
   });
 
   it('pull-to-refresh triggers refetch', () => {

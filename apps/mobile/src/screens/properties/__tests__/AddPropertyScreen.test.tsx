@@ -206,3 +206,12 @@ it('re-geocodes an edited address instead of retaining the phone pin', async () 
     )
   );
 });
+
+it('does not offer an unpersisted purchase date and rejects malformed room counts', () => {
+  const view = renderScreen();
+  expect(view.queryByText('Purchase / Build Date')).toBeNull();
+  fillRequiredFields(view);
+  fireEvent.changeText(view.getAllByPlaceholderText('0')[0], '2rooms');
+  pressSubmit(view);
+  expect(mockPost).not.toHaveBeenCalled();
+});

@@ -9,6 +9,7 @@
 import { useMemo } from 'react';
 import type { Job } from '@mintenance/types';
 import type { FilterStatus, JobStats } from './types';
+import { isActiveJob } from '../../utils/jobActivity';
 
 export function useJobsListStats(allJobs: Job[], bidPendingJobs: Job[]) {
   const stats: JobStats = useMemo(() => {
@@ -39,7 +40,7 @@ export function useJobsListStats(allJobs: Job[], bidPendingJobs: Job[]) {
         totalBudget += b;
         budgetCount++;
       }
-      if (!j.archived_at && j.status === 'in_progress') activeCount++;
+      if (isActiveJob(j)) activeCount++;
       if (j.status === 'completed') completedCount++;
       if (!j.archived_at && j.status === 'posted') postedCount++;
       if (j.bids) totalBids += j.bids.length;
@@ -70,8 +71,7 @@ export function useJobsListStats(allJobs: Job[], bidPendingJobs: Job[]) {
       const s = j.status as FilterStatus;
       if (s in counts && (!j.archived_at || s === 'completed')) counts[s]++;
       // "active" = assigned + in_progress for contractors
-      if (!j.archived_at && (s === 'in_progress' || s === 'assigned'))
-        counts.active++;
+      if (isActiveJob(j)) counts.active++;
     });
     return counts;
   }, [allJobs, bidPendingJobs]);

@@ -50,7 +50,7 @@ export const AccessibilitySettingsScreen: React.FC = () => {
             <View style={styles.rowLabelGroup}>
               <Text style={styles.rowTitle}>Silver mode</Text>
               <Text style={styles.rowDesc}>
-                Larger text and controls in the job posting form. Your phone�s
+                Larger text and controls in the job posting form. Phone
                 accessibility settings control text size elsewhere.
               </Text>
             </View>

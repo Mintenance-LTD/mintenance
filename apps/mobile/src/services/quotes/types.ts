@@ -27,6 +27,15 @@ export interface QuoteLineItemTemplate {
 }
 
 export interface ContractorQuote {
+  line_items?: {
+    description?: string;
+    item_name?: string;
+    quantity: number;
+    unitPrice?: number;
+    unit_price?: number;
+    total?: number;
+    subtotal?: number;
+  }[];
   id: string;
   quote_number: string;
   contractor_id: string;
@@ -114,7 +123,10 @@ export interface CreateQuoteTemplateData {
   default_markup_percentage?: number;
   default_discount_percentage?: number;
   terms_and_conditions?: string;
-  line_items?: Omit<QuoteLineItemTemplate, 'id' | 'template_id' | 'created_at'>[];
+  line_items?: Omit<
+    QuoteLineItemTemplate,
+    'id' | 'template_id' | 'created_at'
+  >[];
 }
 
 export interface CreateQuoteData {
@@ -131,10 +143,14 @@ export interface CreateQuoteData {
   valid_until?: string;
   terms_and_conditions?: string;
   notes?: string;
-  line_items: Omit<QuoteLineItem, 'id' | 'quote_id' | 'subtotal' | 'created_at'>[];
+  line_items: Omit<
+    QuoteLineItem,
+    'id' | 'quote_id' | 'subtotal' | 'created_at'
+  >[];
 }
 
 export interface UpdateQuoteData {
+  expected_status?: 'draft';
   title?: string;
   client_name?: string;
   client_email?: string;
@@ -150,7 +166,10 @@ export interface UpdateQuoteData {
   terms?: string;
   notes?: string;
   status?: ContractorQuote['status'];
-  line_items?: Omit<QuoteLineItem, 'id' | 'quote_id' | 'subtotal' | 'created_at'>[];
+  line_items?: Omit<
+    QuoteLineItem,
+    'id' | 'quote_id' | 'subtotal' | 'created_at'
+  >[];
 }
 
 export interface QuoteFilters {

@@ -3,7 +3,10 @@
  * Shows status steps: Posted -> Bids -> Assigned -> Contract -> Payment -> In Progress -> Completed -> Review -> Paid
  */
 import React from 'react';
-import { getJobTimelineStep } from './jobTimelineProgress';
+import {
+  getJobTimelineStep,
+  getJobTimelineMilestones,
+} from './jobTimelineProgress';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -74,9 +77,9 @@ const LIFECYCLE_STEPS = [
   },
   {
     key: 'paid',
-    label: 'Paid',
+    label: 'Escrow released',
     icon: 'wallet-outline' as const,
-    description: 'Payment released',
+    description: 'Released to earnings; bank payout follows separately',
   },
 ];
 
@@ -109,7 +112,16 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
   const currentStepIndex = getJobTimelineStep(
     viewModel.job.status,
     approved,
-    viewModel.escrowStatus
+    viewModel.escrowStatus,
+    viewModel.contractStatus
+  );
+
+  const milestones = getJobTimelineMilestones(
+    viewModel.job.status,
+    approved,
+    viewModel.escrowStatus,
+    viewModel.contractStatus,
+    (viewModel.job.bids?.length ?? 0) > 0
   );
 
   const getStepColor = (index: number) => {
@@ -119,7 +131,7 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const getStepOpacity = (index: number) => {
-    if (index <= currentStepIndex) return 1;
+    if (milestones[index]) return 1;
     return 0.4;
   };
 
@@ -152,17 +164,16 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
                   style={[
                     styles.stepCircle,
                     {
-                      backgroundColor:
-                        index <= currentStepIndex
-                          ? getStepColor(index)
-                          : me.line,
+                      backgroundColor: milestones[index]
+                        ? getStepColor(index)
+                        : me.line,
                     },
                   ]}
                 >
                   <Ionicons
-                    name={index <= currentStepIndex ? 'checkmark' : step.icon}
+                    name={milestones[index] ? 'checkmark' : step.icon}
                     size={16}
-                    color={index <= currentStepIndex ? me.onBrand : me.ink3}
+                    color={milestones[index] ? me.onBrand : me.ink3}
                   />
                 </View>
                 {index < LIFECYCLE_STEPS.length - 1 && (
@@ -171,7 +182,9 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
                       styles.stepLine,
                       {
                         backgroundColor:
-                          index < currentStepIndex ? me.brand : me.line,
+                          milestones[index] && milestones[index + 1]
+                            ? me.brand
+                            : me.line,
                       },
                     ]}
                   />
@@ -187,7 +200,7 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
                   {step.label}
                 </Text>
                 <Text style={styles.stepDescription}>
-                  {step.key === 'review' && approved
+                  {step.key === 'review' && milestones[index]
                     ? 'Work approved by homeowner'
                     : step.key === 'paid' && !released
                       ? 'Awaiting escrow release; bank payout follows separately'

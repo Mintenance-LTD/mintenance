@@ -41,9 +41,14 @@ export async function createQuote(
       {
         title: quoteData.project_title,
         clientName: quoteData.client_name,
-        clientEmail: quoteData.client_email,
+        clientEmail: quoteData.client_email || undefined,
         clientPhone: quoteData.client_phone,
-        lineItems: lineItems,
+        lineItems: lineItems.map((item) => ({
+          description: item.item_name,
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+          total: item.subtotal,
+        })),
         subtotal,
         taxRate,
         taxAmount,
@@ -113,7 +118,13 @@ export async function getQuotes(
     const response = await mobileApiClient.get<{ quotes: ContractorQuote[] }>(
       `/api/contractor/quotes${status}`
     );
-    return response.quotes ?? [];
+    return (response.quotes ?? []).map((quote) => {
+      const email = (quote as unknown as { customerEmail?: string })
+        .customerEmail;
+      return !quote.client_email && email
+        ? { ...quote, client_email: email }
+        : quote;
+    });
   } catch (error) {
     logger.error('Error fetching quotes', error, { service: 'quote-builder' });
     throw new Error('Failed to fetch quotes');
@@ -163,6 +174,7 @@ export async function updateQuote(
     const response = await mobileApiClient.put<{ quote: ContractorQuote }>(
       `/api/contractor/quotes/${quoteId}`,
       {
+        expected_status: quoteData.expected_status,
         title: quoteData.title,
         client_name: quoteData.client_name,
         total_amount: quoteData.total_amount,

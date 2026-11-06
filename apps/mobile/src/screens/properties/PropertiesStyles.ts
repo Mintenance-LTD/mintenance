@@ -2,6 +2,18 @@ import { StyleSheet } from 'react-native';
 import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
+  searchInput: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: me.line,
+    borderRadius: 12,
+    color: me.ink,
+    backgroundColor: me.surface,
+    fontSize: 16,
+  },
   container: {
     flex: 1,
     backgroundColor: me.bg,

@@ -428,7 +428,7 @@ export const TimeTrackingScreen: React.FC = () => {
               </View>
               <Text style={styles.emptyTitle}>No entries yet</Text>
               <Text style={styles.emptySubtitle}>
-                Log your first hours from the Log hours CTA above.
+                Tap the + button to log your first hours.
               </Text>
             </View>
           }

@@ -483,7 +483,7 @@ describe('HomeownerDashboard', () => {
     });
 
     it('singular "active project" when exactly one active job', () => {
-      queryState.homeownerJobs = { data: [{ id: 'j1', status: 'posted' }] };
+      queryState.homeownerJobs = { data: [{ id: 'j1', status: 'assigned' }] };
       const { getByText } = render(<HomeownerDashboard />);
       expect(getByText('You have 1 active project.')).toBeTruthy();
     });
@@ -491,8 +491,10 @@ describe('HomeownerDashboard', () => {
     it('plural "active projects" when multiple active jobs', () => {
       queryState.homeownerJobs = {
         data: [
-          { id: 'j1', status: 'posted' },
+          { id: 'j1', status: 'in_progress' },
           { id: 'j2', status: 'assigned' },
+          { id: 'j3', status: 'posted' },
+          { id: 'j4', status: 'assigned', archived_at: '2026-11-05' },
         ],
       };
       const { getByText } = render(<HomeownerDashboard />);
@@ -792,7 +794,7 @@ describe('HomeownerDashboard', () => {
         ],
       };
       const { getByText } = render(<HomeownerDashboard />);
-      // only j1 counts as active
+      // Only the assigned record counts as active; posted and completed do not.
       expect(getByText('You have 1 active project.')).toBeTruthy();
     });
   });
