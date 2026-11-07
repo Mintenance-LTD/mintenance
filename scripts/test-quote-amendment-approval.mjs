@@ -62,6 +62,9 @@ const operator = id(90);
 await db.exec(`CREATE TABLE profiles(id uuid PRIMARY KEY,role text,deleted_at timestamptz);
  INSERT INTO profiles VALUES('${operator}','admin',NULL);
  BEGIN; ${sql('20261107150444_quote_amendment_email_review.sql')} COMMIT;`);
+await db.exec(
+  `BEGIN; ${sql('20261107213241_quote_amendment_email_conflict_code.sql')} COMMIT;`
+);
 const version = '2026-11-06T12:00:00Z';
 let revision;
 async function seed(hasPayer = false) {
@@ -750,13 +753,16 @@ for (const [action, evidence, target] of [
 await test('competing reviews and changed request-id reuse are rejected', async () => {
   await failedEmail();
   await reviewEmail();
-  await rejects(() => reviewEmail({ request: id(92) }), /changed/);
+  await rejects(() => reviewEmail({ request: id(92) }), {
+    code: 'PT409',
+    message: /changed/,
+  });
   await rejects(
     () =>
       reviewEmail({
         note: 'Different evidence must not reuse an existing request.',
       }),
-    /already used/
+    { code: 'PT409', message: /already used/ }
   );
   assert.equal(
     Number(
@@ -826,7 +832,7 @@ for (const status of [
 ]) {
   await test(`cannot recover ${status} mail`, async () => {
     await failedEmail(status);
-    await rejects(() => reviewEmail(), /changed/);
+    await rejects(() => reviewEmail(), { code: 'PT409', message: /changed/ });
   });
 }
 await test('stale amendment or changed payer cannot be retried', async () => {
@@ -834,10 +840,16 @@ await test('stale amendment or changed payer cannot be retried', async () => {
   await db.exec(
     `UPDATE jobs SET payer_user_id='${outsider}' WHERE id='${job}'`
   );
-  await rejects(() => reviewEmail(), /no longer current/);
+  await rejects(() => reviewEmail(), {
+    code: 'PT409',
+    message: /no longer current/,
+  });
   await db.exec(`UPDATE jobs SET payer_user_id=NULL WHERE id='${job}'`);
   await transition('withdraw', owner, 1);
-  await rejects(() => reviewEmail(), /no longer current/);
+  await rejects(() => reviewEmail(), {
+    code: 'PT409',
+    message: /no longer current/,
+  });
 });
 await test('review audit failure rolls back the queue reset', async () => {
   await failedEmail();

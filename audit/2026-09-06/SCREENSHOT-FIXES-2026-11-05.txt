@@ -1886,3 +1886,62 @@ Operator recovery continuation — 7 November 2026, 21:18 UTC
   change, beta change, merge or deployment. Preserve all native/device MFA,
   sign-in challenge, physical-device and reconciliation limitations. Full release
   acceptance remains incomplete. Audit publication is to the feature branch only.
+
+Signed-in success reset and production conflict investigation — 7 November 2026
+- Continued from db07345a5 after owner restored admin sign-in normally. No role,
+  session, credential, MFA or beta setting altered by the agent. Read source and
+  audit before testing. Used designated admin 623398c7-2335-4707-90b5-8bcee7eb4d1c
+  and homeowner a2cf7faa-2ce3-436f-8949-45976481813e only.
+- Exact guarded status-only staging of existing amendment
+  65e6e1af-842b-4bd0-82e8-b6d324ed3726/event 2: reviewed_unknown -> needs_review,
+  first at review_version 1, then 2. Each guard required withdrawn/unapplied
+  amendment, correct job/customer/action, zero attempts, NULL sent_at and the
+  existing controlled_test_unknown_fixture marker. Never moved to pending/sending.
+- Normal UI close_unknown/unknown save round 1 added review
+  95437fbc-48f3-4431-b1a8-ba19b3ee8e05 at 21:25:12.409071 UTC, version 2.
+  Observed success then count zero after Refresh email reviews. Round 2 added
+  195d8652-589a-48d1-a59e-f16459e0391c at 21:29:40.415290 UTC, version 3.
+  Observed success then count zero after changing queues. Both reviews attributed
+  to designated admin. History shows original plus two new immutable reviews;
+  recovery-action control count zero. Deployed success-reset checks now pass.
+- Stale second-tab save exposed a production defect. UI returned Save outcome is
+  uncertain rather than conflict/refresh-required, froze inputs, and retained
+  Retry same review. One retry also returned uncertainty; neither produced an
+  extra review or send. Vercel request 499hg-1794086740268-20d88c5df303 logged
+  HTTP 500 at 21:25:50 on dpl_8pou5eLaSsHDASXVsksMi67pXXt5. Postgres logs show
+  repeated Email changed; refresh review with SQLSTATE 40001, including repeated
+  executions after the caller timed out. Server identifies PostgREST 14.18.
+- Cleanup: pg_cancel_backend returned true for identified test PID 734810, but
+  subsequent inspection showed retries continued. Terminated only that connection,
+  guarded by PID, backend_start 2026-11-07T21:22:57.413236Z, authenticator user,
+  PostgREST 14.18 and exact review RPC query signature. Verified backend absent
+  and no executing/idle-in-transaction review RPCs afterward. No broad service
+  restart, persistent security change or financial mutation.
+- Local fix only: CLI-generated migration
+  20261107213241_quote_amendment_email_conflict_code.sql replaces the function's
+  three business-conflict 40001 codes with PT409; API explicitly maps PT409 to
+  409. Reviewed function diff: CREATE OR REPLACE and those three codes only;
+  grants/checks/locks/replay/pricing behavior preserved. Original applied migration
+  left intact. Do not apply new migration before the compatible API is released.
+  No production migration or deployment performed. Hosted conflict fix still needs
+  release and repeat verification; no passing hosted 409 result is claimed.
+  References: https://docs.postgrest.org/en/stable/references/errors.html
+  (PTxyz custom HTTP errors), https://github.com/PostgREST/postgrest/issues/3673
+  (serialization-failure retries).
+- Fresh local checks: 41 web tests across quote-email-review-ui/API; 51 disposable
+  SQL scenarios plus role/RLS assertions; full web tsc --noEmit --incremental false;
+  targeted source/test ESLint --no-ignore --max-warnings=0, all exit 0. SQL tests
+  now require PT409 for duplicate requests, competing/closed reviews and stale
+  eligibility. No PostgREST process is exercised by PGlite. Aikido tool unavailable.
+  Evidence: output/operator-conflict-{web,sql,types,lint}-20261107.log.
+- Final test event reviewed_unknown/review_version 3, attempts 0/sent_at NULL; original
+  review retained, total reviews 3, no stale-tab duplicate. All other test email
+  attempts/timestamps unchanged; two proposals withdrawn/version 2/unapplied.
+  Five row hashes and eight financial zero counts match the preceding baseline.
+  No new message, proposal, quote/bid/contract change or financial operation.
+  Screenshots: output/operator-reset-success-20261107.jpg,
+  output/operator-reset-history-20261107.jpg, output/operator-uncertain-save-20261107.jpg.
+- Beta remains enabled. Actual hosted conflict success, committed-save/lost-response
+  replay, revoked-admin and genuine provider-incident cases remain open, along with
+  native/device MFA, sign-in challenge, physical-device and reconciliation gaps.
+  Full release acceptance remains incomplete. Commit/push feature branch only.

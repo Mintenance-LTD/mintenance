@@ -655,3 +655,65 @@ controlled retry/close-unknown results remain valid within their original scope.
 Beta gate remains enabled. Native/device MFA, native sign-in challenge enforcement,
 physical-device visuals, genuine provider-incident recovery and historical financial
 reconciliation remain unverified; full release acceptance remains incomplete.
+
+### Signed-in operator reset verification and conflict defect — 7 November 2026
+
+Owner completed normal admin sign-in, resolving the preceding session blocker.
+Verified the deployed operator UI using only the existing designated admin and
+homeowner test fixture. Reopened withdrawal email event 2 for amendment
+`65e6e1af-842b-4bd0-82e8-b6d324ed3726` twice with exact row/status/version/recipient
+guards, changing only its reviewed_unknown status to needs_review. It was never
+queued for dispatch. Each normal operator close_unknown save preserved attempts=0
+and sent_at=NULL and added an immutable review by the designated admin:
+
+- Review version 2: `95437fbc-48f3-4431-b1a8-ba19b3ee8e05`, 21:25:12.409071 UTC.
+  The success message appeared, then disappeared on Refresh email reviews.
+- Review version 3: `195d8652-589a-48d1-a59e-f16459e0391c`, 21:29:40.415290 UTC.
+  The success message appeared, then disappeared on changing to Reviewed events
+  and retries. Reopening history showed all three reviews and no recovery controls.
+
+Both deployed success-reset branches now pass for this controlled fixture. A
+second tab holding the older review version exposed a separate production defect:
+the stale save returned HTTP 500/uncertain outcome instead of HTTP 409. Inputs
+froze, no success was claimed, and Retry same review also added no review or send.
+Vercel logged the 500 for the designated admin on the existing production build;
+Postgres logs showed repeated `Email changed; refresh review` / SQLSTATE 40001.
+Production identifies PostgREST 14.18, which retries serialization failures.
+
+The test request continued retrying after the caller timed out. A narrowly guarded
+pg_cancel_backend on PID 734810 did not stop that loop; pg_terminate_backend on the
+same PID, exact backend start, application/user and review-query signature ended
+the test connection. Subsequent inspection found that backend absent and no active
+or idle-in-transaction review RPCs. No service restart, account/security change or
+financial write was used for cleanup.
+
+Prepared, but DID NOT APPLY, migration
+`20261107213241_quote_amendment_email_conflict_code.sql`: replace only the review
+function's three deterministic conflict codes with PT409. API handling now maps
+PT409 to HTTP 409 while retaining legacy mappings. Existing privileges, checks,
+idempotent replay, row locks and all pricing/financial behavior are unchanged.
+The deployed conflict defect remains open until this migration and API change are
+released and the hosted stale-tab case is repeated. Release the compatible API
+mapping before applying the function migration; the old API does not map PT409.
+
+Fresh local validation: 41 targeted web tests passed; 51 disposable PGlite SQL
+scenarios plus role/RLS checks passed with explicit PT409 assertions for competing
+reviews, request-ID reuse, closed states and stale eligibility. Full web TypeScript
+and targeted ESLint passed. Aikido scan tooling is unavailable. PGlite does not
+run PostgREST and these results do not establish the hosted fix.
+
+Final fixture: reviewed_unknown/review_version 3, exactly three reviews including
+the original, zero attempts, sent_at NULL, zero open test emails. Both proposals
+remain withdrawn/version 2 and unapplied. All other controlled email attempts and
+sent timestamps are unchanged. Five job/quote/bid/contract/signatory fingerprints
+and eight financial-table zero counts still match the prior audit. No new message,
+proposal, approval, application or financial record change. Beta gate stays enabled.
+Evidence: `output/operator-reset-success-20261107.jpg`,
+`output/operator-reset-history-20261107.jpg`, `output/operator-uncertain-save-20261107.jpg`
+and `output/operator-conflict-{web,sql,types,lint}-20261107.log` (local ignored files).
+
+Unverified acceptance still includes a successful hosted conflict response,
+committed-save/lost-response replay, revoked-admin denial, genuine provider-incident
+recovery, physical-device visuals, deployed native MFA/relay and native sign-in
+challenge enforcement, and historical financial reconciliation. Full release
+acceptance remains incomplete. Feature-branch publication only; no merge or deploy.
