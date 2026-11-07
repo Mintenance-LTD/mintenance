@@ -367,3 +367,42 @@ its automatic deployment exclusion retained; main is unchanged. All prior device
 native MFA challenge, amendment provider delivery/operator recovery, physical
 visual and historical financial reconciliation gaps remain. Full release
 acceptance is incomplete.
+
+### Production notification/recovery observation — 7 November 2026
+
+Read-only checks between 17:52 and 17:55 UTC confirmed the production deployment
+remains READY at `0fd5fba133`. There are zero quote amendments, amendment events,
+amendment notification-queue rows, email-outbox rows and email-review rows. No
+existing amendment delivery, failure or recovery outcome is available to reconcile.
+An empty queue is not proof of provider delivery or successful recovery.
+
+The automatically scheduled notification processor ran on the new deployment at
+17:50:28 UTC and succeeded in 129 ms: queuedProcessed, queuedErrors, emailSent,
+emailErrors and emailNeedsReview were all zero. Both its database run record and
+deployment-scoped Vercel logs agree. The previous 24-hour run inventory contained
+288 successes, but those older runs do not establish amendment-worker behaviour
+on this deployment. The cron was observed, not manually invoked.
+
+Catalog checks reconfirmed enabled enqueue/immutable-review triggers, RLS and no
+client-role SELECT on recovery tables, no client-role review RPC EXECUTE, an empty
+RPC search path, and service-role UPDATE limited to delivery-status columns.
+An unauthenticated GET of `/api/admin/quote-amendment-emails?view=open` redirects
+to Vercel Authentication (302). Connected fetch also remained authentication-
+blocked; no signed-in admin UI or application-role authorization check is claimed.
+
+Fresh local validation passed 99 tests in five notification/email/recovery API/UI
+files and 51 disposable SQL scenarios plus role/RLS checks. Logs are
+`output/production-amendment-recovery-web.log` and
+`output/production-amendment-recovery-sql.log`. This covers mocked delivery,
+uncertain outcomes, guarded retries, review evidence/idempotency/conflicts and
+immutable audit rollback locally; it does not substitute for provider/device proof.
+
+Remaining acceptance requires designated test accounts and an authorized,
+controlled non-financial notification journey: receipt and deep-link verification,
+preferences/quiet hours, provider acceptance versus inbox delivery, and active-admin
+recovery evidence/history. Unknown provider outcomes must never be retried without
+evidence of non-acceptance. No synthetic production amendment/event, send, retry,
+review mutation, cron invocation, migration or redeploy was performed here. No
+financial records changed. Beta enforcement stays enabled; all prior native MFA,
+physical-device and reconciliation limitations remain. Audit-only publication is
+to the feature branch; full release acceptance remains incomplete.

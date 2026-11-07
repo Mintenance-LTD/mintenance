@@ -1504,3 +1504,57 @@ Production deployment retry — 7 November 2026
   Android/iOS UI and deployed relay MFA status/enrolment/verification/disable/retry,
   native custom-MFA/Supabase sign-in challenge enforcement, amendment email/push
   provider delivery/recovery and historical financial reconciliation remain open.
+
+Production notification and recovery verification — 7 November 2026
+- Scope: inspect safely on production, update audit and push; beta gate stays
+  enabled and financial records must not change. Worktree clean at 883849e42.
+  Inspected root/web AGENTS, current audit, email worker, recipient guard, cron
+  wrapper and operator GET/POST paths before checks. Source tree differs from
+  deployed main only in audit documents; no source fix was indicated.
+- Deployment dpl_21RguT8gDEyMzhVcv2mXsC13Bp4S remains READY at main commit
+  0fd5fba133a3134a89bcd21f80ad26cbfe0d7296, with production aliases retained.
+- Aggregate-only production inventory at 17:52:28 UTC: quote_amendments=0,
+  quote_amendment_events=0, quote_amendment_email_outbox=0,
+  quote_amendment_email_reviews=0, amendment notification_queue rows=0. Final
+  17:54:57 UTC check again found zero events/outbox/reviews. No customer email,
+  message content, review note or financial record was retrieved. There is no
+  existing amendment delivery or recovery case to verify against provider evidence.
+- Observed the existing */5-minute notification-processor schedule, not invoked
+  manually. Its run at 17:50:28.552 UTC completed successfully at 17:50:28.681 UTC
+  (129 ms); all five queued/email processed/error/review counters were zero.
+  Vercel logs on the exact new deployment match that database run record.
+  The 24-hour aggregate contained 288 successes; predeployment successes do not
+  verify the newly deployed amendment email worker. Empty-queue execution proves
+  scheduler/worker/table access, not delivery, receipt or recovery correctness.
+- Read-only catalog recheck confirmed RLS on outbox/review tables; anon and
+  authenticated lack SELECT and review RPC EXECUTE. service_role has SELECT but
+  no INSERT/DELETE on those tables, and only status/attempts/scheduled_for/sent_at/
+  error_code direct UPDATE on outbox. Review RPC is SECURITY DEFINER with empty
+  search_path, callable by service_role; both enqueue triggers and immutable
+  review trigger are enabled. No review RPC was invoked.
+- GET /api/admin/quote-amendment-emails?view=open via connected fetch stayed
+  authentication-blocked; a direct unauthenticated request returned HTTP 302 to
+  vercel.com SSO. This verifies the deployment boundary only, not active-admin
+  access, revoked-admin denial or successful operator rendering in production.
+- Fresh tests: 99 passed / five Vitest files (quote-amendment-notifications,
+  quote-amendment-email, quote-amendment-delivery, quote-email-review-api and
+  quote-email-review-ui); 51 disposable PGlite SQL scenarios plus role/RLS passed.
+  Logs: output/production-amendment-recovery-web.log and
+  output/production-amendment-recovery-sql.log. Expected simulated CSRF failure
+  logging in the UI suite is a passing negative case, not a production error.
+  Local coverage includes uncertain send/manual review, durable lease/checkpoint,
+  stale recipient/version rejection, safe retry limits, evidence requirements,
+  exact-request replay, double-submit/conflict handling and immutable audit failure
+  rollback. These fixtures are not live provider or multi-session acceptance.
+- Remaining controlled verification needs designated test accounts, a safe test
+  job/unsigned unfunded amendment and explicit authorization for test messages:
+  verify notification receipt/deep links and preferences, provider acceptance vs
+  inbox receipt, then admin review/history with provider evidence. Retry only with
+  evidence of non-acceptance; close unknown outcomes without claiming delivery.
+  Do not use a live customer's financial workflow to manufacture a test case.
+- No production inserts, updates, sends, retries, review actions, cron calls,
+  migrations or redeployments performed. Beta controls and financial records
+  unchanged. Audit-only commit/push to feat/launch-terms-support-nov2 retains its
+  Vercel deployment exclusion. Full release acceptance, fresh physical-device
+  visuals/MFA challenge and relay flows, provider recovery and historical financial
+  reconciliation remain incomplete.
