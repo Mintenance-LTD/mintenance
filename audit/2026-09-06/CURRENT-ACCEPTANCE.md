@@ -332,3 +332,38 @@ establish native sign-in challenge enforcement across custom MFA/Supabase sessio
 Fresh-build physical-device visuals, amendment email/push delivery and operator
 recovery, and historical financial reconciliation remain unverified. No redeploy
 or live financial-record change was performed.
+
+### Production redeployment verified — 7 November 2026
+
+With explicit user authorization, retried failed deployment
+`dpl_65ZoTAKA3atAMEzh2JLkTaYvfGBm` using its original main commit
+`0fd5fba133a3134a89bcd21f80ad26cbfe0d7296`, without cache or source/configuration
+changes. Replacement [deployment](https://vercel.com/mintenance/mintenance-clean/21RguT8gDEyMzhVcv2mXsC13Bp4S)
+`dpl_21RguT8gDEyMzhVcv2mXsC13Bp4S` reached READY in production and received
+the `www.mintenance.co.uk` alias. This supersedes the pending redeploy checkpoint.
+
+The hosted build passed the real production migration guard (15 prerequisites),
+shared-package builds, web TypeScript, lint and Next.js production build. Build
+logs report completion in six minutes and deployment completion. Sentry release
+creation/source-map upload were skipped because no auth token was configured;
+this warning was not bypassed or repaired by changing credentials.
+
+Read-only production checks at approximately 17:49 UTC returned HTTP 200 for
+`/api/version` with the exact commit above and environment `production`, and
+HTTP 200 / `healthy` for `/api/health` (269 ms reported). Health probes only read
+database metadata/counts, Redis PING and Stripe balance; no financial operation
+was invoked. Unauthenticated direct `/api/users/profile` returned 302 to Vercel
+Authentication; the connected fetch also could not establish an app-level profile
+response. The mobile relay rejected a missing auth header with HTTP 401. Neither
+probe establishes approved/unapproved signed-in beta-user behaviour. A scoped
+15-minute error/fatal runtime-log query returned no groups at verification time;
+this is a short observation window, not comprehensive runtime acceptance.
+
+Fresh local relay tests passed 22/22, including beta access and MFA routing
+(`output/production-redeploy-relay.log`). Beta gate, Supabase relay deployment,
+environment settings and financial records were unchanged by this work. Only the
+web deployment was retried. Audit updates are pushed to the feature branch with
+its automatic deployment exclusion retained; main is unchanged. All prior device,
+native MFA challenge, amendment provider delivery/operator recovery, physical
+visual and historical financial reconciliation gaps remain. Full release
+acceptance is incomplete.

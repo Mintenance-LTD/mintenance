@@ -1462,3 +1462,45 @@ Production quote amendment schema application — 7 November 2026
   fresh-build visual checks, amendment provider delivery/operator recovery,
   historical financial reconciliation and full release acceptance remain open.
   Local SQL tests do not establish production multi-session or device behaviour.
+
+Production deployment retry — 7 November 2026
+- Explicit user authorization to retry the failed production deployment after the
+  schema rollout, verify it, update this audit and push. No financial changes.
+- Confirmed project mintenance-clean / prj_AILYvESjfKhhj14FkzKWb2oJ1hWv,
+  team team_NqsZeD12p5a5YlE9BJcqrVA9, original failed deployment
+  dpl_65ZoTAKA3atAMEzh2JLkTaYvfGBm, production target and exact main commit
+  0fd5fba133a3134a89bcd21f80ad26cbfe0d7296. No newer deployment was in progress.
+  Retried that deployment with withLatestCommit=false and a fresh uncached build;
+  no source, environment or project settings override was supplied.
+- Replacement dpl_21RguT8gDEyMzhVcv2mXsC13Bp4S reached READY in production.
+  URL: https://mintenance-clean-2ococmoq4-mintenance.vercel.app
+  Inspector: https://vercel.com/mintenance/mintenance-clean/21RguT8gDEyMzhVcv2mXsC13Bp4S
+  Assigned aliases include www.mintenance.co.uk and both existing project aliases.
+- Hosted logs confirm the production schema guard passed all 15 prerequisites,
+  shared packages built, web TypeScript and ESLint passed, Next.js compiled and
+  completed its production build, then Deployment completed. Build time: six
+  minutes. Hosting used Node v24.22.2 / Next.js 16.4.1; no runtime setting changed.
+  Sentry warned that release creation/source-map upload were skipped without an
+  auth token. No credential or unrelated dependency changes were attempted.
+- Approximately 17:49 UTC, connected read-only HTTP checks on the production
+  domain returned /api/version 200, exact commit 0fd5fba133 and env=production;
+  /api/health 200, healthy, latencyMs=269. Inspected health implementation first:
+  database HEAD/count, Redis PING and Stripe GET balance, no financial writes.
+  No customer, amendment, refund, payment, transfer or delivery workflow invoked.
+- Direct unauthenticated /api/users/profile returned HTTP 302 to Vercel SSO.
+  Connected fetch could not establish an app-level profile response either.
+  Production mobile-api-relay /api/users/profile without an Authorization header
+  returned 401 UNAUTHORIZED_NO_AUTH_HEADER. Protection remains in place; these
+  checks are not signed-in beta approval/denial or native journey verification.
+  Runtime error/fatal logs scoped to this deployment over the last 15 minutes
+  returned no groups at verification time; no long-term health claim is made.
+- Fresh local relay tests: 22 passed, zero failed/skipped, including beta access
+  and MFA route handling (output/production-redeploy-relay.log). No app source was
+  edited, so earlier web/mobile/SQL test counts remain historical results.
+- Beta gate, relay deployment and environment configuration remain unchanged.
+  Audit-only commit/push targets feat/launch-terms-support-nov2; branch-specific
+  auto-deployment exclusion remains. No main-branch write or live financial change.
+  The pending web-deploy gap is resolved; full release acceptance is not. Physical
+  Android/iOS UI and deployed relay MFA status/enrolment/verification/disable/retry,
+  native custom-MFA/Supabase sign-in challenge enforcement, amendment email/push
+  provider delivery/recovery and historical financial reconciliation remain open.
