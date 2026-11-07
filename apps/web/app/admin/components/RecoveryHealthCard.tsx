@@ -1,5 +1,6 @@
 'use client';
 import { PushAttemptReview } from './PushAttemptReview';
+import { QuoteAmendmentEmailReview } from './QuoteAmendmentEmailReview';
 import { useQuery } from '@tanstack/react-query';
 import { recoveryReportSchema } from '@/lib/operations/recovery-status';
 
@@ -107,6 +108,7 @@ export function RecoveryHealthCard() {
         )
       )}
       <PushAttemptReview />
+      <QuoteAmendmentEmailReview />
     </section>
   );
 }

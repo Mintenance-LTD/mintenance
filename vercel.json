@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "feat/launch-terms-support-nov2": false
+    }
+  },
   "buildCommand": "node scripts/vercel-build.js",
   "installCommand": "npm ci",
   "framework": "nextjs",

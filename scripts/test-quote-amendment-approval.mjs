@@ -58,6 +58,10 @@ const owner = id(1),
 await db.exec(
   `BEGIN; ${sql('20261107143626_quote_amendment_email_outbox.sql')} COMMIT;`
 );
+const operator = id(90);
+await db.exec(`CREATE TABLE profiles(id uuid PRIMARY KEY,role text,deleted_at timestamptz);
+ INSERT INTO profiles VALUES('${operator}','admin',NULL);
+ BEGIN; ${sql('20261107150444_quote_amendment_email_review.sql')} COMMIT;`);
 const version = '2026-11-06T12:00:00Z';
 let revision;
 async function seed(hasPayer = false) {
@@ -627,7 +631,7 @@ await test('email service role can checkpoint but cannot rewrite routing or inse
   await rejects(
     () =>
       db.exec(
-        'INSERT INTO quote_amendment_email_outbox SELECT * FROM quote_amendment_email_outbox'
+        'INSERT INTO quote_amendment_email_outbox OVERRIDING SYSTEM VALUE SELECT * FROM quote_amendment_email_outbox'
       ),
     /permission denied/
   );
@@ -663,6 +667,205 @@ for (const role of ['anon', 'authenticated', 'service_role']) {
     false
   );
 }
+const reviewEmail = async (overrides = {}) => {
+  const p = {
+    actor: operator,
+    request: id(91),
+    amendment: revision,
+    version: 1,
+    expected: 0,
+    action: 'retry',
+    evidence: 'not_accepted',
+    note: 'Provider log REF-123 confirms request was not accepted.',
+    ...overrides,
+  };
+  return (
+    await one(
+      'SELECT review_quote_amendment_email($1,$2,$3,$4,$5,$6,$7,$8) AS result',
+      [
+        p.actor,
+        p.request,
+        p.amendment,
+        p.version,
+        p.expected,
+        p.action,
+        p.evidence,
+        p.note,
+      ]
+    )
+  ).result;
+};
+const failedEmail = async (status = 'failed') => {
+  await transition('publish');
+  await db.exec(
+    `UPDATE quote_amendment_email_outbox SET status='${status}',attempts=6,error_code='provider_rejected'`
+  );
+};
+await test('operator retry is atomic, idempotent and preserves prior delivery evidence', async () => {
+  await failedEmail();
+  const first = await reviewEmail();
+  const again = await reviewEmail();
+  assert.deepEqual(first, again);
+  assert.equal(first.previous_attempts, 6);
+  assert.equal(first.previous_error_code, 'provider_rejected');
+  assert.equal(first.actor_id, operator);
+  const row = await one('SELECT * FROM quote_amendment_email_outbox');
+  assert.equal(row.status, 'pending');
+  assert.equal(row.attempts, 0);
+  assert.equal(row.review_version, 1);
+  assert.equal(row.sent_at, null);
+  assert.equal(
+    Number(
+      (await one('SELECT count(*) AS n FROM quote_amendment_email_reviews')).n
+    ),
+    1
+  );
+  assert.equal(Number((await one('SELECT amount FROM bids')).amount), 100);
+  assert.equal(
+    Number(
+      (
+        await one('SELECT total_amount FROM contractor_quotes WHERE id=$1', [
+          quote,
+        ])
+      ).total_amount
+    ),
+    100
+  );
+});
+for (const [action, evidence, target] of [
+  ['close_unknown', 'unknown', 'reviewed_unknown'],
+  ['confirm_accepted', 'accepted', 'reviewed_accepted'],
+]) {
+  await test(`${action} records evidence without claiming delivery or scheduling a send`, async () => {
+    await failedEmail('needs_review');
+    const before = await one('SELECT * FROM quote_amendment_email_outbox');
+    await reviewEmail({ action, evidence });
+    const after = await one('SELECT * FROM quote_amendment_email_outbox');
+    assert.equal(after.status, target);
+    assert.equal(after.sent_at, null);
+    assert.equal(after.attempts, 6);
+    assert.equal(String(after.scheduled_for), String(before.scheduled_for));
+  });
+}
+await test('competing reviews and changed request-id reuse are rejected', async () => {
+  await failedEmail();
+  await reviewEmail();
+  await rejects(() => reviewEmail({ request: id(92) }), /changed/);
+  await rejects(
+    () =>
+      reviewEmail({
+        note: 'Different evidence must not reuse an existing request.',
+      }),
+    /already used/
+  );
+  assert.equal(
+    Number(
+      (await one('SELECT count(*) AS n FROM quote_amendment_email_reviews')).n
+    ),
+    1
+  );
+});
+await test('repeat recovery cycles retain immutable history', async () => {
+  await failedEmail();
+  await reviewEmail();
+  await db.exec(
+    "UPDATE quote_amendment_email_outbox SET status='needs_review',attempts=2"
+  );
+  await reviewEmail({
+    request: id(92),
+    expected: 1,
+    action: 'close_unknown',
+    evidence: 'unknown',
+  });
+  const rows = (
+    await db.query(
+      'SELECT review_version,previous_attempts FROM quote_amendment_email_reviews ORDER BY review_version'
+    )
+  ).rows;
+  assert.deepEqual(rows, [
+    { review_version: 1, previous_attempts: 6 },
+    { review_version: 2, previous_attempts: 2 },
+  ]);
+  await rejects(
+    () => db.exec("UPDATE quote_amendment_email_reviews SET note='tamper'"),
+    /permission denied/
+  );
+  await db.exec('RESET ROLE');
+  await rejects(
+    () => db.exec('DELETE FROM quote_amendment_email_reviews'),
+    /immutable|append.only/i
+  );
+});
+await test('non-admin and deleted admins cannot review or replay', async () => {
+  await failedEmail();
+  await rejects(() => reviewEmail({ actor: owner }), /Admin required/);
+  await reviewEmail();
+  await db.exec(
+    `RESET ROLE; UPDATE profiles SET deleted_at=now() WHERE id='${operator}'; SET LOCAL ROLE service_role;`
+  );
+  await rejects(() => reviewEmail(), /Admin required/);
+});
+await test('mismatched evidence and short notes cannot authorize retries', async () => {
+  await failedEmail('needs_review');
+  for (const input of [
+    { evidence: 'unknown' },
+    { evidence: 'accepted' },
+    { note: 'short' },
+    { action: 'confirm_accepted', evidence: 'unknown' },
+  ]) {
+    await rejects(() => reviewEmail(input), /evidence required/);
+  }
+});
+for (const status of [
+  'pending',
+  'sending',
+  'sent',
+  'cancelled',
+  'reviewed_unknown',
+  'reviewed_accepted',
+]) {
+  await test(`cannot recover ${status} mail`, async () => {
+    await failedEmail(status);
+    await rejects(() => reviewEmail(), /changed/);
+  });
+}
+await test('stale amendment or changed payer cannot be retried', async () => {
+  await failedEmail();
+  await db.exec(
+    `UPDATE jobs SET payer_user_id='${outsider}' WHERE id='${job}'`
+  );
+  await rejects(() => reviewEmail(), /no longer current/);
+  await db.exec(`UPDATE jobs SET payer_user_id=NULL WHERE id='${job}'`);
+  await transition('withdraw', owner, 1);
+  await rejects(() => reviewEmail(), /no longer current/);
+});
+await test('review audit failure rolls back the queue reset', async () => {
+  await failedEmail();
+  await db.exec(`RESET ROLE; CREATE FUNCTION fail_email_review() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'review unavailable'; END $$;
+    CREATE TRIGGER fail_email_review BEFORE INSERT ON quote_amendment_email_reviews FOR EACH ROW EXECUTE FUNCTION fail_email_review(); SET LOCAL ROLE service_role;`);
+  await rejects(() => reviewEmail(), /review unavailable/);
+  assert.equal(
+    (await one('SELECT status FROM quote_amendment_email_outbox')).status,
+    'failed'
+  );
+});
+for (const role of ['anon', 'authenticated']) {
+  await db.exec(`SET ROLE ${role}`);
+  await assert.rejects(() => reviewEmail(), /permission denied/);
+  await assert.rejects(
+    () => db.exec('SELECT * FROM quote_amendment_email_reviews'),
+    /permission denied/
+  );
+  await db.exec('RESET ROLE');
+}
+assert.equal(
+  (
+    await one(
+      "SELECT relrowsecurity FROM pg_class WHERE relname='quote_amendment_email_reviews'"
+    )
+  ).relrowsecurity,
+  true
+);
 await db.close();
 console.log(
   `${cases} approval/application scenarios plus role and RLS checks passed.`

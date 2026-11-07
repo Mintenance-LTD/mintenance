@@ -1202,3 +1202,107 @@ Acceptance boundaries and recovery
   signed/funded variations remain open. Full release acceptance is incomplete.
   Push notifications/bank transfers retain their confirmed status. Beta gate
   remains enabled; no beta configuration or enforcement was changed.
+
+Quote amendment email recovery and operator review — 7 November 2026
+==================================================================
+Inspection and completed local work
+-----------------------------------
+- Started from clean 4e53675d4. Read applicable AGENTS, inspected the event/email
+  workflow, stored audit, active admin verification, cron recovery and push review.
+  No existing uncommitted work was present. Earlier 113 mobile / 22 relay / 43 web
+  and later test counts remain historical, not acceptance of the new controls.
+- Admin Recovery jobs now includes an email review panel with bounded 25-row
+  pages, open failures, reviewed events/retry progress, refresh/error states and
+  the latest 20 review entries per event. No recipient email or private quote
+  content is returned. Plain review copy distinguishes unknown outcomes, operator
+  evidence of acceptance and actual inbox delivery. Controls support wrapping,
+  labelled inputs and 48px minimum targets; physical visual acceptance is open.
+- Active database admin verification protects reads. Mutations require the
+  authenticated admin, normal CSRF enforcement, explicit confirmation, a matching
+  evidence category and a 20–2,000 character evidence reference/note. SQL rechecks
+  current non-deleted admin status. Three actions: close with delivery unknown,
+  record provider acceptance from evidence, or queue another worker attempt when
+  the operator attests it was never submitted/not accepted. No direct provider,
+  quote-decision, contract, payment or other financial mutation is in this path.
+- CLI-generated 20261107150444_quote_amendment_email_review.sql adds review
+  version/queue sequence, two closed review statuses and append-only review rows.
+  The service-only RPC locks the outbox row, validates its review version/status,
+  rechecks amendment/participant currency before retry and stores actor, evidence,
+  previous attempts/failure and resulting state in the same transaction. Exact
+  request UUID/body retries return the original review even after worker progress;
+  conflicting/reused requests fail. New audit rows have RLS and service SELECT
+  only; trigger prevents update/delete. No client RPC execute grant or direct
+  service write grant on review history. No backfill or external delivery call.
+- Recovery is limited to failed/needs_review rows. Pending/sending/sent/cancelled
+  and already closed rows cannot be reset. Retry starts a fresh bounded attempt
+  cycle while retaining prior evidence; the existing worker rechecks current
+  participant/account, quiet hours and both preference stores. Neither acceptance
+  nor unknown closure writes sent_at or claims actual delivery.
+- The UI locks duplicate submission, freezes exact request/body after uncertain
+  responses, requires reload after definitive conflicts and preserves confirmed
+  success if subsequent reads fail. Reviewed retries remain inspectable while
+  pending/sending/sent/cancelled. Failed history reads block new review submission.
+
+Fresh validation
+----------------
+- 136 web Vitest tests / 10 files passed. New API/UI coverage includes current
+  admin/soft-delete checks, CSRF, actor authority, strict evidence/confirmation,
+  error mapping, queue pagination/filtering/history, concurrent button presses,
+  exact ambiguous retry, stale conflicts, malformed acknowledgements, recovery
+  from list/history failure and independently queued retries. Existing amendment
+  email/provider, push delivery, recovery card/health and push review regressions
+  also passed. Log: output/quote-email-review-web-tests.log.
+- 51 local PGlite scenarios plus role/RLS checks passed; 15 new operator cases
+  cover atomic idempotent retry, both closure outcomes, stale/duplicate reviews,
+  immutable multi-cycle evidence, deleted/non-admin denial, evidence validation,
+  all disallowed delivery states, changed payer/version and audit-failure rollback.
+  The inherited insertion-denial test now explicitly overrides the new identity
+  field so it tests permission denial rather than identity assignment rejection.
+  Log: output/quote-email-review-sql.log.
+- Full web TypeScript and changed-file ESLint passed, zero lint errors/warnings.
+  An unsupported replaceAll use was replaced with the configured-target API.
+  UI tests use real query hooks, real CSRF handling with cache expiry and valid
+  UUIDs instead of the global test harness's placeholder UUID implementation.
+  No mobile implementation changed; no new mobile/relay results are claimed.
+- Aikido tools remain unavailable; no Aikido security clearance is claimed.
+
+GitHub publication and deployment boundary
+------------------------------------------
+- Final staged review passed diff whitespace checks, Prettier, check-no-hex.js
+  and check-edge-fn-currency.js. Web TypeScript and lint logs are retained in
+  output/quote-email-review-types.log and output/quote-email-review-lint.log.
+- The user's final instruction explicitly authorizes GitHub pushing for this
+  checkpoint. Remote origin is Mintenance-LTD/mintenance; existing remote feature
+  branch head d58fef7ff8cebd4ee7ab16142b2eb1b63effd56f is an ancestor. The eight
+  outgoing earlier commits are 6ae32ab17, b8c6e4a57, 5c654ee0e, 1d108b8c5,
+  385eec620, 1406864ae, 983a7341d and 4e53675d4, already recorded in this audit.
+  No environment/key/credential files occur in their changed-path inventory.
+- Vercel has a Git-linked mintenance-clean project. Added only
+  git.deploymentEnabled["feat/launch-terms-support-nov2"]=false to vercel.json,
+  following https://vercel.com/docs/project-configuration/git-configuration,
+  so feature-branch publication does not authorize an automatic deployment.
+  Inspected workflow triggers: production/staging push paths target main/develop,
+  not this branch. No workflow dispatch, deployment or schema application occurs.
+
+Acceptance gaps retained
+------------------------
+- Notification, email outbox and operator-review migrations remain UNAPPLIED.
+  Web/API/worker rollout needs separate authorization. No live customer/financial
+  mutation, review/requeue RPC call, real email/push or provider investigation was
+  performed. Evidence here is synthetic/local; no external delivery acceptance.
+- Operator evidence is asserted by a human; there is no automatic provider
+  receipt verification, bounce reconciliation or guarantee of inbox arrival.
+  Uncertain sends must not be retried without evidence of non-acceptance. Expired
+  sending leases still need the normal worker to move them into review. Unsaved
+  evidence notes and pending UI requests are not persisted across browser termination;
+  stored reviews can be reread. The UI shows latest 20 reviews, not the full
+  unbounded audit. Real concurrent DB sessions/full migration replay are untested.
+- Real browser/device layout, larger text, keyboard/scroll and two-admin/operator
+  recovery through the deployed environment remain unaccepted. Android/iOS MFA
+  status/enrolment/verification/disable/retry through the deployed relay still
+  needs device verification. Settings tests do not establish native sign-in MFA
+  enforcement across custom MFA and Supabase sessions. Jest/Vitest rendering does
+  not replace fresh-build physical-device visual checks. Escrow presentation does
+  not establish historical reconciliation. Signed/funded variations remain open.
+  Push/bank transfers retain their confirmed status. Full release acceptance is
+  incomplete and the beta gate remains enabled.

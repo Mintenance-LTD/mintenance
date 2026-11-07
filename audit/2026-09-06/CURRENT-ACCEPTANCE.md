@@ -218,3 +218,32 @@ no receipt reconciliation or recovery UI is implemented. Existing physical-devic
 deployed-relay MFA, native MFA challenge enforcement, signed/funded variation and
 historical reconciliation limitations remain. Full release acceptance remains
 incomplete, and the beta gate remains enabled.
+
+### Amendment email operator recovery — 7 November 2026
+
+Operator review/recovery is implemented locally in the admin Recovery jobs card.
+The paginated queue distinguishes open failures from reviewed events and retry
+progress; event history shows the latest 20 immutable reviews. Active database
+admin checks, CSRF, explicit evidence/confirmation, request idempotency and a
+locked review version protect close-unknown, record-provider-acceptance and retry
+actions. Uncertain requests retain their exact body; conflicts require refresh.
+Only failed/needs_review rows can change. Retry needs evidence of non-acceptance
+and a current amendment/recipient; the normal worker rechecks preferences and
+eligibility. Review cannot send email, approve quotes or alter financial records.
+
+Fresh validation: 136 web tests / 10 files, 51 local SQL scenarios plus role/RLS
+checks, full web TypeScript and changed-file ESLint passed. No native code changed;
+earlier mobile/relay results remain historical. Aikido scanning is unavailable.
+
+The new `20261107150444_quote_amendment_email_review.sql`, email outbox and prior
+notification migrations remain UNAPPLIED. Hosted workflow, real concurrency,
+provider evidence/recovery and browser/device visual acceptance remain open.
+Recorded provider acceptance is an operator assertion, not receipt reconciliation
+or proof of inbox delivery. Existing MFA, signing/funding, historical financial
+reconciliation and full-release limitations remain; beta enforcement is unchanged.
+
+The user now authorizes GitHub pushing. The target is the existing feature branch
+`feat/launch-terms-support-nov2`, including eight previously committed screenshot/
+quote checkpoints since remote d58fef7ff. A branch-specific Vercel auto-deployment
+exclusion was added before publication; main/develop deployment settings are
+unchanged. No deployment or live financial change is authorized or performed.
