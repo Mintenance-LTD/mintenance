@@ -19,7 +19,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenHeader } from '../../components/shared';
-import { DatePicker } from '../../components/ui/DatePicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -55,7 +54,6 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
   const [propertyType, setPropertyType] = useState('house');
   const [bedrooms, setBedrooms] = useState('');
   const [bathrooms, setBathrooms] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState<Date | null>(null);
   // 2026-05-27 audit-74 P1: removed the dead "notes" field. The
   // create payload didn't include it, /api/properties POST has no
   // notes binding, and live `public.properties` has no `notes`
@@ -99,7 +97,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       // Forward geocode address if we don't have coordinates yet
       let lat = data.latitude as number | undefined;
       let lng = data.longitude as number | undefined;
-      if (!lat && address) {
+      if (lat == null && address) {
         try {
           const geoResults = await Location.geocodeAsync(address);
           const firstResult = geoResults[0];
@@ -190,6 +188,18 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
     /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(code.trim());
 
   const handleSubmit = () => {
+    if (createMutation.isPending || saved) return;
+    if (
+      [bedrooms, bathrooms].some(
+        (value) => value.trim() && !/^\d+$/.test(value.trim())
+      )
+    ) {
+      Alert.alert(
+        'Check room counts',
+        'Bedrooms and bathrooms must be whole numbers of zero or more.'
+      );
+      return;
+    }
     if (!address1.trim()) {
       Alert.alert('Required', 'Please enter the address line 1.');
       return;
@@ -400,12 +410,6 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 />
               </View>
             </View>
-
-            <DatePicker
-              label='Purchase / Build Date'
-              value={purchaseDate}
-              onChange={setPurchaseDate}
-            />
           </View>
 
           {/* 2026-05-27 audit-74 P1: removed the dead Notes section.

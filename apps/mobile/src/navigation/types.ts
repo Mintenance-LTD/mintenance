@@ -83,6 +83,7 @@ export type AuthStackParamList = {
 // ============================================================================
 
 export type JobsStackParamList = {
+  QuoteAmendments: { jobId: string };
   JobsList: undefined;
   JobDetails: { jobId: string };
   JobPosting: undefined;
@@ -187,6 +188,7 @@ export type ProfileStackParamList = {
   AddClient: undefined;
   ClientDetail: { client: Record<string, unknown> }; // ClientData — use ClientData type directly in ClientDetailScreen
   QuoteDetail: { quoteId: string };
+  QuoteAmendmentPreparation: { quoteId: string };
   QuoteTemplates: undefined;
   FinanceDashboard: undefined;
   ServiceAreas: undefined;

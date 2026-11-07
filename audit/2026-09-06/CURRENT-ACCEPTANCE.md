@@ -63,3 +63,209 @@ The user has superseded this document's earlier prohibition on hosted migrations
 application migrations were applied to production and a fresh dry-run found zero remaining. See
 HOSTED-ROLLOUT-2026-09-22.md for sampled effective-permission checks and unresolved platform/advisor
 items. This does not close the unverified journeys or the additional property operations scope.
+
+## Screenshot continuation — 6 November 2026
+
+Local screenshot corrections and their exact verification are recorded in
+[SCREENSHOT-FIXES-2026-11-05.txt](SCREENSHOT-FIXES-2026-11-05.txt), including the
+preserved earlier batch. This does not close F1–F15 or full release acceptance.
+The beta gate remains enabled; no push, deployment, migration or live financial
+mutation occurred. Physical Android/iOS MFA and fresh-build visual/keyboard/
+scroll checks remain outstanding, and settings tests do not prove native
+sign-in MFA enforcement. Escrow/finance display corrections do not establish
+historical reconciliation or bank-arrival dates. Local Android export was
+blocked by missing release environment configuration before bundling.
+
+### Draft quote pricing follow-up — 6 November 2026
+
+The screenshot audit now records locally tested draft price/line-item replacement,
+server-calculated totals, version-conflict recovery, and send/edit race protection.
+New checks passed 97 mobile tests and 50 web tests; these are separate from the
+previous batch. Accepted-quote amendments, legacy web total-only editing, deployed
+concurrency/delivery, and fresh-build device checks remain open. No historical
+financial data was changed; the beta gate remains enabled and nothing was deployed.
+
+### Legacy web quote editing follow-up — 6 November 2026
+
+The screenshot audit records draft-only web pricing, version-checked editing and
+both deletion routes, optional-field clearing, ownership filtering, and working
+review/edit/send navigation. The unsafe legacy total/status update contract now
+returns 400; web/API rollout must be coordinated. Verification passed 122 tests
+and the full web type check. Accepted-quote amendments, historical reconciliation,
+real deployed concurrency/delivery and fresh browser/device acceptance remain open.
+The beta gate remains enabled; no deployment or live mutation was performed.
+
+### Accepted quote proposals and recorded history — 6 November 2026
+
+The screenshot audit records separate internal pricing proposals, immutable
+prospective quote history, accepted-quote mutation protection, guarded bid
+resubmission/linking and corrected accepted/rejected status synchronization.
+The mobile revision stub no longer invents a saved revision. The new local
+migration has not been applied to any hosted database; a later rollout must
+apply it before exposing the API/UI.
+
+Verification passed 196 web tests (12 files), 66 mobile quote-service tests,
+both full TypeScript checks, and disposable Postgres migration/permission/
+snapshot/idempotency checks. This is not full-schema replay or simultaneous
+multi-session acceptance evidence. Customer approval and applying amendments
+to contracts/bids/payments remain unimplemented; proposals do not change an
+accepted price. Historical reconciliation, atomic bid/quote acceptance,
+deployed relay MFA/native sign-in enforcement, fresh-build browser/device
+visual checks and full release acceptance remain open. The beta gate remains
+enabled; nothing was pushed, deployed or changed in live customer records.
+
+### Customer review and pre-signature application — 6 November 2026
+
+The latest screenshot audit records publication, authorized customer approval/
+rejection, contractor withdrawal and atomic application to an unsigned contract
+before any consent or financial footprint. The original quote remains immutable;
+a new quote supplies the revised bid/contract price, the contract returns to
+draft, and superseded quotes are excluded from current-value summaries. Signed,
+funded or invoiced variations remain blocked and are not implemented here.
+
+Final local checks passed 266 web tests / 16 files, full web TypeScript, clean
+changed-file lint, the existing history SQL checks and 27 new disposable Postgres
+approval/application scenarios plus permission checks. No mobile tests were
+rerun. Local rendering and SQL fixtures do not establish physical-device or
+multi-session/deployed journey acceptance.
+
+The user explicitly authorized production schema-only rollout as an exception
+to no deployment. This supersedes the preceding checkpoint's unapplied-schema
+status. Only quote_amendment_history (20261106163935) and quote_amendment_approval
+(20261106163946) were applied to production ukrjudtlvapiajkjbcrd. Read-only catalog,
+grant/RLS and advisor checks verified the rollout. No live approval/application
+operation or financial mutation was performed; no git push or app deployment
+occurred. The beta gate remains enabled. Full release acceptance, device MFA/
+native challenge enforcement, fresh-build visuals, signed/funded variations,
+notification delivery and historical reconciliation remain open.
+
+### Amendment notifications and native review — 6–7 November 2026
+
+Implemented locally: transactional amendment-event queueing, recipient/version
+checks before delivery, quiet-hours and notification preference handling, and
+native review with full pricing/history, approval/rejection, withdrawal and
+guarded application. Inbox/push and URL routes open the native review; exact
+retries, load recovery and refreshed job/contract caches have regression tests.
+Native proposal preparation/editing and amendment email delivery remain open.
+
+Fresh verification: 183 mobile tests / 6 suites, 120 web tests / 11 files,
+31 disposable SQL scenarios plus role/RLS checks, 22 relay tests, and full
+mobile/web TypeScript checks passed. Web changed-file lint is clean; mobile
+lint has no errors and three inspected pre-existing warnings. Aikido scanning
+remains unavailable. Earlier test counts are historical, not additional fresh
+coverage for this batch.
+
+New migration `20261106202654_quote_amendment_notifications.sql` is **unapplied**.
+This batch made no hosted changes and sent no real notification. A future
+authorized rollout must coordinate the migration, guarded queue processor,
+API/UI and native builds. The preceding two production amendment migrations
+remain the only hosted schema rollout recorded here. No push, deployment,
+live financial mutation or beta-gate change occurred in this batch.
+
+Fresh-device notification delivery/taps, linking, native review/signing, larger
+text/keyboard/scroll, deployed-relay MFA, native challenge enforcement and
+multi-session/deployed database journeys remain unaccepted. Signed/funded
+variations and historical reconciliation remain out of scope. Full release
+acceptance remains incomplete; the beta gate remains enabled.
+
+### Native amendment preparation and price editing — 7 November 2026
+
+The native preparation gap in the preceding checkpoint is implemented locally.
+Accepted quote details open owner-scoped source/history, replacement line-item
+editing with explicit tax and shared rounding, immutable proposal save and a
+separate confirmed publication step. Saved proposals can be resumed from history;
+ambiguous saves retain their request id/body, conflicts require reload, historical
+quotes are read-only, and navigation guards protect in-memory edits. Accepted
+prices, terms and financial records remain unchanged by proposal preparation.
+
+Fresh checks passed 142 mobile tests / 6 suites, 101 web tests / 6 files,
+31 existing SQL scenarios plus role/RLS checks, 22 relay tests and full mobile/
+web TypeScript. Web changed-file lint is clean; mobile lint has no errors and
+one inspected pre-existing unused import warning. Aikido scanning is unavailable.
+
+No schema change, hosted mutation, deployment, Git push or real notification
+occurred. The previous notification migration is still unapplied; native builds
+and API/processor rollout require separate authorization and device acceptance.
+Unsaved edits are not persisted across forced termination. Native price editing,
+publication, keyboard/scroll/large-text behavior and two-party review still need
+fresh-build Android/iOS verification. Contract-term amendments, amendment email,
+signed/funded variations, deployed-relay MFA/native challenge enforcement,
+historical reconciliation and full release acceptance remain open. The beta
+gate remains enabled.
+
+### Quote amendment email notifications — 7 November 2026
+
+The preceding amendment email implementation gap is closed locally. A prospective,
+transactional outbox queues each publish/approve/reject/withdraw/apply event once.
+The existing cron processes email independently of inbox/push, rechecks participants,
+version, current and legacy preferences, quiet hours and verified account email,
+and uses durable leases. Safe failures retry within a bounded budget; uncertain
+provider acceptance or a lost acknowledgement requires review without auto-resend.
+Web/native publication copy and generic review-link templates reflect this behavior.
+
+Fresh checks passed 140 web tests / 13 files, 21 native tests / 1 suite,
+36 local SQL scenarios plus role/RLS checks, 22 relay tests, full web/mobile TypeScript
+and changed-file web/mobile lint. Aikido scanning remains unavailable. Details,
+logs and recovery constraints are in SCREENSHOT-FIXES-2026-11-05.txt.
+
+The prior notification migration and new
+`20261107143626_quote_amendment_email_outbox.sql` are UNAPPLIED. No hosted
+mutation, real notice, deployment, Git push or live financial change occurred.
+Provider acceptance is not delivery; actual email delivery/rendering, authenticated
+links, opt-outs and recovery need separately authorized end-to-end verification.
+Failed/uncertain rows require operator/provider evidence before manual resolution;
+no receipt reconciliation or recovery UI is implemented. Existing physical-device,
+deployed-relay MFA, native MFA challenge enforcement, signed/funded variation and
+historical reconciliation limitations remain. Full release acceptance remains
+incomplete, and the beta gate remains enabled.
+
+### Amendment email operator recovery — 7 November 2026
+
+Operator review/recovery is implemented locally in the admin Recovery jobs card.
+The paginated queue distinguishes open failures from reviewed events and retry
+progress; event history shows the latest 20 immutable reviews. Active database
+admin checks, CSRF, explicit evidence/confirmation, request idempotency and a
+locked review version protect close-unknown, record-provider-acceptance and retry
+actions. Uncertain requests retain their exact body; conflicts require refresh.
+Only failed/needs_review rows can change. Retry needs evidence of non-acceptance
+and a current amendment/recipient; the normal worker rechecks preferences and
+eligibility. Review cannot send email, approve quotes or alter financial records.
+
+Fresh validation: 136 web tests / 10 files, 51 local SQL scenarios plus role/RLS
+checks, full web TypeScript and changed-file ESLint passed. No native code changed;
+earlier mobile/relay results remain historical. Aikido scanning is unavailable.
+
+The new `20261107150444_quote_amendment_email_review.sql`, email outbox and prior
+notification migrations remain UNAPPLIED. Hosted workflow, real concurrency,
+provider evidence/recovery and browser/device visual acceptance remain open.
+Recorded provider acceptance is an operator assertion, not receipt reconciliation
+or proof of inbox delivery. Existing MFA, signing/funding, historical financial
+reconciliation and full-release limitations remain; beta enforcement is unchanged.
+
+The user now authorizes GitHub pushing. The target is the existing feature branch
+`feat/launch-terms-support-nov2`, including eight previously committed screenshot/
+quote checkpoints since remote d58fef7ff. A branch-specific Vercel auto-deployment
+exclusion was added before publication; main/develop deployment settings are
+unchanged. No deployment or live financial change is authorized or performed.
+
+Publication verified: recovery commit `1adc292fe` and the eight earlier checkpoints
+were pushed to that GitHub branch. `git ls-remote` matched the full local commit
+`1adc292feb19a2a7c5db58a2ddacc84a0f977f82`. The post-push Vercel branch query
+returned no new deployments. This publication receipt is a documentation follow-up;
+all deployment/migration/device acceptance limitations above remain unchanged.
+
+### Main conflict resolution — 7 November 2026
+
+Merged main `c49f936af27cac9eaf3c8e39b074e1f4240ff300` into the feature branch
+after fetching both remote heads. Resolved both conflicts by retaining the shared
+quote-pricing export and the two MFA relay tests (approved bearer forwarding and
+strict route/method rejection). The resolved code tree is identical to feature
+head `5f6b638a1`; this merge records main as an ancestor without losing existing
+feature work. Beta enforcement and the branch-specific Vercel deployment exclusion
+are unchanged. No merge into main, deployment or hosted mutation was performed.
+
+Fresh checks passed the shared-package build, compiled quote-pricing export check,
+54 mobile tests / 4 suites, 30 web tests / 4 files, 22 relay tests and full web/mobile
+TypeScript. Logs are under output/merge-main-*. Previous audit/device/MFA,
+historical financial reconciliation, unapplied migration and incomplete release
+acceptance limitations remain in force.

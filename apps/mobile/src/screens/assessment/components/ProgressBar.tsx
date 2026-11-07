@@ -6,12 +6,14 @@ interface ProgressBarProps {
   percentage: number;
   completedSteps?: number;
   totalSteps?: number;
+  requiredOnly?: boolean;
 }
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
   percentage,
   completedSteps,
   totalSteps,
+  requiredOnly = false,
 }) => {
   return (
     <View style={styles.container}>
@@ -19,7 +21,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         <Text style={styles.percentage}>{percentage}%</Text>
         {completedSteps != null && totalSteps != null && (
           <Text style={styles.stepCount}>
-            {completedSteps} of {totalSteps} steps
+            {completedSteps} of {totalSteps}{' '}
+            {requiredOnly ? 'required steps' : 'steps'}
           </Text>
         )}
       </View>

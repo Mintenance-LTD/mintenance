@@ -14,6 +14,8 @@ interface Item {
   property_name: string;
   title: string;
   next_action: string;
+  can_open_job?: boolean;
+  due_at?: string | null;
 }
 interface Queue {
   items: Item[];
@@ -22,20 +24,29 @@ interface Queue {
 }
 export function PortfolioActionQueue({
   onOpenProperty,
+  onOpenJob,
+  initiallyExpanded = false,
 }: {
   onOpenProperty: (id: string) => void;
+  onOpenJob?: (id: string) => void;
+  initiallyExpanded?: boolean;
 }) {
   const { user } = useAuth();
   const [offset, setOffset] = useState(0);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initiallyExpanded);
   const [editing, setEditing] = useState<string | null>(null);
   const query = useQuery({
     queryKey: ['portfolio-actions', user?.id, offset],
     enabled: !!user && expanded,
-    queryFn: () =>
-      mobileApiClient.get<Queue>(
+    queryFn: async () => {
+      const result = await mobileApiClient.get<Queue>(
         `/api/portfolio/queue?offset=${offset}&limit=5`
-      ),
+      );
+      if (!Array.isArray(result?.items) || typeof result.total !== 'number') {
+        throw new Error('Unable to confirm action queue');
+      }
+      return result;
+    },
     staleTime: 30000,
   });
   return (
@@ -72,17 +83,38 @@ export function PortfolioActionQueue({
                   <TouchableOpacity
                     style={styles.item}
                     accessibilityRole='button'
-                    onPress={() => onOpenProperty(item.property_id)}
+                    onPress={() =>
+                      item.kind === 'job' && item.can_open_job && onOpenJob
+                        ? onOpenJob(item.id)
+                        : onOpenProperty(item.property_id)
+                    }
                   >
                     <Text>{item.property_name}</Text>
                     <Text style={styles.heading}>{item.title}</Text>
                     <Text>{item.next_action}</Text>
-                    <Text>Open property →</Text>
+                    {item.due_at &&
+                      Number.isFinite(Date.parse(item.due_at)) && (
+                        <Text>
+                          {item.kind === 'report'
+                            ? 'Report / follow-up date'
+                            : 'Due'}
+                          : {new Date(item.due_at).toLocaleDateString('en-GB')}
+                        </Text>
+                      )}
+                    <Text>
+                      {item.kind === 'job' && item.can_open_job && onOpenJob
+                        ? 'Open job →'
+                        : 'Open property →'}
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     accessibilityRole='button'
                     onPress={() =>
-                      setEditing(editing === item.id ? null : item.id)
+                      setEditing(
+                        editing === `${item.kind}:${item.id}`
+                          ? null
+                          : `${item.kind}:${item.id}`
+                      )
                     }
                   >
                     <Text>Manage follow-up</Text>
@@ -90,7 +122,7 @@ export function PortfolioActionQueue({
                   {item.kind === 'report' && (
                     <IssueConversation reportId={item.id} />
                   )}
-                  {editing === item.id && (
+                  {editing === `${item.kind}:${item.id}` && (
                     <ActionFollowup
                       propertyId={item.property_id}
                       kind={item.kind}

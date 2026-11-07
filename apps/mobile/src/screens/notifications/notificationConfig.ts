@@ -20,6 +20,7 @@ export const FILTER_TABS: { key: FilterTab; label: string }[] = [
 export const ICON_COLORS: Record<string, { icon: string; bg: string }> = {
   job_update: { icon: '#3B82F6', bg: '#DBEAFE' },
   bid_received: { icon: me.brand, bg: me.brandSoft },
+  quote_amendment_update: { icon: me.brand2, bg: me.brandSoft },
   bid_accepted: { icon: me.brand, bg: me.brandSoft },
   contract_created: { icon: '#8B5CF6', bg: '#EDE9FE' },
   contract_accepted: {
@@ -72,6 +73,7 @@ export const getIconName = (
     case 'message_received':
       return 'chatbubble-outline';
     case 'quote_sent':
+    case 'quote_amendment_update':
       return 'document-text-outline';
     case 'system':
       return 'information-circle-outline';

@@ -41,11 +41,16 @@ export async function createQuote(
       {
         title: quoteData.project_title,
         clientName: quoteData.client_name,
-        clientEmail: quoteData.client_email,
+        clientEmail: quoteData.client_email || undefined,
         clientPhone: quoteData.client_phone,
-        lineItems: lineItems,
+        lineItems: lineItems.map((item) => ({
+          description: item.item_name,
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+          total: item.subtotal,
+        })),
         subtotal,
-        taxRate,
+        taxRate: taxRate * 100, // API/database rates are percentages.
         taxAmount,
         totalAmount,
         validUntil: quoteData.valid_until,
@@ -113,7 +118,13 @@ export async function getQuotes(
     const response = await mobileApiClient.get<{ quotes: ContractorQuote[] }>(
       `/api/contractor/quotes${status}`
     );
-    return response.quotes ?? [];
+    return (response.quotes ?? []).map((quote) => {
+      const email = (quote as unknown as { customerEmail?: string })
+        .customerEmail;
+      return !quote.client_email && email
+        ? { ...quote, client_email: email }
+        : quote;
+    });
   } catch (error) {
     logger.error('Error fetching quotes', error, { service: 'quote-builder' });
     throw new Error('Failed to fetch quotes');
@@ -163,6 +174,9 @@ export async function updateQuote(
     const response = await mobileApiClient.put<{ quote: ContractorQuote }>(
       `/api/contractor/quotes/${quoteId}`,
       {
+        expected_status: quoteData.expected_status,
+        expected_updated_at: quoteData.expected_updated_at,
+        pricing: quoteData.pricing,
         title: quoteData.title,
         client_name: quoteData.client_name,
         total_amount: quoteData.total_amount,
@@ -184,15 +198,24 @@ export async function updateQuote(
     return response.quote;
   } catch (error) {
     logger.error('Error updating quote', error, { service: 'quote-builder' });
+    if ((error as { statusCode?: number })?.statusCode === 409) throw error;
     throw new Error('Failed to update quote');
   }
 }
 
-export async function sendQuote(quoteId: string): Promise<ContractorQuote> {
+export async function sendQuote(
+  quoteId: string,
+  expectedUpdatedAt?: string
+): Promise<ContractorQuote> {
   try {
     const response = await mobileApiClient.post<{ quote: ContractorQuote }>(
       '/api/contractor/send-quote',
-      { quoteId }
+      {
+        quoteId,
+        ...(expectedUpdatedAt
+          ? { expected_updated_at: expectedUpdatedAt }
+          : {}),
+      }
     );
 
     await trackQuoteInteraction(quoteId, 'sent');
@@ -200,6 +223,7 @@ export async function sendQuote(quoteId: string): Promise<ContractorQuote> {
     return response.quote;
   } catch (error) {
     logger.error('Error sending quote', error, { service: 'quote-builder' });
+    if ((error as { statusCode?: number })?.statusCode === 409) throw error;
     throw new Error('Failed to send quote');
   }
 }

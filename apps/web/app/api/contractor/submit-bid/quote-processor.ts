@@ -83,18 +83,18 @@ export function prepareQuoteData(
  * Check if quote already exists for a bid
  */
 async function checkExistingQuote(
-  quoteId: string | null | undefined
-): Promise<{ id: string } | null> {
-  if (!quoteId) {
-    return null;
-  }
-
-  const { data: existingQuote } = await serverSupabase
+  quoteId: string,
+  quotePayload: QuotePayload
+): Promise<{ id: string; status: string; updated_at: string | null } | null> {
+  const { data: existingQuote, error } = await serverSupabase
     .from('contractor_quotes')
-    .select('id')
+    .select('id, status, updated_at')
     .eq('id', quoteId)
+    .eq('contractor_id', quotePayload.contractor_id)
+    .eq('job_id', quotePayload.job_id)
     .single();
 
+  if (error) return null;
   return existingQuote;
 }
 
@@ -120,13 +120,21 @@ async function createQuote(
  * Update an existing quote
  */
 async function updateQuote(
-  quoteId: string,
+  existing: { id: string; status: string; updated_at: string | null },
   quotePayload: QuotePayload
 ): Promise<{ quote: unknown; error: unknown }> {
-  const { data: updatedQuote, error: quoteUpdateError } = await serverSupabase
+  let query = serverSupabase
     .from('contractor_quotes')
     .update(quotePayload)
-    .eq('id', quoteId)
+    .eq('id', existing.id)
+    .eq('contractor_id', quotePayload.contractor_id)
+    .eq('job_id', quotePayload.job_id)
+    .eq('status', existing.status);
+  query =
+    existing.updated_at === null
+      ? query.is('updated_at', null)
+      : query.eq('updated_at', existing.updated_at);
+  const { data: updatedQuote, error: quoteUpdateError } = await query
     .select()
     .single();
 
@@ -136,21 +144,33 @@ async function updateQuote(
 /**
  * Link quote to bid
  */
-async function linkQuoteToBid(bidId: string, quoteId: string): Promise<void> {
-  const { error: linkError } = await serverSupabase
+async function linkQuoteToBid(
+  bidId: string,
+  quoteId: string,
+  payload: QuotePayload
+): Promise<boolean> {
+  const { data: linkedBid, error: linkError } = await serverSupabase
     .from('bids')
     .update({ quote_id: quoteId })
-    .eq('id', bidId);
+    .eq('id', bidId)
+    .eq('contractor_id', payload.contractor_id)
+    .eq('job_id', payload.job_id)
+    .eq('status', 'pending')
+    .is('quote_id', null)
+    .select('id')
+    .maybeSingle();
 
-  if (linkError) {
+  if (linkError || !linkedBid) {
     logger.error('Failed to link quote to bid', {
       service: 'contractor',
       bidId,
       quoteId,
-      error: linkError.message,
+      error:
+        linkError?.message || 'Bid changed before the quote could be linked',
     });
-    // Don't throw - quote creation succeeded, linking is secondary
+    return false;
   }
+  return true;
 }
 
 /**
@@ -161,12 +181,25 @@ export async function processQuote(
   existingQuoteId: string | null | undefined,
   bidId: string
 ): Promise<unknown> {
-  const existingQuote = await checkExistingQuote(existingQuoteId);
-
-  if (existingQuote?.id) {
+  if (existingQuoteId) {
+    const existingQuote = await checkExistingQuote(
+      existingQuoteId,
+      quotePayload
+    );
+    // A missing/foreign/accepted quote must never become an unlinked replacement.
+    if (
+      !existingQuote ||
+      !['draft', 'sent', 'viewed'].includes(existingQuote.status)
+    ) {
+      logger.warn('Linked quote cannot be revised through bid submission', {
+        service: 'contractor',
+        quoteId: existingQuoteId,
+      });
+      return null;
+    }
     // Update existing quote
     const { quote, error: quoteUpdateError } = await updateQuote(
-      existingQuote.id,
+      existingQuote,
       quotePayload
     );
 
@@ -206,7 +239,8 @@ export async function processQuote(
 
     // Link quote to bid
     if (quote && typeof quote === 'object' && 'id' in quote) {
-      await linkQuoteToBid(bidId, quote.id as string);
+      if (!(await linkQuoteToBid(bidId, quote.id as string, quotePayload)))
+        return null;
     }
 
     return quote;

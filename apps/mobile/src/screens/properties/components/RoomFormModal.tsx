@@ -116,19 +116,20 @@ export const RoomFormModal: React.FC<RoomFormModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.body}>
+          <ScrollView
+            contentContainerStyle={styles.body}
+            keyboardShouldPersistTaps='handled'
+            keyboardDismissMode='on-drag'
+          >
             {/* Name */}
             <Text style={styles.label}>Name</Text>
             <TextInput
               value={values.name}
               onChangeText={(t) => setValues({ ...values, name: t })}
               placeholder='e.g. Master bedroom'
-              placeholderTextColor={me.ink4}
+              placeholderTextColor={me.ink2}
               maxLength={80}
-              style={[
-                styles.input,
-                nameError ? styles.inputError : undefined,
-              ]}
+              style={[styles.input, nameError ? styles.inputError : undefined]}
             />
             {nameError ? (
               <Text style={styles.errorText}>{nameError}</Text>
@@ -177,10 +178,7 @@ export const RoomFormModal: React.FC<RoomFormModalProps> = ({
               placeholder='e.g. 12.5'
               placeholderTextColor={me.ink4}
               keyboardType='decimal-pad'
-              style={[
-                styles.input,
-                sizeError ? styles.inputError : undefined,
-              ]}
+              style={[styles.input, sizeError ? styles.inputError : undefined]}
             />
             {sizeError ? (
               <Text style={styles.errorText}>{sizeError}</Text>

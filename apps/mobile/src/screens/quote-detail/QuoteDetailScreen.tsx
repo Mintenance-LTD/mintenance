@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +21,9 @@ import {
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { me } from '../../design-system/mint-editorial';
+import { styles } from './quoteDetailStyles';
+import { DraftQuoteEditor } from './DraftQuoteEditor';
+import type { UpdateQuoteData } from '../../services/quotes/types';
 
 interface QuoteDetailScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteDetail'>;
@@ -46,21 +50,63 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
 
   const [quote, setQuote] = useState<ContractorQuote | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const saveLock = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const requestVersion = useRef(0);
 
-  useEffect(() => {
-    loadQuote();
-  }, [quoteId]);
-
-  const loadQuote = async () => {
-    if (!user) return;
+  const loadQuote = useCallback(async () => {
+    const version = ++requestVersion.current;
+    setLoadError(false);
+    setLoading(true);
+    setQuote(null);
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     try {
       const quotes = await QuoteBuilderService.getQuotes(user.id);
-      const found = quotes.find((q) => q.id === quoteId);
-      setQuote(found ?? null);
+      if (version !== requestVersion.current) return;
+      setQuote(quotes.find((q) => q.id === quoteId) ?? null);
     } catch {
-      toast.error('Failed to load quote');
+      if (version === requestVersion.current) setLoadError(true);
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
+    }
+  }, [quoteId, user?.id]);
+
+  useEffect(() => {
+    setEditing(false);
+    void loadQuote();
+    const versionRef = requestVersion;
+    return () => {
+      versionRef.current++;
+    };
+  }, [loadQuote]);
+
+  const startEditing = () => {
+    if (quote?.status !== 'draft') return;
+    setEditing(true);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+  const saveDetails = async (data: UpdateQuoteData) => {
+    if (!quote || quote.status !== 'draft' || saveLock.current) return;
+    const version = requestVersion.current;
+    saveLock.current = true;
+    setSaving(true);
+    try {
+      const saved = await QuoteBuilderService.updateQuote(quote.id, data);
+      if (saved?.id !== quote.id)
+        throw new Error('Quote update could not be confirmed');
+      if (version !== requestVersion.current) return;
+      setEditing(false);
+      await loadQuote();
+      toast.success('Quote saved');
+    } finally {
+      saveLock.current = false;
+      setSaving(false);
     }
   };
 
@@ -72,11 +118,18 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
         onPress: async () => {
           if (!quote || !user) return;
           try {
-            await QuoteBuilderService.sendQuote(quote.id);
+            await QuoteBuilderService.sendQuote(quote.id, quote.updated_at);
             toast.success('Quote sent');
             await loadQuote();
-          } catch {
-            toast.error('Failed to send quote');
+          } catch (error) {
+            if ((error as { statusCode?: number })?.statusCode === 409) {
+              toast.error(
+                'Quote changed. Review the latest prices before sending.'
+              );
+              await loadQuote();
+            } else {
+              toast.error('Failed to send quote');
+            }
           }
         },
       },
@@ -92,7 +145,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
         })
       : '\u2014';
 
-  if (loading) return <LoadingSpinner message='Loading quote\u2026' />;
+  if (loading) return <LoadingSpinner message='Loading quote…' />;
 
   if (!quote) {
     return (
@@ -100,7 +153,14 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
         <View style={styles.emptyIconWrap}>
           <Ionicons name='document-outline' size={32} color={me.ink3} />
         </View>
-        <Text style={styles.emptyText}>Quote not found</Text>
+        <Text style={styles.emptyText}>
+          {loadError ? 'Could not load quote' : 'Quote not found'}
+        </Text>
+        {loadError && (
+          <TouchableOpacity accessibilityRole='button' onPress={loadQuote}>
+            <Text style={styles.backLink}>Retry loading quote</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backLink}>Go back</Text>
         </TouchableOpacity>
@@ -120,301 +180,211 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
         >
           <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quote #{quote.quote_number}</Text>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() =>
-            navigation.navigate('CreateQuote', { jobId: quote.job_id })
-          }
-        >
-          <Ionicons name='pencil' size={22} color={me.ink} />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          Quote #{quote.quote_number || quote.id.slice(0, 8).toUpperCase()}
+        </Text>
+        {quote.status === 'draft' && !editing && (
+          <TouchableOpacity
+            accessibilityRole='button'
+            accessibilityLabel='Edit quote'
+            style={styles.headerButton}
+            onPress={startEditing}
+          >
+            <Ionicons name='pencil' size={22} color={me.ink} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Status Card */}
-        <View style={styles.statusCard}>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-            <Text style={styles.statusText}>{quote.status.toUpperCase()}</Text>
-          </View>
-          <Text style={styles.totalAmount}>
-            {'\u00A3'}
-            {quote.total_amount.toFixed(2)}
-          </Text>
-          <Text style={styles.projectTitle}>{quote.project_title}</Text>
-        </View>
-
-        {/* Client */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>CLIENT</Text>
-          <Text style={styles.clientName}>{quote.client_name}</Text>
-          {quote.client_email ? (
-            <Text style={styles.detailText}>{quote.client_email}</Text>
-          ) : null}
-          {quote.client_phone ? (
-            <Text style={styles.detailText}>{quote.client_phone}</Text>
-          ) : null}
-        </View>
-
-        {/* Project */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PROJECT</Text>
-          <Text style={styles.valueText}>{quote.project_title}</Text>
-          {quote.project_description ? (
-            <Text style={styles.detailText}>{quote.project_description}</Text>
-          ) : null}
-        </View>
-
-        {/* Dates */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>DATES</Text>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Created</Text>
-            <Text style={styles.detailValue}>
-              {formatDate(quote.created_at)}
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Valid Until</Text>
-            <Text style={styles.detailValue}>
-              {formatDate(quote.valid_until)}
-            </Text>
-          </View>
-          {quote.sent_at && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Sent</Text>
-              <Text style={styles.detailValue}>
-                {formatDate(quote.sent_at)}
-              </Text>
-            </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          keyboardShouldPersistTaps='handled'
+          keyboardDismissMode='on-drag'
+          showsVerticalScrollIndicator={false}
+        >
+          {editing && (
+            <DraftQuoteEditor
+              key={quote.id + user?.id}
+              quote={quote}
+              saving={saving}
+              onSave={saveDetails}
+              onCancel={() => setEditing(false)}
+              onReload={() => {
+                setEditing(false);
+                void loadQuote();
+              }}
+            />
           )}
-        </View>
-
-        {/* Totals */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>FINANCIALS</Text>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Subtotal</Text>
-            <Text style={styles.detailValue}>
-              {'\u00A3'}
-              {quote.subtotal.toFixed(2)}
-            </Text>
-          </View>
-          {quote.discount_amount ? (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Discount</Text>
-              <Text style={[styles.detailValue, { color: me.brand }]}>
-                -{'\u00A3'}
-                {quote.discount_amount.toFixed(2)}
+          {/* Status Card */}
+          <View style={styles.statusCard}>
+            <View
+              style={[styles.statusBadge, { backgroundColor: statusColor }]}
+            >
+              <Text style={styles.statusText}>
+                {quote.status.toUpperCase()}
               </Text>
             </View>
-          ) : null}
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Tax ({quote.tax_rate}%)</Text>
-            <Text style={styles.detailValue}>
-              {'\u00A3'}
-              {quote.tax_amount.toFixed(2)}
-            </Text>
-          </View>
-          <View style={[styles.detailRow, styles.totalRowFinal]}>
-            <Text style={styles.grandTotalLabel}>Total</Text>
-            <Text style={styles.grandTotalValue}>
+            <Text style={styles.totalAmount}>
               {'\u00A3'}
               {quote.total_amount.toFixed(2)}
             </Text>
+            <Text style={styles.projectTitle}>{quote.project_title}</Text>
           </View>
-        </View>
 
-        {/* Notes */}
-        {quote.notes ? (
+          {/* Client */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>NOTES</Text>
-            <Text style={styles.notesText}>{quote.notes}</Text>
+            <Text style={styles.sectionTitle}>CLIENT</Text>
+            <Text style={styles.clientName}>{quote.client_name}</Text>
+            {quote.client_email ? (
+              <Text style={styles.detailText}>{quote.client_email}</Text>
+            ) : null}
+            {quote.client_phone ? (
+              <Text style={styles.detailText}>{quote.client_phone}</Text>
+            ) : null}
           </View>
-        ) : null}
 
-        {/* Actions */}
-        {quote.status === 'draft' && (
-          <View style={styles.actionsSection}>
+          {/* Project */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>PROJECT</Text>
+            <Text style={styles.valueText}>{quote.project_title}</Text>
+            {quote.project_description ? (
+              <Text style={styles.detailText}>{quote.project_description}</Text>
+            ) : null}
+          </View>
+
+          {/* Dates */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>DATES</Text>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Created</Text>
+              <Text style={styles.detailValue}>
+                {formatDate(quote.created_at)}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Valid Until</Text>
+              <Text style={styles.detailValue}>
+                {formatDate(quote.valid_until)}
+              </Text>
+            </View>
+            {quote.sent_at && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Sent</Text>
+                <Text style={styles.detailValue}>
+                  {formatDate(quote.sent_at)}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>LINE ITEMS</Text>
+            {quote.line_items?.length ? (
+              quote.line_items.map((item, index) => (
+                <View key={index} style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { flex: 1 }]}>
+                    {item.description || item.item_name || 'Item'} ·{' '}
+                    {item.quantity} × £
+                    {Number(item.unitPrice ?? item.unit_price ?? 0).toFixed(2)}
+                  </Text>
+                  <Text style={styles.detailValue}>
+                    £
+                    {Number(
+                      item.total ??
+                        item.subtotal ??
+                        item.quantity * (item.unitPrice ?? item.unit_price ?? 0)
+                    ).toFixed(2)}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.detailText}>
+                No line-item breakdown recorded.
+              </Text>
+            )}
+          </View>
+          {/* Totals */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>FINANCIALS</Text>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Subtotal</Text>
+              <Text style={styles.detailValue}>
+                {'\u00A3'}
+                {quote.subtotal.toFixed(2)}
+              </Text>
+            </View>
+            {quote.discount_amount ? (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Discount</Text>
+                <Text style={[styles.detailValue, { color: me.brand }]}>
+                  -{'\u00A3'}
+                  {quote.discount_amount.toFixed(2)}
+                </Text>
+              </View>
+            ) : null}
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Tax</Text>
+              <Text style={styles.detailValue}>
+                {'\u00A3'}
+                {quote.tax_amount.toFixed(2)}
+              </Text>
+            </View>
+            <View style={[styles.detailRow, styles.totalRowFinal]}>
+              <Text style={styles.grandTotalLabel}>Total</Text>
+              <Text style={styles.grandTotalValue}>
+                {'\u00A3'}
+                {quote.total_amount.toFixed(2)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Notes */}
+          {quote.notes ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>NOTES</Text>
+              <Text style={styles.notesText}>{quote.notes}</Text>
+            </View>
+          ) : null}
+
+          {/* Actions */}
+          {quote.status === 'accepted' && (
             <TouchableOpacity
-              style={styles.editButton}
+              accessibilityRole='button'
+              style={[styles.editorAction, { minHeight: 48, padding: 16 }]}
               onPress={() =>
-                navigation.navigate('CreateQuote', { jobId: quote.job_id })
+                navigation.navigate('QuoteAmendmentPreparation', {
+                  quoteId: quote.id,
+                })
               }
             >
-              <Ionicons name='pencil-outline' size={18} color={me.ink2} />
-              <Text style={styles.editButtonText}>Edit Quote</Text>
+              <Text style={styles.backLink}>
+                Prepare amendment and view history
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-              <Ionicons name='send-outline' size={18} color={me.onBrand} />
-              <Text style={styles.sendButtonText}>Send to Client</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          )}
+          {quote.status === 'draft' && !editing && (
+            <View style={styles.actionsSection}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={startEditing}
+              >
+                <Ionicons name='pencil-outline' size={18} color={me.ink2} />
+                <Text style={styles.editButtonText}>Edit quote</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+                <Ionicons name='send-outline' size={18} color={me.onBrand} />
+                <Text style={styles.sendButtonText}>Send to Client</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: me.bg2 },
-  centered: { justifyContent: 'center', alignItems: 'center' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: me.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
-  },
-  headerButton: { padding: 8 },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: me.ink,
-  },
-  scroll: { flex: 1 },
-  statusCard: {
-    margin: 16,
-    backgroundColor: me.surface,
-    borderRadius: 16,
-    padding: 20,
-    ...me.shadow.card,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginBottom: 12,
-    alignSelf: 'flex-start',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: me.onBrand,
-  },
-  totalAmount: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: me.ink,
-  },
-  projectTitle: {
-    fontSize: 14,
-    color: me.ink2,
-    marginTop: 4,
-  },
-  section: {
-    backgroundColor: me.surface,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 16,
-    padding: 16,
-    ...me.shadow.card,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: me.ink3,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  clientName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: me.ink,
-  },
-  detailText: { fontSize: 13, color: me.ink2, marginTop: 4 },
-  valueText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: me.ink,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-  },
-  detailLabel: { fontSize: 14, color: me.ink2 },
-  detailValue: {
-    fontSize: 14,
-    color: me.ink,
-    fontWeight: '600',
-  },
-  totalRowFinal: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: me.line,
-    marginTop: 8,
-    paddingTop: 12,
-  },
-  grandTotalLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: me.ink,
-  },
-  grandTotalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: me.ink,
-  },
-  notesText: {
-    fontSize: 14,
-    color: me.ink2,
-    lineHeight: 20,
-  },
-  actionsSection: {
-    flexDirection: 'row',
-    gap: 12,
-    marginHorizontal: 16,
-    marginTop: 4,
-  },
-  editButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: me.bg2,
-    borderRadius: 28,
-    paddingVertical: 14,
-    gap: 6,
-  },
-  editButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: me.ink,
-  },
-  sendButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: me.ink,
-    borderRadius: 28,
-    paddingVertical: 14,
-    gap: 6,
-  },
-  sendButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: me.onBrand,
-  },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: me.bg2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: { fontSize: 16, color: me.ink2, marginTop: 16 },
-  backLink: {
-    fontSize: 14,
-    color: me.ink,
-    fontWeight: '600',
-    marginTop: 12,
-  },
-});

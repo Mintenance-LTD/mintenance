@@ -32,12 +32,6 @@ export const FinancialsScreen: React.FC = () => {
       <ErrorView message='No financial data available' onRetry={refetch} />
     );
 
-  // Budget overview values
-  const budgeted = data.totalSpent + data.inEscrow + data.refunded;
-  const spent = data.totalSpent;
-  const left = Math.max(budgeted - spent, 0);
-  const spentPct = budgeted > 0 ? Math.min((spent / budgeted) * 100, 100) : 0;
-
   return (
     <View style={styles.container}>
       <StatusBar
@@ -74,12 +68,7 @@ export const FinancialsScreen: React.FC = () => {
         />
 
         <View style={styles.contentBody}>
-          <BudgetOverview
-            budgeted={budgeted}
-            spent={spent}
-            left={left}
-            spentPct={spentPct}
-          />
+          <BudgetOverview />
 
           <SpendingBreakdown
             totalSpent={data.totalSpent}

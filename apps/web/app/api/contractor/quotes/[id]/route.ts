@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
-import { InternalServerError, NotFoundError } from '@/lib/errors/api-error';
+import { logger, calculateDraftQuotePricing } from '@mintenance/shared';
+import {
+  InternalServerError,
+  NotFoundError,
+  ConflictError,
+  BadRequestError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { deleteDraftQuote } from '@/lib/quotes/delete-draft-quote';
 
 const lineItemSchema = z.object({
   description: z.string().min(1).max(500),
@@ -13,16 +19,42 @@ const lineItemSchema = z.object({
   total: z.number().min(0).optional(),
 });
 
-const updateQuoteSchema = z.object({
-  title: z.string().min(1).max(500).optional(),
-  client_name: z.string().max(200).optional(),
-  total_amount: z.number().min(0).optional(),
-  status: z.string().max(50).optional(),
-  line_items: z.array(lineItemSchema).optional(),
-  terms: z.string().max(5000).optional(),
-  notes: z.string().max(5000).optional(),
-  valid_until: z.string().optional(),
-});
+const updateQuoteSchema = z
+  .object({
+    expected_status: z.literal('draft').optional(),
+    expected_updated_at: z
+      .string()
+      .datetime({ offset: true })
+      .nullable()
+      .optional(),
+    pricing: z
+      .object({
+        line_items: z
+          .array(lineItemSchema.omit({ total: true }).strict())
+          .min(1)
+          .max(100),
+        tax_rate_percent: z.number().min(0).max(100),
+      })
+      .strict()
+      .optional(),
+    title: z.string().trim().min(1).max(255).optional(),
+    client_name: z.string().trim().min(1).max(200).optional(),
+    terms: z.string().max(5000).optional(),
+    notes: z.string().max(5000).optional(),
+    valid_until: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .refine((value) => {
+        const date = new Date(`${value}T00:00:00Z`);
+        return (
+          Number.isFinite(date.getTime()) &&
+          date.toISOString().slice(0, 10) === value
+        );
+      }, 'Enter a valid date')
+      .nullable()
+      .optional(),
+  })
+  .strict();
 
 export const PUT = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
@@ -33,41 +65,72 @@ export const PUT = withApiHandler(
     if (validation instanceof NextResponse) return validation;
     const payload = validation.data;
 
+    if (
+      payload.pricing &&
+      (payload.expected_status !== 'draft' ||
+        payload.expected_updated_at === undefined)
+    ) {
+      throw new BadRequestError(
+        'Price edits require a versioned draft and a complete pricing breakdown.'
+      );
+    }
+    let pricingUpdates;
+    if (payload.pricing) {
+      try {
+        pricingUpdates = calculateDraftQuotePricing(payload.pricing);
+      } catch (error) {
+        throw new BadRequestError(
+          error instanceof Error ? error.message : 'Invalid pricing.'
+        );
+      }
+    }
+
     // Verify ownership
-    const { data: existing } = await serverSupabase
+    const { data: existing, error: ownershipError } = await serverSupabase
       .from('contractor_quotes')
-      .select('id')
+      .select('id, status, updated_at')
       .eq('id', id)
       .eq('contractor_id', user.id)
-      .single();
+      .maybeSingle();
 
+    if (ownershipError) throw new InternalServerError('Failed to load quote');
     if (!existing) {
       throw new NotFoundError('Quote not found');
+    }
+    if (existing.status !== 'draft') {
+      throw new ConflictError(
+        'Only draft quotes can be edited. Review the current quote.'
+      );
     }
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
+      ...pricingUpdates,
     };
     if (payload.title !== undefined) updates.title = payload.title;
     if (payload.client_name !== undefined)
       updates.client_name = payload.client_name;
-    if (payload.total_amount !== undefined)
-      updates.total_amount = payload.total_amount;
-    if (payload.status !== undefined) updates.status = payload.status;
-    if (payload.line_items !== undefined)
-      updates.line_items = payload.line_items;
     if (payload.terms !== undefined) updates.terms = payload.terms;
     if (payload.notes !== undefined) updates.notes = payload.notes;
     if (payload.valid_until !== undefined)
       updates.valid_until = payload.valid_until;
 
-    const { data: quote, error } = await serverSupabase
+    let updateQuery = serverSupabase
       .from('contractor_quotes')
       .update(updates)
       .eq('id', id)
       .eq('contractor_id', user.id)
-      .select()
-      .single();
+      .eq('status', 'draft');
+    // Even older details-only callers cannot overwrite a concurrently sent draft.
+    const version =
+      payload.expected_updated_at !== undefined
+        ? payload.expected_updated_at
+        : existing.updated_at;
+    updateQuery =
+      version == null
+        ? updateQuery.is('updated_at', null)
+        : updateQuery.eq('updated_at', version);
+    const { data: quote, error } = await updateQuery.select().maybeSingle();
 
     if (error) {
       logger.error('Error updating quote', error, {
@@ -77,50 +140,39 @@ export const PUT = withApiHandler(
       throw new InternalServerError('Failed to update quote');
     }
 
+    if (!quote) {
+      throw new ConflictError(
+        'Quote changed since it was loaded. Reload before editing.'
+      );
+    }
     return NextResponse.json({ quote });
   }
 );
 
-/**
- * DELETE /api/contractor/quotes/[id]
- *
- * 2026-05-01 audit follow-up: closes the mobile direct-Supabase delete
- * in `apps/mobile/src/services/quotes/QuoteOperations.ts`. Ownership
- * is enforced server-side via `contractor_id = user.id`. The previous
- * mobile path also tried to delete from `quote_line_items`, but that
- * table never existed in production — line items live as a `jsonb`
- * column on `contractor_quotes`, so deleting the quote row is enough.
- */
+const deleteSchema = z
+  .object({
+    expected_updated_at: z
+      .string()
+      .datetime({ offset: true })
+      .nullable()
+      .optional(),
+  })
+  .strict();
+
 export const DELETE = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
-  async (_request, { user, params }) => {
-    const { id } = params;
-
-    const { data: existing } = await serverSupabase
-      .from('contractor_quotes')
-      .select('id')
-      .eq('id', id)
-      .eq('contractor_id', user.id)
-      .single();
-
-    if (!existing) {
-      throw new NotFoundError('Quote not found');
+  async (request, { user, params }) => {
+    // Older mobile callers send no body. They still receive a draft/version guard.
+    const text = await request.text();
+    let body: unknown = {};
+    try {
+      if (text.trim()) body = JSON.parse(text);
+    } catch {
+      throw new BadRequestError('Invalid request data');
     }
-
-    const { error } = await serverSupabase
-      .from('contractor_quotes')
-      .delete()
-      .eq('id', id)
-      .eq('contractor_id', user.id);
-
-    if (error) {
-      logger.error('Error deleting quote', error, {
-        service: 'quotes',
-        userId: user.id,
-      });
-      throw new InternalServerError('Failed to delete quote');
-    }
-
+    const parsed = deleteSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestError('Invalid request data');
+    await deleteDraftQuote(params.id, user.id, parsed.data.expected_updated_at);
     return NextResponse.json({ success: true });
   }
 );

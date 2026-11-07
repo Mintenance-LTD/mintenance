@@ -3,6 +3,14 @@ const ORIGIN = 'https://www.mintenance.co.uk';
 // Keep the external form for direct handler invocations, with exact boundaries.
 const PREFIXES = ['/mobile-api-relay', '/functions/v1/mobile-api-relay'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Keep auth closed by default. These account-security operations still require
+// verified beta membership here and the user's own authentication upstream.
+const MFA_ROUTES = new Set([
+  'GET /api/auth/mfa/status',
+  'POST /api/auth/mfa/enroll/totp',
+  'POST /api/auth/mfa/verify-enrollment',
+  'POST /api/auth/mfa/disable',
+]);
 const API_GROUPS = new Set([
   'appointments',
   'assessments',
@@ -123,7 +131,8 @@ export function createMobileRelay(deps: RelayDependencies) {
       !prefix ||
       !/^\/api\/[A-Za-z0-9_/-]+$/.test(path) ||
       path.includes('//') ||
-      !API_GROUPS.has(path.split('/')[2]) ||
+      (!API_GROUPS.has(path.split('/')[2]) &&
+        !MFA_ROUTES.has(`${request.method} ${path}`)) ||
       (path.split('/')[2] === 'building-surveyor' &&
         path !== '/api/building-surveyor/assess') ||
       incoming.search.length > 4096

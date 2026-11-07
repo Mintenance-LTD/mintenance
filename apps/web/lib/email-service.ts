@@ -41,6 +41,9 @@ interface EmailOptions {
   timeoutMs?: number;
 }
 
+/** `sent` means provider acceptance, not delivery to an inbox. Unknown must not auto-retry. */
+export type EmailSendOutcome = 'sent' | 'retryable' | 'failed' | 'unknown';
+
 /**
  * Email Service for sending notifications
  */
@@ -78,6 +81,12 @@ export class EmailService {
    * Send a generic email
    */
   static async sendEmail(options: EmailOptions): Promise<boolean> {
+    return (await this.sendEmailWithOutcome(options)) === 'sent';
+  }
+
+  static async sendEmailWithOutcome(
+    options: EmailOptions
+  ): Promise<EmailSendOutcome> {
     // Priority: Brevo (free 300/day) > SendGrid > Resend
     const provider = this.brevoKey
       ? 'brevo'
@@ -93,7 +102,7 @@ export class EmailService {
         to: options.to,
         subject: options.subject,
       });
-      return false;
+      return 'retryable';
     }
 
     try {
@@ -167,7 +176,13 @@ export class EmailService {
           status: response.status,
           to: options.to,
         });
-        return false;
+        // A rate-limit response explicitly refuses the request. Network errors,
+        // server errors and timeouts may occur after acceptance: do not resend.
+        return response.status === 429
+          ? 'retryable'
+          : response.status >= 400 && response.status < 500
+            ? 'failed'
+            : 'unknown';
       }
 
       logger.info('Email sent successfully', {
@@ -177,13 +192,13 @@ export class EmailService {
         subject: options.subject,
       });
 
-      return true;
+      return 'sent';
     } catch (error) {
       logger.error('Email send error', error, {
         service: 'email',
         to: options.to,
       });
-      return false;
+      return 'unknown';
     }
   }
 

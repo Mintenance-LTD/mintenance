@@ -237,6 +237,16 @@ export function routeForNotification(
     return routeForNotification('message_received', data);
 
   switch (type) {
+    case 'quote_amendment_update':
+      return p.jobId
+        ? {
+            screen: 'Main',
+            params: {
+              screen: 'JobsTab',
+              params: { screen: 'QuoteAmendments', params: { jobId: p.jobId } },
+            },
+          }
+        : NOTIFICATIONS_FALLBACK;
     case 'job_update':
     case 'job_started':
     case 'job_completed':

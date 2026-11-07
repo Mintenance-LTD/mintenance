@@ -33,7 +33,7 @@ export const HOMEOWNER_TABS: {
   { key: 'all', label: 'All', icon: 'grid-outline' },
   { key: 'posted', label: 'Posted', icon: 'megaphone-outline' },
   { key: 'assigned', label: 'Assigned', icon: 'person-add-outline' },
-  { key: 'in_progress', label: 'Active', icon: 'hammer-outline' },
+  { key: 'in_progress', label: 'In progress', icon: 'hammer-outline' },
   { key: 'completed', label: 'Done', icon: 'checkmark-circle-outline' },
 ];
 
@@ -47,10 +47,10 @@ export const CONTRACTOR_TABS: {
   { key: 'bid', label: 'Bids Sent', icon: 'time-outline' },
   {
     key: 'assigned',
-    label: 'Awaiting Contract',
+    label: 'Assigned',
     icon: 'document-text-outline',
   },
-  { key: 'active', label: 'In Progress', icon: 'flash-outline' },
+  { key: 'active', label: 'Active', icon: 'flash-outline' },
   { key: 'completed', label: 'Completed', icon: 'checkmark-circle-outline' },
 ];
 

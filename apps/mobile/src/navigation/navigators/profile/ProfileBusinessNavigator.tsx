@@ -14,6 +14,7 @@ import { QuickQuoteScreen } from '../../../screens/quick-quote/QuickQuoteScreen'
 import { VerificationStatusScreen } from '../../../screens/verification-status/VerificationStatusScreen';
 import { MyPublicProfileScreen } from '../../../screens/my-public-profile/MyPublicProfileScreen';
 import { QuoteDetailScreen } from '../../../screens/quote-detail/QuoteDetailScreen';
+import { QuoteAmendmentPreparationScreen } from '../../../screens/quote-detail/QuoteAmendmentPreparationScreen';
 import { QuoteTemplatesScreen } from '../../../screens/quote-templates/QuoteTemplatesScreen';
 import { ContractorCardEditorScreen } from '../../../screens/ContractorCardEditorScreen';
 import { ContractorVerificationScreen } from '../../../screens/contractor-verification/ContractorVerificationScreen';
@@ -100,6 +101,11 @@ export const SafeMyPublicProfileScreen = withScreenErrorBoundary(
 export const SafeQuoteDetailScreen = withScreenErrorBoundary(
   QuoteDetailScreen,
   'Quote Detail',
+  { fallbackRoute: 'QuoteBuilder' }
+);
+export const SafeQuoteAmendmentPreparationScreen = withScreenErrorBoundary(
+  QuoteAmendmentPreparationScreen,
+  'Quote amendment preparation',
   { fallbackRoute: 'QuoteBuilder' }
 );
 export const SafeQuoteTemplatesScreen = withScreenErrorBoundary(

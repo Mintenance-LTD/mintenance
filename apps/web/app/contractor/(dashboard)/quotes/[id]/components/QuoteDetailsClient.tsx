@@ -1,10 +1,12 @@
 'use client';
+import { QuoteDraftActions } from '../../components/QuoteDraftActions';
 
 import React, { useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
-import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
+import { PageLayout } from '@/components/ui/PageLayout';
 import {
   Card,
   CardHeader,
@@ -12,7 +14,7 @@ import {
   CardContent,
 } from '@/components/ui/Card.unified';
 import { Badge } from '@/components/ui/Badge.unified';
-import { Printer, ArrowLeft, Mail } from 'lucide-react';
+import { Printer, ArrowLeft } from 'lucide-react';
 
 interface QuoteLineItem {
   description: string;
@@ -31,7 +33,7 @@ interface Quote {
   client_address?: string;
   title: string;
   description?: string;
-  line_items: QuoteLineItem[];
+  line_items: QuoteLineItem[] | null;
   subtotal: number;
   tax_rate: number;
   tax_amount: number;
@@ -41,6 +43,7 @@ interface Quote {
   quote_date: string;
   valid_until?: string;
   status: string;
+  updated_at?: string | null;
   created_at: string;
 }
 
@@ -110,11 +113,14 @@ export function QuoteDetailsClient({ quote }: QuoteDetailsClientProps) {
                   Back to Quotes
                 </Button>
                 {quote.status === 'draft' && (
-                  <Button variant='outline' fullWidth>
-                    <Mail size={16} style={{ marginRight: theme.spacing[2] }} />
-                    Send to Client
-                  </Button>
+                  <QuoteDraftActions id={quote.id} version={quote.updated_at} />
                 )}
+                <Link
+                  href={`/contractor/quotes/${quote.id}/history`}
+                  className='underline'
+                >
+                  History / amendments
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -240,7 +246,12 @@ export function QuoteDetailsClient({ quote }: QuoteDetailsClientProps) {
                 </tr>
               </thead>
               <tbody>
-                {quote.line_items.map((item, i) => (
+                {!quote.line_items?.length && (
+                  <tr>
+                    <td colSpan={4}>No line-item breakdown recorded.</td>
+                  </tr>
+                )}
+                {(quote.line_items ?? []).map((item, i) => (
                   <tr
                     key={i}
                     style={{ borderBottom: `1px solid ${theme.colors.border}` }}

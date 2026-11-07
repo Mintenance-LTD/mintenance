@@ -38,6 +38,7 @@
  */
 
 import { shouldDeliverPhoneCall } from './PhoneCallService';
+import { shouldDeliverQuoteAmendment } from './QuoteAmendmentNotification';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationAgent } from '@/lib/services/agents/NotificationAgent';
@@ -122,6 +123,23 @@ export class NotificationProcessorService {
         try {
           if (!(await claimQueuedNotification(queuedNotif))) continue;
           if (
+            !(await shouldDeliverQuoteAmendment(
+              queuedNotif.metadata ?? {},
+              queuedNotif.user_id
+            ))
+          ) {
+            const { error } = await serverSupabase
+              .from('notification_queue')
+              .update({
+                status: 'cancelled',
+                error_message: 'amendment_no_longer_current',
+              })
+              .eq('id', queuedNotif.id)
+              .eq('scheduled_for', queuedNotif.scheduled_for);
+            if (error) throw error;
+            continue;
+          }
+          if (
             !(await shouldDeliverPhoneCall(
               queuedNotif.metadata ?? {},
               queuedNotif.user_id
@@ -138,7 +156,10 @@ export class NotificationProcessorService {
             if (error) throw error;
             continue;
           }
-          if (queuedNotif.metadata?.phone_call_id) {
+          if (
+            queuedNotif.metadata?.phone_call_id ||
+            queuedNotif.metadata?.quote_amendment_id
+          ) {
             const prefs = await loadPreferences(queuedNotif.user_id);
             const quietUntil = nextQuietHoursEndUTC(prefs);
             if (quietUntil) {

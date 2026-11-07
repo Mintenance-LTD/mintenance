@@ -61,15 +61,21 @@ export const ComplianceCertificates: React.FC<Props> = ({ propertyId }) => {
   const {
     data: certificates = [],
     isLoading,
+    isFetching,
     error,
     refetch,
   } = useQuery({
     queryKey: ['compliance', propertyId, user?.id],
-    enabled: !!user,
-    queryFn: async () => {
+    enabled: !!user && !!propertyId,
+    retry: false,
+    queryFn: async ({ signal }) => {
       const response = await mobileApiClient.get<
         { certificates: Certificate[] } | Certificate[]
-      >(`/api/properties/${propertyId}/compliance`);
+      >(`/api/properties/${propertyId}/compliance`, {
+        signal,
+        timeout: 15000,
+        retries: 0,
+      });
       const rows = Array.isArray(response) ? response : response?.certificates;
       if (
         !Array.isArray(rows) ||
@@ -95,7 +101,7 @@ export const ComplianceCertificates: React.FC<Props> = ({ propertyId }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>CERTIFICATE RECORDS</Text>
-      {isLoading ? (
+      {isLoading || isFetching ? (
         <Text>Loading certificate records...</Text>
       ) : error ? (
         <TouchableOpacity
@@ -103,7 +109,13 @@ export const ComplianceCertificates: React.FC<Props> = ({ propertyId }) => {
           accessibilityLabel='Retry loading certificates'
           onPress={() => refetch()}
         >
-          <Text>Could not load certificates. Tap to retry.</Text>
+          <Text style={{ color: me.ink }}>
+            {[401, 403, 404].includes(
+              (error as { statusCode?: number }).statusCode ?? 0
+            )
+              ? 'Access unavailable. Check your account or ask the property owner, then tap to retry.'
+              : 'Could not load certificates. Tap to retry.'}
+          </Text>
         </TouchableOpacity>
       ) : (
         <>
@@ -177,7 +189,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: me.ink3,
+    color: me.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -215,12 +227,12 @@ const styles = StyleSheet.create({
   certRoom: {
     fontSize: 12,
     fontWeight: '400',
-    color: me.ink3,
+    color: me.ink2,
   },
-  certDate: { fontSize: 12, color: me.ink3, marginTop: 2 },
+  certDate: { fontSize: 12, color: me.ink2, marginTop: 2 },
   certMissing: {
     fontSize: 12,
-    color: me.ink3,
+    color: me.ink2,
     fontStyle: 'italic',
     marginTop: 2,
   },

@@ -122,7 +122,7 @@ export default async function CustomersPage() {
           .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       ),
       serverSupabase
-        .from('contractor_quotes')
+        .from('current_contractor_quotes')
         .select('status, total_amount, client_email')
         .eq('contractor_id', user.id),
       serverSupabase

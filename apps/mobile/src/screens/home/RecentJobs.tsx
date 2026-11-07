@@ -5,6 +5,7 @@
  * heart overlay, status badge, category + budget below.
  */
 
+import { isActiveJob } from '../../utils/jobActivity';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ interface RecentJob {
   id: string;
   title: string;
   status?: string;
+  archived_at?: string | null;
   category?: string;
   budget?: number;
   budget_min?: number;
@@ -98,10 +100,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
     );
   }
 
-  const activeStatuses = ['posted', 'assigned', 'in_progress'];
-  const activeJobs = jobs.filter((j) =>
-    activeStatuses.includes(j.status || '')
-  );
+  const activeJobs = jobs.filter(isActiveJob);
   const displayJobs = activeJobs.slice(0, 3);
 
   return (

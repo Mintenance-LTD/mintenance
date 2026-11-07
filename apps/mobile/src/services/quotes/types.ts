@@ -1,3 +1,5 @@
+import type { DraftQuotePricing } from '@mintenance/shared';
+
 export interface QuoteTemplate {
   id: string;
   contractor_id: string;
@@ -27,6 +29,16 @@ export interface QuoteLineItemTemplate {
 }
 
 export interface ContractorQuote {
+  pricing_edit_version?: number;
+  line_items?: {
+    description?: string;
+    item_name?: string;
+    quantity: number;
+    unitPrice?: number;
+    unit_price?: number;
+    total?: number;
+    subtotal?: number;
+  }[];
   id: string;
   quote_number: string;
   contractor_id: string;
@@ -73,13 +85,15 @@ export interface QuoteLineItem {
 }
 
 export interface QuoteRevision {
+  amendment?: { status: string } | null;
   id: string;
   quote_id: string;
   revision_number: number;
-  changes_summary: string;
-  previous_total: number;
-  new_total: number;
-  revised_by: string;
+  kind: 'created' | 'updated' | 'deleted' | 'amendment_proposed';
+  reason: string | null;
+  actor_id: string | null;
+  before_snapshot: Record<string, unknown> | null;
+  after_snapshot: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -114,7 +128,10 @@ export interface CreateQuoteTemplateData {
   default_markup_percentage?: number;
   default_discount_percentage?: number;
   terms_and_conditions?: string;
-  line_items?: Omit<QuoteLineItemTemplate, 'id' | 'template_id' | 'created_at'>[];
+  line_items?: Omit<
+    QuoteLineItemTemplate,
+    'id' | 'template_id' | 'created_at'
+  >[];
 }
 
 export interface CreateQuoteData {
@@ -131,10 +148,16 @@ export interface CreateQuoteData {
   valid_until?: string;
   terms_and_conditions?: string;
   notes?: string;
-  line_items: Omit<QuoteLineItem, 'id' | 'quote_id' | 'subtotal' | 'created_at'>[];
+  line_items: Omit<
+    QuoteLineItem,
+    'id' | 'quote_id' | 'subtotal' | 'created_at'
+  >[];
 }
 
 export interface UpdateQuoteData {
+  expected_status?: 'draft';
+  expected_updated_at?: string;
+  pricing?: DraftQuotePricing;
   title?: string;
   client_name?: string;
   client_email?: string;
@@ -150,7 +173,10 @@ export interface UpdateQuoteData {
   terms?: string;
   notes?: string;
   status?: ContractorQuote['status'];
-  line_items?: Omit<QuoteLineItem, 'id' | 'quote_id' | 'subtotal' | 'created_at'>[];
+  line_items?: Omit<
+    QuoteLineItem,
+    'id' | 'quote_id' | 'subtotal' | 'created_at'
+  >[];
 }
 
 export interface QuoteFilters {

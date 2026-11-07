@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
+import Link from 'next/link';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PropertyEntryUnavailableNotice } from '@/components/properties/PropertyEntryUnavailableNotice';
@@ -341,6 +342,12 @@ export default async function JobDetailPage2025({
     return (
       <>
         <PropertyEntryUnavailableNotice unavailable={entrySecretUnavailable} />
+        <Link
+          className='block p-4 underline'
+          href={`/jobs/${job.id}/amendments`}
+        >
+          Quote amendments
+        </Link>
         <MintEditorialJobDetailView
           job={{
             id: job.id,
@@ -392,6 +399,9 @@ export default async function JobDetailPage2025({
   return (
     <>
       <PropertyEntryUnavailableNotice unavailable={entrySecretUnavailable} />
+      <Link className='block p-4 underline' href={`/jobs/${job.id}/amendments`}>
+        Quote amendments
+      </Link>
       <JobViewTracker jobId={resolvedParams.id} />
 
       <HomeownerPageWrapper>

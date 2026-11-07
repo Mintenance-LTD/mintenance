@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 
 interface AssessmentHeaderProps {
@@ -14,7 +14,12 @@ export const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({
 }) => {
   return (
     <View style={styles.header}>
-      <TouchableOpacity style={styles.backButton} onPress={onGoBack}>
+      <TouchableOpacity
+        accessibilityRole='button'
+        accessibilityLabel='Go back'
+        style={styles.backButton}
+        onPress={onGoBack}
+      >
         <Icon name='arrow-back' size={22} color={me.ink} />
       </TouchableOpacity>
       <View style={styles.headerContent}>
@@ -23,9 +28,6 @@ export const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({
           {propertyAddress || 'New Assessment'}
         </Text>
       </View>
-      <TouchableOpacity style={styles.menuButton}>
-        <Icon name='more-vert' size={24} color={me.ink} />
-      </TouchableOpacity>
     </View>
   );
 };

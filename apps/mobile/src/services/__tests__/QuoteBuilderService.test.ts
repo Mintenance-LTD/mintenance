@@ -316,15 +316,27 @@ describe('Quote CRUD', () => {
         taxRate: number;
         taxAmount: number;
         totalAmount: number;
-        lineItems: Array<{ subtotal: number }>;
+        lineItems: {
+          total: number;
+          description: string;
+          quantity: number;
+          unitPrice: number;
+        }[];
       };
       expect(payload.subtotal).toBe(250);
       expect(payload.taxRate).toBe(0);
       expect(payload.taxAmount).toBeCloseTo(0, 5);
       expect(payload.totalAmount).toBeCloseTo(250, 5);
       // per-line subtotals attached
-      expect(payload.lineItems[0].subtotal).toBe(200);
-      expect(payload.lineItems[1].subtotal).toBe(50);
+      expect(payload.lineItems[0]).toEqual(
+        expect.objectContaining({
+          description: expect.any(String),
+          quantity: 2,
+          unitPrice: 100,
+          total: 200,
+        })
+      );
+      expect(payload.lineItems[1].total).toBe(50);
     });
 
     it('applies markup and discount before VAT', async () => {
@@ -385,7 +397,7 @@ describe('Quote CRUD', () => {
         totalAmount: number;
       };
       expect(payload.subtotal).toBe(100);
-      expect(payload.taxRate).toBe(0.05);
+      expect(payload.taxRate).toBe(5);
       expect(payload.taxAmount).toBeCloseTo(5, 5);
       expect(payload.totalAmount).toBeCloseTo(105, 5);
     });
@@ -569,6 +581,35 @@ describe('Quote CRUD', () => {
   });
 
   describe('updateQuote', () => {
+    it('forwards versioned pricing intact without inventing a total', async () => {
+      api.put.mockResolvedValueOnce({ quote: { id: 'q-1' } } as never);
+      const data = {
+        expected_status: 'draft' as const,
+        expected_updated_at: '2026-11-06T12:00:00.000Z',
+        pricing: {
+          tax_rate_percent: 20,
+          line_items: [{ description: 'Labour', quantity: 1.5, unitPrice: 10 }],
+        },
+      };
+      await QuoteBuilderService.updateQuote('q-1', data);
+      expect(api.put).toHaveBeenCalledWith(
+        '/api/contractor/quotes/q-1',
+        expect.objectContaining(data)
+      );
+      expect(api.put.mock.calls[0][1]).toHaveProperty(
+        'total_amount',
+        undefined
+      );
+    });
+    it('preserves stale-draft conflicts for the editor recovery action', async () => {
+      const conflict = Object.assign(new Error('Changed elsewhere'), {
+        statusCode: 409,
+      });
+      api.put.mockRejectedValueOnce(conflict);
+      await expect(
+        QuoteBuilderService.updateQuote('q-1', { expected_status: 'draft' })
+      ).rejects.toBe(conflict);
+    });
     it('sends update payload and tracks "shared" when status changes', async () => {
       api.put.mockResolvedValueOnce({ quote: { id: 'q-1' } } as never);
       api.post.mockResolvedValueOnce({} as never); // trackQuoteInteraction
@@ -616,6 +657,19 @@ describe('Quote CRUD', () => {
   });
 
   describe('sendQuote', () => {
+    it('sends the version reviewed by the user and preserves conflicts', async () => {
+      const conflict = Object.assign(new Error('Changed elsewhere'), {
+        statusCode: 409,
+      });
+      api.post.mockRejectedValueOnce(conflict);
+      await expect(
+        QuoteBuilderService.sendQuote('q-1', '2026-11-06T12:00:00.000Z')
+      ).rejects.toBe(conflict);
+      expect(api.post).toHaveBeenCalledWith('/api/contractor/send-quote', {
+        quoteId: 'q-1',
+        expected_updated_at: '2026-11-06T12:00:00.000Z',
+      });
+    });
     it('sends the quote and tracks "sent"', async () => {
       api.post
         .mockResolvedValueOnce({ quote: { id: 'q-1' } } as never) // send-quote
@@ -877,44 +931,61 @@ describe('Quote analytics', () => {
 });
 
 // ---------------------------------------------------------------------------
-// QuoteRevisions (deferred no-op feature)
+// QuoteRevisions (recorded history, no invented success)
 // ---------------------------------------------------------------------------
-describe('Quote revisions (deferred stub)', () => {
-  it('getQuoteRevisions resolves to an empty array', async () => {
+describe('Quote revisions', () => {
+  it('returns empty history only after a successful API read', async () => {
+    api.get.mockResolvedValueOnce({ revisions: [], next_before: null });
     const result = await QuoteBuilderService.getQuoteRevisions('q-1');
     expect(result).toEqual([]);
+    expect(api.get).toHaveBeenCalledWith(
+      '/api/contractor/quotes/q-1/revisions'
+    );
   });
 
-  it('createQuoteRevision returns a deferred placeholder shape', async () => {
-    const rev = await QuoteBuilderService.createQuoteRevision(
-      'q-1',
-      'Adjusted labour',
-      250,
-      300,
-      'user-1'
-    );
-    expect(rev).toEqual({
-      id: 'deferred',
-      quote_id: 'q-1',
-      changes_summary: 'Adjusted labour',
-      previous_total: 250,
-      new_total: 300,
-      revised_by: 'user-1',
-      created_at: new Date(0).toISOString(),
+  it('does not invent success for arbitrary total-only revisions', async () => {
+    await expect(
+      QuoteBuilderService.createQuoteRevision(
+        'q-1',
+        'Adjusted labour',
+        250,
+        300,
+        'user-1'
+      )
+    ).rejects.toThrow('No revision was saved');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('retains server order across history pages', async () => {
+    api.get.mockResolvedValueOnce({
+      revisions: [{ id: 'new' }],
+      next_before: 2,
     });
-  });
-
-  it('warns at most once per process across revision calls', async () => {
-    // The module-level `_warned` flag means warnDeferred fires only on the
-    // first revision call in this process. Both calls above already ran, so
-    // exactly one warn should have been recorded for the "deferred feature"
-    // message.
-    await QuoteBuilderService.getQuoteRevisions('q-2');
-    await QuoteBuilderService.createQuoteRevision('q-2', 's', 1, 2, 'u');
-
-    const deferredWarns = mockedLogger.warn.mock.calls.filter((c) =>
-      String(c[0]).includes('deferred feature called')
+    api.get.mockResolvedValueOnce({
+      revisions: [{ id: 'old' }],
+      next_before: null,
+    });
+    expect(await QuoteBuilderService.getQuoteRevisions('q/2')).toEqual([
+      { id: 'new' },
+      { id: 'old' },
+    ]);
+    expect(api.get).toHaveBeenLastCalledWith(
+      '/api/contractor/quotes/q%2F2/revisions?before=2'
     );
-    expect(deferredWarns.length).toBeLessThanOrEqual(1);
+  });
+  it('surfaces unavailable history rather than an empty success', async () => {
+    api.get.mockRejectedValueOnce(new Error('Service unavailable'));
+    await expect(QuoteBuilderService.getQuoteRevisions('q-1')).rejects.toThrow(
+      'Service unavailable'
+    );
+  });
+  it('rejects malformed history and looping pagination', async () => {
+    await expect(QuoteBuilderService.getQuoteRevisions('q-1')).rejects.toThrow(
+      'Could not read'
+    );
+    api.get.mockResolvedValue({ revisions: [], next_before: 2 });
+    await expect(QuoteBuilderService.getQuoteRevisions('q-1')).rejects.toThrow(
+      'Could not read'
+    );
   });
 });

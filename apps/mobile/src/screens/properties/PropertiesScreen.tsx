@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  TextInput,
   FlatList,
   TouchableOpacity,
   RefreshControl,
@@ -13,7 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { ProfileStackParamList } from '../../navigation/types';
+import type {
+  ProfileStackParamList,
+  RootTabParamList,
+} from '../../navigation/types';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { goBackSafe } from '../../navigation/hooks';
 import { useAuth } from '../../contexts/AuthContext';
@@ -126,11 +131,15 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [search, setSearch] = useState('');
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   // Load favorites from the API so server-side validation, logging and
   // rate limits apply (previously hit Supabase directly with no try/catch).
   useEffect(() => {
+    setFavoriteIds(new Set());
+    setSearch('');
+    setShowFavoritesOnly(false);
     if (!user?.id) return;
     let cancelled = false;
     (async () => {
@@ -138,7 +147,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
         const res = await mobileApiClient.get<{ favorites: string[] }>(
           '/api/properties/favorites'
         );
-        if (!cancelled && res?.favorites?.length) {
+        if (!cancelled && Array.isArray(res?.favorites)) {
           setFavoriteIds(new Set(res.favorites));
         }
       } catch {
@@ -212,6 +221,16 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const sortedProperties = React.useMemo(() => {
     if (!properties) return [];
     let filtered = [...properties];
+    const terms = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (terms.length) {
+      filtered = filtered.filter((p) => {
+        const text = [p.property_name, p.address, p.city, p.postcode]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return terms.every((term) => text.includes(term));
+      });
+    }
     if (showFavoritesOnly) {
       filtered = filtered.filter((p) => favoriteIds.has(p.id));
     }
@@ -233,7 +252,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
       default:
         return filtered;
     }
-  }, [properties, sortBy, showFavoritesOnly, favoriteIds]);
+  }, [properties, sortBy, showFavoritesOnly, favoriteIds, search]);
 
   if (isLoading) {
     return <LoadingSpinner message='Loading properties...' />;
@@ -285,6 +304,18 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       {/* Sort & filter options */}
+      {!!properties?.length && (
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder='Search name, address or postcode'
+          placeholderTextColor={me.ink3}
+          accessibilityLabel='Search properties'
+          autoCorrect={false}
+          returnKeyType='search'
+        />
+      )}
       {properties && properties.length > 1 && (
         <View style={styles.sortRow}>
           {[
@@ -317,6 +348,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
             accessibilityRole='button'
             accessibilityState={{ selected: showFavoritesOnly }}
+            accessibilityLabel='Show favourite properties only'
           >
             <Ionicons
               name={showFavoritesOnly ? 'heart' : 'heart-outline'}
@@ -353,13 +385,39 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             <>
               <PropertyInvitations />
               <PortfolioActionQueue
+                key={user?.id}
+                initiallyExpanded
                 onOpenProperty={(propertyId) =>
                   navigation.navigate('PropertyDetail', { propertyId })
+                }
+                onOpenJob={(jobId) =>
+                  navigation
+                    .getParent<BottomTabNavigationProp<RootTabParamList>>()
+                    ?.navigate('JobsTab', {
+                      screen: 'JobDetails',
+                      params: { jobId },
+                    })
                 }
               />
             </>
           }
           data={sortedProperties}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>No matching properties</Text>
+              <TouchableOpacity
+                accessibilityRole='button'
+                onPress={() => {
+                  setSearch('');
+                  setShowFavoritesOnly(false);
+                }}
+              >
+                <Text style={styles.sortChipText}>
+                  Clear search and filters
+                </Text>
+              </TouchableOpacity>
+            </View>
+          }
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <PropertyCard

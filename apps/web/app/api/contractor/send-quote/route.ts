@@ -4,12 +4,18 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  BadRequestError,
+  InternalServerError,
+  ConflictError,
+} from '@/lib/errors/api-error';
 import { getAppUrl } from '@/lib/env';
 
 // Validation schema
 const sendQuoteSchema = z.object({
   quoteId: z.string().uuid(),
+  expected_updated_at: z.string().datetime({ offset: true }).optional(),
 });
 
 export const POST = withApiHandler(
@@ -26,51 +32,71 @@ export const POST = withApiHandler(
     // Verify quote exists and belongs to contractor
     const { data: quote, error: quoteError } = await serverSupabase
       .from('contractor_quotes')
-      .select('id, status, client_email, client_name, quote_number, total_amount')
+      .select(
+        'id, status, client_email, client_name, quote_number, total_amount, updated_at'
+      )
       .eq('id', validatedData.quoteId)
       .eq('contractor_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (quoteError || !quote) {
+    if (quoteError) throw new InternalServerError('Failed to load quote');
+    if (!quote) {
       logger.warn('Attempted to send non-existent or unauthorized quote', {
         service: 'contractor',
         quoteId: validatedData.quoteId,
-        contractorId: user.id
+        contractorId: user.id,
       });
       throw new NotFoundError('Quote not found');
     }
 
     // Check if quote is already sent
-    if (quote.status === 'sent' || quote.status === 'accepted') {
+    if (quote.status !== 'draft') {
       logger.warn('Attempted to resend already sent quote', {
         service: 'contractor',
         quoteId: validatedData.quoteId,
-        currentStatus: quote.status
+        currentStatus: quote.status,
       });
-      throw new BadRequestError(`Quote is already ${quote.status}`);
+      throw new ConflictError(
+        'Quote is no longer a draft. Review it before sending.'
+      );
     }
 
     // Update quote status to sent
-    const { error: updateError } = await serverSupabase
+    let sendQuery = serverSupabase
       .from('contractor_quotes')
       .update({
         status: 'sent',
-        sent_at: new Date().toISOString()
+        sent_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .eq('id', validatedData.quoteId)
-      .eq('contractor_id', user.id);
+      .eq('contractor_id', user.id)
+      .eq('status', 'draft');
+    const expectedVersion =
+      validatedData.expected_updated_at ?? quote.updated_at;
+    sendQuery = expectedVersion
+      ? sendQuery.eq('updated_at', expectedVersion)
+      : sendQuery.is('updated_at', null);
+    const { data: sentQuote, error: updateError } = await sendQuery
+      .select()
+      .maybeSingle();
 
     if (updateError) {
       logger.error('Failed to update quote status', updateError, {
         service: 'contractor',
-        quoteId: validatedData.quoteId
+        quoteId: validatedData.quoteId,
       });
       throw new InternalServerError('Failed to send quote');
     }
+    if (!sentQuote)
+      throw new ConflictError(
+        'Quote changed. Review the latest prices before sending.'
+      );
 
     // Send email notification to client
     if (quote.client_email) {
-      const contractorName = `${user.first_name} ${user.last_name}`.trim() || user.email;
+      const contractorName =
+        `${user.first_name} ${user.last_name}`.trim() || user.email;
       const baseUrl = getAppUrl();
 
       await EmailService.sendQuoteNotification(quote.client_email, {
@@ -86,13 +112,14 @@ export const POST = withApiHandler(
       service: 'contractor',
       quoteId: validatedData.quoteId,
       contractorId: user.id,
-      clientEmail: quote.client_email
+      clientEmail: quote.client_email,
     });
 
     return NextResponse.json({
       success: true,
       message: 'Quote sent successfully',
-      quoteId: validatedData.quoteId
+      quoteId: validatedData.quoteId,
+      quote: sentQuote,
     });
   }
 );

@@ -11,6 +11,7 @@
  */
 
 import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSwitcher';
+import { isActiveJob } from '../../utils/jobActivity';
 import React, { useState } from 'react';
 import {
   View,
@@ -77,17 +78,20 @@ export const HomeownerDashboard: React.FC = () => {
   });
 
   const homeownerJobs = jobsData || [];
-  const activeJobIds = homeownerJobs
-    .filter((j) => j?.status === 'posted' || j?.status === 'assigned')
+  const bidJobIds = homeownerJobs
+    .filter(
+      (j) =>
+        !j?.archived_at && (j?.status === 'posted' || j?.status === 'assigned')
+    )
     .map((j) => j?.id)
     .filter(Boolean) as string[];
 
   // Bids query
   const { data: recentBids = [], isLoading: bidsLoading } = useQuery({
-    queryKey: ['homeownerBids', activeJobIds.slice(0, 10).join(',')],
+    queryKey: ['homeownerBids', bidJobIds.slice(0, 10).join(',')],
     queryFn: async () => {
       const bids = await BidService.getBidsByJobs(
-        activeJobIds.slice(0, 10),
+        bidJobIds.slice(0, 10),
         'pending'
       ).catch((err: unknown) => {
         logger.warn('Failed to fetch bids for jobs', {
@@ -106,7 +110,7 @@ export const HomeownerDashboard: React.FC = () => {
         jobId: b.job_id,
       }));
     },
-    enabled: !!user && activeJobIds.length > 0,
+    enabled: !!user && bidJobIds.length > 0,
   });
 
   // Unread notifications
@@ -186,7 +190,7 @@ export const HomeownerDashboard: React.FC = () => {
   const greeting =
     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
-  const activeJobsCount = activeJobIds.length;
+  const activeJobsCount = homeownerJobs.filter(isActiveJob).length;
 
   return (
     <View style={styles.container}>

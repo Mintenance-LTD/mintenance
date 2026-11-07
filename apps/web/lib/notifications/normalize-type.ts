@@ -72,7 +72,7 @@ export function normalizeNotificationType(
   }
 
   // Bids bucket — bid_* (received, accepted, rejected, withdrawn, …).
-  if (t.startsWith('bid_')) {
+  if (t.startsWith('bid_') || t.startsWith('quote_amendment_')) {
     return 'bid';
   }
 

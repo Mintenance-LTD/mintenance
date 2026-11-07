@@ -83,11 +83,12 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['property', propertyId],
+    queryKey: ['property', propertyId, user?.id],
+    retry: false,
     queryFn: async () => {
       // Route through the API so ownership is authoritatively checked
       // server-side (via PropertyTeamService) and RLS isn't the sole guard.
-      return await mobileApiClient.get<Property>(
+      return await mobileApiClient.get<Property & { _role?: string }>(
         `/api/properties/${propertyId}`
       );
     },
@@ -95,7 +96,19 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
   });
 
   useEffect(() => {
-    if (property) {
+    setHasEdits(false);
+    setName('');
+    setAddress('');
+    setCity('');
+    setPostcode('');
+    setBedrooms('');
+    setBathrooms('');
+    setYearBuilt('');
+    setSquareFootage('');
+  }, [user?.id, propertyId]);
+
+  useEffect(() => {
+    if (property && !hasEdits) {
       setName(property.property_name || '');
       setAddress(property.address || '');
       setCity(property.city || '');
@@ -112,7 +125,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
         property.square_footage != null ? String(property.square_footage) : ''
       );
     }
-  }, [property]);
+  }, [property, hasEdits]);
 
   const updateMutation = useMutation({
     mutationFn: async () => {
@@ -145,6 +158,18 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
   });
 
   const handleSubmit = () => {
+    if (updateMutation.isPending) return;
+    if (
+      [bedrooms, bathrooms, yearBuilt, squareFootage].some(
+        (value) => value.trim() && !/^\d+$/.test(value.trim())
+      )
+    ) {
+      Alert.alert(
+        'Check property details',
+        'Enter whole numbers of zero or more for rooms, year and floor area.'
+      );
+      return;
+    }
     if (!name.trim()) {
       Alert.alert('Required', 'Please enter a property name.');
       return;
@@ -180,6 +205,18 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
   if (isLoading) return <LoadingSpinner message='Loading property...' />;
   if (error)
     return <ErrorView message='Failed to load property' onRetry={refetch} />;
+  if (
+    !property ||
+    !['owner', 'platform_admin', 'admin', 'manager'].includes(
+      property._role ?? ''
+    )
+  )
+    return (
+      <ErrorView
+        message='You do not have permission to edit this property.'
+        onRetry={() => navigation.goBack()}
+      />
+    );
 
   return (
     <SafeAreaView style={styles.container}>

@@ -1,24 +1,10 @@
-/**
- * EscrowDashboardScreen — Mint Editorial redesign per
- * redesign-v2 contractor business deck screen 13.
- *
- * Replaces the legacy 3-pill summary (Held / Pending / Released)
- * with a single amber held-funds hero plus per-job rows that include
- * a 4-step progress bar (Posted → Working → Sign-off → Released)
- * and a footer note explaining the 7-day auto-release safety net.
- *
- * Bucket maths were corrected on 2026-05-21 (Bug #7) — `pending` and
- * `held` both belong to the "held-in-escrow" pot, `release_pending`
- * means the homeowner-approval window has opened, and `released` /
- * `completed` are the terminal paid state. We retain that intent
- * grouping here so the hero amount matches the per-row tally.
- */
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   View,
   Text,
   TouchableOpacity,
-  FlatList,
+  SectionList,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -33,8 +19,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
 import { ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { logger } from '../../utils/logger';
 import { me } from '../../design-system/mint-editorial';
+import {
+  getEscrowPresentation,
+  groupEscrowRecords,
+} from './escrowPresentation';
 import { styles } from './escrowDashboardStyles';
 
 type Props = NativeStackScreenProps<ProfileStackParamList, 'EscrowDashboard'>;
@@ -49,41 +38,11 @@ interface EscrowRecord {
   release_blocked_reason?: string;
 }
 
-/**
- * The canonical escrow lifecycle is
- *   pending → held → release_pending → completed.
- * The deck's progress bar uses the *job* labels Posted → Working →
- * Sign-off → Released. The mapping below stays honest:
- *   - pending → step 0 (posted; Stripe charge in flight)
- *   - held    → step 1 (working; contractor is doing the work)
- *   - release_pending → step 2 (sign-off; homeowner reviewing)
- *   - released / completed → step 3 (released; money out)
- */
-const STAGE_BY_STATUS: Record<string, 0 | 1 | 2 | 3> = {
-  pending: 0,
-  held: 1,
-  release_pending: 2,
-  released: 3,
-  completed: 3,
-};
-
 const formatCurrency = (amount: number): string =>
   new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
   }).format(amount);
-
-const heldSinceLabel = (createdIso: string): string => {
-  const ms = Date.now() - new Date(createdIso).getTime();
-  if (Number.isNaN(ms) || ms < 0) return 'Held since today';
-  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-  if (days <= 0) return 'Held since today';
-  if (days === 1) return 'Held since yesterday';
-  return `Held since ${new Date(createdIso).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-  })}`;
-};
 
 const ProgressBar: React.FC<{ stage: 0 | 1 | 2 | 3 }> = ({ stage }) => (
   <>
@@ -105,12 +64,12 @@ const ProgressBar: React.FC<{ stage: 0 | 1 | 2 | 3 }> = ({ stage }) => (
       })}
     </View>
     <View style={styles.progressLabels}>
-      <Text style={styles.progressLabel}>Posted</Text>
+      <Text style={styles.progressLabel}>Pending</Text>
       <Text style={[styles.progressLabel, styles.progressLabelCenter]}>
-        Working
+        Held
       </Text>
       <Text style={[styles.progressLabel, styles.progressLabelCenter]}>
-        Sign-off
+        Approved
       </Text>
       <Text style={[styles.progressLabel, styles.progressLabelEnd]}>
         Released
@@ -123,22 +82,17 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
-  const [records, setRecords] = useState<EscrowRecord[]>([]);
-  const [loadError, setLoadError] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const fetchEscrowData = useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      setLoadError(false);
-      // 2026-05-23 audit: use explicit FK form for the job embed —
-      // matches PaymentHistoryScreen + the homeowner /financials API
-      // route. The payer embed was already explicit (profiles!payer_id).
-      // 2026-06-10: embed BOTH parties and show the counterparty — the
-      // card used to always render payer_name, so a homeowner (the
-      // payer) saw their own name instead of which contractor the
-      // money is held for.
+  const {
+    data: records = [],
+    isLoading: loading,
+    isError: loadError,
+    isRefetching: refreshing,
+    refetch,
+  } = useQuery({
+    queryKey: ['escrow-dashboard', user?.id],
+    enabled: !!user?.id,
+    queryFn: async (): Promise<EscrowRecord[]> => {
+      if (!user?.id) return [];
       const { data, error } = await supabase
         .from('escrow_transactions')
         .select(
@@ -168,24 +122,12 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
           };
         }
       );
-      setRecords(mapped);
-    } catch (error) {
-      setLoadError(true);
-      logger.error('Failed to fetch escrow data', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    fetchEscrowData();
-  }, [fetchEscrowData]);
-
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchEscrowData();
-  }, [fetchEscrowData]);
+      return mapped;
+    },
+  });
+  const handleRefresh = () => {
+    void refetch();
+  };
 
   const heldRecords = records.filter((r) =>
     ['held', 'release_pending'].includes(r.status)
@@ -193,18 +135,7 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const totalHeld = heldRecords.reduce((sum, r) => sum + r.amount, 0);
 
   const renderRecord = ({ item }: { item: EscrowRecord }) => {
-    const stage: 0 | 1 | 2 | 3 = STAGE_BY_STATUS[item.status] ?? 1;
-    const subline =
-      item.release_blocked_reason ||
-      (item.status === 'pending'
-        ? 'Payment not yet confirmed'
-        : item.status === 'release_pending'
-          ? 'Work approved � awaiting release checks'
-          : ['released', 'completed'].includes(item.status)
-            ? 'Released to earnings � bank payout follows separately'
-            : item.counterparty_name
-              ? `${item.counterparty_name} · ${heldSinceLabel(item.created_at)}`
-              : heldSinceLabel(item.created_at));
+    const presentation = getEscrowPresentation(item);
     return (
       <View style={styles.recordCard}>
         <View style={styles.recordHeader}>
@@ -213,8 +144,19 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
           <Text style={styles.recordAmount}>{formatCurrency(item.amount)}</Text>
         </View>
-        <Text style={styles.recordMeta}>{subline}</Text>
-        <ProgressBar stage={stage} />
+        <Text style={styles.recordMeta}>{presentation.label}</Text>
+        <Text style={styles.recordMeta}>{presentation.description}</Text>
+        {presentation.group === 'Needs attention' && (
+          <TouchableOpacity
+            accessibilityRole='button'
+            onPress={() => navigation.navigate('HelpCenter')}
+          >
+            <Text style={styles.recordMeta}>Get payment help →</Text>
+          </TouchableOpacity>
+        )}
+        {presentation.stage !== null && (
+          <ProgressBar stage={presentation.stage} />
+        )}
       </View>
     );
   };
@@ -243,8 +185,14 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
             onRetry={handleRefresh}
           />
         ) : (
-          <FlatList
-            data={records}
+          <SectionList
+            sections={groupEscrowRecords(records)}
+            stickySectionHeadersEnabled={false}
+            renderSectionHeader={({ section }) => (
+              <Text style={styles.sectionEyebrow}>
+                {section.title} · {section.data.length}
+              </Text>
+            )}
             renderItem={renderRecord}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
@@ -287,8 +235,16 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
                   />
                 </View>
 
+                {heldRecords.some(
+                  (record) => !!record.release_blocked_reason
+                ) && (
+                  <Text style={styles.recordMeta}>
+                    The held total includes funds awaiting support review. See
+                    Needs attention below.
+                  </Text>
+                )}
                 <Text style={styles.sectionEyebrow}>
-                  Active escrow · {records.length}
+                  Payment records · {records.length}
                 </Text>
               </View>
             }

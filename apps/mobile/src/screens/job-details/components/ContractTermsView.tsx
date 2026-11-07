@@ -56,7 +56,7 @@ function extractScopeRooms(
 }
 
 // Internal-only keys we already hide from the generic key/value list.
-const HIDDEN_TERM_KEYS = new Set(['scope']);
+const HIDDEN_TERM_KEYS = new Set(['scope', 'bid_id', 'source', 'created_from']);
 
 interface ContractTermsViewProps {
   title: string | null;
@@ -159,7 +159,13 @@ export const ContractTermsView: React.FC<ContractTermsViewProps> = ({
             <View key={key} style={styles.termRow}>
               <Text style={styles.termKey}>{key.replace(/_/g, ' ')}</Text>
               <Text style={styles.termValue}>
-                {typeof value === 'string' ? value : JSON.stringify(value)}
+                {typeof value === 'boolean'
+                  ? value
+                    ? 'Yes'
+                    : 'No'
+                  : typeof value === 'string'
+                    ? value
+                    : JSON.stringify(value)}
               </Text>
             </View>
           ))}

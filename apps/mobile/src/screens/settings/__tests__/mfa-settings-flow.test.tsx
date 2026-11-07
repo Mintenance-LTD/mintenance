@@ -47,6 +47,7 @@ it('uses the server envelope and verifies enrollment before enabled status', asy
     true
   );
   await view.findByText('SYNTHETICSECRET');
+  expect(view.queryByText('synthetic-recovery')).toBeNull();
   expect(mockPost).toHaveBeenCalledWith('/api/auth/mfa/enroll/totp', {});
   mockPost.mockResolvedValueOnce({ success: true });
   mockGet.mockResolvedValue({ success: true, data: { enabled: true } });
@@ -58,6 +59,7 @@ it('uses the server envelope and verifies enrollment before enabled status', asy
     })
   );
   await view.findByText('Enabled');
+  await view.findByText('synthetic-recovery');
   view.unmount();
 });
 it('does not expose an enabled/disabled toggle after a failed status read', async () => {
@@ -66,6 +68,9 @@ it('does not expose an enabled/disabled toggle after a failed status read', asyn
   await view.findByText('Unable to load your security settings.');
   expect(view.queryByLabelText('Two-factor authentication')).toBeNull();
   expect(mockPost).not.toHaveBeenCalled();
+  mockGet.mockResolvedValue({ success: true, data: { enabled: true } });
+  fireEvent.press(view.getByText('Try again'));
+  await view.findByText('Enabled');
   view.unmount();
 });
 it('requires password confirmation and sends it to disable', async () => {

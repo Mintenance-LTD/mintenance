@@ -40,6 +40,7 @@ export const filterNotifications = (
           'job_update',
           'bid_received',
           'quote_sent',
+          'quote_amendment_update',
           'new_job',
           'job_posted',
           'job_completed',

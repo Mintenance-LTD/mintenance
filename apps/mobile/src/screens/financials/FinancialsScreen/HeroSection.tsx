@@ -46,14 +46,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       <Text style={localStyles.title}>My finances</Text>
 
       <View style={localStyles.totalBlock}>
-        <Text style={localStyles.totalLabel}>Total spent</Text>
+        <Text style={localStyles.totalLabel}>Recorded released payments</Text>
         <Text style={localStyles.totalValue}>{fmt(totalSpent)}</Text>
       </View>
 
       <View style={localStyles.statRow}>
         <View style={localStyles.statCell}>
           <Text style={localStyles.statValue}>{fmt(thisMonth)}</Text>
-          <Text style={localStyles.statLabel}>This month</Text>
+          <Text style={localStyles.statLabel}>Created this month</Text>
         </View>
         <View style={localStyles.statDivider} />
         <View style={localStyles.statCell}>

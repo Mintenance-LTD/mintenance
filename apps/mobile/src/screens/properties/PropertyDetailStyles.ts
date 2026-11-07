@@ -69,6 +69,7 @@ export const styles = StyleSheet.create({
   // Tabs
   tabRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -76,7 +77,8 @@ export const styles = StyleSheet.create({
     backgroundColor: me.surface,
   },
   tab: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '45%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -88,7 +90,7 @@ export const styles = StyleSheet.create({
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: me.ink3,
+    color: me.ink2,
   },
   tabTextActive: { color: me.brand },
   // Address

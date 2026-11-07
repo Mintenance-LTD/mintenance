@@ -29,6 +29,39 @@ function fixture(overrides: Partial<RelayDependencies> = {}) {
   return { handler, calls, verifications: () => verifications };
 }
 
+test('MFA settings routes reach the server with the approved user bearer token', async () => {
+  for (const [method, path] of [
+    ['GET', '/api/auth/mfa/status'],
+    ['POST', '/api/auth/mfa/enroll/totp'],
+    ['POST', '/api/auth/mfa/verify-enrollment'],
+    ['POST', '/api/auth/mfa/disable'],
+  ]) {
+    const f = fixture();
+    assert.equal((await f.handler(request(path, { method }))).status, 200);
+    assert.equal(f.verifications(), 1);
+    assert.equal(new Headers(f.calls[0].init.headers).get('authorization'), 'Bearer user.jwt.token');
+    const revoked = fixture({ verifyUser: async () => ({ id, confirmed: true, betaApproved: false }) });
+    assert.equal((await revoked.handler(request(path, { method }))).status, 403);
+    assert.equal(revoked.calls.length, 0);
+  }
+});
+
+test('MFA allowlist does not open other auth routes, methods or nested paths', async () => {
+  for (const [method, path] of [
+    ['POST', '/api/auth/mfa/status'],
+    ['GET', '/api/auth/mfa/disable'],
+    ['DELETE', '/api/auth/mfa/enroll/totp'],
+    ['POST', '/api/auth/mfa/enroll/totp/extra'],
+    ['POST', '/api/auth/login'],
+    ['POST', '/api/auth/mfa/step-up'],
+    ['GET', '/api/auth/mfa/status/'],
+  ]) {
+    const f = fixture();
+    assert.equal((await f.handler(request(path, { method }))).status, 403);
+    assert.equal(f.calls.length, 0);
+  }
+});
+
 test('database approval admits a confirmed user outside the original snapshot', async () => {
   const f = fixture({
     verifyUser: async () => ({

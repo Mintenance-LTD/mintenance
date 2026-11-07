@@ -1,14 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
   Eye,
   Edit,
   Send,
-  Copy,
-  Trash2,
+  Plus,
   MoreVertical,
   Download,
   Clock,
@@ -20,7 +19,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { useConfirm } from '@/components/ui/confirm-dialog';
 import type { Quote } from './useQuotesData';
 
 const fadeInUp = {
@@ -34,6 +32,18 @@ const STATUS_CONFIGS = {
     color: 'bg-gray-100 text-gray-700 border-gray-300',
     icon: FileText,
     dotColor: 'bg-gray-500',
+  },
+  viewed: {
+    label: 'Viewed',
+    color: 'bg-blue-100 text-blue-800 border-blue-300',
+    icon: Eye,
+    dotColor: 'bg-blue-500',
+  },
+  rejected: {
+    label: 'Rejected',
+    color: 'bg-red-100 text-red-800 border-red-300',
+    icon: XCircle,
+    dotColor: 'bg-red-500',
   },
   sent: {
     label: 'Sent',
@@ -81,16 +91,14 @@ export function QuoteCard({
   onToggleMenu,
 }: QuoteCardProps) {
   const router = useRouter();
-  const confirm = useConfirm();
-  const config = STATUS_CONFIGS[quote.status];
+  const config = STATUS_CONFIGS[quote.status] ?? {
+    ...STATUS_CONFIGS.draft,
+    label: quote.status,
+  };
+  const sendLock = useRef(false);
   const [isSending, setIsSending] = useState(false);
 
   const handleView = () => router.push(`/contractor/quotes/${quote.id}`);
-  // 2026-05-13: edit route now exists — see
-  // /contractor/quotes/[id]/edit/page.tsx. Quick-edit covers title,
-  // total_amount, status (draft / sent / expired), valid_until,
-  // terms, notes. Line-item edits intentionally stay on the
-  // duplicate-and-recreate path.
   const handleEdit = () => router.push(`/contractor/quotes/${quote.id}/edit`);
 
   // 2026-05-13: wire to the existing /api/contractor/send-quote endpoint
@@ -99,48 +107,42 @@ export function QuoteCard({
   // by the separate /api/contractor/submit-bid flow which auto-creates
   // a linked contractor_quotes row.
   const handleSend = async () => {
-    if (isSending) return;
+    if (sendLock.current || quote.status !== 'draft') return;
+    sendLock.current = true;
     setIsSending(true);
     try {
       const res = await fetch('/api/contractor/send-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quoteId: quote.id }),
+        body: JSON.stringify({
+          quoteId: quote.id,
+          expected_updated_at: quote.updated_at ?? undefined,
+        }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as {
-          error?: string;
+          error?: string | { message?: string };
         };
-        throw new Error(data.error || 'Failed to send quote');
+        if (res.status === 409) router.push(`/contractor/quotes/${quote.id}`);
+        throw new Error(
+          typeof data.error === 'string'
+            ? data.error
+            : data.error?.message || 'Failed to send quote'
+        );
       }
       toast.success(`Quote sent to ${quote.customerName}`);
       onToggleMenu(null);
+      router.push(`/contractor/quotes/${quote.id}`);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to send quote');
     } finally {
+      sendLock.current = false;
       setIsSending(false);
     }
   };
-  const handleDuplicate = () => {
-    toast.success('Quote duplicated');
-    onToggleMenu(null);
-  };
-  const handleDownload = () => {
-    toast.success('Downloading PDF...');
-    onToggleMenu(null);
-  };
-  const handleDelete = async () => {
-    const ok = await confirm({
-      title: `Delete quote "${quote.jobTitle}"?`,
-      confirmText: 'Delete',
-      destructive: true,
-    });
-    if (ok) {
-      toast.success('Quote deleted');
-      onToggleMenu(null);
-    }
-  };
+  const handleCreate = () => router.push('/contractor/quotes/create');
+  const handleDownload = handleView;
 
   return (
     <motion.div
@@ -193,7 +195,7 @@ export function QuoteCard({
                       <Edit className='w-4 h-4' /> Edit Quote
                     </button>
                   )}
-                  {(quote.status === 'draft' || quote.status === 'expired') && (
+                  {quote.status === 'draft' && (
                     <button
                       onClick={handleSend}
                       disabled={isSending}
@@ -204,23 +206,16 @@ export function QuoteCard({
                     </button>
                   )}
                   <button
-                    onClick={handleDuplicate}
+                    onClick={handleCreate}
                     className='w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-gray-50 transition-all'
                   >
-                    <Copy className='w-4 h-4' /> Duplicate
+                    <Plus className='w-4 h-4' /> Create new quote
                   </button>
                   <button
                     onClick={handleDownload}
                     className='w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-gray-50 transition-all'
                   >
-                    <Download className='w-4 h-4' /> Download PDF
-                  </button>
-                  <div className='border-t border-slate-100' />
-                  <button
-                    onClick={handleDelete}
-                    className='w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-all'
-                  >
-                    <Trash2 className='w-4 h-4' /> Delete
+                    <Download className='w-4 h-4' /> View / print quote
                   </button>
                 </motion.div>
               )}

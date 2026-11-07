@@ -36,9 +36,9 @@ export const GET = withApiHandler(
     const status = searchParams.get('status');
 
     let query = serverSupabase
-      .from('contractor_quotes')
+      .from('current_contractor_quotes')
       .select(
-        'id, title, client_name, client_email, status, total_amount, subtotal, tax_amount, quote_date, created_at, sent_at, valid_until, line_items, quote_number, template_id'
+        'id, title, client_name, client_email, status, total_amount, subtotal, tax_amount, quote_date, created_at, updated_at, sent_at, valid_until, line_items, quote_number, template_id'
       )
       .eq('contractor_id', user.id)
       .order('created_at', { ascending: false });
@@ -88,6 +88,8 @@ export const GET = withApiHandler(
         project_title: quote.title,
         client_name: quote.client_name,
         created_at: quote.created_at,
+        updated_at: quote.updated_at,
+        pricing_edit_version: 1,
         valid_until: quote.valid_until,
         quote_number: quote.quote_number,
         line_items: Array.isArray(quote.line_items) ? quote.line_items : [],

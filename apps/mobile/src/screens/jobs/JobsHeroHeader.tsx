@@ -46,14 +46,14 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
   onSearchChange,
   onAddJob,
 }) => {
-  const eyebrow = isContractor ? 'Discover' : 'Your projects';
-  const title = isContractor ? 'Jobs near you' : 'Jobs';
+  const eyebrow = isContractor ? 'Your work' : 'Your projects';
+  const title = isContractor ? 'Your jobs' : 'Jobs';
 
   // Subtitle: surface the single most actionable number per role.
   const subtitle = isContractor
     ? stats.total > 0
-      ? `${stats.total} ${stats.total === 1 ? 'opportunity' : 'opportunities'} tailored to your skills`
-      : 'Pull to refresh — new jobs land throughout the day'
+      ? `${stats.total} ${stats.total === 1 ? 'job' : 'jobs'} · ${stats.activeCount} active`
+      : 'Your assigned and completed work appears here'
     : stats.total > 0
       ? `${stats.total} ${stats.total === 1 ? 'job' : 'jobs'} · ${stats.activeCount} active`
       : 'Post your first job to start receiving bids';
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     backgroundColor: me.surface,
     borderRadius: 12,
     paddingHorizontal: 12,
-    height: 44,
+    minHeight: 44,
     borderWidth: 1,
     borderColor: me.line,
   },

@@ -15,6 +15,7 @@ import BidSubmissionScreen from '../../screens/BidSubmissionScreen';
 import { PaymentScreen } from '../../screens/PaymentScreen';
 import AddPaymentMethodScreen from '../../screens/payment-methods/AddPaymentMethodScreen';
 import { JobTimelineScreen } from '../../screens/job-details/JobTimelineScreen';
+import { QuoteAmendmentsScreen } from '../../screens/job-details/QuoteAmendmentsScreen';
 import { DisputeScreen } from '../../screens/DisputeScreen';
 import { RetainedDisputesScreen } from '../../screens/RetainedDisputesScreen';
 import { DisputeDetailsScreen } from '../../screens/DisputeDetailsScreen';
@@ -145,6 +146,11 @@ const SafeJobEditScreen = withScreenErrorBoundary(JobEditScreen, 'Edit Job', {
 // ============================================================================
 
 const JobsStack = createNativeStackNavigator<JobsStackParamList>();
+const SafeQuoteAmendmentsScreen = withScreenErrorBoundary(
+  QuoteAmendmentsScreen,
+  'Quote amendments',
+  { fallbackRoute: 'JobsList' }
+);
 
 const JobsNavigator: React.FC = () => {
   return (
@@ -156,6 +162,10 @@ const JobsNavigator: React.FC = () => {
         animation: 'slide_from_right',
       }}
     >
+      <JobsStack.Screen
+        name='QuoteAmendments'
+        component={SafeQuoteAmendmentsScreen}
+      />
       <JobsStack.Screen
         name='JobsList'
         component={SafeJobsScreen}

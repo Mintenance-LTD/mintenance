@@ -1,3 +1,4 @@
+import { displayAddress } from '../../utils/displayAddress';
 import { JobIssueConversations } from '../properties/components/JobIssueConversations';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
@@ -335,8 +336,9 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   // objects depending on which read path served them.
   const photos = normalizePhotoUrls(job.photos ?? job.images);
   const hasPhotos = photos.length > 0;
-  const locationStr =
-    typeof job.location === 'string' ? job.location : job.city || '';
+  const locationStr = displayAddress(
+    typeof job.location === 'string' ? job.location : job.city || ''
+  );
   const jobLat = typeof job.latitude === 'number' ? job.latitude : null;
   const jobLng = typeof job.longitude === 'number' ? job.longitude : null;
   const hasJobCoords = jobLat != null && jobLng != null && !!locationStr;
@@ -659,6 +661,21 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <View style={styles.divider} />
 
+        {(isOwner ||
+          job.payer_user_id === user?.id ||
+          job.contractor_id === user?.id) && (
+          <TouchableOpacity
+            accessibilityRole='button'
+            onPress={() =>
+              navigation.navigate('QuoteAmendments', { jobId: job.id })
+            }
+            style={{ minHeight: 48, padding: 16 }}
+          >
+            <Text style={{ color: me.ink, fontSize: 16, fontWeight: '600' }}>
+              Quote amendments
+            </Text>
+          </TouchableOpacity>
+        )}
         <JobQuickActions
           onReschedulePress={
             (canManageJob || job.contractor_id === user?.id) &&

@@ -87,6 +87,7 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     isLoading: jobLoading,
     error: jobError,
     refetch: refetchJob,
+    dataUpdatedAt: jobDataUpdatedAt,
   } = useJob(jobId);
   const job = rawJobData as Job | undefined;
 
@@ -222,7 +223,7 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     return () => {
       cancelled = true;
     };
-  }, [job, jobId, user]);
+  }, [job, jobId, jobDataUpdatedAt, user]);
 
   return {
     // State

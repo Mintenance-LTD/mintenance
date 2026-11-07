@@ -28,6 +28,7 @@ export default async function QuoteDetailsPage({
     .from('contractor_quotes')
     .select('*')
     .eq('id', id)
+    .eq('contractor_id', user.id)
     .single();
 
   if (error || !quote) {

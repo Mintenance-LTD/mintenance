@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons as Icon } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 import { AssessmentStep } from '../types';
 
@@ -48,7 +48,9 @@ export const StepCard: React.FC<StepCardProps> = ({
     <TouchableOpacity
       style={[styles.card, { backgroundColor: s.bg, borderColor: s.border }]}
       onPress={onPress}
-      disabled={step.status === 'completed'}
+      accessibilityRole='button'
+      accessibilityLabel={`${step.title}, ${step.status.replace('_', ' ')}`}
+      accessibilityHint='Open this assessment step'
       activeOpacity={0.7}
     >
       <View style={[styles.stepIcon, { backgroundColor: s.iconBg }]}>
@@ -93,6 +95,7 @@ const styles = StyleSheet.create({
   },
   titleRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
     marginBottom: 2,
