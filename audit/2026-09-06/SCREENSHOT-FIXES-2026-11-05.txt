@@ -1558,3 +1558,77 @@ Production notification and recovery verification — 7 November 2026
   Vercel deployment exclusion. Full release acceptance, fresh physical-device
   visuals/MFA challenge and relay flows, provider recovery and historical financial
   reconciliation remain incomplete.
+
+Controlled production amendment notification/recovery — 7 November 2026
+- Owner explicitly authorized test messages, designated gloirenkouka380@gmail.com,
+  then delegated selection among the inspected jobs. Verified confirmed active
+  homeowner a2cf7faa-2ce3-436f-8949-45976481813e and enabled email/push/in-app
+  preferences, no quiet hours/type mute and no legacy unsubscribe row. The older
+  documented homeowner/contractor test addresses were absent; no messages were
+  sent to them or to the example.com QA administrator.
+- Selected house check, job 1b4c1563-af7f-4f07-8710-09d2f0b46a37, accepted quote
+  719fb1df-9d18-49ee-9f70-ea3c87469d36. Existing contract is signed: no application
+  or signature operation was attempted. The test proposed the identical total,
+  with explicit CONTROLLED TEST/no-price-change wording, then withdrew it.
+  Proposal request: 54fe9f13-aa1b-40fd-b41c-d0a7b7fef625.
+  Amendment/revision: 4c990ddd-ef47-4b29-b3d3-318ae0067fbc.
+  Recovery request: 1b6363d9-59a1-4105-b794-0834d796647e.
+- Database-driven setup used the existing proposal/publish RPCs under the recorded
+  contractor identity. Publish transaction checked the exact source fingerprint,
+  job/contractor and designated confirmed recipient, then held only its new email
+  row as failed/controlled_test_pre_send_hold with attempts=0 and sent_at NULL.
+  This is an intentional pre-send test hold, NOT a real provider rejection or
+  unknown provider outcome. No global worker pause, secret/configuration change,
+  broad queue reset, direct provider send or manual cron invocation was used.
+- Recovery exercised review_quote_amendment_email with SET LOCAL ROLE service_role
+  and existing dedicated QA admin 89494f22-6212-48f7-b22b-50c0d084a0d9. Evidence
+  note accurately records the atomic hold before any provider call. Action retry /
+  evidence not_accepted produced pending with review_version=1. An immediate exact
+  replay returned the same audit record; a further exact replay after delivery
+  preserved sent_at/status/attempts and did not send again. One immutable review
+  row exists, previous_status=failed, previous_attempts=0, result_status=pending.
+  No admin session was minted or role/MFA/beta check modified. This does not prove
+  signed-in browser admin authorization or operator UI rendering.
+- Natural notification processor delivered publish email at 19:30:29.671 UTC:
+  status sent, attempts=1, no error. Exact production log identifies Brevo,
+  subject Quote amendment ready for review, designated recipient only. Queue row
+  reached sent; one in-app notification and one one-device push attempt recorded.
+  Matching recipient/time-window Expo receipt reached provider_accepted at
+  19:50:28.693 UTC. Receipt schema lacks amendment linkage, so correlation is by
+  user/time; the dispatch attempt itself links to the amendment notification.
+- Withdrew via the normal transition RPC at expected version 1. Final amendment
+  is withdrawn/version 2, applied_at=NULL, applied_quote_id=NULL. Withdrawal email
+  reached sent at 19:50:29.622 UTC, attempts=1, no error. Both queue rows sent,
+  two in-app notifications, both email recipients exactly the designated user.
+  Withdrawal push receipt was pending, next_check_at=20:05:29.631688 UTC at
+  observation. Provider acceptance is distinct from actual device presentation.
+- Owner confirmed: Email received; review link works. Supplied screenshot shows
+  https://www.mintenance.co.uk/jobs/1b4c1563-af7f-4f07-8710-09d2f0b46a37/amendments
+  rendering Amendment 1 -- withdrawn; accepted and proposed totals both GBP 1.30;
+  test wording, pricing and collapsed Decision history; no visible approve/apply
+  controls. This is desktop-browser evidence, not native Android/iOS acceptance.
+  Source: C:/Users/gloir/Downloads/Screenshot 2026-11-07 195131.png (not copied into
+  the repository); SHA256:
+  54117e7868e64d47b50b57ecde63427174355fcc0458ece80d44a60b03b38bbc.
+- Before/after full-row fingerprint comparisons were identical:
+  job f9ee5b3cedc692ccdcc47121526b20be
+  accepted quote c5949618021012957815aff0967a3364
+  bids baf9eaaa9b43412923a274cb9651f215
+  contracts 5d2305ae2e771678780b32e81ca039c7
+  signatories d751713988987e9331980363e24189ce.
+  Post-check found zero job rows across escrow_transactions, funding reservations,
+  invoices, payments, escrow_payments, payment_tracking, tax_payment_records and
+  contractor_payout_credit_events, matching the preflight. Financial records,
+  accepted prices, signed contract and job state were not changed. Append-only
+  test proposal/events/review and delivery telemetry are intentionally retained.
+- Concurrent external PR #1466 merge advanced main to 226d9ff34 and production
+  deployment dpl_8Ugbs5BR2V2UBQM1xqPepcEWdwGc reached READY. Compared fetched
+  FETCH_HEAD (not the stale local origin/main ref) to 0fd5fba133: only the two audit
+  files differ. Worker log at 19:30 identifies that new deployment. No merge or
+  redeploy was initiated in this task; feature deployment exclusion remains.
+- No application code changed or local tests rerun in this controlled-hosted test;
+  earlier 99 web tests/51 SQL scenarios remain separately recorded evidence.
+  Actual provider refusal/unknown acceptance recovery, signed-in operator UI and
+  revoked-admin checks, withdrawal inbox/device receipt, native deep-link/visual
+  checks, relay MFA/native sign-in challenge and historical reconciliation remain
+  open. Beta gate stays enabled and full release acceptance remains incomplete.

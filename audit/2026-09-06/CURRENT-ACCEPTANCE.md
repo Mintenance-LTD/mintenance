@@ -406,3 +406,50 @@ review mutation, cron invocation, migration or redeploy was performed here. No
 financial records changed. Beta enforcement stays enabled; all prior native MFA,
 physical-device and reconciliation limitations remain. Audit-only publication is
 to the feature branch; full release acceptance remains incomplete.
+
+### Controlled production notification/recovery test — 7 November 2026
+
+The owner designated `gloirenkouka380@gmail.com` and delegated test-job selection.
+Verified its active, confirmed homeowner account and used "house check"
+(`1b4c1563-af7f-4f07-8710-09d2f0b46a37`). Its existing contract is signed; only a
+clearly labelled, same-total test proposal was published and withdrawn. No approval,
+application, signature, price update or financial operation was performed.
+
+Test amendment `4c990ddd-ef47-4b29-b3d3-318ae0067fbc` finished **withdrawn**, version 2,
+with no applied quote or applied timestamp. Publish and withdrawal both addressed
+only the designated homeowner. The existing scheduler submitted two email notices
+and created two in-app notifications; both email rows reached `sent` with exactly
+one provider attempt each (19:30:29 and 19:50:29 UTC). Brevo acceptance for the
+review notice is corroborated by production logs. The owner confirmed **email
+received; review link works**. The first push receipt reached `provider_accepted`;
+the withdrawal push receipt was still pending its scheduled check at observation.
+
+Controlled recovery was exercised without inventing a provider failure: the first
+email was held atomically before any send, with attempts=0 and
+`controlled_test_pre_send_hold`. The service-role review RPC, using the existing
+dedicated QA administrator identity, recorded evidence `not_accepted` and returned
+it to pending. Exact-request replay before and after delivery retained one immutable
+review and did not resend or reset the sent row. These were database-driven test
+calls, not authenticated browser/admin-session verification. No roles, sessions,
+beta approvals or provider settings were changed.
+
+The supplied desktop screenshot `Screenshot 2026-11-07 195131.png` confirms the
+production amendment URL renders the withdrawn test, equal accepted/proposed
+totals of GBP 1.30, and no visible approve/apply controls. This closes the tested
+email deep link and desktop withdrawn-state observation only. Before/after full-row
+fingerprints match for the job, accepted quote, bids, contract and signatories;
+all eight inspected payment/escrow/invoice/funding/payout tables still have zero
+rows for this job. Test history remains append-only and the proposal is closed.
+
+An external merge/deployment advanced production to `226d9ff34` /
+`dpl_8Ugbs5BR2V2UBQM1xqPepcEWdwGc` during preparation. Its source difference from
+`0fd5fba133` is audit documents only; the test worker logs identify the new
+deployment. This task did not merge or redeploy. No source changes or fresh local
+test run were needed; prior 99 web / 51 SQL results remain historical evidence.
+
+Beta gate remains enabled. Remaining acceptance includes actual provider rejection
+or ambiguous-send recovery, signed-in operator UI/admin revocation checks,
+withdrawal inbox/device receipt, native notification/deep-link visuals and all
+prior device MFA/native challenge and financial reconciliation gaps. Full release
+acceptance remains incomplete. This controlled result supersedes the earlier
+empty-production-queue limitation, not those remaining limitations.
