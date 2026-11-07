@@ -14,7 +14,7 @@ const snapshot = sql('20260805194939_uk_earnings_statement_bookkeeping.sql');
 const table = (name) =>
   snapshot.match(
     new RegExp(
-      `CREATE TABLE IF NOT EXISTS "public"\."${name}" \\([\\s\\S]*?\\n\\);`
+      `CREATE TABLE IF NOT EXISTS "public"\\."${name}" \\([\\s\\S]*?\\n\\);`
     )
   )[0];
 await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
