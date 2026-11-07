@@ -1853,3 +1853,36 @@ Automatic production deployment and live amendment UI — 7 November 2026
   native challenge enforcement, provider-incident/hosted conflict/revoked-admin
   checks and historical reconciliation limitations remain. Full release acceptance
   incomplete. Audit-only feature push; no main merge or deployment action.
+
+Operator recovery continuation — 7 November 2026, 21:18 UTC
+- Started clean at 647dc060f on feat/launch-terms-support-nov2; inspected applicable
+  instructions, saved acceptance, UI reset/save logic and admin API guards.
+- Fresh targeted regression: 40 tests passed in quote-email-review-ui.test.tsx and
+  quote-email-review-api.test.ts. Includes success clearing on refresh/queue change,
+  conflict blocking, frozen exact-request retry, confirmation, CSRF and list/history
+  errors. Initial sandbox run failed before tests with temporary-file rename EPERM;
+  rerun outside the sandbox passed (2 files, 40 tests, exit 0). Evidence:
+  output/operator-recovery-verification-20261107.log. No source edits needed.
+- Existing operator dashboard was cached. Refresh redirected to /admin/login.
+  Owner supplied /admin/settings; that cached tab also redirected to login when
+  Dashboard was selected. Filled only the designated admin email and requested
+  normal owner sign-in/MFA. No session extraction, auth bypass or role changes.
+  Hosted save/success-reset verification is pending that authenticated session;
+  do not count cached UI or passing unit tests as a production reset result.
+- Read-only production checks: designated admin/homeowner profiles active; test
+  amendment 65e6e1af-842b-4bd0-82e8-b6d324ed3726 withdrawn/version 2/unapplied;
+  withdrawal outbox remains reviewed_unknown/review_version 1/attempts 0/sent_at
+  NULL with original review 5a0d618c-2cc5-4e4d-80e4-e011192c4063. Other controlled
+  email rows retain one attempt each and their original send timestamps.
+- Five full-row hashes match prior audit exactly: job f9ee5b3cedc692ccdcc47121526b20be,
+  quote c5949618021012957815aff0967a3364, bids baf9eaaa9b43412923a274cb9651f215,
+  contracts 5d2305ae2e771678780b32e81ca039c7, signatories d751713988987e9331980363e24189ce.
+  Escrow transactions, funding reservations, invoices, payments, escrow payments,
+  payment tracking, tax payment records and contractor payout-credit events each
+  still have zero rows for the test job. No fixture staging or production mutation.
+- Hosted reset, conflict/lost-response and revoked-admin verification remain open.
+  Prior controlled retry/close-unknown evidence is unchanged; no genuine provider
+  incident was induced. No new send, review, proposal, financial change, account
+  change, beta change, merge or deployment. Preserve all native/device MFA,
+  sign-in challenge, physical-device and reconciliation limitations. Full release
+  acceptance remains incomplete. Audit publication is to the feature branch only.

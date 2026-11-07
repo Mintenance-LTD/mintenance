@@ -622,3 +622,36 @@ through a new production review; its local regression evidence remains separate.
 Physical-device/native MFA and sign-in challenge checks, actual provider incidents,
 hosted conflict/revoked-admin cases and financial reconciliation remain open.
 Beta gate remains enabled; full release acceptance remains incomplete.
+
+### Operator recovery continuation — 7 November 2026, 21:18 UTC
+
+Fresh local validation: 40 tests passed across quote-email-review-ui and
+quote-email-review-api. This includes clearing success on refresh/queue change,
+conflict blocking, exact-request retry after an uncertain response, CSRF failure,
+confirmation, and list/history error handling. The initial sandbox run executed
+no tests because Vitest's temporary-file rename failed with EPERM; rerunning the
+same suites outside that restriction passed. Log:
+`output/operator-recovery-verification-20261107.log`.
+
+Production operator verification remains pending normal admin sign-in. Refreshing
+the existing dashboard redirected to Admin Sign In; the owner-supplied Settings
+tab likewise redirected when navigating to Dashboard. Cached admin content is not
+evidence of a current authenticated session or the deployed success-reset fix.
+The designated admin email was filled for owner sign-in; no credentials, tokens,
+roles or security settings were read or changed.
+
+Read-only checks confirmed the designated admin/homeowner profiles are active and
+the existing controlled withdrawal event remains reviewed_unknown, review_version
+1, attempts 0, sent_at NULL, with its original immutable review. Other test emails
+retain their original sent timestamps and single attempts. The proposal remains
+withdrawn/version 2 and unapplied. Five job/quote/bid/contract/signatory fingerprints
+match the preceding audit; all eight inspected job-related financial tables still
+have zero rows. No fixture was reopened and no review, retry, message, proposal or
+financial operation was submitted in this continuation.
+
+The hosted success-message reset and conflict/lost-response/revoked-admin checks
+remain open; local passing tests do not close those production gaps. Earlier
+controlled retry/close-unknown results remain valid within their original scope.
+Beta gate remains enabled. Native/device MFA, native sign-in challenge enforcement,
+physical-device visuals, genuine provider-incident recovery and historical financial
+reconciliation remain unverified; full release acceptance remains incomplete.
