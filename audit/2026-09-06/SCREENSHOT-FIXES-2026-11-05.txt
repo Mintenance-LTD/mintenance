@@ -1359,3 +1359,56 @@ Merge main into feature branch — 7 November 2026
   not replace fresh-build physical-device checks. Escrow presentation does not
   establish historical reconciliation. Amendment migrations remain unapplied;
   provider/operator/device acceptance and full release acceptance remain open.
+
+Merge readiness / already-merged checkpoint — 7 November 2026
+============================================================
+- Inspected clean local a31eaafcf and fetched remote heads. The feature branch
+  had advanced to 1b9ca3d9a81c4bea5b64bc98fffcdf6b5fc5c425, containing an existing
+  CodeQL fix that correctly escapes the literal schema separator in the SQL
+  fixture regex. Reviewed and fast-forwarded that change without overwriting it.
+- PR #1464 (https://github.com/Mintenance-LTD/mintenance/pull/1464) was already
+  merged at 2026-11-07T17:23:22Z. Its merge commit/main head is
+  0fd5fba133a3134a89bcd21f80ad26cbfe0d7296. The feature head and main have identical
+  source trees. No merge, deploy, workflow rerun or hosted mutation was initiated
+  in this inspection. An already merged PR is not a pending merge blocker.
+- Inspected final-head check runs, workflow jobs/steps and review threads. The
+  documented gates Code Quality & Testing, PR Quality Gate and Performance &
+  Security Monitoring passed in run 42393771869. Both web E2E shards passed in
+  run 42392252355, including their disposable database/build/test steps. CodeQL
+  passed and the only review thread (the fixture regex) is resolved/outdated.
+  Latest check results are success or intentionally skipped, with no outstanding
+  failed or pending checks on the inspected feature head.
+- Native E2E Android/iOS checks were skipped, as was the actual Detox smoke test
+  step inside its successful job. Native build jobs were skipped on the PR.
+  These results do not prove new binaries, physical-device visual acceptance or
+  deployed relay/native challenge behavior. Existing app-level acceptance gaps
+  remain; the web E2E result does not specifically establish amendment/operator
+  provider delivery or concurrent hosted workflows.
+- GitHub integration could not read classic main branch protection (403 Resource
+  not accessible by integration). Do not equate workflow comments with verified
+  enforced required checks. Readable active ruleset 8484854 restricts deletion/
+  non-fast-forward and configures Copilot review; it has no required-status-check
+  rule. The other listed ruleset is disabled. No protection/ruleset was changed.
+- Read-only Supabase migration metadata was compared with all 15 prerequisites
+  returned by the actual local requiredMigrations function. Exactly three are
+  absent: 20261106202654_quote_amendment_notifications.sql,
+  20261107143626_quote_amendment_email_outbox.sql and
+  20261107150444_quote_amendment_email_review.sql. History and approval migrations
+  remain recorded under their production MCP timestamps. No customer records,
+  delivery RPC, review RPC or financial records were queried or mutated.
+- Read Vercel build events for dpl_65ZoTAKA3atAMEzh2JLkTaYvfGBm, the automatic
+  production deployment for main 0fd5fba13. It is ERROR: the release guard stopped
+  with exactly the three missing migration names. The guard is behaving correctly;
+  it was not bypassed, altered or rerun against production. Future schema rollout
+  and deployment require separate authorization; neither occurred in this task.
+- Fresh local validation at the newer regex-fix head: 51 disposable PGlite SQL
+  scenarios plus role/RLS checks passed (output/merge-readiness-sql.log); 18 Node
+  release-prerequisite/build-wrapper tests passed
+  (output/merge-readiness-release-tests.log). Prior test results remain historical.
+  No further source fix was indicated. This audit-only update is committed/pushed
+  to the feature branch, retaining its Vercel auto-deployment exclusion.
+- Beta gate remains enabled. Full release acceptance remains incomplete. Provider
+  delivery/recovery, fresh Android/iOS UI, deployed-relay MFA status/enrolment/
+  verification/disable/retry, native sign-in MFA challenge enforcement and historical
+  financial reconciliation still require the verification recorded above. No new
+  security-scan or physical-device clearance is claimed by this documentation run.

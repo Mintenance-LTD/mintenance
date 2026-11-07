@@ -269,3 +269,29 @@ Fresh checks passed the shared-package build, compiled quote-pricing export chec
 TypeScript. Logs are under output/merge-main-*. Previous audit/device/MFA,
 historical financial reconciliation, unapplied migration and incomplete release
 acceptance limitations remain in force.
+
+### Merge/readiness inspection — 7 November 2026
+
+GitHub PR [#1464](https://github.com/Mintenance-LTD/mintenance/pull/1464) was
+already merged at 17:23:22 UTC before this inspection. Main is
+`0fd5fba133a3134a89bcd21f80ad26cbfe0d7296`, containing feature head `1b9ca3d9a`
+(the existing CodeQL regex fix). Their source trees match. No merge was performed
+in this inspection; the local feature branch was fast-forwarded to its remote.
+
+The final head's documented Code Quality & Testing, PR Quality Gate, Performance
+& Security Monitoring and both web E2E shards passed. CodeQL passed and its sole
+review thread is resolved. Native Android/iOS E2E and the Detox smoke step were
+skipped; successful wrapper jobs do not establish device acceptance. Classic
+branch-protection settings returned 403 to the GitHub integration, so the exact
+enforced required-check list could not be independently verified. The readable
+active ruleset covers deletion, force pushes and Copilot review, not status checks.
+
+Deployment is blocked: production migration metadata, compared against all 15
+local release prerequisites, is missing `quote_amendment_notifications`,
+`quote_amendment_email_outbox` and `quote_amendment_email_review`. The automatic
+main deployment `dpl_65ZoTAKA3atAMEzh2JLkTaYvfGBm` failed at the migration guard
+with exactly those names. No guard was weakened and no migration/redeploy was run.
+Fresh local checks passed 51 SQL scenarios plus role/RLS checks and 18 release-
+guard/build-wrapper tests. No additional source fix is indicated by this evidence.
+Beta enforcement and all prior provider/device/MFA/reconciliation acceptance
+limitations remain. This documentation update is pushed only to the feature branch.
