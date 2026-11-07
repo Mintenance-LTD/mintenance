@@ -63,6 +63,7 @@ import {
   SafeVerificationStatusScreen,
   SafeMyPublicProfileScreen,
   SafeQuoteDetailScreen,
+  SafeQuoteAmendmentPreparationScreen,
   SafeQuoteTemplatesScreen,
   SafeContractorCardEditorScreen,
   SafeContractorVerificationScreen,
@@ -213,6 +214,11 @@ const ProfileNavigator = () => {
       <ProfileStack.Screen
         name='QuoteTemplates'
         component={SafeQuoteTemplatesScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='QuoteAmendmentPreparation'
+        component={SafeQuoteAmendmentPreparationScreen}
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen

@@ -970,3 +970,134 @@ Remaining acceptance and rollout boundaries
   bank transfers retain their previously confirmed status; this does not prove
   delivery of the new amendment event type. The beta gate remains enabled.
   Full release acceptance remains incomplete.
+
+Native amendment preparation and price editing — 7 November 2026
+================================================================
+
+Scope and implementation
+------------------------
+- Started at 1406864ae with a clean worktree. Inspected root/web AGENTS.md,
+  current acceptance, native draft/detail and review flows, revision/proposal
+  APIs, the proposal RPC and shared price calculator. Existing work preserved.
+- Accepted native quote details now open QuoteAmendmentPreparation. The new
+  owner-scoped contractor amendment-context GET reads the source quote by id,
+  including its exact updated_at, job link, items, total and terms, and verifies
+  whether it is current. It can read historical source documents without
+  relying on the current quote-list endpoint. Context/database failures fail
+  closed; missing/foreign quotes return not found. Context and revision-history
+  GET responses have Cache-Control: no-store.
+- Native preparation loads authoritative source and the latest history page
+  together before enabling edits. Superseded/non-accepted sources do not offer
+  preparation or publication. History has bounded pages and explicit retry;
+  malformed cursors, foreign rows and missing context do not become empty or
+  successful results. Stale read/save callbacks are ignored after context changes.
+- Added native replacement-price editing: description, quantity, unit price,
+  add/remove items, explicit tax percentage and required reason. Uses the same
+  calculateDraftQuotePricing implementation as the server/draft editor for
+  pence rounding, 1–100 items, precision, tax range and amount limits. Preview
+  shows line totals, subtotal, tax and grand total. Zero totals cannot be
+  submitted through this customer-review preparation UI.
+- No tax rate is inferred from historical totals. Contractors must enter the
+  applicable percentage, including 0 for no tax, and explicitly include agreed
+  adjustments in unit prices. Accepted source total and unchanged terms remain
+  visible. Existing draft-price editing is covered by regression tests.
+- Save records an immutable amendment proposal with an Expo-generated UUID,
+  exact source version, reason and complete price breakdown. It uses the existing
+  authenticated revisions API; server rounding and RPC ownership/version checks
+  remain authoritative. Saving does not update accepted quote/bid/contract prices
+  or notify the customer. Bare old/new-total revision creation still rejects and
+  now directs users to native amendment preparation.
+- An ambiguous save retains the exact request id/body, locks fields and offers
+  Retry same proposal. Definite validation/access/conflict responses require
+  reloading the source/history. Duplicate taps are guarded. Recorded success is
+  shown immediately from the confirmed revision response, independently of a
+  later history request. The recorded proposal remains available after reopening
+  the screen; saved proposals cannot be rewritten, so changed pricing requires
+  another proposal.
+- Saved proposal cards show complete before/after price breakdowns, terms,
+  reason, date and customer-review status. A separate native confirmation
+  publishes the existing revision through the established version-0 transition.
+  Retry targets the same revision; failures do not undo or re-save the proposal.
+  Previously published/decided proposals do not offer republishing. A job-less
+  quote can have an internal proposal but publication explains the requirement
+  for a linked job and matching accepted bid. Server publication/application
+  guards still decide eligibility if the job changes after loading.
+- Native links open the existing QuoteAmendments review/decision screen. There
+  are no direct privileged mobile database writes, client-supplied actor fields,
+  new schema changes or changes to approval/application RPCs in this batch.
+- Uses the installed React Navigation usePreventRemove hook for native-stack
+  removal: unsaved edits require confirmation; an active save blocks removal;
+  an uncertain result warns that the proposal may already be recorded. Inline
+  cancellation/reload also requires confirmation. Documentation/source checked:
+  https://reactnavigation.org/docs/use-prevent-remove/ . This hook does not
+  preserve unsaved edits across forced app termination or authentication-driven
+  unmounts. Local unsaved editing is in memory; recorded proposals are server-side.
+- Inputs/actions wrap and scale, actions have 48pt minimum height, notes and
+  descriptions are multiline, and scroll/keyboard avoidance is configured.
+  Fresh-build physical-device behavior remains an acceptance requirement.
+
+Local verification
+-------------------
+- Mobile Jest: 6 suites / 142 tests passed. Files:
+    quote-detail/__tests__/QuoteAmendmentPreparationScreen.test.tsx
+    services/quotes/__tests__/QuoteAmendmentPreparation.test.ts
+    quote-detail/__tests__/QuoteDetailScreen.test.tsx
+    services/__tests__/QuoteBuilderService.test.ts
+    screens/__tests__/QuoteAmendmentsScreen.test.tsx
+    services/quotes/__tests__/QuoteAmendments.test.ts
+  Paths above are under apps/mobile/src/screens for quote-detail, otherwise
+  apps/mobile/src. Tests cover precision/rounding, explicit tax, invalid/empty
+  prices, missing reason, item add/remove, exact request retries, stale conflict,
+  navigation guards, independent publication, resume, history pagination, access
+  states and existing draft/review regressions. Log:
+  output/quote-prepare-mobile-tests.log.
+- Web Vitest: 6 files / 101 tests passed: quote-amendment-context,
+  quote-revisions-api, quote-approval-api, draft-quote-pricing,
+  quote-acceptance-guards and quote-history-ui audit tests. New context tests
+  verify contractor-only configuration, authenticated owner filters on both
+  reads, historical current-status distinction, cache policy, exact timestamp
+  preservation, absent/foreign records and database failure. Log:
+  output/quote-prepare-web-tests.log.
+- Existing disposable PGlite approval/application suite rerun: 31 scenarios
+  plus role/RLS checks passed. All records synthetic, local and rolled back;
+  no SQL changed in this batch. Log: output/quote-prepare-sql.log.
+- Existing relay tests rerun: 22/22 passed via node --import tsx --test.
+  No relay source, allowlist or beta configuration changed. Log:
+  output/quote-prepare-relay.log.
+- Full mobile and web TypeScript checks passed. Changed-file web ESLint passed
+  including tests via --no-ignore, zero errors/warnings. Mobile changed-file lint
+  has zero errors and one inspected pre-existing unused React import warning in
+  ProfileBusinessNavigator.tsx. New code is lint-clean. Logs:
+  output/quote-prepare-{mobile,web}-{types,lint}.log.
+- Final staged review passed git diff --cached --check, check-no-hex.js and
+  check-edge-fn-currency.js. No beta, relay, release or migration file changed.
+- Earlier 114-mobile / 76-web runs were intermediate, not additional coverage.
+  Previous batch counts remain historical evidence. Jest's existing React
+  test-renderer deprecation notices do not establish native visual acceptance.
+  Aikido tools remain unavailable; no Aikido security clearance is claimed.
+
+Acceptance boundaries retained
+------------------------------
+- This closes the local native preparation/price-editing gap recorded in the
+  preceding checkpoint. Native builds, the new context API and previous
+  notification processor/migration still require separately authorized rollout
+  and end-to-end device acceptance. The notification migration
+  20261106202654_quote_amendment_notifications.sql remains UNAPPLIED. No new
+  migration was created or applied, no app/Edge deployment or Git push occurred,
+  no live financial/customer records were changed, and no real notice was sent.
+- Requires real Android/iOS checks for decimal keyboards, larger text, long
+  multi-item forms, scroll, back/swipe/tab navigation, forced app exit/recovery,
+  account changes and two-party proposal/publication/review through the relay.
+  SQL fixtures/mock API tests are not full migration replay, actual simultaneous
+  database sessions or deployed PostgREST/notification delivery evidence.
+- Editing contract terms within a price proposal and amendment email delivery
+  are not implemented. Original accepted prices/history remain immutable.
+  Signed, part-signed, consented, funded or invoiced application remains blocked.
+  Approval is not signature, payment, additional funding or refund execution.
+- Deployed-relay Android/iOS MFA status/enrolment/verification/disable/retry
+  still needs device verification. Settings tests do not establish native
+  sign-in MFA challenge enforcement across custom MFA and Supabase sessions.
+  Fresh-build visual checks and historical financial reconciliation remain open.
+  Push notifications/bank transfers retain their confirmed status; new amendment
+  notification delivery is not established by these tests. Beta gate remains
+  enabled and full release acceptance remains incomplete.

@@ -78,6 +78,11 @@ it('shows a fallback reference and saved line items, with no edit action on an a
   expect(view.queryByLabelText('Edit quote')).toBeNull();
   expect(view.queryByText('Edit quote')).toBeNull();
   expect(view.getByText('Tax')).toBeTruthy();
+  fireEvent.press(view.getByText('Prepare amendment and view history'));
+  expect(navigation.navigate).toHaveBeenCalledWith(
+    'QuoteAmendmentPreparation',
+    { quoteId: quote.id }
+  );
 });
 it('updates the selected draft instead of opening a new quote', async () => {
   mockGet.mockResolvedValue([{ ...quote, status: 'draft' }]);

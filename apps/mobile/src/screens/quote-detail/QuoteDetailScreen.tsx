@@ -351,6 +351,21 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
           ) : null}
 
           {/* Actions */}
+          {quote.status === 'accepted' && (
+            <TouchableOpacity
+              accessibilityRole='button'
+              style={[styles.editorAction, { minHeight: 48, padding: 16 }]}
+              onPress={() =>
+                navigation.navigate('QuoteAmendmentPreparation', {
+                  quoteId: quote.id,
+                })
+              }
+            >
+              <Text style={styles.backLink}>
+                Prepare amendment and view history
+              </Text>
+            </TouchableOpacity>
+          )}
           {quote.status === 'draft' && !editing && (
             <View style={styles.actionsSection}>
               <TouchableOpacity

@@ -85,6 +85,7 @@ export interface QuoteLineItem {
 }
 
 export interface QuoteRevision {
+  amendment?: { status: string } | null;
   id: string;
   quote_id: string;
   revision_number: number;

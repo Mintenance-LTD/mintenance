@@ -167,3 +167,28 @@ text/keyboard/scroll, deployed-relay MFA, native challenge enforcement and
 multi-session/deployed database journeys remain unaccepted. Signed/funded
 variations and historical reconciliation remain out of scope. Full release
 acceptance remains incomplete; the beta gate remains enabled.
+
+### Native amendment preparation and price editing — 7 November 2026
+
+The native preparation gap in the preceding checkpoint is implemented locally.
+Accepted quote details open owner-scoped source/history, replacement line-item
+editing with explicit tax and shared rounding, immutable proposal save and a
+separate confirmed publication step. Saved proposals can be resumed from history;
+ambiguous saves retain their request id/body, conflicts require reload, historical
+quotes are read-only, and navigation guards protect in-memory edits. Accepted
+prices, terms and financial records remain unchanged by proposal preparation.
+
+Fresh checks passed 142 mobile tests / 6 suites, 101 web tests / 6 files,
+31 existing SQL scenarios plus role/RLS checks, 22 relay tests and full mobile/
+web TypeScript. Web changed-file lint is clean; mobile lint has no errors and
+one inspected pre-existing unused import warning. Aikido scanning is unavailable.
+
+No schema change, hosted mutation, deployment, Git push or real notification
+occurred. The previous notification migration is still unapplied; native builds
+and API/processor rollout require separate authorization and device acceptance.
+Unsaved edits are not persisted across forced termination. Native price editing,
+publication, keyboard/scroll/large-text behavior and two-party review still need
+fresh-build Android/iOS verification. Contract-term amendments, amendment email,
+signed/funded variations, deployed-relay MFA/native challenge enforcement,
+historical reconciliation and full release acceptance remain open. The beta
+gate remains enabled.

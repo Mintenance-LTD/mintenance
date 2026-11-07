@@ -70,10 +70,13 @@ export const GET = withApiHandler(
     if (error || !data)
       throw new InternalServerError('Quote history is unavailable. Try again.');
     const revisions = data.slice(0, 50);
-    return NextResponse.json({
-      revisions,
-      next_before: data.length > 50 ? revisions[49].revision_number : null,
-    });
+    return NextResponse.json(
+      {
+        revisions,
+        next_before: data.length > 50 ? revisions[49].revision_number : null,
+      },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   }
 );
 

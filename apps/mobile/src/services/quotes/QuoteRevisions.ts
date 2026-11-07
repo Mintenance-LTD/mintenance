@@ -36,6 +36,6 @@ export async function createQuoteRevision(
   _revisedBy: string
 ): Promise<QuoteRevision> {
   throw new Error(
-    'Use the web quote history to prepare a versioned amendment proposal with a complete pricing breakdown. No revision was saved.'
+    'Open quote amendment preparation to save a versioned proposal with a complete pricing breakdown. No revision was saved.'
   );
 }
