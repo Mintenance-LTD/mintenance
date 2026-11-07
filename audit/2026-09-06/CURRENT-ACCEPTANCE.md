@@ -253,3 +253,19 @@ were pushed to that GitHub branch. `git ls-remote` matched the full local commit
 `1adc292feb19a2a7c5db58a2ddacc84a0f977f82`. The post-push Vercel branch query
 returned no new deployments. This publication receipt is a documentation follow-up;
 all deployment/migration/device acceptance limitations above remain unchanged.
+
+### Main conflict resolution — 7 November 2026
+
+Merged main `c49f936af27cac9eaf3c8e39b074e1f4240ff300` into the feature branch
+after fetching both remote heads. Resolved both conflicts by retaining the shared
+quote-pricing export and the two MFA relay tests (approved bearer forwarding and
+strict route/method rejection). The resolved code tree is identical to feature
+head `5f6b638a1`; this merge records main as an ancestor without losing existing
+feature work. Beta enforcement and the branch-specific Vercel deployment exclusion
+are unchanged. No merge into main, deployment or hosted mutation was performed.
+
+Fresh checks passed the shared-package build, compiled quote-pricing export check,
+54 mobile tests / 4 suites, 30 web tests / 4 files, 22 relay tests and full web/mobile
+TypeScript. Logs are under output/merge-main-*. Previous audit/device/MFA,
+historical financial reconciliation, unapplied migration and incomplete release
+acceptance limitations remain in force.

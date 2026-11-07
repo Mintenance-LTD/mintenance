@@ -1318,3 +1318,44 @@ Publication receipt — 7 November 2026
   workflow dispatch, migration apply, customer email or financial mutation was
   performed. This receipt is a documentation follow-up; all acceptance gaps,
   the unapplied migrations and enabled beta gate remain as recorded above.
+
+Merge main into feature branch — 7 November 2026
+===============================================
+- User explicitly authorized conflict resolution, tests, audit, merge commit and
+  feature-branch push, with no merge into main or deployment. Started clean at
+  5f6b638a1. Read applicable AGENTS and fetched origin main and the feature branch;
+  main was c49f936af27cac9eaf3c8e39b074e1f4240ff300 and the feature remote matched.
+- Merged that main commit into feat/launch-terms-support-nov2 with --no-commit.
+  Inspected the two conflict regions. Kept export * from './quotePricing' in
+  packages/shared/src/index.ts and both MFA relay tests in handler.test.ts:
+  approved bearer forwarding with revoked-beta rejection, and rejection of
+  unrelated auth routes, wrong methods and nested/trailing-slash paths.
+- Verified the resolved index/code tree is identical to pre-merge feature HEAD.
+  Automatic merges in ContractViewScreen, relay handler and vercel.json also
+  preserve existing feature content. No feature implementation was overwritten;
+  the merge records main ancestry. No unmerged index entries remain. Beta gate
+  and the feature branch's Vercel auto-deployment exclusion remain unchanged.
+- Fresh shared-package TypeScript build passed; dist/index.js and dist/index.d.ts
+  both expose quotePricing. Build log: output/merge-main-shared-build.log.
+- Fresh mobile Jest: 54 tests / 4 suites passed (native MFA settings flow, quote
+  amendment preparation screen/service and quote detail pricing). Log:
+  output/merge-main-mobile-tests.log. Existing renderer deprecation output does
+  not constitute device visual acceptance.
+- Fresh web Vitest: 30 tests / 4 files passed (draft pricing, MFA status, settings
+  client and disable identity). Log: output/merge-main-web-tests.log.
+- Fresh relay Node tests: 22 passed, including both preserved MFA tests and beta
+  gate checks. Log: output/merge-main-relay-tests.log. Full web/mobile TypeScript
+  passed (output/merge-main-web-types.log and output/merge-main-mobile-types.log).
+  A runtime import of the compiled shared barrel also calculated a synthetic
+  two-item-at-GBP12.50 quote with 20% tax as GBP30. No SQL was changed or applied.
+- Final staged whitespace, check-no-hex.js and check-edge-fn-currency.js guards
+  passed. Resolution preserved existing source verbatim; no new source lint or
+  security-scan clearance is claimed from the documentation-only staged diff.
+- This is conflict/ancestry validation, not a new full release acceptance run.
+  No real email, live financial mutation, migration apply or deployment occurred.
+  Android/iOS deployed-relay MFA status/enrolment/verification/disable/retry still
+  requires device verification. Settings tests do not establish native sign-in
+  MFA enforcement across custom MFA and Supabase sessions. Jest rendering does
+  not replace fresh-build physical-device checks. Escrow presentation does not
+  establish historical reconciliation. Amendment migrations remain unapplied;
+  provider/operator/device acceptance and full release acceptance remain open.
