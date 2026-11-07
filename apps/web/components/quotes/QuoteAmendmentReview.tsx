@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { fetchWithCSRF } from '@/lib/hooks/useCSRF';
+import { ArrowLeft, FileText, RefreshCw, ShieldCheck } from 'lucide-react';
+import styles from './QuoteAmendmentReview.module.css';
 type Pricing = {
   line_items?: {
     description?: string;
@@ -48,29 +50,53 @@ const errorMessage = (
     : data?.error?.message || fallback;
 function Prices({ value, label }: { value: Pricing; label: string }) {
   return (
-    <section className='min-w-0 space-y-2'>
-      <h3 className='font-semibold'>{label}</h3>
+    <section className={styles.prices} aria-label={label}>
+      <h3>{label}</h3>
+      <p className={styles.priceTotal}>
+        {money(value.total_amount)}
+        <span>Total including tax</span>
+      </p>
       {Array.isArray(value.line_items) && value.line_items.length > 0 ? (
-        <ul className='space-y-2'>
+        <ul className={styles.items}>
           {value.line_items.map((item, index) => (
-            <li key={index} className='break-words'>
-              {item.description || 'Description not recorded'}:{' '}
-              {item.quantity ?? 'Not recorded'} ×{' '}
-              {money(item.unitPrice ?? item.unit_price)} = {money(item.total)}
+            <li key={index}>
+              <span>{item.description || 'Description not recorded'}</span>
+              <div>
+                <span>
+                  {item.quantity ?? 'Not recorded'} ×{' '}
+                  {money(item.unitPrice ?? item.unit_price)}
+                </span>
+                <strong>{money(item.total)}</strong>
+              </div>
             </li>
           ))}
         </ul>
       ) : (
-        <p>No item breakdown recorded.</p>
+        <p className={styles.noItems}>No item breakdown recorded.</p>
       )}
-      <p>Subtotal: {money(value.subtotal)}</p>
-      <p>
-        Tax: {money(value.tax_amount)} ({value.tax_rate ?? 'Not recorded'}%)
-      </p>
-      <p className='font-semibold'>Total: {money(value.total_amount)}</p>
-      <p className='whitespace-pre-wrap break-words'>
-        Terms: {value.terms || 'None recorded'}
-      </p>
+      <dl className={styles.totals}>
+        <div>
+          <dt>Subtotal</dt>
+          <dd>{money(value.subtotal)}</dd>
+        </div>
+        <div>
+          <dt>
+            Tax{' '}
+            {value.tax_rate == null
+              ? '(rate not recorded)'
+              : `(${value.tax_rate}%)`}
+          </dt>
+          <dd>{money(value.tax_amount)}</dd>
+        </div>
+        <div>
+          <dt>Total</dt>
+          <dd>{money(value.total_amount)}</dd>
+        </div>
+      </dl>
+      <div className={styles.terms}>
+        <h4>Terms</h4>
+        <p>{value.terms || 'None recorded'}</p>
+      </div>
     </section>
   );
 }
@@ -148,12 +174,26 @@ function AmendmentCard({
     contractorAction =
       isContractor && ['published', 'approved'].includes(a.status);
   return (
-    <article className='rounded-lg border border-slate-300 p-4 space-y-4'>
-      <h2 className='text-xl font-semibold'>
-        Amendment {a.sequence} — {a.status}
-      </h2>
-      <p className='whitespace-pre-wrap break-words'>{a.reason}</p>
-      <div className='grid gap-6 sm:grid-cols-2'>
+    <article className={styles.card}>
+      <header className={styles.cardHeader}>
+        <div className={styles.cardTitle}>
+          <FileText size={22} aria-hidden='true' />
+          <h2>Amendment {a.sequence}</h2>
+        </div>
+        <span className={styles.badge} data-status={a.status}>
+          {a.status === 'published' ? 'Awaiting review' : a.status}
+        </span>
+      </header>
+      {['withdrawn', 'rejected'].includes(a.status) && (
+        <p className={styles.closedNotice}>
+          This proposal was {a.status}. Its proposed pricing was not applied.
+        </p>
+      )}
+      <div className={styles.reason}>
+        <h3>Reason for amendment</h3>
+        <p>{a.reason}</p>
+      </div>
+      <div className={styles.comparison}>
         <Prices value={a.before_snapshot} label='Previously accepted pricing' />
         <Prices value={a.after_snapshot} label='Proposed pricing' />
       </div>
@@ -179,7 +219,10 @@ function AmendmentCard({
         </Link>
       )}
       {(customerAction || contractorAction) && !confirmed && (
-        <fieldset disabled={busy || retry || blocked} className='space-y-3'>
+        <fieldset
+          disabled={busy || retry || blocked}
+          className={styles.decision}
+        >
           <label className='block'>
             <input
               type='checkbox'
@@ -203,7 +246,7 @@ function AmendmentCard({
               <>
                 <button
                   type='button'
-                  className='btn btn-primary min-h-11'
+                  className={styles.primaryButton}
                   disabled={!reviewed}
                   onClick={() => void act('approve')}
                 >
@@ -211,7 +254,7 @@ function AmendmentCard({
                 </button>
                 <button
                   type='button'
-                  className='btn btn-secondary min-h-11'
+                  className={styles.secondaryButton}
                   disabled={!reviewed}
                   onClick={() => void act('reject')}
                 >
@@ -222,7 +265,7 @@ function AmendmentCard({
             {isContractor && a.status === 'approved' && (
               <button
                 type='button'
-                className='btn btn-primary min-h-11'
+                className={styles.primaryButton}
                 disabled={!reviewed}
                 onClick={() => void act('apply')}
               >
@@ -232,7 +275,7 @@ function AmendmentCard({
             {contractorAction && (
               <button
                 type='button'
-                className='btn btn-secondary min-h-11'
+                className={styles.secondaryButton}
                 disabled={!reviewed}
                 onClick={() => void act('withdraw')}
               >
@@ -244,11 +287,15 @@ function AmendmentCard({
       )}
       {busy && <p role='status'>Saving action…</p>}
       {confirmed && <p role='status'>{confirmed}</p>}
-      {error && <p role='alert'>{error}</p>}
+      {error && (
+        <p role='alert' className={styles.error}>
+          {error}
+        </p>
+      )}
       {retry && !blocked && (
         <button
           type='button'
-          className='btn btn-secondary min-h-11'
+          className={styles.secondaryButton}
           disabled={busy}
           onClick={() => void act(pending.current!.action)}
         >
@@ -261,16 +308,19 @@ function AmendmentCard({
           applied here.
         </p>
       )}
-      <details>
-        <summary className='min-h-11 cursor-pointer'>Decision history</summary>
-        <ol className='space-y-2'>
+      <details className={styles.history}>
+        <summary>
+          Decision history <span>({a.events.length})</span>
+        </summary>
+        {a.events.length === 0 && <p>No decisions recorded yet.</p>}
+        <ol>
           {a.events.map((event) => (
             <li key={event.version}>
-              {event.action} —{' '}
+              <strong>{event.action}</strong>{' '}
               <time dateTime={event.created_at}>
                 {new Date(event.created_at).toLocaleString('en-GB')}
               </time>
-              <p className='whitespace-pre-wrap break-words'>{event.note}</p>
+              {event.note && <p>{event.note}</p>}
             </li>
           ))}
         </ol>
@@ -325,34 +375,60 @@ export function QuoteAmendmentReview({ jobId }: { jobId: string }) {
     void load();
   }, [load]);
   return (
-    <main className='mx-auto max-w-5xl space-y-6 p-4 sm:p-6'>
+    <main className={styles.page}>
       <Link
-        className='underline'
+        className={styles.backLink}
         href={
           data?.is_contractor ? `/contractor/jobs/${jobId}` : `/jobs/${jobId}`
         }
       >
-        Back to job
+        <ArrowLeft size={18} aria-hidden='true' /> Back to job
       </Link>
-      <h1 className='text-2xl font-semibold'>Quote amendments</h1>
-      <p>
-        Review the complete replacement pricing before approving. Approval
-        records your decision; it does not sign a contract, charge a card or
-        issue a refund. Application is available only before signatures, consent
-        evidence or funding, and returns the contract to draft for review.
-      </p>
-      <button
-        type='button'
-        className='underline min-h-11'
-        disabled={loading}
-        onClick={() => void load()}
-      >
-        Refresh review
-      </button>
+      <header className={styles.pageHeader}>
+        <div>
+          <p className={styles.eyebrow}>Job pricing</p>
+          <h1>Quote amendments</h1>
+          <p>Compare the full pricing and track each decision in one place.</p>
+        </div>
+        <button
+          type='button'
+          className={styles.secondaryButton}
+          disabled={loading}
+          onClick={() => void load()}
+        >
+          <RefreshCw size={16} aria-hidden='true' /> Refresh review
+        </button>
+      </header>
+      <aside className={styles.guidance} aria-label='About amendment approval'>
+        <ShieldCheck size={22} aria-hidden='true' />
+        <div>
+          <h2>Review first. Approve when you’re ready.</h2>
+          <p>
+            Review the complete replacement pricing before approving. Approval
+            records your decision; it does not sign a contract, charge a card or
+            issue a refund.
+          </p>
+          <details>
+            <summary>When can pricing be applied?</summary>
+            <p>
+              Application is available only before signatures, consent evidence
+              or funding, and returns the contract to draft for review.
+            </p>
+          </details>
+        </div>
+      </aside>
       {loading && <p role='status'>Loading amendments…</p>}
-      {error && <p role='alert'>{error}</p>}
+      {error && (
+        <p role='alert' className={styles.error}>
+          {error}
+        </p>
+      )}
       {data?.amendments.length === 0 && (
-        <p>No proposals have been submitted for customer review.</p>
+        <div className={styles.empty}>
+          <FileText size={28} aria-hidden='true' />
+          <h2>No amendments to review</h2>
+          <p>No proposals have been submitted for customer review.</p>
+        </div>
       )}
       {data?.amendments.map((a) => (
         <AmendmentCard
@@ -367,7 +443,7 @@ export function QuoteAmendmentReview({ jobId }: { jobId: string }) {
       {data?.next_before && (
         <button
           type='button'
-          className='underline min-h-11'
+          className={styles.secondaryButton}
           disabled={loading}
           onClick={() => void load(data.next_before!)}
         >

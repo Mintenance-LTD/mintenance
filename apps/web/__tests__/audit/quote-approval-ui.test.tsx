@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { QuoteAmendmentReview } from '@/components/quotes/QuoteAmendmentReview';
@@ -91,20 +92,75 @@ afterEach(() => {
 });
 const open = async () => {
   render(<QuoteAmendmentReview jobId='job' />);
-  await screen.findByText('Amendment 1 — published');
+  await screen.findByRole('heading', { name: 'Amendment 1', exact: true });
 };
 const review = () => fireEvent.click(screen.getByRole('checkbox'));
+it('explains withdrawn pricing without offering an approval or application', async () => {
+  mocks.read.mockResolvedValue(
+    page({ ...amendment, status: 'withdrawn', version: 2 })
+  );
+  await open();
+  expect(screen.getByText('withdrawn', { exact: true })).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'This proposal was withdrawn. Its proposed pricing was not applied.'
+    )
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox')).toBeNull();
+  expect(
+    screen.queryByRole('button', {
+      name: /Approve proposal|Apply approved pricing|Withdraw proposal/,
+    })
+  ).toBeNull();
+  fireEvent.click(screen.getByText('Decision history'));
+  expect(screen.getByText('publish', { exact: true })).toBeInTheDocument();
+});
+it('keeps missing historical amounts distinct from zero and retains full item descriptions and terms', async () => {
+  mocks.read.mockResolvedValue(
+    page({
+      ...amendment,
+      before_snapshot: {},
+      after_snapshot: {
+        ...amendment.after_snapshot,
+        terms: 'Inspect before fitting.\nKeep the existing finish.',
+      },
+    } as typeof amendment)
+  );
+  await open();
+  const previous = within(
+    screen.getByRole('region', { name: 'Previously accepted pricing' })
+  );
+  expect(previous.getByText('No item breakdown recorded.')).toBeInTheDocument();
+  expect(previous.getAllByText('Not recorded').length).toBeGreaterThan(0);
+  expect(previous.queryByText('£0.00')).toBeNull();
+  expect(screen.getByText(/Inspect before fitting/)).toHaveTextContent(
+    'Keep the existing finish.'
+  );
+  expect(
+    within(screen.getByRole('region', { name: 'Proposed pricing' })).getByText(
+      'Part'
+    )
+  ).toBeInTheDocument();
+});
 it('requires review and sends actual CSRF-protected approval with the loaded version', async () => {
   await open();
   expect(screen.getByText('Approve proposal')).toBeDisabled();
-  expect(screen.getByText('Total: £100.00')).toBeInTheDocument();
-  expect(screen.getByText('Total: £120.00')).toBeInTheDocument();
+  expect(
+    within(
+      screen.getByRole('region', { name: 'Previously accepted pricing' })
+    ).getAllByText('£100.00', { selector: 'dd' })
+  ).toHaveLength(2);
+  expect(
+    within(
+      screen.getByRole('region', { name: 'Proposed pricing' })
+    ).getAllByText('£120.00', { selector: 'dd' })
+  ).toHaveLength(2);
   review();
   mocks.read.mockResolvedValue(
     page({ ...amendment, status: 'approved', version: 2 })
   );
   fireEvent.click(screen.getByText('Approve proposal'));
-  await screen.findByText('Amendment 1 — approved');
+  await screen.findByText('approved', { exact: true });
   const options = mocks.post.mock.calls[0][1];
   expect(options.headers.get('x-csrf-token')).toBe('csrf-test-token');
   expect(options.credentials).toBe('same-origin');
@@ -226,7 +282,7 @@ it('shows unavailable reads as retryable errors, not empty success', async () =>
   await screen.findByText('Unavailable');
   expect(screen.queryByText(/No proposals/)).toBeNull();
   fireEvent.click(screen.getByText('Refresh review'));
-  await screen.findByText('Amendment 1 — published');
+  await screen.findByRole('heading', { name: 'Amendment 1', exact: true });
 });
 it('loads older proposals while retaining current ones', async () => {
   mocks.read.mockResolvedValueOnce(
@@ -238,11 +294,13 @@ it('loads older proposals while retaining current ones', async () => {
     })
   );
   render(<QuoteAmendmentReview jobId='job' />);
-  await screen.findByText('Amendment 2 — published');
+  await screen.findByRole('heading', { name: 'Amendment 2', exact: true });
   mocks.read.mockResolvedValue(page({ ...amendment, id: 'older' }));
   fireEvent.click(screen.getByText('Load older amendments'));
-  await screen.findByText('Amendment 1 — published');
-  expect(screen.getByText('Amendment 2 — published')).toBeInTheDocument();
+  await screen.findByRole('heading', { name: 'Amendment 1', exact: true });
+  expect(
+    screen.getByRole('heading', { name: 'Amendment 2', exact: true })
+  ).toBeInTheDocument();
   expect(mocks.read).toHaveBeenLastCalledWith(
     '/api/jobs/job/quote-amendments?before=2'
   );

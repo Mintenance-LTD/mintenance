@@ -499,3 +499,55 @@ conflict/ambiguous-save handling and actual provider-failure recovery remain ope
 along with withdrawal push/device presentation and prior native MFA/visual and
 financial reconciliation limitations. Beta gate remains enabled; full release
 acceptance remains incomplete. Audit publication is to the feature branch only.
+
+### Remaining recovery branches and review-page redesign — 7 November 2026
+
+Verified retry and close-unknown through the existing signed-in designated admin
+UI, with read-only database checks of the resulting reviews and delivery states.
+Used a fresh, same-total, explicitly labelled test proposal on the previously
+authorized house check job. All recipients were the designated homeowner account;
+no contractor messages, approvals, pricing applications or financial writes.
+
+- Test amendment `65e6e1af-842b-4bd0-82e8-b6d324ed3726`: publish email held
+  atomically before dispatch (failed, attempts 0, sent_at NULL). The admin selected
+  retry with evidence not_accepted and an explanatory note; confirmation was required
+  and controls disabled while saving. Review `b677e86f-63c7-4111-89b8-ce04f35ce590`
+  was recorded at 20:12:57 UTC; the normal worker sent once at 20:15:29.068 UTC.
+  The 20:15 message was observed in the designated Gmail inbox.
+- Withdrew that proposal and atomically held the withdrawal email as a labelled
+  synthetic unknown-outcome fixture. The admin saved close_unknown / unknown at
+  20:17:33 UTC (request `5a0d618c-2cc5-4e4d-80e4-e011192c4063`). It remains
+  reviewed_unknown, attempts 0, sent_at NULL, with no resend or delivery claim.
+  This tests the UI branch, not a genuine provider incident.
+- Both reviews are attributed to `623398c7-2335-4707-90b5-8bcee7eb4d1c`, persist
+  after refresh and have no further recovery controls. Open review count is zero.
+  The proposal is withdrawn/version 2, with applied_at/applied_quote_id NULL.
+  Job, accepted quote, bid, contract and signatory fingerprints match the prior
+  audit. The two normal notification-queue events target only the designated
+  homeowner; queue completion is not physical-device receipt evidence.
+
+The screenshot's web review page now has a clear status badge, withdrawn/rejected
+explanation, prominent totals, labelled pricing panels, aligned line-item amounts,
+separate terms, readable decision history and visible keyboard focus. Panels stack
+on small screens. No financial calculations, approval permissions or mutation
+guards changed; missing historical amounts remain explicitly unrecorded.
+Also fixed stale operator success messages persisting after queue refresh/change.
+
+Fresh validation: 98 tests passed in five targeted web suites; full web TypeScript
+check passed; targeted source/test ESLint passed with zero warnings/errors.
+Local browser preview uses the real component/CSS with fixture responses and
+blocked mutations, not a deployed/authenticated integration. Desktop, 390px layout,
+and 320px with 32px root text/long strings were checked; the larger-text heading
+overflow found during testing was fixed (305px client/scroll width, zero overflowing
+elements). Refresh, keyboard disclosure and history expansion were checked.
+Evidence: output/quote-recovery-branches-{web,types,lint}.log and local screenshots
+output/amendment-review-{desktop,mobile,large-text}-20261107.png,
+output/operator-recovery-branches-20261107.jpg. Aikido scan tooling was unavailable.
+
+The hosted retry/close-unknown controlled UI gaps are closed. Genuine ambiguous
+provider incidents, hosted revoked-admin denial and conflict/lost-response behavior,
+fresh-build physical-device visuals, native MFA/relay and native sign-in challenge
+enforcement, and historical financial reconciliation remain unverified as before.
+No schema, role, beta gate, deployment or live financial change. UI changes require
+a subsequent deployment to appear on production. Feature branch only; full release
+acceptance remains incomplete.

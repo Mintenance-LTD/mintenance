@@ -77,6 +77,7 @@ export function QuoteAmendmentEmailReview() {
     setNote('');
     setConfirmed(false);
     setError('');
+    setMessage('');
   };
   const refresh = () => {
     if (lock.current) return;

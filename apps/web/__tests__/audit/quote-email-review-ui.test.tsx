@@ -159,6 +159,32 @@ it('records acceptance separately from inbox delivery', async () => {
     'Provider acceptance recorded from your evidence. Inbox delivery is not established.'
   );
 });
+it.each(['refresh', 'change queue'])(
+  'clears the previous review success after %s',
+  async (operation) => {
+    await setup();
+    fill('retry', 'not_accepted');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Queue another attempt' })
+    );
+    await screen.findByText(/Retry queued. The worker/);
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Refresh email reviews' })
+      ).toBeEnabled()
+    );
+    if (operation === 'refresh') {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Refresh email reviews' })
+      );
+    } else {
+      fireEvent.change(screen.getByLabelText('Email review queue'), {
+        target: { value: 'reviewed' },
+      });
+    }
+    expect(screen.queryByText(/Retry queued. The worker/)).toBeNull();
+  }
+);
 it('retains the exact request after an ambiguous response and freezes inputs', async () => {
   mocks.post.mockResolvedValueOnce(response(500, {}));
   await setup();

@@ -1691,3 +1691,89 @@ Signed-in production operator UI/recovery — 7 November 2026
   visuals/relay MFA/native challenge/historical reconciliation. No beta gate,
   deployment, migration or financial workflow change. Audit-only feature push;
   full release acceptance remains incomplete.
+
+Remaining recovery branches and amendment-review presentation — 7 November 2026
+- Started clean at 82e2f1064 on feat/launch-terms-support-nov2. Read root/web AGENTS,
+  the acceptance audit, prior results and workflow source. Reference briefs remain
+  at audit/2026-09-06/{PROPERTY-OPERATIONS-USER-BRIEF.md,
+  MOBILE-SETTINGS-REMEDIATION-2026-09-30.txt}. Preserved prior completed work.
+- Existing signed-in admin@mintenance.co.uk session; no account/MFA/role changes.
+  Verified confirmed active admin 623398c7-2335-4707-90b5-8bcee7eb4d1c and homeowner
+  a2cf7faa-2ce3-436f-8949-45976481813e (gloirenkouka380@gmail.com).
+- Fresh authorized notification fixture on job 1b4c1563-af7f-4f07-8710-09d2f0b46a37,
+  accepted quote 719fb1df-9d18-49ee-9f70-ea3c87469d36. Same GBP 1.30 total.
+  Proposal request 7d6a6f07-7948-449e-b1f1-f24eac585991 produced amendment
+  65e6e1af-842b-4bd0-82e8-b6d324ed3726. Reason explicitly labels controlled recovery
+  test; no approval or application. Guarded transaction published then held email
+  event 1 as failed/controlled_test_pre_send_hold, attempts=0/sent_at=NULL.
+- Signed-in UI retry: selected Queue another attempt / Not accepted or never
+  submitted, documented the atomic pre-send hold, verified disabled save before
+  checkbox, confirmed once, observed disabled saving controls and queued-only
+  success wording. Persisted review b677e86f-63c7-4111-89b8-ce04f35ce590 at
+  2026-11-07T20:12:57.759507Z, actual admin actor, action retry/evidence not_accepted,
+  previous failed/0 attempts, result pending/review_version=1.
+  Normal scheduled worker sent once at 20:15:29.068Z; designated Gmail inbox
+  showed the new 20:15 review message. No manual broad worker invocation.
+- Withdrew proposal after send, atomically held new email event 2 as needs_review /
+  controlled_test_unknown_fixture with zero attempts and no send timestamp.
+  This is synthetic branch evidence, not a real uncertain provider outcome.
+  Normal operator form selected Close with delivery unknown / Outcome remains
+  unknown, recorded that distinction in its note, required checkbox confirmation,
+  disabled controls during saving, and reported no resend/no delivery claim.
+  Review 5a0d618c-2cc5-4e4d-80e4-e011192c4063 at
+  2026-11-07T20:17:33.458148Z, actual designated admin, close_unknown/unknown,
+  previous needs_review/0 attempts, reviewed_unknown/review_version=1.
+- Fresh hosted checks: event 1 sent/1 attempt; event 2 reviewed_unknown/0 attempts/
+  sent_at NULL; both reviews persist in UI history after refresh. Closed event
+  recovery selector count 0. Open review count 0. Amendment withdrawn/version 2,
+  applied_at and applied_quote_id NULL. Two normal notification-queue events sent
+  to designated homeowner only; no contractor recipients. Queue status does not
+  prove native device presentation. No requeue of the earlier delivered fixture.
+- Five full-row fingerprints match the preceding baseline exactly:
+  job f9ee5b3cedc692ccdcc47121526b20be;
+  accepted quote c5949618021012957815aff0967a3364;
+  bids baf9eaaa9b43412923a274cb9651f215;
+  contracts 5d2305ae2e771678780b32e81ca039c7;
+  signatories d751713988987e9331980363e24189ce.
+- Screenshot UI improvement: scoped CSS module for QuoteAmendmentReview, teal/navy
+  hierarchy, status badge, explicit withdrawn/rejected not-applied message,
+  prominent totals, labelled before/proposed panels, aligned item/tax/total rows,
+  preserved full descriptions/terms, disclosure history and application explanation.
+  Real 44px buttons and keyboard focus; narrow layouts stack. No new pricing
+  arithmetic or change to approval, CSRF, version/conflict, duplicate-save or
+  signed/funded application guards. Missing historical data stays Not recorded.
+- Found and fixed old recovery success persisting after queue refresh/switch:
+  reset now clears it, while a new confirmed save still sets its own success.
+  Added refresh/switch regression coverage, withdrawn-state and missing-price
+  presentation assertions; existing approval/action/retry tests remain intact.
+- Fresh tests: 98 passed across quote-approval-ui, quote-email-review-ui,
+  quote-email-review-api, quote-amendment-email and notification-recovery-cron.
+  Command: node apps/web/node_modules/vitest/vitest.mjs run --config
+  apps/web/vitest.config.ts <the five audit suite paths>; TEMP/TMP point to
+  output/vitest-temp. Initial root npx could not find Vitest; first direct run
+  hit sandbox temp-rename EPERM before any tests. Workspace temp resolved it.
+  Evidence output/quote-recovery-branches-web.log. Previous 113 mobile/22 relay/
+  43 web MFA results remain historical and are not claimed for these changes.
+- Full web tsc --noEmit --pretty false passed (empty types log). Targeted ESLint
+  with --no-ignore passed on both changed components and both tests, zero findings.
+  Logs output/quote-recovery-branches-{types,lint}.log. No schema/source SQL change;
+  no local SQL suite rerun claimed. Aikido scan unavailable: no scan tool exposed.
+- Real component/CSS bundled in an ignored, fixture-only localhost preview; no
+  production credentials/API calls or mutations. Desktop visual, 390px stacked
+  layout, long strings and 320px/200% root text checked in Edge. Fixed heading
+  min-content overflow discovered during that check; final client/scroll width
+  both 305px (scrollbar excluded), zero overflowing elements. Keyboard Enter opens
+  the application disclosure; history expands and refresh retains rendered data.
+  Browser viewport reset. Preview is not a full Next/authenticated or native build.
+  Local artifacts (not committed): output/amendment-review-desktop-20261107.png,
+  output/amendment-review-mobile-20261107.png,
+  output/amendment-review-large-text-20261107.png,
+  output/operator-recovery-branches-20261107.jpg.
+- Remaining acceptance: genuine provider failures/ambiguous delivery incidents,
+  hosted revoked-admin denial and conflicting/lost-save responses; physical-device
+  notification/deep-link/visual checks; relay MFA enrol/status/verify/disable/retry
+  and native custom-MFA/Supabase sign-in challenge enforcement; historical finance
+  reconciliation. Settings/Jest/Vitest are not proof of those device behaviors.
+  Beta gate enabled. No deployment, schema migration or live financial writes;
+  review UI changes remain local until separately deployed. Feature branch push
+  only; full release acceptance incomplete.
