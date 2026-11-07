@@ -269,3 +269,140 @@ Fresh checks passed the shared-package build, compiled quote-pricing export chec
 TypeScript. Logs are under output/merge-main-*. Previous audit/device/MFA,
 historical financial reconciliation, unapplied migration and incomplete release
 acceptance limitations remain in force.
+
+### Merge/readiness inspection — 7 November 2026
+
+GitHub PR [#1464](https://github.com/Mintenance-LTD/mintenance/pull/1464) was
+already merged at 17:23:22 UTC before this inspection. Main is
+`0fd5fba133a3134a89bcd21f80ad26cbfe0d7296`, containing feature head `1b9ca3d9a`
+(the existing CodeQL regex fix). Their source trees match. No merge was performed
+in this inspection; the local feature branch was fast-forwarded to its remote.
+
+The final head's documented Code Quality & Testing, PR Quality Gate, Performance
+& Security Monitoring and both web E2E shards passed. CodeQL passed and its sole
+review thread is resolved. Native Android/iOS E2E and the Detox smoke step were
+skipped; successful wrapper jobs do not establish device acceptance. Classic
+branch-protection settings returned 403 to the GitHub integration, so the exact
+enforced required-check list could not be independently verified. The readable
+active ruleset covers deletion, force pushes and Copilot review, not status checks.
+
+Deployment is blocked: production migration metadata, compared against all 15
+local release prerequisites, is missing `quote_amendment_notifications`,
+`quote_amendment_email_outbox` and `quote_amendment_email_review`. The automatic
+main deployment `dpl_65ZoTAKA3atAMEzh2JLkTaYvfGBm` failed at the migration guard
+with exactly those names. No guard was weakened and no migration/redeploy was run.
+Fresh local checks passed 51 SQL scenarios plus role/RLS checks and 18 release-
+guard/build-wrapper tests. No additional source fix is indicated by this evidence.
+Beta enforcement and all prior provider/device/MFA/reconciliation acceptance
+limitations remain. This documentation update is pushed only to the feature branch.
+
+### Production amendment schema applied — 7 November 2026
+
+With explicit schema-only production authorization, applied the three previously
+missing migrations to MintEnance (`ukrjudtlvapiajkjbcrd`) in dependency order:
+
+| Migration | Production ledger version |
+| --- | --- |
+| quote_amendment_notifications | 20261107173440 |
+| quote_amendment_email_outbox | 20261107173448 |
+| quote_amendment_email_review | 20261107173456 |
+
+All applications succeeded. Read-only catalog verification confirmed RLS on both
+email tables, no direct client-role access, service-only review RPC, restricted
+delivery-status column updates, empty function search paths, enabled event and
+immutable-review triggers, and valid constraints/indexes. No financial DML,
+backfill, customer workflow, review RPC or provider delivery was invoked.
+
+Fresh local tests passed 51 SQL scenarios plus role/RLS checks and 18 release-
+guard/build-wrapper tests. The repository's actual migration verifier now accepts
+all 15 release prerequisites against the fresh production ledger. This supersedes
+the missing-schema blocker above. The failed Vercel deployment has not been
+retried, and no build or deployment success is claimed.
+
+Security advisors added only the two expected informational
+[RLS-without-policy notices](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)
+for service-only email tables. Existing errors/warnings are unchanged; no overall
+security clearance is claimed. Detailed verification is recorded in the screenshot
+audit. Beta enforcement and the feature branch deployment exclusion are unchanged.
+This audit is published only to `feat/launch-terms-support-nov2`.
+
+Full release acceptance remains incomplete: deployed-relay Android/iOS MFA status,
+enrolment, verification, disable and retry need device checks; settings tests do not
+establish native sign-in challenge enforcement across custom MFA/Supabase sessions.
+Fresh-build physical-device visuals, amendment email/push delivery and operator
+recovery, and historical financial reconciliation remain unverified. No redeploy
+or live financial-record change was performed.
+
+### Production redeployment verified — 7 November 2026
+
+With explicit user authorization, retried failed deployment
+`dpl_65ZoTAKA3atAMEzh2JLkTaYvfGBm` using its original main commit
+`0fd5fba133a3134a89bcd21f80ad26cbfe0d7296`, without cache or source/configuration
+changes. Replacement [deployment](https://vercel.com/mintenance/mintenance-clean/21RguT8gDEyMzhVcv2mXsC13Bp4S)
+`dpl_21RguT8gDEyMzhVcv2mXsC13Bp4S` reached READY in production and received
+the `www.mintenance.co.uk` alias. This supersedes the pending redeploy checkpoint.
+
+The hosted build passed the real production migration guard (15 prerequisites),
+shared-package builds, web TypeScript, lint and Next.js production build. Build
+logs report completion in six minutes and deployment completion. Sentry release
+creation/source-map upload were skipped because no auth token was configured;
+this warning was not bypassed or repaired by changing credentials.
+
+Read-only production checks at approximately 17:49 UTC returned HTTP 200 for
+`/api/version` with the exact commit above and environment `production`, and
+HTTP 200 / `healthy` for `/api/health` (269 ms reported). Health probes only read
+database metadata/counts, Redis PING and Stripe balance; no financial operation
+was invoked. Unauthenticated direct `/api/users/profile` returned 302 to Vercel
+Authentication; the connected fetch also could not establish an app-level profile
+response. The mobile relay rejected a missing auth header with HTTP 401. Neither
+probe establishes approved/unapproved signed-in beta-user behaviour. A scoped
+15-minute error/fatal runtime-log query returned no groups at verification time;
+this is a short observation window, not comprehensive runtime acceptance.
+
+Fresh local relay tests passed 22/22, including beta access and MFA routing
+(`output/production-redeploy-relay.log`). Beta gate, Supabase relay deployment,
+environment settings and financial records were unchanged by this work. Only the
+web deployment was retried. Audit updates are pushed to the feature branch with
+its automatic deployment exclusion retained; main is unchanged. All prior device,
+native MFA challenge, amendment provider delivery/operator recovery, physical
+visual and historical financial reconciliation gaps remain. Full release
+acceptance is incomplete.
+
+### Production notification/recovery observation — 7 November 2026
+
+Read-only checks between 17:52 and 17:55 UTC confirmed the production deployment
+remains READY at `0fd5fba133`. There are zero quote amendments, amendment events,
+amendment notification-queue rows, email-outbox rows and email-review rows. No
+existing amendment delivery, failure or recovery outcome is available to reconcile.
+An empty queue is not proof of provider delivery or successful recovery.
+
+The automatically scheduled notification processor ran on the new deployment at
+17:50:28 UTC and succeeded in 129 ms: queuedProcessed, queuedErrors, emailSent,
+emailErrors and emailNeedsReview were all zero. Both its database run record and
+deployment-scoped Vercel logs agree. The previous 24-hour run inventory contained
+288 successes, but those older runs do not establish amendment-worker behaviour
+on this deployment. The cron was observed, not manually invoked.
+
+Catalog checks reconfirmed enabled enqueue/immutable-review triggers, RLS and no
+client-role SELECT on recovery tables, no client-role review RPC EXECUTE, an empty
+RPC search path, and service-role UPDATE limited to delivery-status columns.
+An unauthenticated GET of `/api/admin/quote-amendment-emails?view=open` redirects
+to Vercel Authentication (302). Connected fetch also remained authentication-
+blocked; no signed-in admin UI or application-role authorization check is claimed.
+
+Fresh local validation passed 99 tests in five notification/email/recovery API/UI
+files and 51 disposable SQL scenarios plus role/RLS checks. Logs are
+`output/production-amendment-recovery-web.log` and
+`output/production-amendment-recovery-sql.log`. This covers mocked delivery,
+uncertain outcomes, guarded retries, review evidence/idempotency/conflicts and
+immutable audit rollback locally; it does not substitute for provider/device proof.
+
+Remaining acceptance requires designated test accounts and an authorized,
+controlled non-financial notification journey: receipt and deep-link verification,
+preferences/quiet hours, provider acceptance versus inbox delivery, and active-admin
+recovery evidence/history. Unknown provider outcomes must never be retried without
+evidence of non-acceptance. No synthetic production amendment/event, send, retry,
+review mutation, cron invocation, migration or redeploy was performed here. No
+financial records changed. Beta enforcement stays enabled; all prior native MFA,
+physical-device and reconciliation limitations remain. Audit-only publication is
+to the feature branch; full release acceptance remains incomplete.

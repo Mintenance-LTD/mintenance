@@ -1359,3 +1359,202 @@ Merge main into feature branch — 7 November 2026
   not replace fresh-build physical-device checks. Escrow presentation does not
   establish historical reconciliation. Amendment migrations remain unapplied;
   provider/operator/device acceptance and full release acceptance remain open.
+
+Merge readiness / already-merged checkpoint — 7 November 2026
+============================================================
+- Inspected clean local a31eaafcf and fetched remote heads. The feature branch
+  had advanced to 1b9ca3d9a81c4bea5b64bc98fffcdf6b5fc5c425, containing an existing
+  CodeQL fix that correctly escapes the literal schema separator in the SQL
+  fixture regex. Reviewed and fast-forwarded that change without overwriting it.
+- PR #1464 (https://github.com/Mintenance-LTD/mintenance/pull/1464) was already
+  merged at 2026-11-07T17:23:22Z. Its merge commit/main head is
+  0fd5fba133a3134a89bcd21f80ad26cbfe0d7296. The feature head and main have identical
+  source trees. No merge, deploy, workflow rerun or hosted mutation was initiated
+  in this inspection. An already merged PR is not a pending merge blocker.
+- Inspected final-head check runs, workflow jobs/steps and review threads. The
+  documented gates Code Quality & Testing, PR Quality Gate and Performance &
+  Security Monitoring passed in run 42393771869. Both web E2E shards passed in
+  run 42392252355, including their disposable database/build/test steps. CodeQL
+  passed and the only review thread (the fixture regex) is resolved/outdated.
+  Latest check results are success or intentionally skipped, with no outstanding
+  failed or pending checks on the inspected feature head.
+- Native E2E Android/iOS checks were skipped, as was the actual Detox smoke test
+  step inside its successful job. Native build jobs were skipped on the PR.
+  These results do not prove new binaries, physical-device visual acceptance or
+  deployed relay/native challenge behavior. Existing app-level acceptance gaps
+  remain; the web E2E result does not specifically establish amendment/operator
+  provider delivery or concurrent hosted workflows.
+- GitHub integration could not read classic main branch protection (403 Resource
+  not accessible by integration). Do not equate workflow comments with verified
+  enforced required checks. Readable active ruleset 8484854 restricts deletion/
+  non-fast-forward and configures Copilot review; it has no required-status-check
+  rule. The other listed ruleset is disabled. No protection/ruleset was changed.
+- Read-only Supabase migration metadata was compared with all 15 prerequisites
+  returned by the actual local requiredMigrations function. Exactly three are
+  absent: 20261106202654_quote_amendment_notifications.sql,
+  20261107143626_quote_amendment_email_outbox.sql and
+  20261107150444_quote_amendment_email_review.sql. History and approval migrations
+  remain recorded under their production MCP timestamps. No customer records,
+  delivery RPC, review RPC or financial records were queried or mutated.
+- Read Vercel build events for dpl_65ZoTAKA3atAMEzh2JLkTaYvfGBm, the automatic
+  production deployment for main 0fd5fba13. It is ERROR: the release guard stopped
+  with exactly the three missing migration names. The guard is behaving correctly;
+  it was not bypassed, altered or rerun against production. Future schema rollout
+  and deployment require separate authorization; neither occurred in this task.
+- Fresh local validation at the newer regex-fix head: 51 disposable PGlite SQL
+  scenarios plus role/RLS checks passed (output/merge-readiness-sql.log); 18 Node
+  release-prerequisite/build-wrapper tests passed
+  (output/merge-readiness-release-tests.log). Prior test results remain historical.
+  No further source fix was indicated. This audit-only update is committed/pushed
+  to the feature branch, retaining its Vercel auto-deployment exclusion.
+- Beta gate remains enabled. Full release acceptance remains incomplete. Provider
+  delivery/recovery, fresh Android/iOS UI, deployed-relay MFA status/enrolment/
+  verification/disable/retry, native sign-in MFA challenge enforcement and historical
+  financial reconciliation still require the verification recorded above. No new
+  security-scan or physical-device clearance is claimed by this documentation run.
+
+Production quote amendment schema application — 7 November 2026
+- Explicit user authorization: apply the three pending migrations to production,
+  schema only; verify, update the audit and push. No redeploy or financial changes.
+- Verified active production project MintEnance / ukrjudtlvapiajkjbcrd and the
+  migration ledger before applying. Only history/approval were present initially;
+  the three new functions/two email tables were absent. Existing dependencies and
+  notification queue columns were inspected. The worktree was clean at 1d04b583b.
+- Applied the exact reviewed repository SQL, sequentially through apply_migration:
+  local 20261106202654_quote_amendment_notifications.sql -> production
+    20261107173440 / quote_amendment_notifications
+  local 20261107143626_quote_amendment_email_outbox.sql -> production
+    20261107173448 / quote_amendment_email_outbox
+  local 20261107150444_quote_amendment_email_review.sql -> production
+    20261107173456 / quote_amendment_email_review
+  All three returned success. These are prospective triggers/tables/functions,
+  permissions and constraints; no historical backfill or financial DML was run.
+  No amendment/review RPC, delivery worker, provider send or customer event was
+  invoked for production testing. Future authorized amendment events now have
+  their notification/email enqueue triggers available.
+- Read-only production catalog verification: both email tables have RLS enabled;
+  anon/authenticated have no SELECT/INSERT/UPDATE/DELETE/TRUNCATE privileges.
+  service_role has SELECT on both tables and only status, attempts, scheduled_for,
+  sent_at and error_code column UPDATE on outbox; no table-wide UPDATE, INSERT,
+  DELETE or TRUNCATE. Routing/review columns cannot be directly updated by service.
+  All three new functions are postgres-owned SECURITY DEFINER with empty
+  search_path. Queue trigger functions deny direct EXECUTE to all three app roles;
+  review RPC permits only service_role among those roles. PUBLIC EXECUTE is absent.
+  Both AFTER INSERT event triggers and immutable review trigger are enabled.
+  All 11 constraints and five indexes are valid; composite foreign keys, status/
+  evidence/note checks, review_version default 0 and ALWAYS identity are present.
+- Fresh security advisor comparison: only two new INFO findings, RLS enabled with
+  no policy, on the service-only email tables (108 -> 110). Intentional deny-by-
+  default client access is verified above; no broad client policies were added.
+  Existing two ERROR findings and four WARN categories are unchanged; this is not
+  overall security clearance. Advisor reference:
+  https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy
+- Fresh local verification passed 51 disposable PGlite approval/application
+  scenarios plus role/RLS checks, and 18 release-guard/build-wrapper tests (zero
+  failed/skipped). Logs: output/production-amendment-schema-sql.log and
+  output/production-amendment-schema-release.log. The actual local requiredMigrations
+  and verifyApplied functions checked the fresh production ledger: all 15 required
+  migrations now present. No production build was run; this resolves the prior
+  missing-schema prerequisite, not the failed deployment itself.
+- Beta gate and branch-specific Vercel deployment exclusion remain unchanged.
+  Audit publication targets feat/launch-terms-support-nov2 only. No redeploy or
+  main-branch update is performed. Device/relay MFA and native sign-in challenge,
+  fresh-build visual checks, amendment provider delivery/operator recovery,
+  historical financial reconciliation and full release acceptance remain open.
+  Local SQL tests do not establish production multi-session or device behaviour.
+
+Production deployment retry — 7 November 2026
+- Explicit user authorization to retry the failed production deployment after the
+  schema rollout, verify it, update this audit and push. No financial changes.
+- Confirmed project mintenance-clean / prj_AILYvESjfKhhj14FkzKWb2oJ1hWv,
+  team team_NqsZeD12p5a5YlE9BJcqrVA9, original failed deployment
+  dpl_65ZoTAKA3atAMEzh2JLkTaYvfGBm, production target and exact main commit
+  0fd5fba133a3134a89bcd21f80ad26cbfe0d7296. No newer deployment was in progress.
+  Retried that deployment with withLatestCommit=false and a fresh uncached build;
+  no source, environment or project settings override was supplied.
+- Replacement dpl_21RguT8gDEyMzhVcv2mXsC13Bp4S reached READY in production.
+  URL: https://mintenance-clean-2ococmoq4-mintenance.vercel.app
+  Inspector: https://vercel.com/mintenance/mintenance-clean/21RguT8gDEyMzhVcv2mXsC13Bp4S
+  Assigned aliases include www.mintenance.co.uk and both existing project aliases.
+- Hosted logs confirm the production schema guard passed all 15 prerequisites,
+  shared packages built, web TypeScript and ESLint passed, Next.js compiled and
+  completed its production build, then Deployment completed. Build time: six
+  minutes. Hosting used Node v24.22.2 / Next.js 16.4.1; no runtime setting changed.
+  Sentry warned that release creation/source-map upload were skipped without an
+  auth token. No credential or unrelated dependency changes were attempted.
+- Approximately 17:49 UTC, connected read-only HTTP checks on the production
+  domain returned /api/version 200, exact commit 0fd5fba133 and env=production;
+  /api/health 200, healthy, latencyMs=269. Inspected health implementation first:
+  database HEAD/count, Redis PING and Stripe GET balance, no financial writes.
+  No customer, amendment, refund, payment, transfer or delivery workflow invoked.
+- Direct unauthenticated /api/users/profile returned HTTP 302 to Vercel SSO.
+  Connected fetch could not establish an app-level profile response either.
+  Production mobile-api-relay /api/users/profile without an Authorization header
+  returned 401 UNAUTHORIZED_NO_AUTH_HEADER. Protection remains in place; these
+  checks are not signed-in beta approval/denial or native journey verification.
+  Runtime error/fatal logs scoped to this deployment over the last 15 minutes
+  returned no groups at verification time; no long-term health claim is made.
+- Fresh local relay tests: 22 passed, zero failed/skipped, including beta access
+  and MFA route handling (output/production-redeploy-relay.log). No app source was
+  edited, so earlier web/mobile/SQL test counts remain historical results.
+- Beta gate, relay deployment and environment configuration remain unchanged.
+  Audit-only commit/push targets feat/launch-terms-support-nov2; branch-specific
+  auto-deployment exclusion remains. No main-branch write or live financial change.
+  The pending web-deploy gap is resolved; full release acceptance is not. Physical
+  Android/iOS UI and deployed relay MFA status/enrolment/verification/disable/retry,
+  native custom-MFA/Supabase sign-in challenge enforcement, amendment email/push
+  provider delivery/recovery and historical financial reconciliation remain open.
+
+Production notification and recovery verification — 7 November 2026
+- Scope: inspect safely on production, update audit and push; beta gate stays
+  enabled and financial records must not change. Worktree clean at 883849e42.
+  Inspected root/web AGENTS, current audit, email worker, recipient guard, cron
+  wrapper and operator GET/POST paths before checks. Source tree differs from
+  deployed main only in audit documents; no source fix was indicated.
+- Deployment dpl_21RguT8gDEyMzhVcv2mXsC13Bp4S remains READY at main commit
+  0fd5fba133a3134a89bcd21f80ad26cbfe0d7296, with production aliases retained.
+- Aggregate-only production inventory at 17:52:28 UTC: quote_amendments=0,
+  quote_amendment_events=0, quote_amendment_email_outbox=0,
+  quote_amendment_email_reviews=0, amendment notification_queue rows=0. Final
+  17:54:57 UTC check again found zero events/outbox/reviews. No customer email,
+  message content, review note or financial record was retrieved. There is no
+  existing amendment delivery or recovery case to verify against provider evidence.
+- Observed the existing */5-minute notification-processor schedule, not invoked
+  manually. Its run at 17:50:28.552 UTC completed successfully at 17:50:28.681 UTC
+  (129 ms); all five queued/email processed/error/review counters were zero.
+  Vercel logs on the exact new deployment match that database run record.
+  The 24-hour aggregate contained 288 successes; predeployment successes do not
+  verify the newly deployed amendment email worker. Empty-queue execution proves
+  scheduler/worker/table access, not delivery, receipt or recovery correctness.
+- Read-only catalog recheck confirmed RLS on outbox/review tables; anon and
+  authenticated lack SELECT and review RPC EXECUTE. service_role has SELECT but
+  no INSERT/DELETE on those tables, and only status/attempts/scheduled_for/sent_at/
+  error_code direct UPDATE on outbox. Review RPC is SECURITY DEFINER with empty
+  search_path, callable by service_role; both enqueue triggers and immutable
+  review trigger are enabled. No review RPC was invoked.
+- GET /api/admin/quote-amendment-emails?view=open via connected fetch stayed
+  authentication-blocked; a direct unauthenticated request returned HTTP 302 to
+  vercel.com SSO. This verifies the deployment boundary only, not active-admin
+  access, revoked-admin denial or successful operator rendering in production.
+- Fresh tests: 99 passed / five Vitest files (quote-amendment-notifications,
+  quote-amendment-email, quote-amendment-delivery, quote-email-review-api and
+  quote-email-review-ui); 51 disposable PGlite SQL scenarios plus role/RLS passed.
+  Logs: output/production-amendment-recovery-web.log and
+  output/production-amendment-recovery-sql.log. Expected simulated CSRF failure
+  logging in the UI suite is a passing negative case, not a production error.
+  Local coverage includes uncertain send/manual review, durable lease/checkpoint,
+  stale recipient/version rejection, safe retry limits, evidence requirements,
+  exact-request replay, double-submit/conflict handling and immutable audit failure
+  rollback. These fixtures are not live provider or multi-session acceptance.
+- Remaining controlled verification needs designated test accounts, a safe test
+  job/unsigned unfunded amendment and explicit authorization for test messages:
+  verify notification receipt/deep links and preferences, provider acceptance vs
+  inbox receipt, then admin review/history with provider evidence. Retry only with
+  evidence of non-acceptance; close unknown outcomes without claiming delivery.
+  Do not use a live customer's financial workflow to manufacture a test case.
+- No production inserts, updates, sends, retries, review actions, cron calls,
+  migrations or redeployments performed. Beta controls and financial records
+  unchanged. Audit-only commit/push to feat/launch-terms-support-nov2 retains its
+  Vercel deployment exclusion. Full release acceptance, fresh physical-device
+  visuals/MFA challenge and relay flows, provider recovery and historical financial
+  reconciliation remain incomplete.
