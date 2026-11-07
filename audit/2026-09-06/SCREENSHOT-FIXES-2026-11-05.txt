@@ -1412,3 +1412,53 @@ Merge readiness / already-merged checkpoint — 7 November 2026
   verification/disable/retry, native sign-in MFA challenge enforcement and historical
   financial reconciliation still require the verification recorded above. No new
   security-scan or physical-device clearance is claimed by this documentation run.
+
+Production quote amendment schema application — 7 November 2026
+- Explicit user authorization: apply the three pending migrations to production,
+  schema only; verify, update the audit and push. No redeploy or financial changes.
+- Verified active production project MintEnance / ukrjudtlvapiajkjbcrd and the
+  migration ledger before applying. Only history/approval were present initially;
+  the three new functions/two email tables were absent. Existing dependencies and
+  notification queue columns were inspected. The worktree was clean at 1d04b583b.
+- Applied the exact reviewed repository SQL, sequentially through apply_migration:
+  local 20261106202654_quote_amendment_notifications.sql -> production
+    20261107173440 / quote_amendment_notifications
+  local 20261107143626_quote_amendment_email_outbox.sql -> production
+    20261107173448 / quote_amendment_email_outbox
+  local 20261107150444_quote_amendment_email_review.sql -> production
+    20261107173456 / quote_amendment_email_review
+  All three returned success. These are prospective triggers/tables/functions,
+  permissions and constraints; no historical backfill or financial DML was run.
+  No amendment/review RPC, delivery worker, provider send or customer event was
+  invoked for production testing. Future authorized amendment events now have
+  their notification/email enqueue triggers available.
+- Read-only production catalog verification: both email tables have RLS enabled;
+  anon/authenticated have no SELECT/INSERT/UPDATE/DELETE/TRUNCATE privileges.
+  service_role has SELECT on both tables and only status, attempts, scheduled_for,
+  sent_at and error_code column UPDATE on outbox; no table-wide UPDATE, INSERT,
+  DELETE or TRUNCATE. Routing/review columns cannot be directly updated by service.
+  All three new functions are postgres-owned SECURITY DEFINER with empty
+  search_path. Queue trigger functions deny direct EXECUTE to all three app roles;
+  review RPC permits only service_role among those roles. PUBLIC EXECUTE is absent.
+  Both AFTER INSERT event triggers and immutable review trigger are enabled.
+  All 11 constraints and five indexes are valid; composite foreign keys, status/
+  evidence/note checks, review_version default 0 and ALWAYS identity are present.
+- Fresh security advisor comparison: only two new INFO findings, RLS enabled with
+  no policy, on the service-only email tables (108 -> 110). Intentional deny-by-
+  default client access is verified above; no broad client policies were added.
+  Existing two ERROR findings and four WARN categories are unchanged; this is not
+  overall security clearance. Advisor reference:
+  https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy
+- Fresh local verification passed 51 disposable PGlite approval/application
+  scenarios plus role/RLS checks, and 18 release-guard/build-wrapper tests (zero
+  failed/skipped). Logs: output/production-amendment-schema-sql.log and
+  output/production-amendment-schema-release.log. The actual local requiredMigrations
+  and verifyApplied functions checked the fresh production ledger: all 15 required
+  migrations now present. No production build was run; this resolves the prior
+  missing-schema prerequisite, not the failed deployment itself.
+- Beta gate and branch-specific Vercel deployment exclusion remain unchanged.
+  Audit publication targets feat/launch-terms-support-nov2 only. No redeploy or
+  main-branch update is performed. Device/relay MFA and native sign-in challenge,
+  fresh-build visual checks, amendment provider delivery/operator recovery,
+  historical financial reconciliation and full release acceptance remain open.
+  Local SQL tests do not establish production multi-session or device behaviour.

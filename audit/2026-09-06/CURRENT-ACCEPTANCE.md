@@ -295,3 +295,40 @@ Fresh local checks passed 51 SQL scenarios plus role/RLS checks and 18 release-
 guard/build-wrapper tests. No additional source fix is indicated by this evidence.
 Beta enforcement and all prior provider/device/MFA/reconciliation acceptance
 limitations remain. This documentation update is pushed only to the feature branch.
+
+### Production amendment schema applied — 7 November 2026
+
+With explicit schema-only production authorization, applied the three previously
+missing migrations to MintEnance (`ukrjudtlvapiajkjbcrd`) in dependency order:
+
+| Migration | Production ledger version |
+| --- | --- |
+| quote_amendment_notifications | 20261107173440 |
+| quote_amendment_email_outbox | 20261107173448 |
+| quote_amendment_email_review | 20261107173456 |
+
+All applications succeeded. Read-only catalog verification confirmed RLS on both
+email tables, no direct client-role access, service-only review RPC, restricted
+delivery-status column updates, empty function search paths, enabled event and
+immutable-review triggers, and valid constraints/indexes. No financial DML,
+backfill, customer workflow, review RPC or provider delivery was invoked.
+
+Fresh local tests passed 51 SQL scenarios plus role/RLS checks and 18 release-
+guard/build-wrapper tests. The repository's actual migration verifier now accepts
+all 15 release prerequisites against the fresh production ledger. This supersedes
+the missing-schema blocker above. The failed Vercel deployment has not been
+retried, and no build or deployment success is claimed.
+
+Security advisors added only the two expected informational
+[RLS-without-policy notices](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)
+for service-only email tables. Existing errors/warnings are unchanged; no overall
+security clearance is claimed. Detailed verification is recorded in the screenshot
+audit. Beta enforcement and the feature branch deployment exclusion are unchanged.
+This audit is published only to `feat/launch-terms-support-nov2`.
+
+Full release acceptance remains incomplete: deployed-relay Android/iOS MFA status,
+enrolment, verification, disable and retry need device checks; settings tests do not
+establish native sign-in challenge enforcement across custom MFA/Supabase sessions.
+Fresh-build physical-device visuals, amendment email/push delivery and operator
+recovery, and historical financial reconciliation remain unverified. No redeploy
+or live financial-record change was performed.
