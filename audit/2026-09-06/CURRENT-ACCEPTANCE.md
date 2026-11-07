@@ -551,3 +551,38 @@ enforcement, and historical financial reconciliation remain unverified as before
 No schema, role, beta gate, deployment or live financial change. UI changes require
 a subsequent deployment to appear on production. Feature branch only; full release
 acceptance remains incomplete.
+
+### Merge-readiness inspection — 7 November 2026
+
+GitHub already reports [PR #1467](https://github.com/Mintenance-LTD/mintenance/pull/1467)
+merged by MAmadouthetitan24 at 21:02:07 UTC, before this inspection performed any
+write. Main is `050123d60747c97376b52dad02ae24af320e8045`; feature head
+`c106a2875ca3f76b2f3e640a1b5733d9d7f8c0a8` is an ancestor and their trees are
+identical. There is no open PR for this feature branch and no remaining source
+change to merge. This agent did not merge it.
+
+For that exact feature SHA, GitHub returned 31 completed check runs: 20 successful,
+11 conditionally skipped, none failed or pending. The latest Code Quality &
+Testing, PR Quality Gate, Performance & Security Monitoring and Mobile E2E Smoke
+passed in run 42413038997. Both E2E shards passed in run 42411553042, including
+their web build steps. Security, CodeQL, bundle and Lighthouse checks also passed.
+Review threads and submitted reviews are empty; no change-request review exists.
+Lighthouse's reported performance score of 66 is a remaining performance concern,
+not a failed check or amendment-specific finding.
+
+Classic main branch-protection read returned 403 Resource not accessible by
+integration. Thus actual required-check enforcement cannot be fully attested.
+Readable active ruleset 8484854 has deletion/non-fast-forward protections and
+Copilot review configuration, but no required-status-check rule; ruleset 19408410
+is disabled. No repository protections were changed or bypassed.
+
+No code blocker found and no source edits or repeat local tests were necessary.
+The prior 98 targeted tests/type-check/lint evidence remains recorded separately;
+fresh evidence this turn is the exact-SHA hosted checks. Vercel's Git integration
+had already started production build dpl_8pou5eLaSsHDASXVsksMi67pXXt5 for the
+external merge (BUILDING when inspected); this is not deployment success evidence
+and the agent did not trigger, retry or alter it. This turn publishes only an
+audit commit to the feature branch, whose automatic Vercel deployment remains
+disabled. Beta gate and all live data/settings are untouched. Prior device/MFA,
+provider-failure and financial-reconciliation gaps still apply; full release
+acceptance remains incomplete.
