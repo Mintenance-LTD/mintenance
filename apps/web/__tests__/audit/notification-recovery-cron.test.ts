@@ -1,4 +1,11 @@
-const service = vi.hoisted(() => ({ queue: vi.fn(), learning: vi.fn() }));
+const service = vi.hoisted(() => ({
+  queue: vi.fn(),
+  learning: vi.fn(),
+  email: vi.fn(),
+}));
+vi.mock('@/lib/services/notifications/QuoteAmendmentEmailService', () => ({
+  QuoteAmendmentEmailService: { process: service.email },
+}));
 vi.mock('@/lib/cron-handler', () => ({
   withCronHandler: (_name: string, handler: () => Promise<unknown>) => handler,
 }));
@@ -14,16 +21,42 @@ import { NextRequest } from 'next/server';
 const request = new NextRequest(
   'http://localhost/api/cron/notification-processor'
 );
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  service.email.mockResolvedValue({
+    emailSent: 1,
+    emailErrors: 0,
+    emailNeedsReview: 0,
+  });
+});
 
 it('processes delivery without repeating daily learning', async () => {
   service.queue.mockResolvedValue({ queuedProcessed: 2, queuedErrors: 0 });
   expect(await processQueue(request)).toEqual({
     queuedProcessed: 2,
     queuedErrors: 0,
+    emailSent: 1,
+    emailErrors: 0,
+    emailNeedsReview: 0,
   });
   expect(service.learning).not.toHaveBeenCalled();
 });
+it.each(['emailErrors', 'emailNeedsReview'])(
+  'surfaces %s without skipping push processing',
+  async (field) => {
+    service.queue.mockResolvedValue({ queuedProcessed: 2, queuedErrors: 0 });
+    service.email.mockResolvedValue({
+      emailSent: 0,
+      emailErrors: 0,
+      emailNeedsReview: 0,
+      [field]: 1,
+    });
+    await expect(processQueue(request)).rejects.toMatchObject({
+      statusCode: 503,
+    });
+    expect(service.queue).toHaveBeenCalledTimes(1);
+  }
+);
 it('surfaces queue database failures as failed cron runs', async () => {
   service.queue.mockResolvedValue({ queuedProcessed: 0, queuedErrors: 1 });
   await expect(processQueue(request)).rejects.toMatchObject({

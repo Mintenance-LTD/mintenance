@@ -55,6 +55,9 @@ const owner = id(1),
   bid = id(6),
   contract = id(7),
   outsider = id(8);
+await db.exec(
+  `BEGIN; ${sql('20261107143626_quote_amendment_email_outbox.sql')} COMMIT;`
+);
 const version = '2026-11-06T12:00:00Z';
 let revision;
 async function seed(hasPayer = false) {
@@ -518,6 +521,148 @@ const triggerPrivileges = (
 ).rows[0];
 assert.equal(triggerPrivileges.service, false);
 assert.equal(triggerPrivileges.client, false);
+await test(
+  'email outbox records each event once with authoritative recipients',
+  async () => {
+    await transition('publish');
+    await transition('publish');
+    await transition('approve', payer, 1);
+    await transition('apply', owner, 2);
+    await transition('apply', owner, 2);
+    const rows = (
+      await db.query(
+        'SELECT * FROM quote_amendment_email_outbox ORDER BY version'
+      )
+    ).rows;
+    assert.deepEqual(
+      rows.map((row) => [
+        row.version,
+        row.action,
+        row.user_id,
+        row.status,
+        row.attempts,
+      ]),
+      [
+        [1, 'publish', payer, 'pending', 0],
+        [2, 'approve', owner, 'pending', 0],
+        [3, 'apply', payer, 'pending', 0],
+      ]
+    );
+    assert.ok(
+      rows.every((row) => row.job_id === job && row.amendment_id === revision)
+    );
+    assert.ok(!JSON.stringify(rows).includes('PRIVATE NOTE'));
+    assert.ok(!JSON.stringify(rows).includes('synthetic@example.test'));
+  },
+  true
+);
+await test('email rejection and withdrawal route correctly', async () => {
+  await transition('publish');
+  await transition('reject', customer, 1);
+  assert.equal(
+    (
+      await one(
+        "SELECT user_id FROM quote_amendment_email_outbox WHERE action='reject'"
+      )
+    ).user_id,
+    owner
+  );
+});
+await test('email withdrawal routes to the customer', async () => {
+  await transition('publish');
+  await transition('withdraw', owner, 1);
+  assert.equal(
+    (
+      await one(
+        "SELECT user_id FROM quote_amendment_email_outbox WHERE action='withdraw'"
+      )
+    ).user_id,
+    customer
+  );
+});
+await test('email outbox failure rolls back application and notification enqueue', async () => {
+  await approve();
+  await db.exec(`RESET ROLE; CREATE FUNCTION fail_amendment_email() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'email queue unavailable'; END $$;
+    CREATE TRIGGER fail_amendment_email BEFORE INSERT ON quote_amendment_email_outbox FOR EACH ROW EXECUTE FUNCTION fail_amendment_email(); SET LOCAL ROLE service_role;`);
+  await rejects(() => transition('apply', owner, 2), /email queue unavailable/);
+  assert.equal(
+    (await one('SELECT status FROM quote_amendments')).status,
+    'approved'
+  );
+  assert.equal(
+    Number((await one('SELECT count(*) AS n FROM contractor_quotes')).n),
+    1
+  );
+  assert.equal(Number((await one('SELECT amount FROM bids')).amount), 100);
+  assert.equal((await one('SELECT quote_id FROM contracts')).quote_id, quote);
+  for (const tableName of [
+    'quote_amendment_events',
+    'quote_amendment_email_outbox',
+    'notification_queue',
+  ]) {
+    assert.equal(
+      Number((await one(`SELECT count(*) AS n FROM ${tableName}`)).n),
+      2
+    );
+  }
+});
+await test('email service role can checkpoint but cannot rewrite routing or insert notices', async () => {
+  await transition('publish');
+  await db.exec(
+    "UPDATE quote_amendment_email_outbox SET status='sending',attempts=1,scheduled_for=now()+interval '5 minutes'"
+  );
+  assert.equal(
+    (await one('SELECT status FROM quote_amendment_email_outbox')).status,
+    'sending'
+  );
+  await rejects(
+    () =>
+      db.exec(`UPDATE quote_amendment_email_outbox SET user_id='${outsider}'`),
+    /permission denied/
+  );
+  await rejects(
+    () => db.exec('DELETE FROM quote_amendment_email_outbox'),
+    /permission denied/
+  );
+  await rejects(
+    () =>
+      db.exec(
+        'INSERT INTO quote_amendment_email_outbox SELECT * FROM quote_amendment_email_outbox'
+      ),
+    /permission denied/
+  );
+});
+for (const role of ['anon', 'authenticated']) {
+  await db.exec(`SET ROLE ${role}`);
+  await assert.rejects(
+    () => db.exec('SELECT * FROM quote_amendment_email_outbox'),
+    /permission denied/
+  );
+  await assert.rejects(
+    () => db.exec("UPDATE quote_amendment_email_outbox SET status='sent'"),
+    /permission denied/
+  );
+  await db.exec('RESET ROLE');
+}
+assert.equal(
+  (
+    await one(
+      "SELECT relrowsecurity FROM pg_class WHERE relname='quote_amendment_email_outbox'"
+    )
+  ).relrowsecurity,
+  true
+);
+for (const role of ['anon', 'authenticated', 'service_role']) {
+  assert.equal(
+    (
+      await one(
+        "SELECT has_function_privilege($1,'public.queue_quote_amendment_email()','EXECUTE') AS allowed",
+        [role]
+      )
+    ).allowed,
+    false
+  );
+}
 await db.close();
 console.log(
   `${cases} approval/application scenarios plus role and RLS checks passed.`

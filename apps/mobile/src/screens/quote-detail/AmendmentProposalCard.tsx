@@ -137,8 +137,8 @@ export function AmendmentProposalCard({
           )}
           {done && (
             <Text accessibilityLiveRegion='polite' style={s.text}>
-              Proposal published. In-app/push delivery depends on notification
-              preferences and delivery; no email is sent.
+              Proposal published. In-app, push and email notices are queued,
+              subject to notification preferences and delivery.
             </Text>
           )}
           {blocked && (

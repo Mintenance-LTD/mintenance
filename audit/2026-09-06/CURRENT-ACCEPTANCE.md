@@ -192,3 +192,29 @@ fresh-build Android/iOS verification. Contract-term amendments, amendment email,
 signed/funded variations, deployed-relay MFA/native challenge enforcement,
 historical reconciliation and full release acceptance remain open. The beta
 gate remains enabled.
+
+### Quote amendment email notifications — 7 November 2026
+
+The preceding amendment email implementation gap is closed locally. A prospective,
+transactional outbox queues each publish/approve/reject/withdraw/apply event once.
+The existing cron processes email independently of inbox/push, rechecks participants,
+version, current and legacy preferences, quiet hours and verified account email,
+and uses durable leases. Safe failures retry within a bounded budget; uncertain
+provider acceptance or a lost acknowledgement requires review without auto-resend.
+Web/native publication copy and generic review-link templates reflect this behavior.
+
+Fresh checks passed 140 web tests / 13 files, 21 native tests / 1 suite,
+36 local SQL scenarios plus role/RLS checks, 22 relay tests, full web/mobile TypeScript
+and changed-file web/mobile lint. Aikido scanning remains unavailable. Details,
+logs and recovery constraints are in SCREENSHOT-FIXES-2026-11-05.txt.
+
+The prior notification migration and new
+`20261107143626_quote_amendment_email_outbox.sql` are UNAPPLIED. No hosted
+mutation, real notice, deployment, Git push or live financial change occurred.
+Provider acceptance is not delivery; actual email delivery/rendering, authenticated
+links, opt-outs and recovery need separately authorized end-to-end verification.
+Failed/uncertain rows require operator/provider evidence before manual resolution;
+no receipt reconciliation or recovery UI is implemented. Existing physical-device,
+deployed-relay MFA, native MFA challenge enforcement, signed/funded variation and
+historical reconciliation limitations remain. Full release acceptance remains
+incomplete, and the beta gate remains enabled.

@@ -1101,3 +1101,104 @@ Acceptance boundaries retained
   Push notifications/bank transfers retain their confirmed status; new amendment
   notification delivery is not established by these tests. Beta gate remains
   enabled and full release acceptance remains incomplete.
+
+Quote amendment email notifications — 7 November 2026
+=====================================================
+Scope and inspection
+--------------------
+- Continued from 983a7341d with a clean worktree. Reviewed root/web AGENTS,
+  the actual transition/event triggers, inbox/push processor, email providers,
+  preference/unsubscribe routes, native/web publication copy and saved audits.
+  The prior 113 mobile / 22 relay / 43 web results are historical evidence,
+  confirmed in this audit; they do not cover this email implementation.
+- The existing queue had no independent email state. Its push retries must not
+  resend email or vice versa. The existing boolean email result also could not
+  distinguish refusal from a timeout after possible provider acceptance.
+
+Completed locally
+-----------------
+- CLI-generated migration 20261107143626_quote_amendment_email_outbox.sql adds
+  one prospective email row per immutable amendment event, atomically with the
+  transition. Publish/withdraw/apply address the recorded customer; approve/
+  reject address the contractor. Exact action retries cannot duplicate rows.
+  No backfill, recipient email, quote amounts, private notes or provider calls
+  are stored/executed in the migration. Queue failure rolls back the transition,
+  including any replacement quote, accepted bid and unsigned contract update.
+- Outbox RLS is enabled; anon/authenticated have no access. The service role can
+  read and update delivery columns only, not insert/delete or rewrite routing.
+  The trigger has fixed empty search_path and no directly callable client or
+  service-role execute grant. A partial index supports pending/sending work.
+- QuoteAmendmentEmailService runs independently alongside inbox/push processing
+  in the existing authenticated notification-processor cron. Compare-and-set
+  leases prevent competing workers sending the same row. It rechecks current
+  amendment version/participants, email channel/type preferences, quiet hours,
+  legacy email unsubscribe-all/bid category and account eligibility. Read errors
+  fail closed. Deleted profiles and unverified/banned accounts are suppressed.
+  Recipient email comes from the current verified Auth account, never the quote
+  client_email or a user-editable profile email.
+- Provider intent is checkpointed before sending. Missing configuration and
+  explicit rate limits retry with backoff, bounded to six attempts. Other 4xx
+  rejections stop. Timeouts/network/5xx uncertainty, expired sending leases and
+  an unsuccessful acceptance checkpoint require review rather than automatic
+  resend. Pre-send read failures are safely bounded/retried. Existing boolean
+  EmailService callers retain their return behavior and provider preference.
+- Generic HTML/plain-text templates cover all five events, link to authenticated
+  review and notification preferences, and include an existing one-click quote
+  unsubscribe token when available. They contain no prices, addresses or private
+  amendment notes and perform no approval/application through the email link.
+  Web/native publication copy now describes queued inbox/push/email notices,
+  subject to preferences and delivery, rather than promising no email.
+
+Fresh validation
+----------------
+- Web Vitest: 140 tests / 13 files passed. Includes amendment email worker and
+  provider outcomes, concurrent workers, stale participants/versions, channel
+  independence, quiet hours, both preference stores, verification/deletion/ban,
+  read/claim/ack failures, safe retry limits, uncertain-send recovery, templates,
+  existing push delivery/recovery, publication/history UI, unsubscribe and the
+  admin/dispute/resident email workers. Log: output/quote-email-web-tests.log.
+- Mobile Jest: 21 preparation/publication tests / 1 suite passed.
+  Log: output/quote-email-mobile-tests.log. No new device visual acceptance.
+- Disposable PGlite: 36 approval/application scenarios plus role/RLS checks
+  passed. Five new scenarios cover email event recipients/idempotency, reject/
+  withdraw routing, full transaction rollback on outbox failure and restricted
+  service checkpoint permissions. No hosted SQL executed.
+  Log: output/quote-email-sql.log.
+- Relay: 22 tests passed (output/quote-email-relay.log). Full web/mobile TypeScript and
+  changed-file web/mobile ESLint passed with no errors or warnings. The initial
+  TypeScript failure for Object.hasOwn was fixed using the supported API.
+- Aikido tools remain unavailable; no Aikido security clearance is claimed.
+
+- Final review passed git diff --cached --check, changed-code Prettier checking,
+  scripts/ci/check-no-hex.js and scripts/ci/check-edge-fn-currency.js.
+
+Acceptance boundaries and recovery
+----------------------------------
+- Both 20261106202654_quote_amendment_notifications.sql and the new email outbox
+  migration remain UNAPPLIED. Future separately authorized rollout must install
+  these migrations with the web processor/API and native copy. Missing outbox
+  schema produces a visible cron error while push processing still runs.
+- `sent`/emailSent means provider acceptance only, not inbox arrival. Real
+  provider delivery/bounces, email-client rendering, authenticated review links,
+  quiet-hour timing and opt-outs require controlled end-to-end verification.
+  No real email/push, hosted mutation, deployment, Git push or live financial
+  record change occurred in this task.
+- Rows marked failed or needs_review remain durable and are excluded from
+  automatic sends. The failing cron run uses existing operator-alert handling.
+  Authorized operators must inspect the row and provider evidence before any
+  manual resolution/requeue; never blindly resend an uncertain delivery. No
+  provider delivery-receipt reconciliation or operator recovery UI is added.
+  A crash after checkpointing intent but before actual sending can therefore
+  leave an unsent notice for review. No exactly-once external-delivery claim.
+- SQL fixtures/mock requests are not full migration replay, real concurrent DB
+  sessions, hosted PostgREST or provider integration acceptance. Native builds
+  and fresh Android/iOS larger-text, keyboard, scroll/navigation and two-party
+  amendment preparation/review/signing journeys still need physical checks.
+- Deployed-relay MFA status/enrolment/verification/disable/retry still needs
+  Android/iOS verification. Settings tests do not establish native sign-in MFA
+  challenge enforcement across custom MFA and Supabase sessions. Jest rendering
+  does not replace fresh-build physical-device visual checks. Escrow presentation
+  does not establish historical financial reconciliation. Contract-term and
+  signed/funded variations remain open. Full release acceptance is incomplete.
+  Push notifications/bank transfers retain their confirmed status. Beta gate
+  remains enabled; no beta configuration or enforcement was changed.
