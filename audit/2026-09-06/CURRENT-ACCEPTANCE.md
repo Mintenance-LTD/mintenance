@@ -453,3 +453,49 @@ withdrawal inbox/device receipt, native notification/deep-link visuals and all
 prior device MFA/native challenge and financial reconciliation gaps. Full release
 acceptance remains incomplete. This controlled result supersedes the earlier
 empty-production-queue limitation, not those remaining limitations.
+
+### Signed-in operator UI verification — 7 November 2026
+
+The owner designated `admin@mintenance.co.uk` and completed normal browser sign-in.
+Verified its active confirmed admin profile, then exercised the production admin
+dashboard at commit `226d9ff34` / deployment `dpl_8Ugbs5BR2V2UBQM1xqPepcEWdwGc`.
+No password, MFA code or session token was supplied in chat or extracted, and no
+account role, session, beta approval or security setting was changed by the agent.
+
+The operator UI correctly showed an empty Needs review queue, the existing sent
+publish event under Reviewed events and retries, and its prior recovery history.
+No recovery-action controls were present on the sent event. The withdrawal email
+was also observed in the designated homeowner Gmail inbox at 19:50, closing the
+previous withdrawal-email receipt gap (not device/push presentation).
+
+To verify a real signed-in save without another send, only test amendment
+`4c990ddd-ef47-4b29-b3d3-318ae0067fbc`, event 2, was deliberately staged for review.
+A narrowly guarded metadata update changed its sent state to needs_review with
+`controlled_test_review_of_accepted_send`; original sent_at and attempts=1 were
+preserved. This was a labelled UI fixture, not a genuine provider failure.
+
+Through the normal operator form, selected Record provider acceptance / Provider
+acceptance confirmed, entered the controlled-test evidence note, and confirmed the
+action. The button was disabled before confirmation; controls disabled while
+saving. At 20:01:48 UTC the UI confirmed acceptance, removed the event from Needs
+review, and displayed it as reviewed accepted with its saved note in history.
+Refreshing and reopening retained that state with no recovery-action controls.
+
+Read-only database checks confirmed request `d15e0822-5a4f-43b6-a0f3-b802231c8e90`,
+actor `623398c7-2335-4707-90b5-8bcee7eb4d1c` (the designated signed-in admin),
+action confirm_accepted, evidence accepted, review_version=1 and one review for
+event 2. Both emails still have one send attempt and their original send timestamps;
+the two in-app notifications are unchanged. The proposal remains withdrawn, and
+job/quote/bid/contract/signatory fingerprints still match the preceding audit.
+No additional email/push send, financial action, migration or deployment occurred.
+
+Desktop visual evidence is saved locally at
+`output/operator-quote-review-20261107.jpg` (SHA256
+`d08298b81df5a9386faa030d8748a321e75a2651fff7e624b3920abe47c3e8e7`). No source
+change or repeated local test run was needed; this is fresh hosted UI evidence.
+The operator list/history and confirm-accepted save gaps are now closed for this
+controlled case. Hosted revoked-admin denial, retry/close-unknown save branches,
+conflict/ambiguous-save handling and actual provider-failure recovery remain open,
+along with withdrawal push/device presentation and prior native MFA/visual and
+financial reconciliation limitations. Beta gate remains enabled; full release
+acceptance remains incomplete. Audit publication is to the feature branch only.

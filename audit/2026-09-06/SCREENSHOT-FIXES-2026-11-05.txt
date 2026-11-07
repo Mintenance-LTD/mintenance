@@ -1632,3 +1632,62 @@ Controlled production amendment notification/recovery — 7 November 2026
   revoked-admin checks, withdrawal inbox/device receipt, native deep-link/visual
   checks, relay MFA/native sign-in challenge and historical reconciliation remain
   open. Beta gate stays enabled and full release acceptance remains incomplete.
+
+Signed-in production operator UI/recovery — 7 November 2026
+- Started clean at 8c4d50656; inspected applicable AGENTS, audit and recovery UI/API.
+  Production remained READY at 226d9ff34 / dpl_8Ugbs5BR2V2UBQM1xqPepcEWdwGc.
+  Opened /admin in Edge: initially redirected to /admin/login. Owner designated
+  admin@mintenance.co.uk and personally completed normal browser sign-in. Verified
+  confirmed, undeleted admin profile 623398c7-2335-4707-90b5-8bcee7eb4d1c.
+  No role promotion, session minting, credential extraction, MFA change or beta
+  approval change was performed. This sign-in is not proof of native MFA enforcement.
+- In the real signed-in dashboard, expanded Review quote amendment emails:
+  Needs review loaded No emails in this queue; both paging buttons disabled.
+  Reviewed events and retries loaded publish/sent/one attempt, test event 1.
+  Inspect displayed the existing 19:28:39 retry review and its exact controlled
+  pre-send evidence note. Review action selector/retry button count was zero.
+- Read the designated Gmail tab (gloirenkouka380@gmail.com), not the other mailbox.
+  Narrow sender/subject/date search found the withdrawal email in Inbox at 19:50.
+  Visible copy states the proposal was withdrawn and accepted price unchanged.
+  No email was sent, forwarded, deleted or unsubscribed during this inspection.
+- Exercised the acceptance-recording branch with the existing delivered test
+  withdrawal email only. Guarded UPDATE required amendment 4c990ddd-ef47-4b29-b3d3-
+  318ae0067fbc, version 2, designated recipient, status sent, attempts=1,
+  review_version=0 and exact sent_at 19:50:29.622 UTC. Changed only status to
+  needs_review and error_code to controlled_test_review_of_accepted_send.
+  Original send timestamp remained. This intentional fixture does not represent
+  a real unknown provider outcome and was never put back into the send queue.
+- Refreshed Needs review in the signed-in UI; verified the labelled event 2 only.
+  Inspected empty history. Selected Record provider acceptance and Provider
+  acceptance confirmed; entered a note documenting inbox evidence and this
+  deliberate fixture. Save remained disabled before the confirmation checkbox.
+  After confirmation, clicked once; controls disabled while Saving review.
+  UI success: Provider acceptance recorded from your evidence. Inbox delivery
+  is not established. Open queue became empty. Reviewed queue displayed
+  withdraw/reviewed accepted/one attempt; history showed the saved note.
+  Refresh/reopen preserved the result; closed-event action-control count was zero.
+- Persisted UI request d15e0822-5a4f-43b6-a0f3-b802231c8e90 at
+  2026-11-07T20:01:48.242128Z. actor_id equals the actual designated signed-in
+  admin 623398c7-2335-4707-90b5-8bcee7eb4d1c, not the earlier database QA actor.
+  action confirm_accepted / evidence accepted / review_version 1;
+  previous_status needs_review / previous_attempts 1 / result reviewed_accepted.
+  Event 1's earlier review is unchanged; one new immutable review for event 2.
+  Open review count 0; email attempts still 1 each; sent_at values remain
+  19:30:29.671 and 19:50:29.622; in-app count remains 2. No further dispatch.
+- The test amendment remains withdrawn/version 2/applied_at NULL. Fresh fingerprints
+  for job, accepted quote, bids, contracts and signatories match all five values
+  in the preceding controlled-test audit. No live financial records were changed.
+- Saved desktop screenshot: output/operator-quote-review-20261107.jpg (local,
+  ignored artifact, not committed). SHA256:
+  d08298b81df5a9386faa030d8748a321e75a2651fff7e624b3920abe47c3e8e7.
+  It shows both reviewed events, acceptance confirmation and event 2 history.
+  Browser left on the verified review as the user-facing result.
+- No source edits or repeated Jest/Vitest/PGlite runs in this hosted UI check.
+  Earlier local results remain separately recorded. Closed gaps: signed-in admin
+  list/history/refresh, controlled confirm-accepted submission and withdrawal
+  email inbox receipt. Still open: hosted revoked-admin denial, retry and
+  close-unknown UI saves, conflict/ambiguous-save response handling, genuine
+  provider-failure recovery, withdrawal push/device receipt and physical native
+  visuals/relay MFA/native challenge/historical reconciliation. No beta gate,
+  deployment, migration or financial workflow change. Audit-only feature push;
+  full release acceptance remains incomplete.
