@@ -247,3 +247,9 @@ The user now authorizes GitHub pushing. The target is the existing feature branc
 quote checkpoints since remote d58fef7ff. A branch-specific Vercel auto-deployment
 exclusion was added before publication; main/develop deployment settings are
 unchanged. No deployment or live financial change is authorized or performed.
+
+Publication verified: recovery commit `1adc292fe` and the eight earlier checkpoints
+were pushed to that GitHub branch. `git ls-remote` matched the full local commit
+`1adc292feb19a2a7c5db58a2ddacc84a0f977f82`. The post-push Vercel branch query
+returned no new deployments. This publication receipt is a documentation follow-up;
+all deployment/migration/device acceptance limitations above remain unchanged.

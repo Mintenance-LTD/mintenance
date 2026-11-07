@@ -1306,3 +1306,15 @@ Acceptance gaps retained
   not establish historical reconciliation. Signed/funded variations remain open.
   Push/bank transfers retain their confirmed status. Full release acceptance is
   incomplete and the beta gate remains enabled.
+
+Publication receipt — 7 November 2026
+------------------------------------
+- Commit 1adc292feb19a2a7c5db58a2ddacc84a0f977f82 implements operator recovery.
+  Normal non-force push advanced origin/feat/launch-terms-support-nov2 from
+  d58fef7ff to 1adc292fe and set the branch upstream. This includes the eight
+  earlier committed screenshot/quote checkpoints listed above.
+- A post-push git ls-remote read matched the exact local commit. The Vercel
+  read-only branch query returned no new deployment records. No deployment,
+  workflow dispatch, migration apply, customer email or financial mutation was
+  performed. This receipt is a documentation follow-up; all acceptance gaps,
+  the unapplied migrations and enabled beta gate remain as recorded above.
