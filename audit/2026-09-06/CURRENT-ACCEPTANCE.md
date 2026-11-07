@@ -406,3 +406,148 @@ review mutation, cron invocation, migration or redeploy was performed here. No
 financial records changed. Beta enforcement stays enabled; all prior native MFA,
 physical-device and reconciliation limitations remain. Audit-only publication is
 to the feature branch; full release acceptance remains incomplete.
+
+### Controlled production notification/recovery test — 7 November 2026
+
+The owner designated `gloirenkouka380@gmail.com` and delegated test-job selection.
+Verified its active, confirmed homeowner account and used "house check"
+(`1b4c1563-af7f-4f07-8710-09d2f0b46a37`). Its existing contract is signed; only a
+clearly labelled, same-total test proposal was published and withdrawn. No approval,
+application, signature, price update or financial operation was performed.
+
+Test amendment `4c990ddd-ef47-4b29-b3d3-318ae0067fbc` finished **withdrawn**, version 2,
+with no applied quote or applied timestamp. Publish and withdrawal both addressed
+only the designated homeowner. The existing scheduler submitted two email notices
+and created two in-app notifications; both email rows reached `sent` with exactly
+one provider attempt each (19:30:29 and 19:50:29 UTC). Brevo acceptance for the
+review notice is corroborated by production logs. The owner confirmed **email
+received; review link works**. The first push receipt reached `provider_accepted`;
+the withdrawal push receipt was still pending its scheduled check at observation.
+
+Controlled recovery was exercised without inventing a provider failure: the first
+email was held atomically before any send, with attempts=0 and
+`controlled_test_pre_send_hold`. The service-role review RPC, using the existing
+dedicated QA administrator identity, recorded evidence `not_accepted` and returned
+it to pending. Exact-request replay before and after delivery retained one immutable
+review and did not resend or reset the sent row. These were database-driven test
+calls, not authenticated browser/admin-session verification. No roles, sessions,
+beta approvals or provider settings were changed.
+
+The supplied desktop screenshot `Screenshot 2026-11-07 195131.png` confirms the
+production amendment URL renders the withdrawn test, equal accepted/proposed
+totals of GBP 1.30, and no visible approve/apply controls. This closes the tested
+email deep link and desktop withdrawn-state observation only. Before/after full-row
+fingerprints match for the job, accepted quote, bids, contract and signatories;
+all eight inspected payment/escrow/invoice/funding/payout tables still have zero
+rows for this job. Test history remains append-only and the proposal is closed.
+
+An external merge/deployment advanced production to `226d9ff34` /
+`dpl_8Ugbs5BR2V2UBQM1xqPepcEWdwGc` during preparation. Its source difference from
+`0fd5fba133` is audit documents only; the test worker logs identify the new
+deployment. This task did not merge or redeploy. No source changes or fresh local
+test run were needed; prior 99 web / 51 SQL results remain historical evidence.
+
+Beta gate remains enabled. Remaining acceptance includes actual provider rejection
+or ambiguous-send recovery, signed-in operator UI/admin revocation checks,
+withdrawal inbox/device receipt, native notification/deep-link visuals and all
+prior device MFA/native challenge and financial reconciliation gaps. Full release
+acceptance remains incomplete. This controlled result supersedes the earlier
+empty-production-queue limitation, not those remaining limitations.
+
+### Signed-in operator UI verification — 7 November 2026
+
+The owner designated `admin@mintenance.co.uk` and completed normal browser sign-in.
+Verified its active confirmed admin profile, then exercised the production admin
+dashboard at commit `226d9ff34` / deployment `dpl_8Ugbs5BR2V2UBQM1xqPepcEWdwGc`.
+No password, MFA code or session token was supplied in chat or extracted, and no
+account role, session, beta approval or security setting was changed by the agent.
+
+The operator UI correctly showed an empty Needs review queue, the existing sent
+publish event under Reviewed events and retries, and its prior recovery history.
+No recovery-action controls were present on the sent event. The withdrawal email
+was also observed in the designated homeowner Gmail inbox at 19:50, closing the
+previous withdrawal-email receipt gap (not device/push presentation).
+
+To verify a real signed-in save without another send, only test amendment
+`4c990ddd-ef47-4b29-b3d3-318ae0067fbc`, event 2, was deliberately staged for review.
+A narrowly guarded metadata update changed its sent state to needs_review with
+`controlled_test_review_of_accepted_send`; original sent_at and attempts=1 were
+preserved. This was a labelled UI fixture, not a genuine provider failure.
+
+Through the normal operator form, selected Record provider acceptance / Provider
+acceptance confirmed, entered the controlled-test evidence note, and confirmed the
+action. The button was disabled before confirmation; controls disabled while
+saving. At 20:01:48 UTC the UI confirmed acceptance, removed the event from Needs
+review, and displayed it as reviewed accepted with its saved note in history.
+Refreshing and reopening retained that state with no recovery-action controls.
+
+Read-only database checks confirmed request `d15e0822-5a4f-43b6-a0f3-b802231c8e90`,
+actor `623398c7-2335-4707-90b5-8bcee7eb4d1c` (the designated signed-in admin),
+action confirm_accepted, evidence accepted, review_version=1 and one review for
+event 2. Both emails still have one send attempt and their original send timestamps;
+the two in-app notifications are unchanged. The proposal remains withdrawn, and
+job/quote/bid/contract/signatory fingerprints still match the preceding audit.
+No additional email/push send, financial action, migration or deployment occurred.
+
+Desktop visual evidence is saved locally at
+`output/operator-quote-review-20261107.jpg` (SHA256
+`d08298b81df5a9386faa030d8748a321e75a2651fff7e624b3920abe47c3e8e7`). No source
+change or repeated local test run was needed; this is fresh hosted UI evidence.
+The operator list/history and confirm-accepted save gaps are now closed for this
+controlled case. Hosted revoked-admin denial, retry/close-unknown save branches,
+conflict/ambiguous-save handling and actual provider-failure recovery remain open,
+along with withdrawal push/device presentation and prior native MFA/visual and
+financial reconciliation limitations. Beta gate remains enabled; full release
+acceptance remains incomplete. Audit publication is to the feature branch only.
+
+### Remaining recovery branches and review-page redesign — 7 November 2026
+
+Verified retry and close-unknown through the existing signed-in designated admin
+UI, with read-only database checks of the resulting reviews and delivery states.
+Used a fresh, same-total, explicitly labelled test proposal on the previously
+authorized house check job. All recipients were the designated homeowner account;
+no contractor messages, approvals, pricing applications or financial writes.
+
+- Test amendment `65e6e1af-842b-4bd0-82e8-b6d324ed3726`: publish email held
+  atomically before dispatch (failed, attempts 0, sent_at NULL). The admin selected
+  retry with evidence not_accepted and an explanatory note; confirmation was required
+  and controls disabled while saving. Review `b677e86f-63c7-4111-89b8-ce04f35ce590`
+  was recorded at 20:12:57 UTC; the normal worker sent once at 20:15:29.068 UTC.
+  The 20:15 message was observed in the designated Gmail inbox.
+- Withdrew that proposal and atomically held the withdrawal email as a labelled
+  synthetic unknown-outcome fixture. The admin saved close_unknown / unknown at
+  20:17:33 UTC (request `5a0d618c-2cc5-4e4d-80e4-e011192c4063`). It remains
+  reviewed_unknown, attempts 0, sent_at NULL, with no resend or delivery claim.
+  This tests the UI branch, not a genuine provider incident.
+- Both reviews are attributed to `623398c7-2335-4707-90b5-8bcee7eb4d1c`, persist
+  after refresh and have no further recovery controls. Open review count is zero.
+  The proposal is withdrawn/version 2, with applied_at/applied_quote_id NULL.
+  Job, accepted quote, bid, contract and signatory fingerprints match the prior
+  audit. The two normal notification-queue events target only the designated
+  homeowner; queue completion is not physical-device receipt evidence.
+
+The screenshot's web review page now has a clear status badge, withdrawn/rejected
+explanation, prominent totals, labelled pricing panels, aligned line-item amounts,
+separate terms, readable decision history and visible keyboard focus. Panels stack
+on small screens. No financial calculations, approval permissions or mutation
+guards changed; missing historical amounts remain explicitly unrecorded.
+Also fixed stale operator success messages persisting after queue refresh/change.
+
+Fresh validation: 98 tests passed in five targeted web suites; full web TypeScript
+check passed; targeted source/test ESLint passed with zero warnings/errors.
+Local browser preview uses the real component/CSS with fixture responses and
+blocked mutations, not a deployed/authenticated integration. Desktop, 390px layout,
+and 320px with 32px root text/long strings were checked; the larger-text heading
+overflow found during testing was fixed (305px client/scroll width, zero overflowing
+elements). Refresh, keyboard disclosure and history expansion were checked.
+Evidence: output/quote-recovery-branches-{web,types,lint}.log and local screenshots
+output/amendment-review-{desktop,mobile,large-text}-20261107.png,
+output/operator-recovery-branches-20261107.jpg. Aikido scan tooling was unavailable.
+
+The hosted retry/close-unknown controlled UI gaps are closed. Genuine ambiguous
+provider incidents, hosted revoked-admin denial and conflict/lost-response behavior,
+fresh-build physical-device visuals, native MFA/relay and native sign-in challenge
+enforcement, and historical financial reconciliation remain unverified as before.
+No schema, role, beta gate, deployment or live financial change. UI changes require
+a subsequent deployment to appear on production. Feature branch only; full release
+acceptance remains incomplete.
