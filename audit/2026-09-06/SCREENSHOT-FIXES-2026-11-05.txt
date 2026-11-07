@@ -1812,3 +1812,44 @@ Merge readiness inspection after UI/recovery fixes — 7 November 2026
   main push, merge, deployment action, production mutation or beta-gate change.
   All earlier device/MFA/native challenge/provider-incident/finance reconciliation
   acceptance limitations remain. Full release acceptance remains incomplete.
+
+Automatic production deployment and live amendment UI — 7 November 2026
+- Started clean at 8ef58ea6e. Read applicable AGENTS and saved acceptance state.
+  Deployment dpl_8pou5eLaSsHDASXVsksMi67pXXt5 initially BUILDING, then READY at
+  2026-11-07T21:07:25.362Z. Git source main/050123d60747c97376b52dad02ae24af320e8045,
+  target production, project mintenance-clean. www.mintenance.co.uk assigned to it;
+  deployment URL mintenance-clean-baiim1h3i-mintenance.vercel.app. Build events
+  confirmed Build Completed in /vercel/output [5m], Deployment completed and cache
+  upload completion. No deployment retry/promotion or migration invoked.
+- Existing homeowner session expired on refresh. Owner signed in normally as the
+  designated gloirenkouka380@gmail.com account and supplied its dashboard URL.
+  Browser showed the homeowner dashboard; navigated to existing house check route
+  /jobs/1b4c1563-af7f-4f07-8710-09d2f0b46a37/amendments. No credentials extracted,
+  roles modified, beta approvals changed or auth bypass performed.
+- Actual deployed page loads the new Job pricing heading, refresh button, approval
+  guidance disclosure, separate status badges, not-applied explanation, two pricing
+  panels and decision history. Both known controlled proposals remain withdrawn.
+  Previously accepted/proposed totals both GBP 1.30; subtotal GBP 1.30/tax GBP 0.00
+  (0%); no historical item breakdown invented; terms None recorded.
+  Approve/reject/apply/withdraw button count zero. No financial action submitted.
+- Keyboard Enter opens guidance and latest proposal's two-event history, showing
+  publish 20:12:30 and withdraw 20:16:42 with the original controlled-test notes.
+  Refresh reloads two withdrawn cards. Back to job resolves the expected job URL;
+  browser Back returns to the two-card amendment page. This checks navigation,
+  not any subsequent job workflow. No new recovery review or message sent.
+- Desktop DOM: clientWidth=scrollWidth=1528; pricing panels have common y=763.2,
+  x=252.8/774 and width 501.2. Narrow 390px viewport: both panels x=32.8,
+  width=309.6 and sequential y positions; clientWidth=scrollWidth=375. At 320px,
+  clientWidth=scrollWidth=305 and no main element exceeds the viewport. Reset the
+  temporary viewport. Saved actual production desktop/pricing/mobile screenshots
+  under output/production-amendment-review-20261107.jpg,
+  output/production-amendment-pricing-desktop-20261107.jpg,
+  output/production-amendment-review-mobile-20261107.jpg (ignored local artifacts).
+- No source fixes or rerun local tests; new evidence is the completed hosted build
+  and authenticated production UI. Prior 98 tests/tsc/lint remain separately scoped.
+  Production operator success-reset behavior was not re-exercised with new writes.
+  Read-only verification only; no live financial, notification, proposal, review,
+  account or configuration mutation. Beta gate stays enabled. Device/native MFA,
+  native challenge enforcement, provider-incident/hosted conflict/revoked-admin
+  checks and historical reconciliation limitations remain. Full release acceptance
+  incomplete. Audit-only feature push; no main merge or deployment action.

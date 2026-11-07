@@ -586,3 +586,39 @@ audit commit to the feature branch, whose automatic Vercel deployment remains
 disabled. Beta gate and all live data/settings are untouched. Prior device/MFA,
 provider-failure and financial-reconciliation gaps still apply; full release
 acceptance remains incomplete.
+
+### Production deployment and review UI verification — 7 November 2026
+
+Automatic production deployment `dpl_8pou5eLaSsHDASXVsksMi67pXXt5` succeeded.
+Vercel reports READY at 21:07:25.362 UTC for main merge
+`050123d60747c97376b52dad02ae24af320e8045`, with `www.mintenance.co.uk` assigned
+to that deployment. Build logs confirm Build Completed, Deployment completed and
+cache upload completion. No retry, promotion, deployment or migration was invoked
+by the agent.
+
+After the owner completed normal sign-in for the designated homeowner account,
+verified the actual production house check amendment route (not the local preview):
+two withdrawn test amendments, new status badges and not-applied notices, styled
+before/proposed pricing panels, unchanged GBP 1.30 totals, zero tax and missing
+historical item-breakdown/terms labels. No approval/reject/apply/withdraw controls
+were present. Keyboard Enter opened the application guidance and decision history;
+the latest history displayed publish 20:12:30 and withdraw 20:16:42. Refresh
+reloaded both records. Back to job navigated to the expected job URL and browser
+Back restored the two-card review; no job action was submitted.
+
+Desktop pricing panels aligned side by side (1528px client/scroll width). At a
+390px viewport they stacked (375px client/scroll width); at 320px the client and
+scroll widths were both 305px, with zero overflowing main-content elements.
+Viewport overrides were reset. Saved local evidence:
+`output/production-amendment-review-20261107.jpg`,
+`output/production-amendment-pricing-desktop-20261107.jpg`, and
+`output/production-amendment-review-mobile-20261107.jpg`.
+
+This closes the deployed homeowner desktop/responsive visual check for the
+withdrawn fixtures. No source edits or repeated automated tests were needed.
+No new messages/reviews/proposals, financial operations, account changes or beta
+configuration changes were made. Operator success-message reset was not exercised
+through a new production review; its local regression evidence remains separate.
+Physical-device/native MFA and sign-in challenge checks, actual provider incidents,
+hosted conflict/revoked-admin cases and financial reconciliation remain open.
+Beta gate remains enabled; full release acceptance remains incomplete.
