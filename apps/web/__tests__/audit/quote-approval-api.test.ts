@@ -44,6 +44,18 @@ beforeEach(() => {
     error: null,
   });
 });
+it('returns explicit false permissions for jobs without an assigned contractor', async () => {
+  mocks.rpc.mockResolvedValue({
+    data: { amendments: [], can_approve: true, is_contractor: null },
+    error: null,
+  });
+  expect(await (await call(GET)).json()).toMatchObject({
+    amendments: [],
+    can_approve: true,
+    is_contractor: false,
+    next_before: null,
+  });
+});
 it('expires cached quote/bid summaries only after confirmed application', async () => {
   mocks.rpc.mockResolvedValue({
     data: { id: 'revision', status: 'applied' },

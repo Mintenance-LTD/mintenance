@@ -661,6 +661,21 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <View style={styles.divider} />
 
+        {(isOwner ||
+          job.payer_user_id === user?.id ||
+          job.contractor_id === user?.id) && (
+          <TouchableOpacity
+            accessibilityRole='button'
+            onPress={() =>
+              navigation.navigate('QuoteAmendments', { jobId: job.id })
+            }
+            style={{ minHeight: 48, padding: 16 }}
+          >
+            <Text style={{ color: me.ink, fontSize: 16, fontWeight: '600' }}>
+              Quote amendments
+            </Text>
+          </TouchableOpacity>
+        )}
         <JobQuickActions
           onReschedulePress={
             (canManageJob || job.contractor_id === user?.id) &&

@@ -69,6 +69,7 @@ const GROUPS: readonly PurposeGroup[] = [
     fg: me.brand,
     events: [
       { type: 'bid_received', label: 'When a contractor bids' },
+      { type: 'quote_amendment_update', label: 'Quote amendment updates' },
       { type: 'bid_accepted', label: 'When your bid is accepted' },
     ],
   },

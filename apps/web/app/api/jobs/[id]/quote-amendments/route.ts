@@ -30,6 +30,8 @@ export const GET = withApiHandler(
     return NextResponse.json(
       {
         ...data,
+        can_approve: data.can_approve === true,
+        is_contractor: data.is_contractor === true,
         amendments,
         next_before:
           data.amendments.length > 50 ? amendments[49].sequence : null,

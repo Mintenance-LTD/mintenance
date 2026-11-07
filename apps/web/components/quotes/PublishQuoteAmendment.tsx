@@ -53,7 +53,7 @@ export function PublishQuoteAmendment({
         );
       setDone(true);
       setMessage(
-        'Available for customer review on the job. No email or push notification was sent.'
+        'Available for customer review on the job. An in-app/push notice is queued, subject to notification preferences and delivery. No email is sent.'
       );
     } catch (error) {
       setMessage(

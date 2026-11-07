@@ -68,6 +68,26 @@ beforeEach(() => {
 });
 
 describe('details aggregate effect', () => {
+  it('refreshes contract state when a job refetch preserves the same job object', async () => {
+    const sameJob = { id: 'j1', photos: [] };
+    const query = {
+      data: sameJob,
+      dataUpdatedAt: 1,
+      refetch: mockRefetch,
+      isLoading: false,
+      error: null,
+    };
+    mockUseJob.mockReturnValue(query);
+    const { result, rerender } = renderHook(() => useJobDetailsViewModel('j1'));
+    await waitFor(() => expect(result.current.contractStatus).toBe('accepted'));
+    mockGet.mockResolvedValue({
+      contractStatus: 'draft',
+      buildingAssessment: null,
+    });
+    mockUseJob.mockReturnValue({ ...query, dataUpdatedAt: 2 });
+    rerender({});
+    await waitFor(() => expect(result.current.contractStatus).toBe('draft'));
+  });
   it('maps the aggregate into state', async () => {
     const { result } = renderHook(() => useJobDetailsViewModel('j1'));
     await waitFor(() => expect(result.current.contractStatus).toBe('accepted'));

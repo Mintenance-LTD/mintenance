@@ -838,3 +838,135 @@ Remaining acceptance boundaries
   Push notifications and bank transfers retain their confirmed-working status.
   No git push or application deployment occurred, and no live financial records
   were mutated. Full release acceptance remains incomplete.
+
+Amendment notifications and native review — 6–7 November 2026
+==========================================================
+
+Scope and workflow inspection
+-----------------------------
+- Started at 385eec620 with a clean worktree. Inspected root/web AGENTS.md,
+  the existing amendment RPC/API/UI, notification queue/processor/preferences,
+  mobile authenticated API client/relay allowlist, navigation, job caches and
+  the acceptance ledger. Existing screenshot work was preserved.
+- This continuation authorizes LOCAL implementation and commit only. The prior
+  production schema rollout remains historical evidence; no hosted migration,
+  app/Edge deployment, Git push or live customer/financial mutation occurred
+  in this batch. No real notification, email or push was sent.
+
+Completed locally
+-----------------
+- Added prospective migration 20261106202654_quote_amendment_notifications.sql,
+  generated with the Supabase CLI. An AFTER INSERT trigger on immutable
+  amendment events queues one notice in the same transaction as publish,
+  approve, reject, withdraw or apply. Queue failure rolls back the transition;
+  a repeated exact request returns the existing event without another notice.
+  Deterministic queue ids also preserve the processor's existing replay safety.
+- Publication/withdrawal/application target the recorded responsible customer;
+  approval/rejection target the contractor. The designated payer takes priority
+  over the homeowner. Notices contain generic status language and routing ids,
+  not private notes, decision reasons, item descriptions or monetary values.
+  The trigger uses a fixed empty search_path and has no direct PUBLIC, anon,
+  authenticated or service-role EXECUTE grant. No backfill or delivery call is
+  present in the migration; it has NOT been applied to a hosted database.
+- Before draining a pending notice or retrying push, the processor verifies the
+  current amendment version, job assignment and responsible payer. Obsolete
+  events or changed recipients are cancelled; lookup failure leaves the notice
+  retryable and delivers nothing. Quiet hours, per-type mute and independent
+  inbox/push channel choices are honored. Existing push checkpoint/retry and
+  receipt behavior is retained; queueing/Expo acceptance is not proof of device
+  delivery. New preference controls are available on web and native settings.
+- Web publication copy explains queued in-app/push delivery rather than saying
+  no notification was sent. Email delivery remains unimplemented. Web filtering
+  places these notices with bids; native filtering places them in Jobs. Neither
+  classifies approval or application as a payment.
+- Added native QuoteAmendments screen to the Jobs navigator, a participant job
+  entry point, /jobs/:jobId/amendments linking configuration and shared inbox/OS
+  push routing. Missing routing context falls back to the inbox. All reads and
+  decisions use mobileApiClient and the authenticated job-scoped API; there are
+  no direct privileged mobile database writes or relaxed beta/relay controls.
+- Native review shows both recorded price breakdowns, tax, terms, reason and
+  dated decision history. Server-returned permissions control customer approve/
+  reject and contractor withdraw/apply controls. Decisions require explicit
+  review, bind the current version and retain the exact note/action for ambiguous
+  retries. Duplicate taps are guarded. Conflicts require a fresh review; success
+  survives a subsequent history-load failure. Malformed pages/status responses
+  do not become success, and failed reads do not become empty history.
+- Review supports pagination, focus refresh, stale-request suppression, wrapped
+  text, font scaling, 48pt minimum actions, multiline notes, keyboard avoidance
+  on iOS and scroll keyboard dismissal. These are implementation/render checks,
+  not physical-device visual/keyboard acceptance.
+- Confirmed native application refreshes active job/bid caches and marks inactive
+  values stale. Job aggregate state now refreshes after a successful job refetch
+  even when React Query preserves the same job object. Cache failure retains the
+  confirmed application with a refresh warning. The explicit Back to job action
+  mounts a fresh job screen; the existing financial/signature guards are unchanged.
+- The review API normalizes nullable database permission flags to explicit
+  booleans, so an unassigned job can show empty review instead of a native parse
+  error. Native proposal creation/pricing editing still uses the web workflow.
+
+Verification for this batch
+---------------------------
+- Mobile Jest: 6 suites / 183 tests passed, including new screen and service/
+  routing cases, the existing routing matrix, inbox and settings persistence,
+  and job aggregate refresh regression tests. Log:
+  output/quote-native-mobile-tests.log.
+- Web Vitest: 11 files / 120 tests passed. Includes new recipient eligibility
+  and queue-drain tests plus approval API/page/UI, push dispatcher/receipts,
+  terminal retry, recovery cron, deferred delivery, registry and preference UI.
+  Log: output/quote-native-web-tests.log.
+- Disposable PGlite: 31 approval/application scenarios plus role/RLS checks
+  passed. This is the previous 27 scenarios run with the notification trigger,
+  plus four recipient/retry/withdrawal/rollback scenarios, not 31 additional
+  historical cases. Real quote/contract/queue column definitions are loaded
+  from the saved schema; fixtures are synthetic and rolled back. Queue failure
+  after an apply restores the quote, bid, contract, event and amendment state.
+  Log: output/quote-native-sql.log.
+- Relay handler tests: 22/22 passed via node --import tsx --test; relay source,
+  allowlist and deployment configuration were unchanged. Log:
+  output/quote-native-relay-tests.log.
+- Full mobile and web TypeScript checks passed. Changed-file web ESLint passed
+  with --no-ignore (including new tests), zero errors/warnings. Mobile ESLint
+  passed with zero errors and three pre-existing warnings: unused imports in
+  JobDetailsViewModel.ts and notifications/types.ts, and import order in the
+  existing JobDetailsViewModel test. No new-code lint warning remains.
+  Logs: output/quote-native-{mobile,web}-{types,lint}.log.
+- Staged git diff --cached --check, check-no-hex.js and
+  check-edge-fn-currency.js all passed. Beta/release/relay configuration was
+  inspected in the final diff and remains unchanged.
+- The initial native run failed before running tests because Jest's default
+  sandbox cache could not be renamed. The final run uses a workspace cache.
+  Intermediate failures (SQL numeric string formatting, the explicit action
+  guard and asynchronous test flushing) were corrected; only final runs above
+  are acceptance evidence. React test-renderer emits its existing deprecation
+  notice; rendering tests are not fresh-build visual acceptance.
+- Aikido scan tools remain unavailable, so no Aikido clearance is claimed.
+  Supabase security guidance and the local trigger grants were reviewed; no
+  hosted advisor checks or production delivery experiments were performed.
+
+Remaining acceptance and rollout boundaries
+------------------------------------------
+- The new notification migration, web processor changes and native screen are
+  LOCAL ONLY. A separately authorized rollout must coordinate the migration
+  with the processor's recipient/quiet-hours guards, API/UI and fresh native
+  builds before declaring amendment notifications available. Do not infer
+  delivery from a queued row or trigger creation. The earlier two amendment
+  migrations remain the only schema changes applied in the preceding batch.
+- Still requires Android/iOS fresh-build foreground/background/killed-state
+  push taps, universal links, return navigation, larger text, keyboard/scroll,
+  account switching and real two-party review/application verification through
+  the deployed relay. No physical-device or real-provider delivery was tested.
+  SQL fixtures and mock worker concurrency do not establish full migration
+  replay, real multi-session database races or deployed PostgREST embedding.
+- Native proposal preparation/editing and amendment email delivery are not
+  implemented. Already delivered notices cannot be recalled; generic content
+  and server participant checks limit disclosure after a job/payer change.
+- Signed/part-signed/consented/funded/invoiced variations remain blocked. There
+  is no additional funding, refund, balance rewrite or historical reconciliation.
+  Customer amendment approval is not a contract signature.
+- Deployed-relay MFA status/enrolment/verification/disable/retry still needs
+  Android/iOS device verification. Settings tests do not establish native
+  sign-in challenge enforcement across custom MFA and Supabase sessions.
+  Escrow presentation does not establish financial reconciliation. Push and
+  bank transfers retain their previously confirmed status; this does not prove
+  delivery of the new amendment event type. The beta gate remains enabled.
+  Full release acceptance remains incomplete.

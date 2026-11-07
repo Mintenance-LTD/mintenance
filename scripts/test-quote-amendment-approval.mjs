@@ -19,7 +19,8 @@ const table = (name) =>
   )[0];
 await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
  CREATE SCHEMA auth; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS 'SELECT NULL::uuid';
- ${table('contractor_quotes')} ${table('contracts')}
+ ${table('contractor_quotes')} ${table('contracts')} ${table('notification_queue')}
+ ALTER TABLE notification_queue ADD PRIMARY KEY(id);
  ALTER TABLE contractor_quotes ADD PRIMARY KEY(id); ALTER TABLE contracts ADD PRIMARY KEY(id);
  ALTER TABLE contracts ADD COLUMN agreement_formed_at timestamptz,ADD COLUMN cancellation_requested_at timestamptz,ADD COLUMN cancellation_deadline timestamptz;
  CREATE TABLE jobs(id uuid PRIMARY KEY,homeowner_id uuid,payer_user_id uuid,contractor_id uuid,status text,budget numeric);
@@ -43,6 +44,9 @@ await db.exec(
   `BEGIN; ${sql('20261106135704_quote_amendment_approval.sql')} COMMIT;`
 );
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+await db.exec(
+  `BEGIN; ${sql('20261106202654_quote_amendment_notifications.sql')} COMMIT;`
+);
 const owner = id(1),
   customer = id(2),
   payer = id(3),
@@ -420,6 +424,100 @@ const flags = (
 ).rows;
 assert.equal(flags.length, 2);
 assert.ok(flags.every((row) => row.relrowsecurity));
+await test(
+  'notification recipients, exact retries, metadata and no financial disclosure',
+  async () => {
+    await transition('publish');
+    await transition('publish');
+    let queued = (await db.query('SELECT * FROM notification_queue')).rows;
+    assert.equal(queued.length, 1);
+    assert.equal(queued[0].user_id, payer);
+    assert.equal(queued[0].notification_type, 'quote_amendment_update');
+    assert.equal(queued[0].action_url, `/jobs/${job}/amendments`);
+    assert.deepEqual(queued[0].metadata, {
+      jobId: job,
+      quote_amendment_id: revision,
+      amendment_version: 1,
+    });
+    assert.ok(!JSON.stringify(queued).includes('PRIVATE NOTE'));
+    assert.ok(!JSON.stringify(queued).includes('Extra part'));
+    await transition('approve', payer, 1);
+    await transition('approve', payer, 1);
+    assert.equal(
+      (
+        await one(
+          "SELECT user_id FROM notification_queue WHERE metadata->>'amendment_version'='2'"
+        )
+      ).user_id,
+      owner
+    );
+    await transition('apply', owner, 2);
+    assert.equal(
+      (
+        await one(
+          "SELECT user_id FROM notification_queue WHERE metadata->>'amendment_version'='3'"
+        )
+      ).user_id,
+      payer
+    );
+    assert.equal(
+      Number((await one('SELECT count(*) AS n FROM notification_queue')).n),
+      3
+    );
+  },
+  true
+);
+await test('rejection and withdrawal queue the opposite participant only', async () => {
+  await transition('publish');
+  await transition('reject', customer, 1);
+  assert.equal(
+    (
+      await one(
+        "SELECT user_id FROM notification_queue WHERE metadata->>'amendment_version'='2'"
+      )
+    ).user_id,
+    owner
+  );
+});
+await test('withdrawal queues the customer', async () => {
+  await transition('publish');
+  await transition('withdraw', owner, 1);
+  assert.equal(
+    (
+      await one(
+        "SELECT user_id FROM notification_queue WHERE metadata->>'amendment_version'='2'"
+      )
+    ).user_id,
+    customer
+  );
+});
+await test('queue failure rolls back decision, event, new quote, bid and contract', async () => {
+  await approve();
+  await db.exec(`RESET ROLE; CREATE FUNCTION fail_amendment_notice() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'queue unavailable'; END $$;
+    CREATE TRIGGER fail_amendment_notice BEFORE INSERT ON notification_queue FOR EACH ROW EXECUTE FUNCTION fail_amendment_notice(); SET LOCAL ROLE service_role;`);
+  await rejects(() => transition('apply', owner, 2), /queue unavailable/);
+  assert.equal(
+    (await one('SELECT status FROM quote_amendments')).status,
+    'approved'
+  );
+  assert.equal(
+    Number((await one('SELECT count(*) AS n FROM contractor_quotes')).n),
+    1
+  );
+  assert.equal(
+    Number((await one('SELECT count(*) AS n FROM quote_amendment_events')).n),
+    2
+  );
+  assert.equal(Number((await one('SELECT amount FROM bids')).amount), 100);
+  assert.equal((await one('SELECT quote_id FROM contracts')).quote_id, quote);
+});
+const triggerPrivileges = (
+  await db.query(
+    "SELECT has_function_privilege('service_role','public.queue_quote_amendment_event()','EXECUTE') AS service, has_function_privilege('authenticated','public.queue_quote_amendment_event()','EXECUTE') AS client"
+  )
+).rows[0];
+assert.equal(triggerPrivileges.service, false);
+assert.equal(triggerPrivileges.client, false);
 await db.close();
 console.log(
   `${cases} approval/application scenarios plus role and RLS checks passed.`

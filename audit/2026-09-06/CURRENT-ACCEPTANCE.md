@@ -138,3 +138,32 @@ operation or financial mutation was performed; no git push or app deployment
 occurred. The beta gate remains enabled. Full release acceptance, device MFA/
 native challenge enforcement, fresh-build visuals, signed/funded variations,
 notification delivery and historical reconciliation remain open.
+
+### Amendment notifications and native review — 6–7 November 2026
+
+Implemented locally: transactional amendment-event queueing, recipient/version
+checks before delivery, quiet-hours and notification preference handling, and
+native review with full pricing/history, approval/rejection, withdrawal and
+guarded application. Inbox/push and URL routes open the native review; exact
+retries, load recovery and refreshed job/contract caches have regression tests.
+Native proposal preparation/editing and amendment email delivery remain open.
+
+Fresh verification: 183 mobile tests / 6 suites, 120 web tests / 11 files,
+31 disposable SQL scenarios plus role/RLS checks, 22 relay tests, and full
+mobile/web TypeScript checks passed. Web changed-file lint is clean; mobile
+lint has no errors and three inspected pre-existing warnings. Aikido scanning
+remains unavailable. Earlier test counts are historical, not additional fresh
+coverage for this batch.
+
+New migration `20261106202654_quote_amendment_notifications.sql` is **unapplied**.
+This batch made no hosted changes and sent no real notification. A future
+authorized rollout must coordinate the migration, guarded queue processor,
+API/UI and native builds. The preceding two production amendment migrations
+remain the only hosted schema rollout recorded here. No push, deployment,
+live financial mutation or beta-gate change occurred in this batch.
+
+Fresh-device notification delivery/taps, linking, native review/signing, larger
+text/keyboard/scroll, deployed-relay MFA, native challenge enforcement and
+multi-session/deployed database journeys remain unaccepted. Signed/funded
+variations and historical reconciliation remain out of scope. Full release
+acceptance remains incomplete; the beta gate remains enabled.

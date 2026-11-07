@@ -42,6 +42,7 @@ interface Prefs {
 const KNOWN_TYPES: Array<{ type: string; label: string }> = [
   { type: 'job_nearby', label: 'New jobs posted near you' },
   { type: 'bid_received', label: 'New bids received' },
+  { type: 'quote_amendment_update', label: 'Quote amendment updates' },
   { type: 'bid_accepted', label: 'Your bid was accepted' },
   { type: 'contract_signed', label: 'Contract signed' },
   { type: 'payment', label: 'Payment updates' },

@@ -83,6 +83,7 @@ export type AuthStackParamList = {
 // ============================================================================
 
 export type JobsStackParamList = {
+  QuoteAmendments: { jobId: string };
   JobsList: undefined;
   JobDetails: { jobId: string };
   JobPosting: undefined;

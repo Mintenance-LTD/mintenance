@@ -53,6 +53,7 @@ export interface NotificationData {
     // now folds it into the message_received handler.
     | 'message'
     | 'quote_sent'
+    | 'quote_amendment_update'
     | 'contract_created'
     | 'contract_signed'
     // 2026-05-27 audit-70 P1: web /api/contracts/[id]/sign emits
