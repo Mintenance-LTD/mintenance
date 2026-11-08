@@ -2378,3 +2378,21 @@ REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
   exact deployed code; this continuation adds authenticated production evidence.
   Audit pushed on feature only. This supersedes the signed-in blocker for these
   paths; outage/race, provider delivery, native/MFA and reconciliation gaps remain.
+
+2026-11-08 — CONTRACTOR VISIT PROVIDER RECEIPT VERIFIED; APK BUILD REQUESTED
+- Existing designated-contractor notification sent once at 14:25:29 UTC, no retries
+  or errors. One in-app record and one recorded dispatch attempt. Scheduled receipt
+  polling reported provider_accepted at 14:45:28 UTC, one accepted, zero failures or
+  unresolved attempts. Normal receipt delay required no recovery mutation/resend.
+  Phone presentation is unverified; test visit remains cancelled, reminders off.
+- Reviewed queue/dispatch/receipt recovery; fresh 30 tests passed. No defect found
+  or notification code change needed. Production checks read-only, designated
+  fixture/account scoped. No deployment, beta/access change or financial writes.
+- Requested internal APK uses existing beta-login-test profile, versionCode 45,
+  frozen remote credentials, authenticated downloads and OTA disabled. Fresh 23
+  build/config tests, 73 mobile tests, mobile TypeScript/shared builds and Android
+  export passed. Build 51eb2fa1-3b2c-4d87-a7a2-dd9b747e8a5b from 8e5d16463 FINISHED
+  15:18:26 UTC. Binary package/version, valid signature matching beta 44, native OTA
+  disabled, Firebase and relay checked. APK delivery ready; phone install unverified.
+  See audit/2026-11-08/internal-apk-45.md for hashes and protected install page.
+  Device/MFA, historical reconciliation and full release acceptance gaps retained.

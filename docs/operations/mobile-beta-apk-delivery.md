@@ -1,6 +1,20 @@
 # Restricted beta APK delivery
 
-Prepared 29 October 2026. This is a build and phone-test plan, not an APK release.
+The original plan below was prepared 29 October 2026. Its quota dates and version
+numbers are historical. Current internal beta 45 preparation/build evidence is in
+[the 8 November receipt](../../audit/2026-11-08/internal-apk-45.md).
+
+On 8 November, the user requested an internal APK. Version 45 was submitted from
+clean commit 8e5d1646349b06df56611b29fdb34a47c4f655a1 with the existing remote
+credentials frozen, authenticated downloads required and OTA disabled. The build
+finished at 15:18:26 UTC; its APK signature, package/version and embedded configuration
+passed inspection. Phone installation and device acceptance remain unverified. See
+the receipt for hashes and the protected install page. No backend/web deployment,
+store submission, paid upgrade or relay/beta admission change is included.
+
+For installation, compare the phone's current version/signature with the new
+artifact. Version 45 supersedes the historical version 41 target below. Install as
+an update; never uninstall, clear storage or force a downgrade to resolve a mismatch.
 
 ## Delivery decision
 

@@ -1660,3 +1660,46 @@ enforcement across custom MFA/Supabase and historical financial reconciliation
 remain outside this verification. Full release acceptance is still incomplete.
 Beta stays enabled; audit-only update pushed on the feature branch with automatic
 deployment excluded. No main merge or further deployment.
+
+## 2026-11-08 — Contractor visit delivery receipt and internal APK preparation
+
+Read-only follow-up of the existing cancelled, job-free release fixture
+1233061a-a04d-4788-91d3-6b244ff9b776. No new visit, confirmation, resend or message.
+Notification e67e58fc-d206-49c4-ba3b-80b7a251d95f targets only the designated
+contractor 236c6e76-4c29-4569-acb6-54d65b67f83e. Queue sent at 14:25:29.467 UTC,
+retry_count 0, no error or last retry; exactly one materialized notification,
+push_sent=true and read=true. Read state alone does not establish device display.
+Dispatch attempt b4eaa7cb-e485-45c2-8df0-30b3623673b3 is recorded for one device.
+
+Receipt 01a1bb8c-ccac-75a5-b6c3-be591c5bb089 was initially pending with the normal
+15-minute delay, due at 14:40:29.370 UTC. The 14:40 cron ran just before that time;
+the next scheduled run recorded provider_accepted at 14:45:28.802, no error.
+Production cron request 74kph-1794149128169-f01b0be9b16f completed with checked=1,
+accepted=1, failed=0, expired=0, pending=0, attemptsNeedingReview=0. No forced cron
+or retry was needed. This closes the pending provider receipt, not physical-device
+delivery/visual acceptance. Fixture remains cancelled with reminders suppressed.
+
+Inspected dispatch, queue lease/replay, attempt journal and receipt recovery.
+No recovery defect established. Fresh 30/30 tests in NotificationPushDispatcher,
+notification-terminal-retry and push-attempt-review cover concurrent claim, partial
+acceptance, no-token terminal results, transient errors, receipt polling without
+resending, interrupted attempts and current-admin review checks. No notification
+code change. All production operations this continuation were read-only.
+
+User also requested an internal Android APK. Version 45 preparation is recorded in
+audit/2026-11-08/internal-apk-45.md. Fresh 23 build/config tests, 73 mobile tests,
+mobile TypeScript, security preparation, shared builds and Android/Hermes export
+passed. Windows temporary-directory failures were resolved with dedicated local
+paths, without bypassing validators. EAS build 51eb2fa1-3b2c-4d87-a7a2-dd9b747e8a5b
+submitted from clean source 8e5d1646349b06df56611b29fdb34a47c4f655a1 at 14:46:41 UTC;
+FINISHED at 15:18:26.825 UTC. Actual package/version 1.2.4 (45), valid v2 signature
+matching beta 44, embedded runtime/project/relay, Firebase resources and native
+updates-disabled manifest checked. APK SHA-256, certificate, fingerprint and protected
+install page are in the build receipt. APK built/inspected; phone install unverified.
+Existing remote signing credentials frozen; downloads require Expo sign-in, OTA
+disabled. One hosted build only. No paid upgrade or store
+submission. Feature automatic deployment stays disabled; beta gate/protection and
+relay admission unchanged. No main merge, backend/web deployment, schema change or
+financial write. Aikido unavailable. Device MFA/native sign-in enforcement,
+fresh-build physical-device visuals, historical reconciliation and full release
+acceptance remain incomplete.
