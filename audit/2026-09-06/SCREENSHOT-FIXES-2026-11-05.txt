@@ -1945,3 +1945,72 @@ Signed-in success reset and production conflict investigation — 7 November 202
   replay, revoked-admin and genuine provider-incident cases remain open, along with
   native/device MFA, sign-in challenge, physical-device and reconciliation gaps.
   Full release acceptance remains incomplete. Commit/push feature branch only.
+
+API-first production conflict release — 8 November 2026
+- Owner authorized API deployment first, then production SQL. Started clean at
+  606e0dea8844265533cf6899b3a45a99de95f350. Initial deployment
+  dpl_EaPh7BCCrf3tpCmBHLtLQRhXXjuV stopped at the missing
+  quote_amendment_email_conflict_code prerequisite. No guard bypass or early SQL.
+- Pushed release/quote-amendment-conflict-api from prior production main 050123d6,
+  copying only the compatible API mapping and regression test. Commit
+  53ce6f65f225e24d703b83d541837991dde86b27 has an identical apps/web tree to 606e0dea;
+  API blob 69c9fadc8594e03b922a3aefc15bf85fd5f4e1ef. No merge into main.
+  Deployment dpl_3ttbd7jjcqoDMPn5tikXXCUZw9SF reached READY at
+  2026-11-08T00:05:04.056Z after a 326.544-second build. Migration prerequisites,
+  TypeScript, lint and build passed. Verified www.mintenance.co.uk resolves to
+  this exact deployment before migration; URL:
+  https://mintenance-clean-ftjiowuvh-mintenance.vercel.app
+- Applied reviewed local 20261107213241_quote_amendment_email_conflict_code.sql
+  to ukrjudtlvapiajkjbcrd under name quote_amendment_email_conflict_code. Hosted
+  ledger version 20261108000533 reflects tool application time. Function body
+  verified exactly against the three 40001 -> PT409 substitutions; execution
+  grants postgres/service_role only, security definer, empty search_path and
+  outbox/review RLS unchanged. No business data changes in migration.
+- Owner restored normal admin sign-in. Designated admin
+  623398c7-2335-4707-90b5-8bcee7eb4d1c and homeowner
+  a2cf7faa-2ce3-436f-8949-45976481813e only. Reopened the existing synthetic
+  withdrawal event 2 for 65e6e1af-842b-4bd0-82e8-b6d324ed3726, review_version 3,
+  using exact job/customer/action/status/version/attempt/sent_at/fixture guards
+  and withdrawn/unapplied amendment guards. Status-only reviewed_unknown ->
+  needs_review; never pending/sending. Loaded review version 3 in two fresh tabs.
+- First UI close_unknown/unknown save created review
+  b1d5f03c-6d8c-4dd3-8c5c-0f802cec1201 at 2026-11-08T00:06:56.948781Z,
+  review_version 4, designated admin actor. Second stale save showed Review
+  unavailable or changed. Refresh and check the current record before continuing.
+  Retry same review disabled; no uncertain-save or success claim. Refresh cleared
+  selection/error and showed No emails in this queue. Reviewed events/history
+  showed four immutable reviews and no recovery controls.
+- HTTP 409 corroborated on dpl_3ttbd7jjcqoDMPn5tikXXCUZw9SF at 00:07:23.697Z,
+  request 499hg-1794096443041-2c76aad1b02a. Duplicate logger/monitoring lines refer
+  to one request. Postgres query for 00:07–00:09 UTC found exactly one PT409
+  Email changed; refresh review occurrence. No new 500 in the returned endpoint
+  log sample, no executing/idle-in-transaction review RPC, no termination needed.
+- Final test event reviewed_unknown/review_version 4, exactly four reviews,
+  attempts 0, sent_at NULL, open test emails 0; no stale duplicate or new send.
+  Both proposals remain withdrawn/version 2/unapplied. Other test email send
+  timestamps and attempts unchanged. Full-row fingerprints still match:
+  job f9ee5b3cedc692ccdcc47121526b20be; quote c5949618021012957815aff0967a3364;
+  bids baf9eaaa9b43412923a274cb9651f215; contracts 5d2305ae2e771678780b32e81ca039c7;
+  signatories d751713988987e9331980363e24189ce. All eight inspected job-related
+  financial tables remain empty. No financial, quote, bid, contract, account or
+  beta configuration changes.
+- Fresh verification: hosted build, migration/function/grant/RLS comparison,
+  authenticated two-tab UI, logs and final DB checks. Prior 41 web tests, 51 SQL
+  scenarios, full web TypeScript and targeted ESLint cover the unchanged source;
+  not rerun this release-only turn. Exact-606 GitHub checks/statuses empty: do not
+  count as passing CI. Supabase advisors unchanged after ignoring observed_at:
+  136 findings / seven categories: RLS enabled/no policy INFO 110; definer view
+  ERROR 1; RLS disabled/public ERROR 1; extension/public WARN 1; anon definer
+  executable WARN 10; authenticated definer executable WARN 12; leaked-password
+  protection WARN 1. Pre-existing findings remain open; not a clean scan.
+  Reference: https://supabase.com/docs/guides/database/database-linter
+  Password protection: https://supabase.com/docs/guides/auth/password-security
+  Aikido tooling unavailable. Screenshots (ignored local artifacts):
+  output/operator-conflict-released-20261108.jpg,
+  output/operator-conflict-release-history-20261108.jpg.
+- Hosted stale-review conflict now verified for this fixture. Lost-response replay,
+  revoked-admin denial, genuine provider incidents, native/device MFA and sign-in
+  challenge enforcement, fresh-build device visuals and historical financial
+  reconciliation remain unverified. Beta enabled; full release acceptance remains
+  incomplete. Release branch pushed; audit published on the existing feature
+  branch. No main merge or financial changes.

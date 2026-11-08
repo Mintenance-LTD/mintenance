@@ -717,3 +717,65 @@ committed-save/lost-response replay, revoked-admin denial, genuine provider-inci
 recovery, physical-device visuals, deployed native MFA/relay and native sign-in
 challenge enforcement, and historical financial reconciliation. Full release
 acceptance remains incomplete. Feature-branch publication only; no merge or deploy.
+
+### API-first conflict release verified — 8 November 2026
+
+The owner authorized production deployment, then the function migration. The first
+build of 606e0dea8844265533cf6899b3a45a99de95f350
+(`dpl_EaPh7BCCrf3tpCmBHLtLQRhXXjuV`) correctly stopped at the missing-migration
+prerequisite. No guard was bypassed and no migration was applied ahead of the API.
+Created and pushed `release/quote-amendment-conflict-api` from prior production
+050123d60747c97376b52dad02ae24af320e8045, carrying only the compatible API mapping
+and its regression test. Release commit 53ce6f65f225e24d703b83d541837991dde86b27
+has the same complete apps/web tree as 606e0dea. Production deployment
+`dpl_3ttbd7jjcqoDMPn5tikXXCUZw9SF` passed migration prerequisites, TypeScript,
+lint and build, reached READY at 2026-11-08T00:05:04.056Z, and was verified as the
+deployment serving www.mintenance.co.uk before applying SQL. Main was not merged.
+
+Applied `quote_amendment_email_conflict_code` to production project
+`ukrjudtlvapiajkjbcrd`; hosted ledger version `20261108000533` corresponds to local
+`20261107213241_quote_amendment_email_conflict_code.sql`. Verified the function
+body matches the reviewed three 40001-to-PT409 substitutions exactly. Existing
+postgres/service_role-only execution grants, security-definer/search-path settings
+and both outbox/review RLS settings are unchanged. Migration itself left the test
+event at reviewed_unknown/version 3, attempts 0, sent_at NULL.
+
+After normal owner admin sign-in, exercised two production tabs using only the
+designated admin and existing homeowner fixture. Exactly guarded status-only
+staging reopened amendment `65e6e1af-842b-4bd0-82e8-b6d324ed3726`, event 2, at
+review_version 3; it never entered pending/sending. The first close_unknown save
+created review `b1d5f03c-6d8c-4dd3-8c5c-0f802cec1201` at
+2026-11-08T00:06:56.948781Z, advancing to review_version 4. The stale second tab
+displayed the refresh-required conflict, disabled Retry same review and retained
+Refresh. Refresh cleared the conflict/selection and showed no emails in the queue;
+Reviewed events displayed all four immutable reviews with no recovery controls.
+
+Vercel recorded HTTP 409 at 00:07:23.697Z for request
+`499hg-1794096443041-2c76aad1b02a` on the new deployment. Postgres recorded exactly
+one PT409 / Email changed; refresh review occurrence in the 00:07–00:09 UTC window.
+No stale duplicate review, dispatch attempt or lingering executing/idle-in-transaction
+review RPC remained. Final event: reviewed_unknown/version 4, attempts 0, sent_at
+NULL; open test emails 0. Both controlled amendments remain withdrawn/version 2
+and unapplied. Other controlled email attempts and original send timestamps are
+unchanged. Five job/quote/bid/contract/signatory hashes and all eight job-related
+financial-table zero counts match the preflight and preceding audit. No financial
+records, prices, account permissions or beta configuration were changed.
+
+Fresh evidence is the hosted production build, migration comparison, authenticated
+UI and database/log checks. The preceding 41 web tests, 51 disposable SQL scenarios,
+web TypeScript and targeted ESLint apply to the same code bytes; they were not
+rerun in this release-only continuation. Exact-606 GitHub check-runs/statuses were
+empty, not passing CI evidence. Supabase advisors remain unchanged: 136 findings
+across seven categories, including two pre-existing ERROR findings; no clean
+security scan is claimed. Aikido tooling remains unavailable.
+
+Local screenshots: `output/operator-conflict-released-20261108.jpg` and
+`output/operator-conflict-release-history-20261108.jpg`. The hosted stale-review
+conflict gap is closed for this controlled fixture. Committed-save/lost-response
+replay, revoked-admin denial and genuine provider-incident recovery remain open.
+Android/iOS deployed MFA status/enrolment/verification/disable/retry need devices;
+settings tests do not establish native sign-in challenge enforcement across the
+custom MFA service and Supabase sessions. Jest does not replace fresh-build device
+visual checks; escrow presentation does not establish historical reconciliation.
+Beta remains enabled. Full release acceptance remains incomplete. This audit is
+published on the existing feature branch; no merge into main is performed.
