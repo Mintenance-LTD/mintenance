@@ -185,7 +185,7 @@ test('isolated beta APK resolves the verified relay with OTA disabled and existi
   assert.equal(resolved.EXPO_PUBLIC_USE_MOCK, 'false');
   assert.equal(resolved.NODE_ENV, 'production');
   assert.equal(config.android.package, 'com.mintenance.app');
-  assert.equal(config.android.versionCode, 44);
+  assert.equal(config.android.versionCode, 45);
   assert.equal(config.name, 'Mintenance Beta');
   assert.equal(config.runtimeVersion, '1.2.4-beta-login1');
   assert.equal(config.updates.enabled, false);
