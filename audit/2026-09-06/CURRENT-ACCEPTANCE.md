@@ -1359,3 +1359,71 @@ visit, tenancy, contractor-proposal, evidence/disposal or worker recovery branch
 Retain all prior physical-device, native MFA enforcement, concurrent-worker/provider
 and historical financial reconciliation gaps. Beta remains enabled; feature
 auto-deployment remains excluded and main was not merged. Full acceptance is open.
+
+### Support Refresh-button production release — 8 November 2026
+
+User explicitly authorized deployment and designated-account verification. Verified
+the current production source was eca682cf8, then prepared release/support-refresh-
+nov8 from that source. Only AdminSupportInbox.tsx and its regression test differ:
+the two files exactly match feature fix 4d6631020. No unrelated feature UI, SQL,
+release guard, deployment protection or beta configuration was included.
+
+Release commit 5cc36721d3477c24133ce6ebf60f3cfb9f41804a is pushed. Production
+deployment dpl_G7LyZwQdaVcwFZQStQfzNhJZB2nr reached READY at
+2026-11-08T12:31:24.889Z. Verified www.mintenance.co.uk aliases this deployment;
+authenticated /api/version returned HTTP 200 with the exact release SHA at
+12:32:01 UTC. The unchanged migration guard passed all 15 prerequisites for this
+production-based tree. Shared builds, full web TypeScript, lint and Next.js build
+passed (four-minute hosted build). Existing missing-Sentry-token warnings mean
+release creation/source-map upload remain unavailable. No credentials were changed.
+Fresh tests against the exact isolated release tree: 10/10 UI/API tests in two files
+passed under Node 20.19.4; git diff --check passed. No migration was needed or applied.
+
+The admin session had expired again; the user renewed it before verification.
+Loaded fresh production pages in two browser tabs as the designated admin. Reused
+the existing clearly labelled support fixture ca037228-55d8-40dc-b3ac-4342b9531c54,
+owned by the designated homeowner and assigned to the designated admin, with no
+job link. The case stayed CLOSED throughout; no new fixture or customer message.
+
+Observed deployed recovery sequence:
+1. Both tabs loaded revision 3, low priority. First tab saved normal priority:
+   revision 4, four total events, "Case updated." visible.
+2. Second tab submitted its stale revision 3. The UI displayed the conflict message;
+   production logs confirm HTTP 409 / CONFLICT at 12:33:04.031 UTC for designated
+   admin 623398c7-2335-4707-90b5-8bcee7eb4d1c on this new deployment. Request ID:
+   zw7g5-1794141183728-2ba3c1e677a3. Revision/event count remained 4/4.
+3. Clicked Refresh inbox without reopening or navigating away. It cleared the
+   conflict notice, loaded the authoritative normal priority into the selected
+   editor, preserved the unsent reply draft and handover note, and re-enabled the
+   controls. Database revision/event count remained 4/4: refresh did not mutate.
+4. Restored low priority in the refreshed editor and saved. The retry succeeded,
+   showing "Case updated." Final revision 5, five events total. This proves the
+   selected editor used the refreshed revision; the former reopen workaround is
+   no longer required for this tested path.
+5. Clicked Refresh inbox again. The prior success notice cleared and the loaded
+   case remained closed/low, revision 5, five events. No duplicate save occurred.
+
+Final checks: zero fixture support messages and zero matching communication-outbox
+entries; assignment/ownership unchanged and no job link. Exactly two successful
+updates were added in this check; the rejected save and both refreshes added none.
+No Send customer reply, notification, account-permission, financial or contract
+operation was invoked. Fresh source/financial fingerprints for the designated
+house-check job match the pre-deployment baseline (job, quote, bid, contract,
+signatories and all eight linked financial tables).
+
+/api/health returned HTTP 200 / healthy at 12:35:06 UTC (200 ms reported). A scoped
+ten-minute error/fatal log query for this deployment returned no groups; the
+deliberate 409 is a warning, not an unexpected server error. This short observation
+does not establish sustained service health. An unauthenticated profile probe
+returned HTTP 302; website protection, relay allowlist/deployment and beta policies
+were not changed. This probe does not establish unapproved signed-in beta behavior.
+
+Local ignored evidence: output/support-refresh-release-tests-20261108.log,
+output/support-refresh-preserved-draft-20261108.jpg and
+output/support-refresh-success-20261108.jpg. The prior "not deployed" and selected-
+case refresh workaround limitations are superseded for this fix. Other visit,
+tenancy, contractor proposal, evidence/disposal and real worker/provider branches
+remain outside this verification, as do device visuals, native MFA enforcement and
+historical financial reconciliation. Full release acceptance remains incomplete.
+Beta remains enabled. No main merge; audit updates are pushed on the feature branch
+with automatic deployment still excluded.

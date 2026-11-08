@@ -2300,3 +2300,22 @@ REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
 - UI fix is pushed only, NOT deployed; reopen the case as the current production
   workaround. No new migration/deployment, main merge, beta/access change or financial
   action. Other hosted branch/device/MFA/provider/reconciliation acceptance gaps stay.
+
+2026-11-08 — SUPPORT REFRESH FIX DEPLOYED AND VERIFIED
+- Pushed isolated release/support-refresh-nov8 commit 5cc36721d (component and test
+  only, based on current production eca682cf8). Production deployment
+  dpl_G7LyZwQdaVcwFZQStQfzNhJZB2nr READY 12:31:24 UTC; alias and /api/version match.
+- Fresh isolated release tests: 10/10. Hosted migration guard (15 prerequisites),
+  shared builds, full TypeScript, lint and Next build passed. No migration applied.
+- Designated admin renewed sign-in. Two fresh production tabs reused the closed
+  designated-account support fixture: revision 3 -> first save revision 4; stale
+  second-tab save returned HTTP 409 without another event. Refresh inbox now loads
+  current selected-case details/revision, clears conflict, preserves unsent drafts
+  and does not mutate. Retry succeeded at revision 5 without reopening the case.
+- Subsequent Refresh clears the success notice. Fixture remains closed/low, five
+  total events, zero messages and zero matching deliveries; no job/financial link.
+  Source/financial fingerprints unchanged. Beta enabled; no main merge or account/
+  access change. Healthy endpoint; short error/fatal scan empty. Existing Sentry
+  source-map warning remains. See CURRENT-ACCEPTANCE for exact evidence and limits.
+- This supersedes the undeployed Refresh fix/workaround gap only. Other device,
+  MFA, provider/worker, workflow and reconciliation acceptance gaps remain open.
