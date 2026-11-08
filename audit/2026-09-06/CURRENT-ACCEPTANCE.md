@@ -1516,3 +1516,71 @@ prove native sign-in MFA enforcement across custom MFA and Supabase sessions.
 Rendering tests do not replace fresh-build physical-device visual checks.
 Full release acceptance remains incomplete. Audit and local fixes are committed
 and pushed on the feature branch only; no main merge or deployment.
+
+### 2026-11-08 — Tenancy/visit recovery deployed; signed-in recheck pending
+
+User authorized deployment of the tenancy draft and visit recovery fixes. Verified
+the live production alias still targeted support-refresh deployment
+dpl_G7LyZwQdaVcwFZQStQfzNhJZB2nr / commit 5cc36721d before preparing the release.
+Both worktrees were clean. Created release/tenancy-visit-recovery-nov8 from that
+production source and copied only the two changed components plus their regression
+test from feature commit 64afc1e71. The three committed files exactly match the
+reviewed feature versions; no unrelated feature work or audit history was deployed.
+
+Release commit 57d1b8537806c117dbfd6048d975049d01895d42 was pushed and deployed to
+the existing mintenance-clean production project. Deployment
+dpl_7ZG3kMutKmvXL4eJyrxVxyzBAjfB reached READY at 14:04:05.976 UTC. Verified
+www.mintenance.co.uk aliases this deployment. Authenticated connector GET
+/api/version returned HTTP 200 at 14:05:11 UTC with that exact buildId and
+env=production. GET /api/health returned HTTP 200 / healthy at 14:04:57 UTC,
+reported latency 459 ms. A five-minute deployment-scoped error/fatal log query
+returned no groups; this is a brief observation, not sustained-health acceptance.
+
+Fresh validation against the isolated release tree under Node 20.19.4:
+- 41/41 targeted tests in five suites passed. The initial attempt ran no tests
+  because Windows denied a temporary-cache rename; changing TEMP/TMP for that
+  process to the ignored workspace output directory resolved it.
+- All 10 shared-package build tasks passed. Full web TypeScript passed after
+  generating the missing package declarations; the first pre-package attempt
+  reported TS6305. Targeted zero-warning ESLint and git diff --check passed.
+- Hosted build passed dependency patches, all 15 existing migration prerequisites,
+  shared builds, web TypeScript, lint and Next.js build (six minutes reported).
+  No migration was needed or applied. Existing missing-Sentry-token warnings mean
+  release/source-map upload remains unavailable. Dependency installation reported
+  seven advisories (six low, one high); no dependency change or new security-scan
+  clearance is claimed. Aikido tools remain unavailable.
+
+The fresh homeowner browser reload redirected to Sign In: its session expired.
+Prepared the tab with designated gloirenkouka380@gmail.com and requested that the
+user sign in and complete any MFA directly there. It still showed the login form
+at the final observation; no credentials were extracted, session fabricated or
+permission changed. Therefore the new production UI safeguards have NOT yet been
+verified in an authenticated browser. Prior production workflow evidence above
+predates this deployment and does not establish acceptance of the new safeguards.
+
+Next designated-account checks: reuse labelled tenancy folder
+fb71c9aa-1a84-4981-9aa0-550c1aa4e0ea (revision 2) to submit an invalid date range,
+verify validation rejection leaves storage unchanged, Retry preserves the edited
+name/dates, then correct and save. Recheck stale-revision reload. Use a clearly
+labelled job-free visit fixture with designated contractor
+pimpnameslickbag23@gmail.com to verify old-time conflict disables actions, Refresh
+removes stale cards and loads the current time, manual retry succeeds and exact
+replay does not duplicate notifications; cancel that fixture afterward. These are
+pending checks, not completed results. No new fixture or test message was created
+during this deployment turn. Transient outage and aborted-read races remain covered
+locally; no production outage should be induced.
+
+Fresh before/after house-check source/financial fingerprints are identical.
+Beta code, allowlists, account permissions and deployment protection were not
+changed. An unauthenticated health request reached Vercel protection, then the
+authenticated Vercel connector was used for health/version reads. No main merge or
+live financial mutation. Feature automatic deployment remains excluded; audit-only
+updates are pushed on the feature branch. The earlier "UI fixes not deployed"
+limitation is superseded, but signed-in verification is still outstanding. Native
+device visuals, Android/iOS MFA relay verification, custom-MFA/Supabase native
+sign-in enforcement and historical financial reconciliation limitations remain.
+Full release acceptance remains incomplete.
+
+Ignored release-worktree evidence: output/tenancy-visit-release-tests-20261108.log,
+output/tenancy-visit-release-packages-20261108.log and
+output/tenancy-visit-release-types-20261108.log.

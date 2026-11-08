@@ -2342,3 +2342,21 @@ REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
   (automatic deployment excluded). Current production still has the stale-button
   issue until separately authorized release. See CURRENT-ACCEPTANCE for fixture IDs,
   evidence and remaining contractor, membership, device/MFA/provider acceptance gaps.
+
+2026-11-08 — TENANCY/VISIT FIX RELEASE; SIGNED-IN CHECK PENDING
+- Isolated release/tenancy-visit-recovery-nov8 commit 57d1b8537 contains only the
+  two reviewed components and regression test, based on production 5cc36721d.
+  Pushed and deployed; dpl_7ZG3kMutKmvXL4eJyrxVxyzBAjfB READY 14:04:05 UTC.
+  Production alias and authenticated /api/version match. Health 200/healthy;
+  short deployment error/fatal scan empty. No migration or main merge.
+- Fresh isolated validation: 41 tests, shared package builds, full web TypeScript,
+  targeted zero-warning lint and diff check passed. Hosted prerequisite guard (15),
+  builds, TypeScript and lint passed. Temp-cache permission/package-output issues
+  were resolved locally; existing Sentry warnings and dependency advisories remain.
+- Homeowner session expired and browser remains at Sign In; user handoff pending.
+  Authenticated checks of deployed draft retention and disabled stale visit actions
+  are NOT complete. Existing labelled fixture and designated accounts are recorded
+  in CURRENT-ACCEPTANCE for continuation. No new fixtures or messages this turn.
+- Financial fingerprints unchanged; beta/protection/permissions unchanged.
+  Audit pushed on feature only, automatic deployment excluded. The fixes are now
+  deployed; full release acceptance, signed-in UI and native/MFA/provider gaps remain.
