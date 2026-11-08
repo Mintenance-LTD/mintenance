@@ -1427,3 +1427,92 @@ remain outside this verification, as do device visuals, native MFA enforcement a
 historical financial reconciliation. Full release acceptance remains incomplete.
 Beta remains enabled. No main merge; audit updates are pushed on the feature branch
 with automatic deployment still excluded.
+
+### 2026-11-08 — Tenancy and visit conflict recovery
+
+Started from clean feature HEAD f272e6fd7 after reviewing repository instructions,
+existing implementation and the saved acceptance record. No deployment or schema
+change was authorized or performed. The production checks below used the existing
+support-refresh release; the UI fixes in this entry remain local/feature-branch only.
+
+Local fixes:
+- Tenancy folder edits now retain the entered name and dates across a temporary
+  save failure followed by Retry. Previously reloading the folder list unmounted
+  the uncontrolled form and silently restored the original values. Opening a new
+  or existing editor explicitly resets its draft; New/Edit controls are disabled
+  during a save. Actual conflict recovery still closes the stale editor and requires
+  selecting and reviewing the authoritative folder revision before another save.
+- Visit refresh clears obsolete cards and ignores late results from aborted reads.
+  Response controls stay disabled during loading and after a failed save, with
+  explicit instructions to refresh and review the current time. A failed refresh
+  cannot leave old actionable appointments visible or imply a successful empty read.
+  No automatic mutation retries, permission changes or financial operations added.
+
+Fresh validation under Node 20.19.4:
+- New regression file first reproduced four failures; the existing tenancy 409
+  recovery case already passed. After fixes, all five new scenarios pass.
+- 41/41 web tests in five files passed: tenancy-visit-conflict-recovery,
+  tenancy-inspections-ui, remaining-conflicts-api, property-inspection-api and
+  completed-job-visits. These results are new, not the historical mobile/relay totals.
+- Full web TypeScript (tsc --noEmit --incremental false) and targeted ESLint with
+  --max-warnings 0 passed. Prettier applied to the three code/test files.
+- Disposable PGlite: 26 remaining-business-conflict scenarios and six-function
+  body/security/grant equivalence checks passed. No hosted migration was applied.
+- Aikido scanner tools are unavailable; no security scan result is claimed.
+
+Production designated-account checks:
+The user renewed the homeowner session (gloirenkouka380@gmail.com,
+a2cf7faa-2ce3-436f-8949-45976481813e) and designated contractor
+pimpnameslickbag23@gmail.com (236c6e76-4c29-4569-acb6-54d65b67f83e).
+Verified both profile identities/roles before fixture creation. No admin bypass,
+plan change, tenant invitation or grant was used.
+
+1. Property 02479b23-3a20-4f2a-b7f2-f6e30c89c510 initially had no tenancy folders.
+   The homeowner UI created labelled test folder fb71c9aa-1a84-4981-9aa0-550c1aa4e0ea,
+   dates 2026-11-01 through 2026-11-02, revision 0. With that editor open, invoked
+   the existing guarded update RPC using the same designated homeowner actor to
+   simulate a concurrent edit, advancing to revision 1. The stale browser save
+   displayed "This folder changed. Reload the folders before saving." Database
+   label/revision stayed at the concurrent edit/1. Retry closed the stale editor,
+   cleared the notice, and loaded the new folder label. Re-selecting and editing
+   then saved successfully at revision 2. Final label: "CONTROLLED TEST 2026-11-08 -
+   verification complete, no actual tenancy". Past dates unchanged; no inspections
+   or tenant access were created. The labelled nonfinancial folder is retained.
+2. Created appointment fixture 77c31d28-4e2d-473c-8fd9-ef0e727dc41f for the two
+   designated accounts only, with no job link, phone location, reminders suppressed,
+   title "CONTROLLED TEST 2026-11-08 - no actual visit", 20 November 09:00–10:00.
+   The homeowner UI loaded that time. A guarded fixture-only database update changed
+   the slot to 11:00–12:00; the old browser confirmation displayed the save/reload
+   error. Response stayed pending with null response timestamp and zero queued
+   notifications. Refresh loaded 11:00–12:00; manual confirmation succeeded.
+3. Confirmation set client_response=confirmed at 12:54:31.284399 UTC and queued
+   exactly one contractor notification. Repeating confirmation through the UI left
+   the timestamp and queue count unchanged. Request another time then succeeded,
+   set change_requested and queued one additional notification; the slot did not
+   move. Both rows target only the designated contractor and were marked sent at
+   the final check. Provider/device/inbox receipt is not established by that status.
+4. Cancelled only this labelled appointment after verification, with reason
+   "Controlled verification complete; no real visit." It remains job_id=null and
+   reminders suppressed. Refresh showed no upcoming visits. No existing appointment,
+   real tenancy, job, accepted quote, contract or financial record was changed.
+
+Production still exhibited the stale enabled visit buttons during refresh; this
+confirms the need for the undeployed local fix. Transient network failure and
+aborted-read race handling were verified locally, not induced on production.
+Before/after fingerprints match for the designated house-check job, quote, bid,
+contract, signatories and eight linked financial tables. This bounded check is not
+historical financial reconciliation. Beta configuration, production protection and
+relay allowlists remain unchanged; feature auto-deployment remains disabled.
+
+Ignored evidence: output/tenancy-visit-red-20261108.log,
+output/tenancy-visit-green-20261108.log, output/tenancy-visit-types-20261108.log,
+output/tenancy-recovered-20261108.jpg, output/visit-recovered-20261108.jpg and
+output/visit-fixture-complete-20261108.jpg. Screenshots show the deployed UI, not
+the new local safeguards. No new production build was run. Contractor proposal/
+reschedule UI, revoked membership during an open editor, inspection evidence,
+other worker/provider branches and native visual checks remain outside this check.
+Android/iOS MFA relay flows still need device verification; Settings tests do not
+prove native sign-in MFA enforcement across custom MFA and Supabase sessions.
+Rendering tests do not replace fresh-build physical-device visual checks.
+Full release acceptance remains incomplete. Audit and local fixes are committed
+and pushed on the feature branch only; no main merge or deployment.

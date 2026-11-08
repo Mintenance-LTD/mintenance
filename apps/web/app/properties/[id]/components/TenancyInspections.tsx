@@ -47,6 +47,7 @@ export default function TenancyInspections({
   const [folder, setFolder] = useState<TenancyFolder | null>(null);
   const [create, setCreate] = useState(false);
   const [editing, setEditing] = useState<TenancyFolder | null>(null);
+  const [draft, setDraft] = useState({ label: '', starts_on: '', ends_on: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const folders = useRecords<InspectionPage<TenancyFolder>>(
@@ -93,8 +94,11 @@ export default function TenancyInspections({
         {folders.data?.canCreate && (
           <button
             className={button}
+            disabled={busy}
             onClick={() => {
+              setError('');
               setEditing(null);
+              setDraft({ label: '', starts_on: '', ends_on: '' });
               setCreate((v) => !v);
             }}
             aria-expanded={create}
@@ -140,7 +144,10 @@ export default function TenancyInspections({
           <label className='text-sm'>
             Folder name
             <input
-              defaultValue={editing?.label ?? ''}
+              value={draft.label}
+              onChange={(e) =>
+                setDraft((v) => ({ ...v, label: e.target.value }))
+              }
               name='label'
               required
               maxLength={120}
@@ -152,7 +159,10 @@ export default function TenancyInspections({
             <label className='text-sm'>
               Tenancy starts
               <input
-                defaultValue={editing?.starts_on ?? ''}
+                value={draft.starts_on}
+                onChange={(e) =>
+                  setDraft((v) => ({ ...v, starts_on: e.target.value }))
+                }
                 name='starts_on'
                 type='date'
                 min='1900-01-01'
@@ -163,7 +173,10 @@ export default function TenancyInspections({
             <label className='text-sm'>
               Tenancy ends (optional)
               <input
-                defaultValue={editing?.ends_on ?? ''}
+                value={draft.ends_on}
+                onChange={(e) =>
+                  setDraft((v) => ({ ...v, ends_on: e.target.value }))
+                }
                 name='ends_on'
                 type='date'
                 min='1900-01-01'
@@ -234,8 +247,15 @@ export default function TenancyInspections({
           {folder && folders.data.canCreate && (
             <button
               className='min-h-11 underline'
+              disabled={busy}
               onClick={() => {
+                setError('');
                 setEditing(folder);
+                setDraft({
+                  label: folder.label,
+                  starts_on: folder.starts_on,
+                  ends_on: folder.ends_on ?? '',
+                });
                 setCreate(true);
               }}
             >

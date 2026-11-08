@@ -24,12 +24,19 @@ export default function VisitResponses() {
     const abort = new AbortController();
     setLoading(true);
     setError('');
+    setVisits([]);
     fetch('/api/appointments?daysAhead=180&limit=500', { signal: abort.signal })
       .then(async (r) => {
         if (!r.ok) throw new Error('Unable to load visits');
         return r.json();
       })
-      .then((d) => setVisits(d.appointments))
+      .then((d) => {
+        if (!abort.signal.aborted) {
+          if (!Array.isArray(d.appointments))
+            throw new Error('Unable to load visits');
+          setVisits(d.appointments);
+        }
+      })
       .catch((e) => {
         if (!abort.signal.aborted) setError(e.message);
       })
@@ -39,6 +46,7 @@ export default function VisitResponses() {
     return () => abort.abort();
   }, [attempt]);
   async function respond(v: Visit, response: string) {
+    if (loading || busy !== null || error) return;
     setBusy(v.id);
     setError('');
     try {
@@ -58,7 +66,9 @@ export default function VisitResponses() {
       });
       if (!r.ok)
         throw new Error(
-          'Response not saved. Refresh in case this visit changed.'
+          r.status === 409
+            ? 'Visit changed. Refresh visits and review the latest time before responding.'
+            : 'Response not saved. Refresh visits before trying again.'
         );
       setAttempt((x) => x + 1);
     } catch (e) {
@@ -159,14 +169,14 @@ export default function VisitResponses() {
             <div className={styles.actions}>
               <button
                 className={styles.primary}
-                disabled={busy !== null}
+                disabled={loading || busy !== null || !!error}
                 onClick={() => void respond(v, 'confirmed')}
               >
                 {busy === v.id ? 'Saving…' : 'Confirm visit'}
               </button>
               <button
                 className={styles.secondary}
-                disabled={busy !== null}
+                disabled={loading || busy !== null || !!error}
                 onClick={() => void respond(v, 'change_requested')}
               >
                 Request another time
