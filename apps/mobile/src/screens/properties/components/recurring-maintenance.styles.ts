@@ -10,6 +10,8 @@ export const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
@@ -38,6 +40,8 @@ export const styles = StyleSheet.create({
   },
   freqRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
   freqChip: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 14,
@@ -50,6 +54,7 @@ export const styles = StyleSheet.create({
   },
   freqTextActive: { color: me.onBrand },
   createBtn: {
+    minHeight: 44,
     backgroundColor: me.brand,
     borderRadius: 20,
     paddingVertical: 10,
@@ -57,17 +62,31 @@ export const styles = StyleSheet.create({
   },
   createBtnText: { color: me.onBrand, fontSize: 14, fontWeight: '600' },
   emptyWrap: { alignItems: 'center', paddingVertical: 16, gap: 8 },
-  emptyText: { fontSize: 14, color: me.ink3 },
+  emptyText: { fontSize: 14, color: me.ink2 },
+  actionBtn: {
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: 'center',
+    padding: 6,
+    flexShrink: 1,
+  },
   scheduleRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: me.line,
   },
   scheduleInactive: { backgroundColor: me.bg2 },
-  toggleBtn: { marginRight: 10 },
-  scheduleInfo: { flex: 1 },
+  toggleBtn: {
+    marginRight: 4,
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: 'center',
+  },
+  scheduleInfo: { flex: 1, minWidth: 100 },
   scheduleTitle: {
     fontSize: 15,
     fontWeight: '600',
@@ -83,5 +102,5 @@ export const styles = StyleSheet.create({
   },
   freqBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   freqBadgeText: { fontSize: 11, fontWeight: '600' },
-  dueDate: { fontSize: 12, color: me.ink3 },
+  dueDate: { fontSize: 14, color: me.ink2 },
 });
