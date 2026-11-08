@@ -106,7 +106,7 @@ export const POST = withApiHandler(
     if (error?.code === '42501')
       throw new ForbiddenError('Current admin access required.');
     if (error?.code === 'P0002') throw new NotFoundError('Email not found.');
-    if (['40001', '23505'].includes(error?.code ?? ''))
+    if (['PT409', '40001', '23505'].includes(error?.code ?? ''))
       throw new ConflictError(
         'The email or amendment changed. Refresh before reviewing again.'
       );
