@@ -1703,3 +1703,67 @@ relay admission unchanged. No main merge, backend/web deployment, schema change 
 financial write. Aikido unavailable. Device MFA/native sign-in enforcement,
 fresh-build physical-device visuals, historical reconciliation and full release
 acceptance remain incomplete.
+
+### Property recurring-maintenance recovery — 8 November 2026
+
+Continued from clean feature head e0d0fd013. The parent download directory is not
+a repository; work remains in internal-apk-nov1. Inspected status/diff, root/web
+AGENTS, installed Next client-component guidance, screenshot/current acceptance
+records, settings remediation and the property-operations reference brief. Prior
+assessment, native initial-loading and quote fixes were preserved. This batch
+targets the existing web property recurring-maintenance component; it does not
+replace the native or landlord portfolio implementations.
+
+The web editor previously allowed the same stale revision to be saved repeatedly
+after a conflict, had no visible refresh control during normal operation, and
+sent pause/resume without the revision shown to the operator. It now:
+- Sends expected_updated_at for pause/resume using the existing compatible PATCH
+  contract. Checks property/record, intended active state and a changed revision
+  before accepting confirmation. The existing SQL updated_at trigger and API
+  compare predicate were inspected; no API/schema change or migration is needed.
+- Blocks further mutations after a conflict or uncertain edit/toggle/removal and
+  exposes Refresh schedules. Failed refresh remains retryable without presenting
+  stale controls as usable. Successful refresh preserves the unsaved edit draft
+  but does not silently rebase it; the operator explicitly chooses "Discard draft
+  and edit latest" before saving again. Ordinary validation failures retain the
+  editable draft. Creation retains its existing stable idempotency key/retry path.
+- Resets editor state on property changes and ignores old read/write completions.
+  Reads use cancellation, no-store and a 15-second abort deadline; malformed rows
+  and unavailable access show errors rather than empty/successful content. Saves
+  disable the form and refresh controls, and a ref lock rejects duplicate taps.
+  Confirmed removal closes an editor for that removed record.
+- Treats due dates as London calendar days: today's work stays Due until the day
+  ends, including for an operator in another time zone. Paused records show their
+  recorded due date without an active overdue warning. Status labels use larger,
+  higher-contrast text, controls have 44-pixel minimum targets, and rows/form fields
+  can wrap on narrow screens. Full navigation after revoked mutation access is
+  preserved so private sibling property cards are dropped too.
+
+Fresh local results: 30/30 Vitest tests across property-recurring-recovery,
+recurring-form-confirmation, schedule-edit, recurring-audience,
+recurring-contractor-access and shared-property-controls passed. The 12 new cases
+cover stale save -> failed refresh -> explicit latest edit -> confirmed save;
+pause/resume revisions and incomplete confirmation; duplicate-save/form locks;
+draft retention; late reads/writes across property changes; malformed/timeout/
+permission failures; London day boundaries and paused dates; uncertain removal
+recovery and confirmed editor closure. Shared builds: 10/10 passed. Full web
+TypeScript passed; changed-file ESLint has zero errors and one existing deliberate
+window.location.assign navigation warning. Final diff check passed. The initial
+test command targeted a nonexistent root Vitest binary; rerunning the installed
+web-workspace binary passed. No test assertion or validation was weakened.
+Evidence: output/property-recurring-{recovery-web,packages,types,lint}-20261108.log.
+React review covered keying, effect cleanup, callback guards, form disablement,
+visible recovery and conditional-render hook order. Aikido unavailable; no scan
+result claimed.
+
+No hosted reads/writes, test messages, deployment, main merge, API/RLS/schema,
+financial or beta/protection changes. Feature branch only; automatic deployment
+remains disabled. Internal APK 45 is unchanged and this web fix is not deployed.
+Remaining: authenticated browser/multi-manager and responsive visual verification,
+fresh-build physical-device/larger-text/keyboard/scroll checks; native/portfolio
+recurring recovery parity and certificate-capture recovery review. Local mocks do
+not establish deployed concurrency or lost-response behavior. Android/iOS deployed
+relay MFA status/enrolment/verification/disable/retry and native sign-in challenge
+enforcement across custom MFA/Supabase remain unverified. Jest rendering is not
+device acceptance; escrow presentation is not historical reconciliation. Full
+release acceptance remains incomplete; beta stays enabled.

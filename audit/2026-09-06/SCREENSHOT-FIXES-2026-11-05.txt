@@ -2396,3 +2396,25 @@ REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
   disabled, Firebase and relay checked. APK delivery ready; phone install unverified.
   See audit/2026-11-08/internal-apk-45.md for hashes and protected install page.
   Device/MFA, historical reconciliation and full release acceptance gaps retained.
+
+2026-11-08 — WEB PROPERTY RECURRING-MAINTENANCE RECOVERY
+- Clean starting head e0d0fd013. Existing screenshot/native/quote work preserved.
+  Web property schedule conflicts and uncertain writes now block further actions
+  until refresh. The draft survives failed/successful reload; an explicit Discard
+  draft and edit latest action starts a new edit from the reviewed current record.
+  Validation failures remain editable and creation keeps its idempotent retry.
+- Pause/resume supplies the displayed updated_at through the existing API guard;
+  incomplete/stale confirmations are rejected. Property changes reset the editor
+  and late responses are ignored. Reads cancel/time out, malformed/access failures
+  are visible, and stale controls disappear while refreshing. Form/save locks and
+  confirmed-removal editor cleanup prevent stale actions.
+- Calendar-day due labels use London: today is not overdue; paused records show
+  their recorded due date. Larger contrast text, wrapping and minimum 44px action
+  targets improve the web layout. Browser/device visual acceptance remains open.
+- Fresh 30 web tests/6 files, 10 shared builds and full web TypeScript passed.
+  ESLint: zero errors, one existing deliberate full-navigation warning. No Aikido
+  tool available. See CURRENT-ACCEPTANCE for test coverage, logs and limitations.
+- No API/schema/RLS or beta change, production access, financial write, deployment,
+  main merge or APK rebuild. Push only to feature branch with auto-deploy excluded.
+  Native/portfolio recurring parity, certificate form recovery and all retained
+  device/MFA/historical reconciliation/full-release gaps remain.

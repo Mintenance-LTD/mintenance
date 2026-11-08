@@ -55,6 +55,10 @@ export default function RecurringMaintenance({
 }: {
   propertyId: string;
 }) {
+  return <ScheduleEditor key={propertyId} propertyId={propertyId} />;
+}
+
+function ScheduleEditor({ propertyId }: { propertyId: string }) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -67,7 +71,12 @@ export default function RecurringMaintenance({
 
   const savingRef = useRef(false);
 
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [needsReload, setNeedsReload] = useState(false);
+  const [staleDraft, setStaleDraft] = useState(false);
+  const [recovery, setRecovery] = useState('');
+  const mounted = useRef(true);
+  const read = useRef<AbortController | null>(null);
 
   const [form, setForm] = useState({
     title: '',
@@ -77,36 +86,102 @@ export default function RecurringMaintenance({
   });
 
   const fetchSchedules = useCallback(async () => {
+    if (savingRef.current) return;
+    read.current?.abort();
+    const controller = new AbortController();
+    read.current = controller;
+    const timer = setTimeout(() => controller.abort(), 15000);
     setLoading(true);
-
-    setLoadError(false);
+    setLoadError('');
 
     try {
       const res = await fetch(
-        `/api/properties/${propertyId}/recurring-maintenance`
+        `/api/properties/${propertyId}/recurring-maintenance`,
+        { signal: controller.signal, cache: 'no-store' }
       );
 
+      if ([401, 403, 404].includes(res.status))
+        throw new Error(
+          'Access unavailable. Check your account or ask the property owner, then retry.'
+        );
       if (!res.ok) throw new Error('Failed to load schedules');
 
       const data = await res.json();
 
-      if (!Array.isArray(data.schedules))
+      if (
+        !Array.isArray(data.schedules) ||
+        data.schedules.some(
+          (row: Schedule) =>
+            !row ||
+            typeof row.id !== 'string' ||
+            typeof row.title !== 'string' ||
+            typeof row.frequency !== 'string' ||
+            typeof row.is_active !== 'boolean' ||
+            typeof row.next_due_date !== 'string' ||
+            !Number.isFinite(Date.parse(row.next_due_date))
+        )
+      )
         throw new Error('Incomplete schedules');
-
+      if (
+        !mounted.current ||
+        read.current !== controller ||
+        controller.signal.aborted
+      )
+        return;
       setSchedules(data.schedules);
-    } catch {
-      setLoadError(true);
+      setNeedsReload(false);
+    } catch (error) {
+      if (!mounted.current || read.current !== controller) return;
+      setLoadError(
+        error instanceof Error && !controller.signal.aborted
+          ? error.message
+          : 'Loading took too long. Retry schedules.'
+      );
+      setNeedsReload(true);
     } finally {
-      setLoading(false);
+      clearTimeout(timer);
+      if (mounted.current && read.current === controller) setLoading(false);
     }
   }, [propertyId]);
 
   useEffect(() => {
-    fetchSchedules();
+    mounted.current = true;
+    void fetchSchedules();
+    return () => {
+      mounted.current = false;
+      read.current?.abort();
+    };
   }, [fetchSchedules]);
 
+  const recoverMutation = (message: string, status?: number) => {
+    if (!mounted.current) return;
+    toast.error(message);
+    if ([401, 403, 404].includes(status ?? 0)) {
+      // Preserve full navigation so revoked access also drops private sibling cards.
+      window.location.assign('/properties');
+      setNeedsReload(true);
+    } else if (![400, 402].includes(status ?? 0)) {
+      setNeedsReload(true);
+      setStaleDraft(!!editing);
+      setRecovery(
+        'The schedule may have changed. Refresh schedules before another action.' +
+          (editing
+            ? ' Your draft is retained; after refreshing, discard it and edit the latest schedule to continue.'
+            : '')
+      );
+    }
+  };
+  const responseMessage = (
+    data: { error?: string | { message?: string }; message?: string },
+    fallback: string
+  ) =>
+    (typeof data.error === 'string' ? data.error : data.error?.message) ||
+    data.message ||
+    fallback;
+  const blocked = saving || loading || needsReload || !!loadError;
+
   const handleAdd = async () => {
-    if (savingRef.current) return;
+    if (savingRef.current || blocked || staleDraft) return;
     if (
       audience.notification_audience === 'preferred' &&
       !audience.preferred_contractor_id
@@ -115,7 +190,7 @@ export default function RecurringMaintenance({
       return;
     }
     if (editing && !editing.updated_at) {
-      toast.error('Reload schedules before editing.');
+      recoverMutation('Reload schedules before editing.');
       return;
     }
 
@@ -138,6 +213,7 @@ export default function RecurringMaintenance({
         ? null
         : await scheduleRequest(propertyId, { ...form, ...audience });
       const csrfToken = await getCsrfToken();
+      if (!mounted.current) return;
 
       const res = await fetch(
         `/api/properties/${propertyId}/recurring-maintenance`,
@@ -163,14 +239,19 @@ export default function RecurringMaintenance({
           }),
         }
       );
+      if (!mounted.current) return;
 
       if (res.ok) {
         const data = await res.json();
+        if (!mounted.current) return;
 
         if (
           !data.schedule?.id ||
           data.schedule.property_id !== propertyId ||
-          (editing && data.schedule.id !== editing.id)
+          (editing &&
+            (data.schedule.id !== editing.id ||
+              !data.schedule.updated_at ||
+              data.schedule.updated_at === editing.updated_at))
         )
           throw new Error(
             'Schedule creation could not be confirmed. Refresh before retrying.'
@@ -192,41 +273,43 @@ export default function RecurringMaintenance({
 
         setShowForm(false);
         setEditing(null);
+        setRecovery('');
         toast.success(editing ? 'Schedule updated' : 'Schedule added');
       } else {
         const err = await res.json();
+        if (!mounted.current) return;
 
         const message =
           err.errors?.[0]?.message ||
           err.message ||
           err.error?.message ||
           err.error;
-        toast.error(
-          typeof message === 'string' ? message : 'Failed to save schedule'
-        );
-        if ([401, 403, 404].includes(res.status)) {
-          // Re-enter the server-authorized list after expiry or revoked access.
-          // This also drops the other private cards on the current property page.
-          window.location.assign('/properties');
-        }
+        const text =
+          typeof message === 'string' ? message : 'Failed to save schedule';
+        if (editing || [401, 403, 404].includes(res.status))
+          recoverMutation(text, res.status);
+        else toast.error(text);
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to add schedule'
-      );
+      if (!mounted.current) return;
+      const message =
+        error instanceof Error ? error.message : 'Failed to save schedule';
+      if (editing) recoverMutation(message);
+      else toast.error(message);
     } finally {
       savingRef.current = false;
 
-      setSaving(false);
+      if (mounted.current) setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (savingRef.current) return;
+    if (savingRef.current || blocked) return;
     savingRef.current = true;
     setSaving(true);
     try {
       const csrfToken = await getCsrfToken();
+      if (!mounted.current) return;
 
       const res = await fetch(
         `/api/properties/${propertyId}/recurring-maintenance?scheduleId=${id}`,
@@ -238,27 +321,43 @@ export default function RecurringMaintenance({
       );
 
       const data = await res.json();
+      if (!mounted.current) return;
       if (!res.ok || data.success !== true || data.scheduleId !== id)
-        throw new Error(data.error || 'Removal was not confirmed.');
+        return recoverMutation(
+          responseMessage(data, 'Removal was not confirmed.'),
+          res.status
+        );
       if (res.ok) {
         setSchedules((prev) => prev.filter((s) => s.id !== id));
+        if (editing?.id === id) {
+          setEditing(null);
+          setShowForm(false);
+          setStaleDraft(false);
+          setRecovery('');
+        }
 
         toast.success('Schedule removed');
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to remove');
+      recoverMutation(
+        error instanceof Error ? error.message : 'Failed to remove'
+      );
     } finally {
       savingRef.current = false;
-      setSaving(false);
+      if (mounted.current) setSaving(false);
     }
   };
 
-  const handleToggle = async (id: string, currentActive: boolean) => {
-    if (savingRef.current) return;
+  const handleToggle = async (schedule: Schedule) => {
+    if (savingRef.current || blocked) return;
+    const { id, is_active: currentActive, updated_at } = schedule;
+    if (!updated_at)
+      return recoverMutation('Reload schedules before changing their status.');
     savingRef.current = true;
     setSaving(true);
     try {
       const csrfToken = await getCsrfToken();
+      if (!mounted.current) return;
 
       const res = await fetch(
         `/api/properties/${propertyId}/recurring-maintenance`,
@@ -271,47 +370,70 @@ export default function RecurringMaintenance({
             'X-CSRF-Token': csrfToken,
           },
 
-          body: JSON.stringify({ scheduleId: id, is_active: !currentActive }),
+          body: JSON.stringify({
+            scheduleId: id,
+            is_active: !currentActive,
+            expected_updated_at: updated_at,
+          }),
         }
       );
 
       const data = await res.json();
+      if (!mounted.current) return;
       if (
         !res.ok ||
         data.schedule?.id !== id ||
-        data.schedule.is_active !== !currentActive
+        data.schedule.is_active !== !currentActive ||
+        data.schedule.property_id !== propertyId ||
+        !data.schedule.updated_at ||
+        data.schedule.updated_at === updated_at
       )
-        throw new Error(data.error || 'Update was not confirmed.');
+        return recoverMutation(
+          responseMessage(data, 'Update was not confirmed.'),
+          res.status
+        );
       if (res.ok) {
         setSchedules((prev) =>
           prev.map((s) => (s.id === id ? data.schedule : s))
         );
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update');
+      recoverMutation(
+        error instanceof Error ? error.message : 'Failed to update'
+      );
     } finally {
       savingRef.current = false;
-      setSaving(false);
+      if (mounted.current) setSaving(false);
     }
   };
 
+  // Due dates are calendar dates, not midnight deadlines. Keep today's work due
+  // throughout the London day, including for operators in another time zone.
+  const dateParts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const part = (type: string) =>
+    dateParts.find((value) => value.type === type)?.value;
+  const today = `${part('year')}-${part('month')}-${part('day')}`;
   const isDueSoon = (date: string) => {
-    const due = new Date(date);
-
-    const now = new Date();
-
-    const diff = due.getTime() - now.getTime();
-
-    return diff < 7 * 24 * 60 * 60 * 1000 && diff > 0;
+    const days = (Date.parse(date.slice(0, 10)) - Date.parse(today)) / 86400000;
+    return days >= 0 && days < 7;
   };
-
-  const isOverdue = (date: string) => new Date(date) < new Date();
+  const isOverdue = (date: string) => date.slice(0, 10) < today;
 
   if (loadError)
     return (
       <div role='alert'>
-        Could not load recurring schedules.{' '}
-        <button onClick={fetchSchedules}>Retry schedules</button>
+        Could not load recurring schedules. {loadError}{' '}
+        <button
+          className='min-h-11 underline'
+          onClick={() => void fetchSchedules()}
+        >
+          Retry schedules
+        </button>
       </div>
     );
 
@@ -326,8 +448,12 @@ export default function RecurringMaintenance({
           </h4>
         </div>
 
-        <div className='flex items-center justify-center py-4'>
+        <div
+          role='status'
+          className='flex items-center justify-center gap-2 py-4'
+        >
           <Loader2 className='w-4 h-4 animate-spin text-gray-400' />
+          Loading schedules…
         </div>
       </div>
     );
@@ -335,7 +461,7 @@ export default function RecurringMaintenance({
 
   return (
     <div className='p-4 border border-gray-200 rounded-xl'>
-      <div className='flex items-center justify-between mb-3'>
+      <div className='flex flex-wrap items-center justify-between gap-2 mb-3'>
         <div className='flex items-center gap-2'>
           <Calendar className='w-4 h-4 text-teal-600' />
 
@@ -345,8 +471,15 @@ export default function RecurringMaintenance({
         </div>
 
         <button
+          className='min-h-11 text-sm text-teal-800 underline disabled:opacity-50'
+          disabled={saving || loading}
+          onClick={() => void fetchSchedules()}
+        >
+          Refresh schedules
+        </button>
+        <button
           aria-label='Add recurring schedule'
-          disabled={saving}
+          disabled={blocked || staleDraft}
           onClick={() => {
             setEditing(null);
             setAudience(emptyAudience);
@@ -358,14 +491,28 @@ export default function RecurringMaintenance({
             });
             setShowForm(!showForm);
           }}
-          className='p-1 hover:bg-gray-100 rounded transition-colors'
+          className='min-h-11 min-w-11 p-2 hover:bg-gray-100 rounded transition-colors disabled:opacity-50'
         >
           <Plus className='w-4 h-4 text-gray-500' />
         </button>
       </div>
 
+      {recovery && (
+        <p role='alert' className='mb-3 text-sm text-amber-900'>
+          {recovery}
+        </p>
+      )}
+
       {showForm && (
-        <div className='mb-3 p-3 bg-gray-50 rounded-lg space-y-2'>
+        <fieldset
+          disabled={saving}
+          className='mb-3 min-w-0 p-3 bg-gray-50 rounded-lg space-y-2'
+        >
+          {staleDraft && (
+            <legend className='text-sm font-semibold'>
+              Unsaved draft — review the latest schedule before saving
+            </legend>
+          )}
           <input
             type='text'
             placeholder='e.g. Boiler service'
@@ -383,7 +530,7 @@ export default function RecurringMaintenance({
             onChange={setAudience}
           />
 
-          <div className='grid grid-cols-2 gap-2'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
             <select
               aria-label='Frequency'
               value={form.frequency}
@@ -413,7 +560,7 @@ export default function RecurringMaintenance({
           <div className='flex gap-2'>
             <button
               onClick={handleAdd}
-              disabled={saving}
+              disabled={blocked || staleDraft}
               className='flex-1 px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 disabled:opacity-50'
             >
               {saving ? 'Saving...' : editing ? 'Save Changes' : 'Add Schedule'}
@@ -425,13 +572,15 @@ export default function RecurringMaintenance({
                 setShowForm(false);
                 setEditing(null);
                 setAudience(emptyAudience);
+                setStaleDraft(false);
+                if (!needsReload) setRecovery('');
               }}
               className='px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded-lg'
             >
               Cancel
             </button>
           </div>
-        </div>
+        </fieldset>
       )}
 
       {schedules.length === 0 ? (
@@ -443,16 +592,20 @@ export default function RecurringMaintenance({
           {schedules.map((s) => (
             <div
               key={s.id}
-              className={`p-2.5 rounded-lg border text-xs ${!s.is_active ? 'bg-gray-50 border-gray-100 opacity-60' : isOverdue(s.next_due_date) ? 'bg-red-50 border-red-200' : isDueSoon(s.next_due_date) ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}
+              className={`p-2.5 rounded-lg border text-sm ${!s.is_active ? 'bg-gray-50 border-gray-200' : isOverdue(s.next_due_date) ? 'bg-red-50 border-red-200' : isDueSoon(s.next_due_date) ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}
             >
-              <div className='flex items-center justify-between mb-1'>
-                <span className='font-medium text-gray-900'>{s.title}</span>
+              <div className='flex flex-wrap items-center justify-between gap-2 mb-1'>
+                <span className='min-w-0 break-words font-medium text-gray-900'>
+                  {s.title}
+                </span>
 
-                <div className='flex items-center gap-1'>
+                <div className='flex flex-wrap items-center gap-2'>
                   <button
-                    disabled={saving}
-                    aria-label={`Edit ${s.title}`}
+                    disabled={blocked}
+                    aria-label={`${staleDraft ? 'Discard draft and edit latest' : 'Edit'} ${s.title}`}
                     onClick={() => {
+                      setStaleDraft(false);
+                      setRecovery('');
                       setEditing(s);
                       setAudience({
                         category: s.category || 'handyman',
@@ -469,41 +622,48 @@ export default function RecurringMaintenance({
                       });
                       setShowForm(true);
                     }}
-                    className='text-xs text-teal-700 underline'
+                    className='min-h-11 text-sm text-teal-800 underline disabled:opacity-50'
                   >
-                    Edit
+                    {staleDraft ? 'Discard draft and edit latest' : 'Edit'}
                   </button>
                   <button
-                    disabled={saving}
-                    onClick={() => handleToggle(s.id, s.is_active)}
-                    className='text-[10px] text-gray-400 hover:text-gray-600'
+                    disabled={blocked}
+                    onClick={() => handleToggle(s)}
+                    className='min-h-11 text-sm text-gray-700 hover:text-gray-900 disabled:opacity-50'
                   >
                     {s.is_active ? 'Pause' : 'Resume'}
                   </button>
 
                   <button
-                    disabled={saving}
+                    disabled={blocked}
                     aria-label={`Remove ${s.title}`}
                     onClick={() => handleDelete(s.id)}
-                    className='p-0.5 hover:bg-red-100 rounded'
+                    className='min-h-11 min-w-11 p-2 text-red-700 hover:bg-red-100 rounded disabled:opacity-50'
                   >
-                    <Trash2 className='w-3 h-3 text-red-400' />
+                    <Trash2 className='w-4 h-4' />
                   </button>
                 </div>
               </div>
 
-              <div className='flex items-center gap-2'>
+              <div className='flex flex-wrap items-center gap-2'>
                 <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${FREQUENCY_COLORS[s.frequency] || 'bg-gray-100 text-gray-600'}`}
+                  className={`px-2 py-1 rounded text-xs font-medium ${FREQUENCY_COLORS[s.frequency] || 'bg-gray-100 text-gray-700'}`}
                 >
                   {FREQUENCY_LABELS[s.frequency] || s.frequency}
                 </span>
 
                 <span
-                  className={`text-[10px] ${isOverdue(s.next_due_date) ? 'text-red-600 font-medium' : 'text-gray-500'}`}
+                  className={`text-sm ${s.is_active && isOverdue(s.next_due_date) ? 'text-red-700 font-medium' : 'text-gray-700'}`}
                 >
-                  {isOverdue(s.next_due_date) ? 'Overdue' : 'Due'}:{' '}
-                  {new Date(s.next_due_date).toLocaleDateString('en-GB')}
+                  {!s.is_active
+                    ? 'Paused · recorded due date'
+                    : isOverdue(s.next_due_date)
+                      ? 'Overdue'
+                      : 'Due'}
+                  :{' '}
+                  {new Date(
+                    s.next_due_date.slice(0, 10) + 'T00:00:00Z'
+                  ).toLocaleDateString('en-GB', { timeZone: 'UTC' })}
                 </span>
               </div>
             </div>
