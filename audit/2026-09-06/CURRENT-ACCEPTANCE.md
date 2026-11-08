@@ -1202,3 +1202,104 @@ merge, messages, account mutation, live records or financial changes. Retain all
 prior physical-device visual, deployed MFA relay/native sign-in enforcement, genuine
 provider recovery and historical financial reconciliation limitations. Full release
 acceptance remains incomplete. Commit and push only this reviewed local batch.
+
+### Business-conflict production release — 8 November 2026
+
+Explicit user authorization superseded the preceding no-deploy checkpoint for
+these business-conflict fixes only. Released the compatible API first, applied
+the three reviewed migrations second, and verified controlled refusals third.
+No main merge, financial changes, account/permission changes or new messages.
+
+Release source and build:
+- Verified the serving production source was main commit 57d24eb43268be013d9fe4c8ef7dbf4f509b9383.
+- Created release/business-conflict-api-nov8 from that exact production source.
+  Copied eight compatible API/service files and eight targeted test files from
+  feature commit 84d28321d. This includes dual PT409/40001 handling and the property
+  follow-up moved-source/eligible-assignee safeguards. No pending SQL, release
+  guard, beta configuration, unrelated UI or scoped-queue API was included.
+- Reviewed, committed and pushed eca682cf8cd71f26f7b5820a8bf5785b8461533f.
+- Production deployment dpl_E22XSTTz1pp2sWogpgZHoKhnSenM reached READY at
+  2026-11-08T11:48:34.947Z. Verified www.mintenance.co.uk points to this deployment.
+  Build passed its unchanged production migration guard (15 prerequisites), shared
+  package builds, web TypeScript, lint and Next.js production build (five minutes).
+- Authenticated Vercel fetch of /api/version returned HTTP 200 and the exact release
+  SHA at 11:50:35 UTC; /api/health returned HTTP 200 / healthy at 11:53:29 UTC.
+  Ordinary unauthenticated access still required Vercel Authentication. Protection
+  was not disabled; the connector uses its scoped temporary access mechanism.
+
+Applied exact repository SQL using Supabase apply_migration, after API READY and
+alias verification. Production ledger records the tool-assigned versions:
+- 20261108114904 property_followup_conflicts_team_queue
+  (source 20261108005044_property_followup_conflicts_team_queue.sql).
+- 20261108114911 quote_amendment_business_conflicts
+  (source 20261108101704_quote_amendment_business_conflicts.sql).
+- 20261108114922 remaining_business_conflicts
+  (source 20261108103023_remaining_business_conflicts.sql).
+
+All three are function-only schema changes; there is no migration-time row update,
+backfill or reconciliation. Compared production function bodies before/after:
+the two quote functions and six remaining functions differ only by the intended
+15 SQLSTATE substitutions. Existing signatures, ACLs, SECURITY DEFINER/INVOKER and
+search_path settings match. The follow-up/queue changes match the reviewed migration;
+the new queue is executable by service_role, not anon/authenticated. No public
+function body remains with an explicit ERRCODE = '40001' in the checked inventory;
+genuine PostgreSQL serialization handling remains unchanged. The unchanged feature
+release guard's requiredMigrations/verifyApplied check passes all 19 prerequisites
+against the freshly fetched production ledger. A full feature build was not deployed;
+the new scoped queue UI/API and other unrelated feature work remain unreleased.
+
+Fresh local release validation:
+- Node 20.19.4; 134 Vitest tests in eight files from the isolated API release tree.
+- 26 remaining-conflict, 10 property-follow-up/team-queue and 57 quote-amendment SQL
+  scenarios (93 total), including body/grant/security, replay and side-effect checks.
+- 10 release-guard tests and 22 relay tests, including beta/MFA routing checks.
+- git diff --check; hosted full TypeScript/lint/build passed as above.
+  Initial local test startup failed because this isolated worktree lacked web
+  dependency links; then sandbox temporary-file renames failed. Linking the existing
+  dependencies and running the same tests outside that sandbox produced the passing
+  run. No application code was changed to hide either environment failure.
+
+Controlled production verification used only designated homeowner
+gloirenkouka380@gmail.com and admin@mintenance.co.uk actor IDs. Under service_role,
+with bounded timeouts and an explicitly rolled-back transaction, seven calls returned
+PT409 as required: stale and already-withdrawn amendment rejection; stale follow-up;
+changed visit date; nonexistent tenancy folder; nonexistent support case; nonexistent
+cleanup lease. Each check asserted the expected exception and would abort on success
+or a different error. The noncontractor homeowner proposal attempt returned P0002.
+These are database-function checks through the connector, not signed-in Next.js or
+PostgREST HTTP checks. No approval/application action or successful cleanup operation
+was invoked. No record was fabricated to exercise retention/disposal.
+
+Read-only designated homeowner queue checks returned team=12, mine=0, unassigned=12,
+with five overdue items; old portfolio_action_queue exactly matched team scope.
+Before/after fingerprints match for the house-check job, quote, bid, contract and
+signatories; all eight job-linked financial tables remain empty. Amendment state/
+events, follow-up/history and the selected visit fingerprints also match. Both test
+amendments remain withdrawn/version 2 and unapplied. The failed first follow-up left
+no placeholder or history. No tenant/contractor notification was committed.
+
+Post-release health advisors report zero findings. Security groups/counts are unchanged
+from preflight (136 across seven groups); performance counts are unchanged (1,234).
+These existing findings are not resolved by this release. A scoped ten-minute Vercel
+error/fatal query returned no groups; this is a short observation, not sustained CPU
+or comprehensive runtime acceptance. Ten restrictive beta database policies remain;
+website protection, relay deployment/allowlist and feature auto-deploy exclusion were
+unchanged.
+
+Remaining acceptance: the admin browser session expired and the prepared tab still
+shows Admin Sign In; the requested user sign-in has not completed. Signed-in operator
+UI and end-to-end HTTP conflict behavior remain unverified for this release. No
+designated contractor account was provided, so contractor proposal conflict branches
+were checked locally and by production body equivalence only. Designated accounts
+have no retention/disposal, tenancy or support fixture suitable for a real stale-edit
+check; missing-record tenancy/support checks do not replace that coverage. Successful
+real cleanup/provider recovery and hosted concurrent-request behavior remain open.
+No evidence that this release reconciles historical finances or establishes native
+MFA challenge enforcement. Preserve all Android/iOS deployed-relay device checks,
+fresh-build physical-device visuals and prior acceptance limitations. Beta remains
+enabled. Full release acceptance remains incomplete.
+
+Local ignored evidence: output/conflict-release-api-tests-20261108.log,
+output/conflict-release-relay-20261108.log and
+output/business-conflict-production-ledger.json. The release branch is pushed; this
+audit is recorded on feat/launch-terms-support-nov2 with automatic deployment excluded.

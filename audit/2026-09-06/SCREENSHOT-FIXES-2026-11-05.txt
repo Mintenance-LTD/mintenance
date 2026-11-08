@@ -2255,3 +2255,31 @@ REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
   concurrent/real worker recovery checks remain open. Prior quote and follow-up
   migrations are still unapplied. No deployment or main merge; beta enabled and
   feature auto-deploy disabled. Preserve all prior device/MFA/reconciliation gaps.
+
+2026-11-08 — AUTHORIZED API-FIRST BUSINESS-CONFLICT RELEASE
+- Pushed release/business-conflict-api-nov8 at eca682cf8, based on verified serving
+  production 57d24eb43. Eight compatible runtime mappings/follow-up safeguards and
+  eight test files only; no migration-guard bypass or unrelated feature UI release.
+- Production dpl_E22XSTTz1pp2sWogpgZHoKhnSenM READY at 11:48:34 UTC; production alias
+  and /api/version verified exact commit. Guard, shared builds, TypeScript, lint and
+  Next production build passed. Health endpoint healthy. Beta protection remains on.
+- THEN applied property_followup_conflicts_team_queue (ledger 20261108114904),
+  quote_amendment_business_conflicts (20261108114911), remaining_business_conflicts
+  (20261108114922). Function-only; eight code-only bodies differ by 15 substitutions,
+  existing signatures/security/ACLs preserved. New queue restricted to service_role.
+  Feature migration guard now verifies all 19 prerequisites against production.
+- Fresh checks: 134 API tests in release worktree; 93 disposable SQL scenarios;
+  10 guard tests; 22 relay tests. Hosted build passes full TypeScript/lint/build.
+- Designated homeowner/admin production actor checks under service_role: seven
+  PT409 refusals (stale/withdrawn amendment, follow-up, visit, missing tenancy,
+  support and cleanup lease) plus noncontractor proposal denial. Whole transaction
+  rolled back. Read-only queue scopes and old signature compatibility pass.
+- Test-job source/financial and workflow fingerprints unchanged; eight linked
+  financial tables empty, amendments withdrawn/version 2/unapplied. No successful
+  decision, account cleanup, financial operation, message or customer-row change.
+- Admin sign-in remains pending, so signed-in UI and end-to-end HTTP checks are
+  NOT established. Contractor/retention fixtures unavailable; missing-record checks
+  do not replace real stale tenancy/support checks. Real worker/provider recovery,
+  concurrency, device/MFA/visual and historical reconciliation gaps remain. No main
+  merge. Health/security/performance advisor counts unchanged. Full acceptance open.
+- See CURRENT-ACCEPTANCE.md production-release entry for precise evidence and limits.
