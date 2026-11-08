@@ -1767,3 +1767,99 @@ relay MFA status/enrolment/verification/disable/retry and native sign-in challen
 enforcement across custom MFA/Supabase remain unverified. Jest rendering is not
 device acceptance; escrow presentation is not historical reconciliation. Full
 release acceptance remains incomplete; beta stays enabled.
+
+### Native recurring recovery and certificate form recovery — 8 November 2026
+
+Continued from clean feature head 6bb5539fb. Inspected the current native editor,
+property access recovery, certificate capture form, existing API contracts and
+saved audit before editing. Earlier web/native screenshot work is preserved.
+The native certificate component remains a read-only record summary; certificate
+capture changes in this batch are in the existing web compliance modal.
+
+Native recurring maintenance now shares one mutation lock across create, edit,
+pause/resume and delete. Pause/resume sends the displayed updated_at, and edit/
+toggle confirmation checks the property, record and changed revision (toggle also
+checks the intended state). Conflicts and uncertain edit/toggle/delete responses
+block further writes until explicit refresh. Drafts survive failed and successful
+reloads; saving a stale draft requires explicitly discarding it and editing the
+latest record. Validation errors remain editable. Creation keeps its existing
+idempotency key and deliberate retry path. Confirmed deletion closes that editor.
+
+All three native mutations override the application's default mutation retries
+and offline pausing: no automatic TanStack retry or queued reconnect replay.
+HTTP reads/writes use a 15-second timeout and zero transport retries; the client's
+separate auth deadline and existing single 401 session-refresh behavior are
+unchanged, so this is not a 15-second end-to-end operation guarantee. Account,
+property and edit-permission changes reset the editor; late completions and stale
+delete confirmations cannot mutate the next editor. Favourite-contractor reads
+cancel on scope changes, have bounded transport and validate responses. Controls
+and inputs lock during writes/refresh. Refresh is available during normal use;
+paused dates are explicit, dates include the year, rows wrap and action targets
+are at least 44 pixels. No new notification, charging or booking behavior.
+
+Mutation access denial clears property-scoped query caches and invokes the
+existing parent access-unavailable screen, dropping private sibling content.
+A successful list reload cannot restore editing permission: the user must return
+to Properties and re-enter an authorized property. This also guards stale delete
+callbacks after permission loss. Read failures remain visible and retryable.
+
+The certificate form now prevents duplicate submissions and locks fields,
+Close/Cancel/backdrop/Escape while saving. Property/type changes reset the form
+and late results cannot close another editor. Keyboard focus stays within the
+dialog and returns to its opener. Structured validation errors retain editable
+input; responsive fields stack at narrow widths. Save preparation (CSRF) has a
+15-second deadline; a late CSRF response cannot initiate a write after timeout.
+The POST/body read has its own 15-second abort deadline. Success requires a
+matching property/type/id and returned values for all supplied fields.
+
+After a POST timeout, lost response, malformed confirmation or unavailable access,
+the draft remains visible but repeat save is blocked. An explicit Close and review
+saved records action refreshes the dashboard. Pre-submit CSRF failures can safely
+retry. The form explicitly explains that saving replaces the whole-property record
+for the selected type, and blank fields clear previous details. All nine certificate
+types remain supported. The existing server lookup/upsert has no revision guard
+or idempotency key; this UI does NOT establish concurrent-editor protection or
+automated reconciliation of uncertain writes. No API/schema changes were made.
+
+Fresh local validation (Node 20.19.4):
+- Mobile: 23/23 Jest tests, RecurringRecovery and PropertyManagementParity.
+  Ten new cases cover stale draft -> failed reload -> latest edit -> save, shared
+  mutation locks, stale toggle confirmation, denied access after successful read,
+  stale permission callbacks, account isolation, cancelled contractor reads,
+  validation, offline reconnect without replay, signed-out cached content and
+  confirmed removal. Existing create-idempotency/validation coverage retained.
+- Web: 28/28 Vitest tests in certificate-form-recovery,
+  property-certificate-records, property-recurring-recovery and
+  shared-property-controls. Includes save/close locks, structured validation,
+  malformed/wrong-property/wrong-value confirmation, network/timeout/access
+  recovery, late scope results, focus handling and stalled CSRF preparation.
+- Shared package build: 10/10 successful (cached). Full mobile and web TypeScript
+  and changed-file ESLint passed (zero errors; two existing duplicate-import
+  warnings in PropertyDetailScreen). Diff whitespace check passed. Existing Jest
+  react-test-renderer deprecation and npm workspace-config warnings remain.
+  Intermediate tests exposed timing assumptions around initial/reloaded query
+  state; tests now await the actual enabled controls/completed read before acting.
+  Cache eviction legitimately refetches an active query, so the permission test
+  isolates its explicit deferred reload rather than assuming a lifetime GET count.
+  No recovery assertion was removed. An initial build wrapper returned nonzero
+  despite successful build output; an explicit npm.cmd rerun confirmed exit 0.
+
+Evidence: output/native-recurring-tests-20261108.log,
+output/native-recurring-mobile-{types,lint}-20261108.log,
+output/native-recurring-packages-20261108.log,
+output/certificate-form-tests-20261108.log and
+output/certificate-web-{types,lint}-20261108.log. React review covered hook order,
+scoped editor lifetimes, effect/ref cleanup, access recovery and keyboard locks.
+Aikido scan tools unavailable; no security scan result claimed.
+
+No production access, messages, API/RLS/schema/financial/beta changes, deployment,
+main merge or APK rebuild. Push is feature-only with automatic deployment disabled.
+Internal APK 45 is unchanged and does not include these new native fixes. Remaining:
+fresh native build/device larger-text, keyboard, scroll and visual verification;
+authenticated browser/cross-manager/uncertain-response verification; portfolio
+recurring parity and server-side certificate concurrency/reconciliation. Native
+Android/iOS deployed-relay MFA status/enrolment/verification/disable/retry remain
+unverified. Settings tests do not establish native sign-in MFA enforcement across
+custom MFA and Supabase sessions. Jest is not device acceptance; escrow display
+fixes do not establish historical financial reconciliation. Full release acceptance
+remains incomplete; beta stays enabled.

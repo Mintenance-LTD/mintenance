@@ -2418,3 +2418,31 @@ REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
   main merge or APK rebuild. Push only to feature branch with auto-deploy excluded.
   Native/portfolio recurring parity, certificate form recovery and all retained
   device/MFA/historical reconciliation/full-release gaps remain.
+
+2026-11-08 — NATIVE RECURRING RECOVERY AND CERTIFICATE FORM RECOVERY
+- Clean starting head 6bb5539fb; existing screenshot work retained. Native schedule
+  edits/toggles/deletes share a save lock, validate confirmations and block further
+  writes after conflict/uncertain outcomes. Refresh preserves the draft; explicit
+  discard-and-edit-latest is required before saving a stale edit. Creation retains
+  its stable idempotency key. Pause/resume sends the displayed revision.
+- Native writes disable automatic mutation retry/offline replay. Reads and writes
+  use bounded transport, while existing auth-refresh behavior remains unchanged.
+  Account/property/permission changes discard the old editor; late callbacks are
+  ignored. Denied mutation access drops property caches and sibling private content;
+  a successful read cannot restore editing permission. Favourite reads cancel,
+  controls lock during writes, dates are clearer and action targets are larger.
+- Existing web certificate capture locks save/close/fields, retains drafts and
+  blocks blind repeat writes after uncertain POSTs or access failures. Confirmation
+  must match the supplied record values. CSRF preparation and POST have separate
+  deadlines; late preparation cannot submit. Explicit review-saved-records recovery,
+  focus trapping/restoration, narrow-screen layout and replacement/blank-field
+  semantics are provided. Native certificate summary remains read-only. Backend
+  certificate revision/idempotency protection is not established by these UI fixes.
+- Fresh 23 mobile tests/2 suites and 28 web tests/4 files passed. Shared builds
+  10/10, full mobile/web TypeScript and changed-file lint passed. Aikido unavailable.
+  CURRENT-ACCEPTANCE records exact coverage, intermediate corrections and logs.
+- No hosted access/messages, deployment, main merge, financial/API/schema/beta
+  changes or APK rebuild. Feature-only push; automatic deployment excluded. APK45
+  does not include these native changes. Device/browser/cross-manager, portfolio,
+  certificate concurrency, MFA and historical reconciliation gaps remain; full
+  release acceptance is incomplete.
