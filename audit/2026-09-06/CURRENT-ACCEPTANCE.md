@@ -1584,3 +1584,79 @@ Full release acceptance remains incomplete.
 Ignored release-worktree evidence: output/tenancy-visit-release-tests-20261108.log,
 output/tenancy-visit-release-packages-20261108.log and
 output/tenancy-visit-release-types-20261108.log.
+
+### 2026-11-08 — Deployed tenancy/visit safeguards verified after sign-in
+
+The user completed homeowner sign-in. Verified the visible Djodjo Nkouka homeowner
+session, then navigated fresh production pages. The production alias still targets
+dpl_7ZG3kMutKmvXL4eJyrxVxyzBAjfB / release 57d1b8537. This closes the preceding
+signed-in verification blocker for the controlled paths below; no further code,
+deployment, migration, permission or beta change was made in this continuation.
+
+Tenancy draft and conflict checks used only the existing labelled test folder
+fb71c9aa-1a84-4981-9aa0-550c1aa4e0ea on designated homeowner property
+02479b23-3a20-4f2a-b7f2-f6e30c89c510, starting at revision 2:
+- Edited the label and entered an end date before the start date. Production logs
+  confirm HTTP 400 / BAD_REQUEST for the designated homeowner at 14:18:12.608 UTC,
+  request fb9wb-1794147492275-f37128fe94f0. Storage remained revision 2 with the
+  original label and dates. Retry unloaded/reloaded the form and retained its name.
+- The first automation date-fill did not update the controlled React draft: the
+  form returned with its original date. Repeated using native date-field keyboard
+  controls and observed 2026-10-01 before submitting. This second invalid save was
+  rejected; revision 2 and stored end 2026-11-02 remained unchanged. After Retry,
+  both the entered label and 2026-10-01 date were visibly retained. Correcting the
+  date through the keyboard to 2026-11-02 saved the retained label at revision 3.
+  The native-keyboard repeat, not the first fill attempt, establishes date retention.
+- With the revision-3 editor open, invoked the existing guarded update RPC as the
+  same designated homeowner to simulate a concurrent edit to revision 4. The stale
+  browser save returned HTTP 409 / CONFLICT at 14:20:26.914 UTC (request
+  m7wt5-1794147626454-facae45beaf5); revision 4 and its label remained unchanged.
+  Retry closed the stale editor/selection and loaded the authoritative label.
+  Re-selecting and editing saved successfully at revision 5, final label
+  "CONTROLLED TEST 2026-11-08 - deployed checks complete, no actual tenancy".
+  Original past dates remain 2026-11-01 through 2026-11-02. New/Edit controls were
+  visibly disabled during saves. No tenant grants, invitations or inspections.
+
+Visit check used a new clearly labelled, job-free fixture
+1233061a-a04d-4788-91d3-6b244ff9b776, title "CONTROLLED RELEASE TEST 2026-11-08 -
+no actual visit", with reminders suppressed. Creation was conditional on the exact
+designated homeowner and contractor IDs/emails/roles. Recipient remained only
+pimpnameslickbag23@gmail.com / 236c6e76-4c29-4569-acb6-54d65b67f83e.
+- The homeowner loaded 21 November, 09:00–10:00. A guarded fixture-only update
+  moved the slot to 11:00–12:00. Clicking the old confirmation displayed "Visit
+  changed. Refresh visits and review the latest time before responding." Both
+  response buttons were disabled; Refresh remained enabled. Stored response stayed
+  pending with null timestamp and zero notifications.
+- Refresh removed the stale card/actions while Loading visits was visible
+  (zero Confirm visit buttons). It then cleared the error, displayed 11:00–12:00
+  and enabled the response buttons. Refresh itself produced no notification.
+- Manual confirmation succeeded at 14:22:42.751188 UTC. Exact confirmation replay
+  through the UI preserved that timestamp and the count of one notification.
+  Queue ID e67e58fc-d206-49c4-ba3b-80b7a251d95f targets only the designated
+  contractor. It was pending/sent_at null at the final delivery query; actual
+  worker completion, inbox receipt and device presentation are not claimed.
+- Cancelled only this test fixture with reason "Deployed recovery verification
+  complete; no real visit." It remains job_id=null and reminders suppressed.
+  Refresh removed it and showed no upcoming visits. The prior cancelled fixture
+  and all real appointments were left unchanged.
+
+Fresh before/after fingerprints match for the designated house-check job, quote,
+bid, contract, signatories and eight linked financial tables. No live financial
+record was changed. A deployment-scoped ten-minute error/fatal query returned no
+groups; deliberate validation/conflict responses are warnings. No new automated
+test run was necessary for this audit-only continuation: the exact deployed release
+already passed 41 tests, shared builds, web TypeScript, lint and hosted build as
+recorded above. New evidence here is authenticated production browser/database/log
+verification. Aikido remains unavailable. git diff --check passed for audit edits.
+
+Ignored screenshots: output/tenancy-deployed-native-draft-retained-20261108.jpg,
+output/visit-deployed-conflict-disabled-20261108.jpg,
+output/visit-deployed-confirmed-20261108.jpg and
+output/visit-deployed-fixture-complete-20261108.jpg. The HTTP-400 test exercises
+the deployed save-error/Retry path; it does not simulate a genuine outage. Failed
+reloads and aborted-read races remain locally tested only. Contractor-side UI,
+revoked membership, native fresh-build visuals/MFA relay flows, native sign-in MFA
+enforcement across custom MFA/Supabase and historical financial reconciliation
+remain outside this verification. Full release acceptance is still incomplete.
+Beta stays enabled; audit-only update pushed on the feature branch with automatic
+deployment excluded. No main merge or further deployment.

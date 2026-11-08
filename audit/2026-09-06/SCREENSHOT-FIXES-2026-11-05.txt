@@ -2360,3 +2360,21 @@ REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
 - Financial fingerprints unchanged; beta/protection/permissions unchanged.
   Audit pushed on feature only, automatic deployment excluded. The fixes are now
   deployed; full release acceptance, signed-in UI and native/MFA/provider gaps remain.
+
+2026-11-08 — DEPLOYED TENANCY/VISIT UI CHECKS COMPLETE
+- User renewed homeowner sign-in; fresh production pages and alias verified on
+  release 57d1b8537. Invalid tenancy dates rejected without a stored change. Native
+  keyboard-entered date and edited label survived Retry; corrected save succeeded.
+  Subsequent concurrent-edit conflict returned 409, reload cleared stale editor,
+  and newly reviewed save succeeded at revision 5. Labelled test folder retained.
+- Job-free release-test visit rejected old-time confirmation with zero notices.
+  Both response buttons stayed disabled, Refresh remained enabled. Refresh removed
+  the obsolete card/actions while loading, then displayed the new time. Confirmation
+  succeeded; exact replay preserved timestamp and one notification to designated
+  contractor only. Queue pending at final query; no delivery/receipt claim.
+  Fixture cancelled afterward; no upcoming visits remained.
+- Financial fingerprints unchanged; no new code, migration, deployment, main merge
+  or beta/permission change. Existing 41-test/type/lint/build results apply to the
+  exact deployed code; this continuation adds authenticated production evidence.
+  Audit pushed on feature only. This supersedes the signed-in blocker for these
+  paths; outage/race, provider delivery, native/MFA and reconciliation gaps remain.
