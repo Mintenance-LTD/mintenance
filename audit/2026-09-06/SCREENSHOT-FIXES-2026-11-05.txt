@@ -2112,3 +2112,44 @@ Property-management follow-up editors — 8 November 2026
   Mine/Unassigned/Team queues, tenant case-history navigation and approval controls.
   Preserve all prior native MFA/sign-in, physical-device and reconciliation limits.
   This is one property-management correction batch, not closure of the full roadmap.
+
+Property follow-up backend conflicts and team queues — 8 November 2026
+- Started clean at ecb1dc51ed6e5ef4613b3e74524c26a6079256b1. Inspected existing
+  follow-up RPC/API, property roles, queue queries, clients and saved acceptance.
+- Added local, UNAPPLIED migration
+  supabase/migrations/20261108005044_property_followup_conflicts_team_queue.sql.
+  Stale revisions now raise PT409, preserving row locks and atomic history/
+  notification writes. Null/negative revisions, invalid states, deleted actors,
+  ineligible assignees and moved-property follow-ups are rejected. API accepts new
+  PT409 and legacy 40001 as 409; permission/input errors use safe 403/400 messages.
+  Follow-up GET blocks former-property history and removes deleted assignee choices.
+- New service-only portfolio_team_action_queue RPC supports Team/Mine/Unassigned.
+  Filtering precedes counts and pagination. Removed/deleted assignees appear as
+  Needs reassignment under Unassigned without exposing their identity. Existing
+  action inclusion remains; reports owner-only, viewers read-only, platform admin
+  no unrelated-property access. Old queue signature preserves Team semantics.
+- Web/native show responsibility and server-derived edit access. Scope changes
+  reset pagination/editor; wrong-scope responses fail visibly. Bounded/cancellable
+  reads, stale-response protection, account-scoped native state/cache, UK dates,
+  48-point native scope controls and clear selected state. No automatic cover,
+  spending approvals or tenant case-history completion is claimed.
+- Fresh checks: web 52 tests/5 files; mobile 29 tests/3 suites; PGlite 10 scenarios
+  plus anon/authenticated grants and RLS checks passed. SQL proves unchanged
+  existing rows on migration, scoped access/counts, stale/invalid saves without
+  partial history/notifications, first-save rollback, reload/save and moved-source
+  rejection in a disposable local database. Changed-file ESLint and full web/mobile
+  TypeScript passed. Evidence:
+  output/property-team-{sql,web,mobile}-20261108.log and
+  output/property-team-{web,mobile}-{types,lint}-20261108.log. Existing native
+  renderer deprecation warnings remain. Aikido scan tools unavailable.
+- Rollout remains separate: compatible PT409 API handling, then reviewed migration,
+  then new queue API/client contract. Do not release the combined branch against
+  the old schema. No hosted reads/writes, sends, deployment, main merge or live
+  financial changes. Beta gate preserved; feature auto-deploy remains disabled.
+- Deployed PostgREST, simultaneous-manager saves/concurrent membership revocation,
+  notification receipt and lost-response journeys remain unverified. Physical
+  devices, larger text, keyboard/scroll, deployed-relay MFA, native sign-in challenge
+  enforcement, provider recovery and historical reconciliation remain open.
+  Local Jest rendering does not replace fresh-build device checks. Full release
+  acceptance remains incomplete; subsequent property priorities include tenant
+  case-history/navigation and approval-control acceptance.

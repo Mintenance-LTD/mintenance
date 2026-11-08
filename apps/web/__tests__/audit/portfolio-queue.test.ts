@@ -27,17 +27,30 @@ beforeEach(() => {
 });
 it('always uses the authenticated identity, ignoring caller-supplied identity', async () => {
   await call('userId=other-user&offset=25&limit=25');
-  expect(mock.rpc).toHaveBeenCalledWith('portfolio_action_queue', {
+  expect(mock.rpc).toHaveBeenCalledWith('portfolio_team_action_queue', {
     p_user_id: 'verified-user',
     p_offset: 25,
     p_limit: 25,
+    p_scope: 'team',
   });
 });
-it.each(['offset=-1', 'offset=1.5', 'limit=101', 'limit=oops'])(
+it.each(['offset=-1', 'offset=1.5', 'limit=101', 'limit=oops', 'scope=other'])(
   'rejects invalid pagination %s',
   async (query) => {
     await expect(call(query)).rejects.toThrow('Invalid queue pagination');
     expect(mock.rpc).not.toHaveBeenCalled();
+  }
+);
+it.each(['team', 'mine', 'unassigned'])(
+  'passes %s filtering to SQL with the authenticated actor',
+  async (scope) => {
+    await call(`scope=${scope}&userId=other-user&offset=5&limit=5`);
+    expect(mock.rpc).toHaveBeenCalledWith('portfolio_team_action_queue', {
+      p_user_id: 'verified-user',
+      p_offset: 5,
+      p_limit: 5,
+      p_scope: scope,
+    });
   }
 );
 it('never converts provider failure into an empty successful queue', async () => {

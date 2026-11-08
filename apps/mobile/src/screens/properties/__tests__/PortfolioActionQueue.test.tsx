@@ -34,6 +34,7 @@ it('loads on expansion, opens the correct property and retrieves the next page',
       },
     ],
     total: 6,
+    scope: 'team',
     hasMore: true,
   });
   const open = jest.fn();
@@ -50,7 +51,8 @@ it('loads on expansion, opens the correct property and retrieves the next page',
   fireEvent.press(view.getByText('Next'));
   await waitFor(() =>
     expect(mockGet).toHaveBeenCalledWith(
-      '/api/portfolio/queue?offset=5&limit=5'
+      '/api/portfolio/queue?offset=5&limit=5&scope=team',
+      expect.objectContaining({ timeout: 15000, retries: 0 })
     )
   );
 });
@@ -83,6 +85,7 @@ it.each([true, false])(
         },
       ],
       total: 1,
+      scope: 'team',
       hasMore: false,
     });
     const openJob = jest.fn();
@@ -108,3 +111,66 @@ it.each([true, false])(
     view.unmount();
   }
 );
+it('filters on the server and hides management controls for a viewer', async () => {
+  mockGet.mockImplementation((url: string) =>
+    Promise.resolve({
+      scope: url.includes('scope=mine') ? 'mine' : 'team',
+      items: url.includes('scope=mine')
+        ? []
+        : [
+            {
+              id: 'job',
+              kind: 'job',
+              property_id: 'home',
+              property_name: 'Home',
+              title: 'Repair',
+              next_action: 'Review progress',
+              can_manage_followup: false,
+              assignment_status: 'needs_reassignment',
+            },
+          ],
+      total: url.includes('scope=mine') ? 0 : 6,
+      hasMore: !url.includes('scope=mine'),
+    })
+  );
+  const view = render(
+    <QueryClientProvider client={client}>
+      <PortfolioActionQueue initiallyExpanded onOpenProperty={jest.fn()} />
+    </QueryClientProvider>
+  );
+  await view.findByText('Repair');
+  expect(view.getByText('Responsible: Needs reassignment')).toBeTruthy();
+  expect(view.queryByText('Manage follow-up')).toBeNull();
+  fireEvent.press(view.getByText('Next'));
+  await waitFor(() =>
+    expect(mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('offset=5'),
+      expect.anything()
+    )
+  );
+  fireEvent.press(view.getByLabelText('Mine queue'));
+  await view.findByText('No follow-ups assigned to you on this page.');
+  expect(mockGet).toHaveBeenCalledWith(
+    '/api/portfolio/queue?offset=0&limit=5&scope=mine',
+    expect.anything()
+  );
+});
+it('does not label a legacy unfiltered response as Mine', async () => {
+  mockGet.mockResolvedValue({
+    scope: 'team',
+    items: [],
+    total: 0,
+    hasMore: false,
+  });
+  const view = render(
+    <QueryClientProvider client={client}>
+      <PortfolioActionQueue initiallyExpanded onOpenProperty={jest.fn()} />
+    </QueryClientProvider>
+  );
+  await view.findByText('No actions in this queue on this page.');
+  fireEvent.press(view.getByLabelText('Mine queue'));
+  await view.findByText('Unable to load actions. Tap to retry.');
+  expect(
+    view.queryByText('No follow-ups assigned to you on this page.')
+  ).toBeNull();
+});

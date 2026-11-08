@@ -891,3 +891,66 @@ schema capabilities must be verified before claiming those features are absent
 or adding new ones. All prior deployed-relay/native MFA, native sign-in enforcement,
 fresh-build physical-device, provider-recovery and financial-reconciliation gaps
 remain. Beta enabled; full release acceptance remains incomplete.
+
+### Property follow-up backend conflicts and team queues — 8 November 2026
+
+Continued from clean feature commit ecb1dc51ed6e5ef4613b3e74524c26a6079256b1.
+Inspected the existing follow-up transaction, property roles, queue inclusion,
+pagination, web/native clients and prior acceptance evidence. Existing work and
+the beta gate are preserved. This batch has no hosted database or financial work.
+
+New local migration `20261108005044_property_followup_conflicts_team_queue.sql`
+is **unapplied**. It replaces stale-revision SQLSTATE 40001 with terminal PT409,
+retains row locking and atomic update/history/notification writes, and rejects
+null/negative revisions, invalid waiting states, deleted actors and ineligible
+assignees. A follow-up cannot be overwritten after its source moves properties.
+The API handles both PT409 and legacy 40001 as HTTP 409, plus permission and input
+failures without leaking database messages. GET blocks former-property history
+before reading updates and excludes deleted accounts from assignee choices.
+PT409 semantics: [PostgREST errors](https://docs.postgrest.org/en/stable/references/errors.html).
+
+The new service-only `portfolio_team_action_queue` RPC filters Team, Mine and
+Unassigned before counts and pagination. Team means all accessible active actions;
+Mine means an eligible assignment to the authenticated caller; Unassigned includes
+departed/deleted assignees marked Needs reassignment, without exposing their names
+or IDs. Existing job/report/maintenance/certificate inclusion rules remain. Tenant
+reports remain owner-only, accepted viewers remain read-only, and a platform admin
+does not gain access to unrelated properties. The old RPC signature delegates to
+Team for compatibility. Existing RLS and service-role-only grants are retained.
+
+Web/native queues show responsibility and server-derived editing permission.
+Changing scope resets pagination and closes the editor. Counts, empty states and
+responses must match the requested scope; an old/unfiltered response is an error,
+not a false successful Mine view. Reads have cancellation and bounded waits; late
+web responses are ignored. Native cache/state is scoped to account, scope and page,
+and signed-out queues are hidden. Dates display in London; native scope controls
+have 48-point targets and accessible selection state. Reassignment remains manual;
+this does not add absence cover, spending approval or tenant case management.
+
+Fresh local verification: 52 web tests across five files and 29 mobile tests across
+three suites passed. Disposable PGlite execution of the original and new SQL passed
+10 scenarios plus anon/authenticated execution-denial and RLS checks: row-preserving
+migration, scope counts/pagination, membership/owner/viewer boundaries, departed
+assignees, terminal stale conflicts without side effects, successful reload/save,
+invalid inputs, failed-first-save rollback and moved-source rejection. No app
+environment or network is used by `scripts/test-property-team-queue.mjs`.
+Changed source/test ESLint passed (web tests explicitly included with --no-ignore).
+Full web and mobile TypeScript checks passed.
+Evidence: `output/property-team-{sql,web,mobile}-20261108.log` and
+`output/property-team-{web,mobile}-{types,lint}-20261108.log`. Native logs retain the
+existing react-test-renderer deprecation warnings. Aikido tooling is unavailable;
+no clean security scan is claimed.
+
+Release dependency: deploy compatible PT409 API handling first, apply the reviewed
+migration, then enable the new queue RPC/client contract. This combined feature
+must not be released against the old schema without staging that order. No deploy,
+hosted migration, notification send, main merge or live financial mutation occurred.
+Feature auto-deploy remains disabled in vercel.json; publication is branch-only.
+Local SQL does not prove deployed PostgREST behavior, real simultaneous manager
+saves, concurrent membership revocation, notification receipt or response-loss
+recovery. Fresh browser/native-device, larger-text and keyboard/scroll acceptance
+remain open. Android/iOS relay MFA status/enrolment/verification/disable/retry,
+native sign-in MFA enforcement across custom MFA and Supabase sessions, provider
+incident recovery and historical financial reconciliation remain unverified.
+Jest rendering is not fresh-build physical-device acceptance. Beta enabled; full
+release acceptance remains incomplete.
