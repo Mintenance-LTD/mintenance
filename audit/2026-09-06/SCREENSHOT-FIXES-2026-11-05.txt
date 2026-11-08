@@ -2300,3 +2300,99 @@ REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
 - UI fix is pushed only, NOT deployed; reopen the case as the current production
   workaround. No new migration/deployment, main merge, beta/access change or financial
   action. Other hosted branch/device/MFA/provider/reconciliation acceptance gaps stay.
+
+2026-11-08 — SUPPORT REFRESH FIX DEPLOYED AND VERIFIED
+- Pushed isolated release/support-refresh-nov8 commit 5cc36721d (component and test
+  only, based on current production eca682cf8). Production deployment
+  dpl_G7LyZwQdaVcwFZQStQfzNhJZB2nr READY 12:31:24 UTC; alias and /api/version match.
+- Fresh isolated release tests: 10/10. Hosted migration guard (15 prerequisites),
+  shared builds, full TypeScript, lint and Next build passed. No migration applied.
+- Designated admin renewed sign-in. Two fresh production tabs reused the closed
+  designated-account support fixture: revision 3 -> first save revision 4; stale
+  second-tab save returned HTTP 409 without another event. Refresh inbox now loads
+  current selected-case details/revision, clears conflict, preserves unsent drafts
+  and does not mutate. Retry succeeded at revision 5 without reopening the case.
+- Subsequent Refresh clears the success notice. Fixture remains closed/low, five
+  total events, zero messages and zero matching deliveries; no job/financial link.
+  Source/financial fingerprints unchanged. Beta enabled; no main merge or account/
+  access change. Healthy endpoint; short error/fatal scan empty. Existing Sentry
+  source-map warning remains. See CURRENT-ACCEPTANCE for exact evidence and limits.
+- This supersedes the undeployed Refresh fix/workaround gap only. Other device,
+  MFA, provider/worker, workflow and reconciliation acceptance gaps remain open.
+
+2026-11-08 — TENANCY AND VISIT CONFLICT RECOVERY
+- Fixed lost tenancy name/date drafts after temporary save failure + Retry.
+  Actual conflicts still close the stale editor and require review of fresh data.
+- Visit refresh removes stale actions, ignores aborted late reads and blocks
+  responses until a successful refresh after save errors. No automatic save retry.
+- Fresh validation: four reproduced failures now pass; 41/41 web tests across five
+  files, full web TypeScript, targeted zero-warning lint and 26 disposable SQL
+  conflict scenarios plus six-function equivalence checks passed. Aikido unavailable.
+- Production homeowner stale tenancy save rejected; Retry loaded revision 1 and
+  fresh save succeeded at revision 2. Labelled past-date test folder retained;
+  no real tenancy, invitation or permission changed.
+- Newly designated contractor pimpnameslickbag23@gmail.com verified. Labelled
+  job-free visit fixture rejected old-time confirmation with zero notifications;
+  refresh + confirm succeeded. Exact replay kept one notification/timestamp.
+  Request another time added one notification without rescheduling. Both target
+  only this contractor and are marked sent; inbox/device receipt remains unverified.
+  Test appointment cancelled; upcoming-visits view empty again.
+- Source/financial fingerprints unchanged. Beta enabled; no deployment, migration,
+  main merge, financial change or access bypass. UI fixes pushed on feature only
+  (automatic deployment excluded). Current production still has the stale-button
+  issue until separately authorized release. See CURRENT-ACCEPTANCE for fixture IDs,
+  evidence and remaining contractor, membership, device/MFA/provider acceptance gaps.
+
+2026-11-08 — TENANCY/VISIT FIX RELEASE; SIGNED-IN CHECK PENDING
+- Isolated release/tenancy-visit-recovery-nov8 commit 57d1b8537 contains only the
+  two reviewed components and regression test, based on production 5cc36721d.
+  Pushed and deployed; dpl_7ZG3kMutKmvXL4eJyrxVxyzBAjfB READY 14:04:05 UTC.
+  Production alias and authenticated /api/version match. Health 200/healthy;
+  short deployment error/fatal scan empty. No migration or main merge.
+- Fresh isolated validation: 41 tests, shared package builds, full web TypeScript,
+  targeted zero-warning lint and diff check passed. Hosted prerequisite guard (15),
+  builds, TypeScript and lint passed. Temp-cache permission/package-output issues
+  were resolved locally; existing Sentry warnings and dependency advisories remain.
+- Homeowner session expired and browser remains at Sign In; user handoff pending.
+  Authenticated checks of deployed draft retention and disabled stale visit actions
+  are NOT complete. Existing labelled fixture and designated accounts are recorded
+  in CURRENT-ACCEPTANCE for continuation. No new fixtures or messages this turn.
+- Financial fingerprints unchanged; beta/protection/permissions unchanged.
+  Audit pushed on feature only, automatic deployment excluded. The fixes are now
+  deployed; full release acceptance, signed-in UI and native/MFA/provider gaps remain.
+
+2026-11-08 — DEPLOYED TENANCY/VISIT UI CHECKS COMPLETE
+- User renewed homeowner sign-in; fresh production pages and alias verified on
+  release 57d1b8537. Invalid tenancy dates rejected without a stored change. Native
+  keyboard-entered date and edited label survived Retry; corrected save succeeded.
+  Subsequent concurrent-edit conflict returned 409, reload cleared stale editor,
+  and newly reviewed save succeeded at revision 5. Labelled test folder retained.
+- Job-free release-test visit rejected old-time confirmation with zero notices.
+  Both response buttons stayed disabled, Refresh remained enabled. Refresh removed
+  the obsolete card/actions while loading, then displayed the new time. Confirmation
+  succeeded; exact replay preserved timestamp and one notification to designated
+  contractor only. Queue pending at final query; no delivery/receipt claim.
+  Fixture cancelled afterward; no upcoming visits remained.
+- Financial fingerprints unchanged; no new code, migration, deployment, main merge
+  or beta/permission change. Existing 41-test/type/lint/build results apply to the
+  exact deployed code; this continuation adds authenticated production evidence.
+  Audit pushed on feature only. This supersedes the signed-in blocker for these
+  paths; outage/race, provider delivery, native/MFA and reconciliation gaps remain.
+
+2026-11-08 — CONTRACTOR VISIT PROVIDER RECEIPT VERIFIED; APK BUILD REQUESTED
+- Existing designated-contractor notification sent once at 14:25:29 UTC, no retries
+  or errors. One in-app record and one recorded dispatch attempt. Scheduled receipt
+  polling reported provider_accepted at 14:45:28 UTC, one accepted, zero failures or
+  unresolved attempts. Normal receipt delay required no recovery mutation/resend.
+  Phone presentation is unverified; test visit remains cancelled, reminders off.
+- Reviewed queue/dispatch/receipt recovery; fresh 30 tests passed. No defect found
+  or notification code change needed. Production checks read-only, designated
+  fixture/account scoped. No deployment, beta/access change or financial writes.
+- Requested internal APK uses existing beta-login-test profile, versionCode 45,
+  frozen remote credentials, authenticated downloads and OTA disabled. Fresh 23
+  build/config tests, 73 mobile tests, mobile TypeScript/shared builds and Android
+  export passed. Build 51eb2fa1-3b2c-4d87-a7a2-dd9b747e8a5b from 8e5d16463 FINISHED
+  15:18:26 UTC. Binary package/version, valid signature matching beta 44, native OTA
+  disabled, Firebase and relay checked. APK delivery ready; phone install unverified.
+  See audit/2026-11-08/internal-apk-45.md for hashes and protected install page.
+  Device/MFA, historical reconciliation and full release acceptance gaps retained.

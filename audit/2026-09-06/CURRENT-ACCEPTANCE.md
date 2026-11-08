@@ -1359,3 +1359,347 @@ visit, tenancy, contractor-proposal, evidence/disposal or worker recovery branch
 Retain all prior physical-device, native MFA enforcement, concurrent-worker/provider
 and historical financial reconciliation gaps. Beta remains enabled; feature
 auto-deployment remains excluded and main was not merged. Full acceptance is open.
+
+### Support Refresh-button production release — 8 November 2026
+
+User explicitly authorized deployment and designated-account verification. Verified
+the current production source was eca682cf8, then prepared release/support-refresh-
+nov8 from that source. Only AdminSupportInbox.tsx and its regression test differ:
+the two files exactly match feature fix 4d6631020. No unrelated feature UI, SQL,
+release guard, deployment protection or beta configuration was included.
+
+Release commit 5cc36721d3477c24133ce6ebf60f3cfb9f41804a is pushed. Production
+deployment dpl_G7LyZwQdaVcwFZQStQfzNhJZB2nr reached READY at
+2026-11-08T12:31:24.889Z. Verified www.mintenance.co.uk aliases this deployment;
+authenticated /api/version returned HTTP 200 with the exact release SHA at
+12:32:01 UTC. The unchanged migration guard passed all 15 prerequisites for this
+production-based tree. Shared builds, full web TypeScript, lint and Next.js build
+passed (four-minute hosted build). Existing missing-Sentry-token warnings mean
+release creation/source-map upload remain unavailable. No credentials were changed.
+Fresh tests against the exact isolated release tree: 10/10 UI/API tests in two files
+passed under Node 20.19.4; git diff --check passed. No migration was needed or applied.
+
+The admin session had expired again; the user renewed it before verification.
+Loaded fresh production pages in two browser tabs as the designated admin. Reused
+the existing clearly labelled support fixture ca037228-55d8-40dc-b3ac-4342b9531c54,
+owned by the designated homeowner and assigned to the designated admin, with no
+job link. The case stayed CLOSED throughout; no new fixture or customer message.
+
+Observed deployed recovery sequence:
+1. Both tabs loaded revision 3, low priority. First tab saved normal priority:
+   revision 4, four total events, "Case updated." visible.
+2. Second tab submitted its stale revision 3. The UI displayed the conflict message;
+   production logs confirm HTTP 409 / CONFLICT at 12:33:04.031 UTC for designated
+   admin 623398c7-2335-4707-90b5-8bcee7eb4d1c on this new deployment. Request ID:
+   zw7g5-1794141183728-2ba3c1e677a3. Revision/event count remained 4/4.
+3. Clicked Refresh inbox without reopening or navigating away. It cleared the
+   conflict notice, loaded the authoritative normal priority into the selected
+   editor, preserved the unsent reply draft and handover note, and re-enabled the
+   controls. Database revision/event count remained 4/4: refresh did not mutate.
+4. Restored low priority in the refreshed editor and saved. The retry succeeded,
+   showing "Case updated." Final revision 5, five events total. This proves the
+   selected editor used the refreshed revision; the former reopen workaround is
+   no longer required for this tested path.
+5. Clicked Refresh inbox again. The prior success notice cleared and the loaded
+   case remained closed/low, revision 5, five events. No duplicate save occurred.
+
+Final checks: zero fixture support messages and zero matching communication-outbox
+entries; assignment/ownership unchanged and no job link. Exactly two successful
+updates were added in this check; the rejected save and both refreshes added none.
+No Send customer reply, notification, account-permission, financial or contract
+operation was invoked. Fresh source/financial fingerprints for the designated
+house-check job match the pre-deployment baseline (job, quote, bid, contract,
+signatories and all eight linked financial tables).
+
+/api/health returned HTTP 200 / healthy at 12:35:06 UTC (200 ms reported). A scoped
+ten-minute error/fatal log query for this deployment returned no groups; the
+deliberate 409 is a warning, not an unexpected server error. This short observation
+does not establish sustained service health. An unauthenticated profile probe
+returned HTTP 302; website protection, relay allowlist/deployment and beta policies
+were not changed. This probe does not establish unapproved signed-in beta behavior.
+
+Local ignored evidence: output/support-refresh-release-tests-20261108.log,
+output/support-refresh-preserved-draft-20261108.jpg and
+output/support-refresh-success-20261108.jpg. The prior "not deployed" and selected-
+case refresh workaround limitations are superseded for this fix. Other visit,
+tenancy, contractor proposal, evidence/disposal and real worker/provider branches
+remain outside this verification, as do device visuals, native MFA enforcement and
+historical financial reconciliation. Full release acceptance remains incomplete.
+Beta remains enabled. No main merge; audit updates are pushed on the feature branch
+with automatic deployment still excluded.
+
+### 2026-11-08 — Tenancy and visit conflict recovery
+
+Started from clean feature HEAD f272e6fd7 after reviewing repository instructions,
+existing implementation and the saved acceptance record. No deployment or schema
+change was authorized or performed. The production checks below used the existing
+support-refresh release; the UI fixes in this entry remain local/feature-branch only.
+
+Local fixes:
+- Tenancy folder edits now retain the entered name and dates across a temporary
+  save failure followed by Retry. Previously reloading the folder list unmounted
+  the uncontrolled form and silently restored the original values. Opening a new
+  or existing editor explicitly resets its draft; New/Edit controls are disabled
+  during a save. Actual conflict recovery still closes the stale editor and requires
+  selecting and reviewing the authoritative folder revision before another save.
+- Visit refresh clears obsolete cards and ignores late results from aborted reads.
+  Response controls stay disabled during loading and after a failed save, with
+  explicit instructions to refresh and review the current time. A failed refresh
+  cannot leave old actionable appointments visible or imply a successful empty read.
+  No automatic mutation retries, permission changes or financial operations added.
+
+Fresh validation under Node 20.19.4:
+- New regression file first reproduced four failures; the existing tenancy 409
+  recovery case already passed. After fixes, all five new scenarios pass.
+- 41/41 web tests in five files passed: tenancy-visit-conflict-recovery,
+  tenancy-inspections-ui, remaining-conflicts-api, property-inspection-api and
+  completed-job-visits. These results are new, not the historical mobile/relay totals.
+- Full web TypeScript (tsc --noEmit --incremental false) and targeted ESLint with
+  --max-warnings 0 passed. Prettier applied to the three code/test files.
+- Disposable PGlite: 26 remaining-business-conflict scenarios and six-function
+  body/security/grant equivalence checks passed. No hosted migration was applied.
+- Aikido scanner tools are unavailable; no security scan result is claimed.
+
+Production designated-account checks:
+The user renewed the homeowner session (gloirenkouka380@gmail.com,
+a2cf7faa-2ce3-436f-8949-45976481813e) and designated contractor
+pimpnameslickbag23@gmail.com (236c6e76-4c29-4569-acb6-54d65b67f83e).
+Verified both profile identities/roles before fixture creation. No admin bypass,
+plan change, tenant invitation or grant was used.
+
+1. Property 02479b23-3a20-4f2a-b7f2-f6e30c89c510 initially had no tenancy folders.
+   The homeowner UI created labelled test folder fb71c9aa-1a84-4981-9aa0-550c1aa4e0ea,
+   dates 2026-11-01 through 2026-11-02, revision 0. With that editor open, invoked
+   the existing guarded update RPC using the same designated homeowner actor to
+   simulate a concurrent edit, advancing to revision 1. The stale browser save
+   displayed "This folder changed. Reload the folders before saving." Database
+   label/revision stayed at the concurrent edit/1. Retry closed the stale editor,
+   cleared the notice, and loaded the new folder label. Re-selecting and editing
+   then saved successfully at revision 2. Final label: "CONTROLLED TEST 2026-11-08 -
+   verification complete, no actual tenancy". Past dates unchanged; no inspections
+   or tenant access were created. The labelled nonfinancial folder is retained.
+2. Created appointment fixture 77c31d28-4e2d-473c-8fd9-ef0e727dc41f for the two
+   designated accounts only, with no job link, phone location, reminders suppressed,
+   title "CONTROLLED TEST 2026-11-08 - no actual visit", 20 November 09:00–10:00.
+   The homeowner UI loaded that time. A guarded fixture-only database update changed
+   the slot to 11:00–12:00; the old browser confirmation displayed the save/reload
+   error. Response stayed pending with null response timestamp and zero queued
+   notifications. Refresh loaded 11:00–12:00; manual confirmation succeeded.
+3. Confirmation set client_response=confirmed at 12:54:31.284399 UTC and queued
+   exactly one contractor notification. Repeating confirmation through the UI left
+   the timestamp and queue count unchanged. Request another time then succeeded,
+   set change_requested and queued one additional notification; the slot did not
+   move. Both rows target only the designated contractor and were marked sent at
+   the final check. Provider/device/inbox receipt is not established by that status.
+4. Cancelled only this labelled appointment after verification, with reason
+   "Controlled verification complete; no real visit." It remains job_id=null and
+   reminders suppressed. Refresh showed no upcoming visits. No existing appointment,
+   real tenancy, job, accepted quote, contract or financial record was changed.
+
+Production still exhibited the stale enabled visit buttons during refresh; this
+confirms the need for the undeployed local fix. Transient network failure and
+aborted-read race handling were verified locally, not induced on production.
+Before/after fingerprints match for the designated house-check job, quote, bid,
+contract, signatories and eight linked financial tables. This bounded check is not
+historical financial reconciliation. Beta configuration, production protection and
+relay allowlists remain unchanged; feature auto-deployment remains disabled.
+
+Ignored evidence: output/tenancy-visit-red-20261108.log,
+output/tenancy-visit-green-20261108.log, output/tenancy-visit-types-20261108.log,
+output/tenancy-recovered-20261108.jpg, output/visit-recovered-20261108.jpg and
+output/visit-fixture-complete-20261108.jpg. Screenshots show the deployed UI, not
+the new local safeguards. No new production build was run. Contractor proposal/
+reschedule UI, revoked membership during an open editor, inspection evidence,
+other worker/provider branches and native visual checks remain outside this check.
+Android/iOS MFA relay flows still need device verification; Settings tests do not
+prove native sign-in MFA enforcement across custom MFA and Supabase sessions.
+Rendering tests do not replace fresh-build physical-device visual checks.
+Full release acceptance remains incomplete. Audit and local fixes are committed
+and pushed on the feature branch only; no main merge or deployment.
+
+### 2026-11-08 — Tenancy/visit recovery deployed; signed-in recheck pending
+
+User authorized deployment of the tenancy draft and visit recovery fixes. Verified
+the live production alias still targeted support-refresh deployment
+dpl_G7LyZwQdaVcwFZQStQfzNhJZB2nr / commit 5cc36721d before preparing the release.
+Both worktrees were clean. Created release/tenancy-visit-recovery-nov8 from that
+production source and copied only the two changed components plus their regression
+test from feature commit 64afc1e71. The three committed files exactly match the
+reviewed feature versions; no unrelated feature work or audit history was deployed.
+
+Release commit 57d1b8537806c117dbfd6048d975049d01895d42 was pushed and deployed to
+the existing mintenance-clean production project. Deployment
+dpl_7ZG3kMutKmvXL4eJyrxVxyzBAjfB reached READY at 14:04:05.976 UTC. Verified
+www.mintenance.co.uk aliases this deployment. Authenticated connector GET
+/api/version returned HTTP 200 at 14:05:11 UTC with that exact buildId and
+env=production. GET /api/health returned HTTP 200 / healthy at 14:04:57 UTC,
+reported latency 459 ms. A five-minute deployment-scoped error/fatal log query
+returned no groups; this is a brief observation, not sustained-health acceptance.
+
+Fresh validation against the isolated release tree under Node 20.19.4:
+- 41/41 targeted tests in five suites passed. The initial attempt ran no tests
+  because Windows denied a temporary-cache rename; changing TEMP/TMP for that
+  process to the ignored workspace output directory resolved it.
+- All 10 shared-package build tasks passed. Full web TypeScript passed after
+  generating the missing package declarations; the first pre-package attempt
+  reported TS6305. Targeted zero-warning ESLint and git diff --check passed.
+- Hosted build passed dependency patches, all 15 existing migration prerequisites,
+  shared builds, web TypeScript, lint and Next.js build (six minutes reported).
+  No migration was needed or applied. Existing missing-Sentry-token warnings mean
+  release/source-map upload remains unavailable. Dependency installation reported
+  seven advisories (six low, one high); no dependency change or new security-scan
+  clearance is claimed. Aikido tools remain unavailable.
+
+The fresh homeowner browser reload redirected to Sign In: its session expired.
+Prepared the tab with designated gloirenkouka380@gmail.com and requested that the
+user sign in and complete any MFA directly there. It still showed the login form
+at the final observation; no credentials were extracted, session fabricated or
+permission changed. Therefore the new production UI safeguards have NOT yet been
+verified in an authenticated browser. Prior production workflow evidence above
+predates this deployment and does not establish acceptance of the new safeguards.
+
+Next designated-account checks: reuse labelled tenancy folder
+fb71c9aa-1a84-4981-9aa0-550c1aa4e0ea (revision 2) to submit an invalid date range,
+verify validation rejection leaves storage unchanged, Retry preserves the edited
+name/dates, then correct and save. Recheck stale-revision reload. Use a clearly
+labelled job-free visit fixture with designated contractor
+pimpnameslickbag23@gmail.com to verify old-time conflict disables actions, Refresh
+removes stale cards and loads the current time, manual retry succeeds and exact
+replay does not duplicate notifications; cancel that fixture afterward. These are
+pending checks, not completed results. No new fixture or test message was created
+during this deployment turn. Transient outage and aborted-read races remain covered
+locally; no production outage should be induced.
+
+Fresh before/after house-check source/financial fingerprints are identical.
+Beta code, allowlists, account permissions and deployment protection were not
+changed. An unauthenticated health request reached Vercel protection, then the
+authenticated Vercel connector was used for health/version reads. No main merge or
+live financial mutation. Feature automatic deployment remains excluded; audit-only
+updates are pushed on the feature branch. The earlier "UI fixes not deployed"
+limitation is superseded, but signed-in verification is still outstanding. Native
+device visuals, Android/iOS MFA relay verification, custom-MFA/Supabase native
+sign-in enforcement and historical financial reconciliation limitations remain.
+Full release acceptance remains incomplete.
+
+Ignored release-worktree evidence: output/tenancy-visit-release-tests-20261108.log,
+output/tenancy-visit-release-packages-20261108.log and
+output/tenancy-visit-release-types-20261108.log.
+
+### 2026-11-08 — Deployed tenancy/visit safeguards verified after sign-in
+
+The user completed homeowner sign-in. Verified the visible Djodjo Nkouka homeowner
+session, then navigated fresh production pages. The production alias still targets
+dpl_7ZG3kMutKmvXL4eJyrxVxyzBAjfB / release 57d1b8537. This closes the preceding
+signed-in verification blocker for the controlled paths below; no further code,
+deployment, migration, permission or beta change was made in this continuation.
+
+Tenancy draft and conflict checks used only the existing labelled test folder
+fb71c9aa-1a84-4981-9aa0-550c1aa4e0ea on designated homeowner property
+02479b23-3a20-4f2a-b7f2-f6e30c89c510, starting at revision 2:
+- Edited the label and entered an end date before the start date. Production logs
+  confirm HTTP 400 / BAD_REQUEST for the designated homeowner at 14:18:12.608 UTC,
+  request fb9wb-1794147492275-f37128fe94f0. Storage remained revision 2 with the
+  original label and dates. Retry unloaded/reloaded the form and retained its name.
+- The first automation date-fill did not update the controlled React draft: the
+  form returned with its original date. Repeated using native date-field keyboard
+  controls and observed 2026-10-01 before submitting. This second invalid save was
+  rejected; revision 2 and stored end 2026-11-02 remained unchanged. After Retry,
+  both the entered label and 2026-10-01 date were visibly retained. Correcting the
+  date through the keyboard to 2026-11-02 saved the retained label at revision 3.
+  The native-keyboard repeat, not the first fill attempt, establishes date retention.
+- With the revision-3 editor open, invoked the existing guarded update RPC as the
+  same designated homeowner to simulate a concurrent edit to revision 4. The stale
+  browser save returned HTTP 409 / CONFLICT at 14:20:26.914 UTC (request
+  m7wt5-1794147626454-facae45beaf5); revision 4 and its label remained unchanged.
+  Retry closed the stale editor/selection and loaded the authoritative label.
+  Re-selecting and editing saved successfully at revision 5, final label
+  "CONTROLLED TEST 2026-11-08 - deployed checks complete, no actual tenancy".
+  Original past dates remain 2026-11-01 through 2026-11-02. New/Edit controls were
+  visibly disabled during saves. No tenant grants, invitations or inspections.
+
+Visit check used a new clearly labelled, job-free fixture
+1233061a-a04d-4788-91d3-6b244ff9b776, title "CONTROLLED RELEASE TEST 2026-11-08 -
+no actual visit", with reminders suppressed. Creation was conditional on the exact
+designated homeowner and contractor IDs/emails/roles. Recipient remained only
+pimpnameslickbag23@gmail.com / 236c6e76-4c29-4569-acb6-54d65b67f83e.
+- The homeowner loaded 21 November, 09:00–10:00. A guarded fixture-only update
+  moved the slot to 11:00–12:00. Clicking the old confirmation displayed "Visit
+  changed. Refresh visits and review the latest time before responding." Both
+  response buttons were disabled; Refresh remained enabled. Stored response stayed
+  pending with null timestamp and zero notifications.
+- Refresh removed the stale card/actions while Loading visits was visible
+  (zero Confirm visit buttons). It then cleared the error, displayed 11:00–12:00
+  and enabled the response buttons. Refresh itself produced no notification.
+- Manual confirmation succeeded at 14:22:42.751188 UTC. Exact confirmation replay
+  through the UI preserved that timestamp and the count of one notification.
+  Queue ID e67e58fc-d206-49c4-ba3b-80b7a251d95f targets only the designated
+  contractor. It was pending/sent_at null at the final delivery query; actual
+  worker completion, inbox receipt and device presentation are not claimed.
+- Cancelled only this test fixture with reason "Deployed recovery verification
+  complete; no real visit." It remains job_id=null and reminders suppressed.
+  Refresh removed it and showed no upcoming visits. The prior cancelled fixture
+  and all real appointments were left unchanged.
+
+Fresh before/after fingerprints match for the designated house-check job, quote,
+bid, contract, signatories and eight linked financial tables. No live financial
+record was changed. A deployment-scoped ten-minute error/fatal query returned no
+groups; deliberate validation/conflict responses are warnings. No new automated
+test run was necessary for this audit-only continuation: the exact deployed release
+already passed 41 tests, shared builds, web TypeScript, lint and hosted build as
+recorded above. New evidence here is authenticated production browser/database/log
+verification. Aikido remains unavailable. git diff --check passed for audit edits.
+
+Ignored screenshots: output/tenancy-deployed-native-draft-retained-20261108.jpg,
+output/visit-deployed-conflict-disabled-20261108.jpg,
+output/visit-deployed-confirmed-20261108.jpg and
+output/visit-deployed-fixture-complete-20261108.jpg. The HTTP-400 test exercises
+the deployed save-error/Retry path; it does not simulate a genuine outage. Failed
+reloads and aborted-read races remain locally tested only. Contractor-side UI,
+revoked membership, native fresh-build visuals/MFA relay flows, native sign-in MFA
+enforcement across custom MFA/Supabase and historical financial reconciliation
+remain outside this verification. Full release acceptance is still incomplete.
+Beta stays enabled; audit-only update pushed on the feature branch with automatic
+deployment excluded. No main merge or further deployment.
+
+## 2026-11-08 — Contractor visit delivery receipt and internal APK preparation
+
+Read-only follow-up of the existing cancelled, job-free release fixture
+1233061a-a04d-4788-91d3-6b244ff9b776. No new visit, confirmation, resend or message.
+Notification e67e58fc-d206-49c4-ba3b-80b7a251d95f targets only the designated
+contractor 236c6e76-4c29-4569-acb6-54d65b67f83e. Queue sent at 14:25:29.467 UTC,
+retry_count 0, no error or last retry; exactly one materialized notification,
+push_sent=true and read=true. Read state alone does not establish device display.
+Dispatch attempt b4eaa7cb-e485-45c2-8df0-30b3623673b3 is recorded for one device.
+
+Receipt 01a1bb8c-ccac-75a5-b6c3-be591c5bb089 was initially pending with the normal
+15-minute delay, due at 14:40:29.370 UTC. The 14:40 cron ran just before that time;
+the next scheduled run recorded provider_accepted at 14:45:28.802, no error.
+Production cron request 74kph-1794149128169-f01b0be9b16f completed with checked=1,
+accepted=1, failed=0, expired=0, pending=0, attemptsNeedingReview=0. No forced cron
+or retry was needed. This closes the pending provider receipt, not physical-device
+delivery/visual acceptance. Fixture remains cancelled with reminders suppressed.
+
+Inspected dispatch, queue lease/replay, attempt journal and receipt recovery.
+No recovery defect established. Fresh 30/30 tests in NotificationPushDispatcher,
+notification-terminal-retry and push-attempt-review cover concurrent claim, partial
+acceptance, no-token terminal results, transient errors, receipt polling without
+resending, interrupted attempts and current-admin review checks. No notification
+code change. All production operations this continuation were read-only.
+
+User also requested an internal Android APK. Version 45 preparation is recorded in
+audit/2026-11-08/internal-apk-45.md. Fresh 23 build/config tests, 73 mobile tests,
+mobile TypeScript, security preparation, shared builds and Android/Hermes export
+passed. Windows temporary-directory failures were resolved with dedicated local
+paths, without bypassing validators. EAS build 51eb2fa1-3b2c-4d87-a7a2-dd9b747e8a5b
+submitted from clean source 8e5d1646349b06df56611b29fdb34a47c4f655a1 at 14:46:41 UTC;
+FINISHED at 15:18:26.825 UTC. Actual package/version 1.2.4 (45), valid v2 signature
+matching beta 44, embedded runtime/project/relay, Firebase resources and native
+updates-disabled manifest checked. APK SHA-256, certificate, fingerprint and protected
+install page are in the build receipt. APK built/inspected; phone install unverified.
+Existing remote signing credentials frozen; downloads require Expo sign-in, OTA
+disabled. One hosted build only. No paid upgrade or store
+submission. Feature automatic deployment stays disabled; beta gate/protection and
+relay admission unchanged. No main merge, backend/web deployment, schema change or
+financial write. Aikido unavailable. Device MFA/native sign-in enforcement,
+fresh-build physical-device visuals, historical reconciliation and full release
+acceptance remain incomplete.
