@@ -954,3 +954,73 @@ native sign-in MFA enforcement across custom MFA and Supabase sessions, provider
 incident recovery and historical financial reconciliation remain unverified.
 Jest rendering is not fresh-build physical-device acceptance. Beta enabled; full
 release acceptance remains incomplete.
+
+### Tenant case history and navigation — 8 November 2026
+
+Continued from clean feature commit bd9c022650d2679767c8526b88d17453f8334f00.
+Inspected the tenant inbox in both themes, queue links, shared web/native
+conversations, linked-job case lists, API authorization and the existing
+report_conversation/report_status_history SQL. Status changes already create
+system messages; no invented timeline, history backfill or new migration was added.
+
+Both web inbox layouts open the report targeted by notification query parameter;
+sign-in and retry preserve that target. Unavailable cases and failed inbox reads
+are explicit, rather than silently showing an empty inbox. Queue Review report
+opens the exact case. Detail views provide property and recorded linked-job links.
+Opening Create Job no longer PATCHes a report to converted before creation. Old
+converted records say Marked converted; a missing job link is stated explicitly.
+Unlinked converted cases offer an explicit Reopen action through the existing
+status endpoint; linked converted cases do not offer duplicate job creation/reopen.
+Existing status mutations reconcile the selected modal with the server response
+without closing a different case opened while the request was pending.
+
+Web/native case history now shows original category/description/submission time,
+current status, dated recorded messages and distinct system status updates. Dates
+use Europe/London. Latest updates resolves the final 25-message page after RPC
+authorization, with another authorization check before returning that page; an
+already-final page avoids the extra count/RPC. Older/newer navigation uses the
+server-returned offset. Original-summary reads project only category, description
+and created_at, excluding contact details, internal notes and receipt hashes.
+Summary failure remains visible alongside available messages. Existing receipt,
+manager/owner and assigned-contractor authorization is retained; viewers are not
+newly admitted. Shared history is distinct from internal property follow-up notes.
+
+Record-keyed web state and account/report-keyed native state isolate drafts and
+late completions. Reads have bounded waits and cancellation. Malformed history
+fails visibly. Writes use a ref lock and a stable message ID; only an exact API
+acknowledgement clears input. Unconfirmed sends retain and lock the draft for the
+same-ID retry, and confirmed sends open latest updates. Native job-case lists show
+category/status, validate responses and reset when the job/account changes.
+Native history controls have 48-point targets and multiline note space.
+
+Fresh local checks: 36 web tests/6 files and 14 mobile tests/3 suites passed;
+shared package build, full web/mobile TypeScript and changed-file web/mobile
+ESLint passed. The final Reopen visibility conditions also passed the added
+regression cases and changed-file lint. Logs:
+output/tenant-case-{web,mobile}-20261108.log,
+output/tenant-case-{web,mobile}-{types,lint}-20261108.log and
+output/tenant-case-shared-build-20261108.log. Existing React Native renderer
+deprecation warnings remain. Aikido tooling is unavailable; no clean scan claimed.
+
+The supplied Supabase CPU-alert screenshot is operational evidence, not an
+instruction to resize/deploy. Read-only system diagnostics on project
+ukrjudtlvapiajkjbcrd at 01:26 UTC found ACTIVE_HEALTHY project status, 14 idle/Client
+connections, one idle/Extension connection, one background/Extension connection
+and zero other active queries older than 30 seconds. Cumulative statement stats
+were last reset 1 November 2026 16:40:45 UTC; the top six execution-time entries
+included catalog/introspection and other statements. SQL text and customer rows
+were not retrieved. These are not CPU time-series measurements and do not establish
+the alert's cause or recovery. CPU correlation at the alert window remains open.
+Diagnostics used READ ONLY transactions with a five-second statement timeout;
+no compute setting, live record, financial record or notification was changed.
+
+No deployment, migration application or main merge. Beta stays enabled and feature
+auto-deployment remains disabled. The previous team-queue migration is still
+unapplied with its documented staged rollout dependency. This case-history API
+must precede native release because the new client validates pageOffset/messageId.
+Automatic report-to-job linking after successful creation remains unimplemented;
+historical converted records were not repaired. Inbox-wide server pagination,
+durable drafts/retry IDs across app exit, concurrent revocation/receipt rotation,
+real message delivery and fresh browser/device visual/accessibility checks remain
+open. Preserve deployed-relay MFA, native sign-in enforcement, physical-device and
+historical reconciliation limitations. Full release acceptance remains incomplete.

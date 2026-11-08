@@ -202,7 +202,7 @@ export default function PropertyWorkQueuePage() {
                         item.kind === 'job' && item.can_open_job
                           ? `/jobs/${item.id}`
                           : item.kind === 'report'
-                            ? '/landlord/reports'
+                            ? `/maintenance/reports/${item.id}`
                             : `/properties/${item.property_id}`
                       }
                     >

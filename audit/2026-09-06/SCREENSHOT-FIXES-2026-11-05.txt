@@ -2153,3 +2153,47 @@ Property follow-up backend conflicts and team queues — 8 November 2026
   Local Jest rendering does not replace fresh-build device checks. Full release
   acceptance remains incomplete; subsequent property priorities include tenant
   case-history/navigation and approval-control acceptance.
+
+Tenant case history and navigation — 8 November 2026
+- Started clean at bd9c022650d2679767c8526b88d17453f8334f00. Inspected real inbox,
+  conversation/receipt API, native job cases, queue routes and status-history
+  trigger. Existing status changes are system messages; no fabricated/backfilled
+  history or new migration.
+- Both web themes open notification-targeted cases. Sign-in/retry retain the
+  target; unavailable cases and failed inbox loads have explicit recovery.
+  Queue report links open the exact conversation. Case details link to property
+  and an existing recorded job. Create Job navigation no longer marks converted
+  before creation. Marked converted and No linked job recorded distinguish old
+  status from evidence of a linked job; no historical rows were changed.
+  Unlinked converted cases can be explicitly reopened through the existing status
+  action. Linked cases do not offer duplicate creation/reopen actions.
+- Shared web/native history displays original report context, UK submission and
+  message dates, current status and recorded system changes. Latest updates finds
+  the last page after authorization and reauthorizes the page read; already-final
+  pages avoid redundant count/RPC work. Paging uses server offsets. Summary reads
+  select only category/description/created_at; no private notes/contact fields or
+  receipt secrets are added. Existing participant permissions retained.
+- Record/account isolation, cancellable bounded reads, malformed-response
+  recovery, same-ID retry locks and exact message acknowledgement protect drafts
+  and prevent a late completion clearing another case. Confirmed sends open latest
+  updates. Native job-case labels identify category/status and reset across jobs.
+  Native history buttons have 48-point targets; message input is multiline.
+- Fresh local tests: web 36/6 files, native 14/3 suites, shared build and full web/mobile
+  TypeScript passed. Changed-file web/mobile lint passed; final Reopen conditions
+  also passed added regression tests and lint. Logs output/tenant-case-{web,mobile}-20261108.log,
+  output/tenant-case-{web,mobile}-{types,lint}-20261108.log and
+  output/tenant-case-shared-build-20261108.log. Renderer deprecation warnings remain;
+  Aikido scanning unavailable.
+- User supplied Screenshot 2026-11-08 012430.png showing Supabase CPU above 80%.
+  Bounded read-only system checks found ACTIVE_HEALTHY, mostly idle connections and
+  no other active query older than 30 seconds at 01:26 UTC. Statement statistics
+  are cumulative since 1 November 16:40:45 UTC; they cannot attribute the alert or
+  prove current CPU recovery. No SQL text/customer records were retrieved. CPU
+  time-series correlation remains outstanding; no compute change was made.
+- No deploy/main merge, hosted migration, live message or financial change. Beta
+  enabled; feature auto-deploy disabled. Prior team-queue migration remains
+  unapplied. Release this API before the native client using its new response
+  fields. Automatic report/job linking, historical conversion repair, server inbox
+  pagination, durable retry drafts, real delivery/concurrent revocation and fresh
+  device visuals/keyboard/large text remain open. Preserve relay MFA, native
+  challenge enforcement and reconciliation gaps. Full release acceptance incomplete.
