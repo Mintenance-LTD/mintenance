@@ -2153,3 +2153,150 @@ Property follow-up backend conflicts and team queues — 8 November 2026
   Local Jest rendering does not replace fresh-build device checks. Full release
   acceptance remains incomplete; subsequent property priorities include tenant
   case-history/navigation and approval-control acceptance.
+
+Tenant case history and navigation — 8 November 2026
+- Started clean at bd9c022650d2679767c8526b88d17453f8334f00. Inspected real inbox,
+  conversation/receipt API, native job cases, queue routes and status-history
+  trigger. Existing status changes are system messages; no fabricated/backfilled
+  history or new migration.
+- Both web themes open notification-targeted cases. Sign-in/retry retain the
+  target; unavailable cases and failed inbox loads have explicit recovery.
+  Queue report links open the exact conversation. Case details link to property
+  and an existing recorded job. Create Job navigation no longer marks converted
+  before creation. Marked converted and No linked job recorded distinguish old
+  status from evidence of a linked job; no historical rows were changed.
+  Unlinked converted cases can be explicitly reopened through the existing status
+  action. Linked cases do not offer duplicate creation/reopen actions.
+- Shared web/native history displays original report context, UK submission and
+  message dates, current status and recorded system changes. Latest updates finds
+  the last page after authorization and reauthorizes the page read; already-final
+  pages avoid redundant count/RPC work. Paging uses server offsets. Summary reads
+  select only category/description/created_at; no private notes/contact fields or
+  receipt secrets are added. Existing participant permissions retained.
+- Record/account isolation, cancellable bounded reads, malformed-response
+  recovery, same-ID retry locks and exact message acknowledgement protect drafts
+  and prevent a late completion clearing another case. Confirmed sends open latest
+  updates. Native job-case labels identify category/status and reset across jobs.
+  Native history buttons have 48-point targets; message input is multiline.
+- Fresh local tests: web 36/6 files, native 14/3 suites, shared build and full web/mobile
+  TypeScript passed. Changed-file web/mobile lint passed; final Reopen conditions
+  also passed added regression tests and lint. Logs output/tenant-case-{web,mobile}-20261108.log,
+  output/tenant-case-{web,mobile}-{types,lint}-20261108.log and
+  output/tenant-case-shared-build-20261108.log. Renderer deprecation warnings remain;
+  Aikido scanning unavailable.
+- User supplied Screenshot 2026-11-08 012430.png showing Supabase CPU above 80%.
+  Bounded read-only system checks found ACTIVE_HEALTHY, mostly idle connections and
+  no other active query older than 30 seconds at 01:26 UTC. Statement statistics
+  are cumulative since 1 November 16:40:45 UTC; they cannot attribute the alert or
+  prove current CPU recovery. No SQL text/customer records were retrieved. CPU
+  time-series correlation remains outstanding; no compute change was made.
+- No deploy/main merge, hosted migration, live message or financial change. Beta
+  enabled; feature auto-deploy disabled. Prior team-queue migration remains
+  unapplied. Release this API before the native client using its new response
+  fields. Automatic report/job linking, historical conversion repair, server inbox
+  pagination, durable retry drafts, real delivery/concurrent revocation and fresh
+  device visuals/keyboard/large text remain open. Preserve relay MFA, native
+  challenge enforcement and reconciliation gaps. Full release acceptance incomplete.
+
+
+SUPABASE CPU ALERT — READ-ONLY INVESTIGATION / LOCAL PREVENTION (8 NOVEMBER 2026)
+- Strong incident attribution: review_quote_amendment_email raised 40001 for a
+  stale operator review. 9,570 logged errors across two sessions, 7 Nov 21:25:40.506
+  to 8 Nov 00:05:33.349 UTC. CPU chart for 21:00–01:00 rises around 21:25, stays
+  roughly 80% user+system, and returns near idle around the previously applied
+  00:05:33 email-conflict migration. Visual percentages/times are approximate.
+  Earlier connection termination alone did not establish durable recovery.
+- No 40001 in 00:06–10:10; overview around 10:12 showed CPU 4%, Healthy/Nano,
+  16/60 connections. Current bounded SQL: zero other active >30s or idle-in-tx
+  clients. No reproduction, hosted mutation, cancellation or financial write.
+- Repeated collation mismatch 153.120/153.121 (1,207 warnings in 22:00–00:30),
+  plus Severe memory commitment, need separate maintenance/capacity assessment.
+  No resize, collation refresh or index removal. Cumulative statement totals and
+  advisor notices alone do not establish incident cause. Details in acceptance.
+- Prepared unapplied migration 20261108101704_quote_amendment_business_conflicts:
+  eight 40001 -> PT409 changes in propose_quote_amendment/transition_quote_amendment.
+  Current hosted bodies match source; existing grants/security/financial logic
+  preserved. Compatible proposal/transition APIs now handle PT409 as terminal 409.
+- Fresh validation: 10 shared-build tasks, 82 web tests, 57 disposable PostgreSQL
+  scenarios plus role/RLS/equivalence checks, and 10 release-guard tests passed.
+  Targeted production-source ESLint passed (test files ignored); full web TypeScript passed.
+  Corrected new draft fixture's required amount before successful full SQL rerun.
+  Aikido unavailable. Evidence logs output/cpu-*-20261108.log (local ignored).
+- API-only compatible release must precede migration; preserve release guard.
+  Neither deployed nor applied. Hosted PostgREST behavior for new cases remains
+  unverified; seven other functions retain explicit 40001 business conflicts
+  (including already-pending property follow-up work). See acceptance inventory.
+- Beta enabled/unchanged; feature auto-deploy disabled. No main merge, live messages
+  or financial changes. Prior device/MFA/enforcement/visual/reconciliation and full
+  release acceptance gaps remain. Commit/push this local batch only.
+
+
+REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
+- Prepared unapplied migration 20261108103023_remaining_business_conflicts.sql:
+  seven 40001 -> PT409 substitutions in finish_account_cleanup_step,
+  respond_to_visit, review_retained_evidence, schedule_retained_evidence_disposal,
+  update_property_tenancy_folder and update_support_case. No other function-body,
+  grant/security, locking, authorization, financial or side-effect changes.
+- Visit/evidence/tenancy/support API mappings now preserve refresh-required HTTP
+  409 for PT409 and legacy 40001. Cleanup worker already rejects failed checkpoints;
+  added PT409 recovery coverage with mocked provider calls and no duplicate cancel.
+- Preserved and retested the pending property-follow-up fix. All ten known functions
+  in the effective local migration definitions use terminal business conflicts;
+  historical migrations remain unchanged. Genuine engine retry handling unchanged.
+- Fresh checks passed: 79 web tests in six files; 26 new disposable SQL scenarios
+  plus six-function body/signature/ACL/security equivalence; 10 existing team queue/
+  follow-up SQL scenarios plus grants/RLS; 10 release guard tests; shared build
+  (10 cached tasks), full web TypeScript, targeted source ESLint, diff check.
+  Corrected fixture line-ending comparison and tenancy RPC-only error injection
+  before final successful runs. Aikido unavailable. See CURRENT-ACCEPTANCE details.
+- Local ignored evidence: output/remaining-conflicts-*-20261108.log. No hosted
+  queries, provider calls, messages or financial writes. API-first/migration-second
+  rollout still required; full release guard remains intact. Hosted PostgREST and
+  concurrent/real worker recovery checks remain open. Prior quote and follow-up
+  migrations are still unapplied. No deployment or main merge; beta enabled and
+  feature auto-deploy disabled. Preserve all prior device/MFA/reconciliation gaps.
+
+2026-11-08 — AUTHORIZED API-FIRST BUSINESS-CONFLICT RELEASE
+- Pushed release/business-conflict-api-nov8 at eca682cf8, based on verified serving
+  production 57d24eb43. Eight compatible runtime mappings/follow-up safeguards and
+  eight test files only; no migration-guard bypass or unrelated feature UI release.
+- Production dpl_E22XSTTz1pp2sWogpgZHoKhnSenM READY at 11:48:34 UTC; production alias
+  and /api/version verified exact commit. Guard, shared builds, TypeScript, lint and
+  Next production build passed. Health endpoint healthy. Beta protection remains on.
+- THEN applied property_followup_conflicts_team_queue (ledger 20261108114904),
+  quote_amendment_business_conflicts (20261108114911), remaining_business_conflicts
+  (20261108114922). Function-only; eight code-only bodies differ by 15 substitutions,
+  existing signatures/security/ACLs preserved. New queue restricted to service_role.
+  Feature migration guard now verifies all 19 prerequisites against production.
+- Fresh checks: 134 API tests in release worktree; 93 disposable SQL scenarios;
+  10 guard tests; 22 relay tests. Hosted build passes full TypeScript/lint/build.
+- Designated homeowner/admin production actor checks under service_role: seven
+  PT409 refusals (stale/withdrawn amendment, follow-up, visit, missing tenancy,
+  support and cleanup lease) plus noncontractor proposal denial. Whole transaction
+  rolled back. Read-only queue scopes and old signature compatibility pass.
+- Test-job source/financial and workflow fingerprints unchanged; eight linked
+  financial tables empty, amendments withdrawn/version 2/unapplied. No successful
+  decision, account cleanup, financial operation, message or customer-row change.
+- Admin sign-in remains pending, so signed-in UI and end-to-end HTTP checks are
+  NOT established. Contractor/retention fixtures unavailable; missing-record checks
+  do not replace real stale tenancy/support checks. Real worker/provider recovery,
+  concurrency, device/MFA/visual and historical reconciliation gaps remain. No main
+  merge. Health/security/performance advisor counts unchanged. Full acceptance open.
+- See CURRENT-ACCEPTANCE.md production-release entry for precise evidence and limits.
+
+2026-11-08 — SIGNED-IN SUPPORT CONFLICT CHECK AND REFRESH FIX
+- User restored designated admin session. Two production UI tabs verified first
+  save success and stale save HTTP 409; revision/event counts did not advance on
+  conflict. Reopening the case recovered successfully.
+- Controlled support fixture ca037228-55d8-40dc-b3ac-4342b9531c54 was scoped only to
+  designated homeowner/admin accounts. Closed at revision 3; three events (creation
+  plus two successful updates), zero messages/outbox entries, no job or financial
+  link. Existing quote/job/contract/financial fingerprints remain unchanged.
+- Found production Refresh inbox did not reload the selected case revision. Fixed
+  locally to reload selected details, preserve unsent drafts/idempotency key, clear
+  old notices and disable refresh while busy. No automatic mutation retry.
+- 10 targeted UI/API tests passed, plus full web TypeScript, targeted lint and diff
+  check. Aikido absent.
+- UI fix is pushed only, NOT deployed; reopen the case as the current production
+  workaround. No new migration/deployment, main merge, beta/access change or financial
+  action. Other hosted branch/device/MFA/provider/reconciliation acceptance gaps stay.

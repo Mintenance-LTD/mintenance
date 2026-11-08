@@ -8,15 +8,40 @@ import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { IssueConversation } from './IssueConversation';
 export function JobIssueConversations({ jobId }: { jobId: string }) {
   const { user } = useAuth();
+  return user ? (
+    <JobCases key={`${user.id}:${jobId}`} jobId={jobId} userId={user.id} />
+  ) : null;
+}
+function JobCases({ jobId, userId }: { jobId: string; userId: string }) {
   const [open, setOpen] = useState(false),
     [offset, setOffset] = useState(0);
   const query = useQuery({
-    queryKey: ['job-issue-conversations', user?.id, jobId, offset],
-    enabled: open && !!user,
-    queryFn: () =>
-      mobileApiClient.get<{ reports: { id: string }[]; hasMore: boolean }>(
-        `/api/jobs/${jobId}/report-conversations?offset=${offset}`
-      ),
+    queryKey: ['job-issue-conversations', userId, jobId, offset],
+    enabled: open,
+    retry: false,
+    queryFn: async ({ signal }) => {
+      const data = await mobileApiClient.get<{
+        reports: { id: string; category: string; status: string }[];
+        hasMore: boolean;
+      }>(`/api/jobs/${jobId}/report-conversations?offset=${offset}`, {
+        signal,
+        timeout: 15000,
+        retries: 0,
+      });
+      if (
+        !Array.isArray(data?.reports) ||
+        typeof data.hasMore !== 'boolean' ||
+        data.reports.some(
+          (report) =>
+            !report ||
+            typeof report.id !== 'string' ||
+            typeof report.category !== 'string' ||
+            typeof report.status !== 'string'
+        )
+      )
+        throw new Error('Case list could not be confirmed');
+      return data;
+    },
   });
   return (
     <View
@@ -71,7 +96,12 @@ export function JobIssueConversations({ jobId }: { jobId: string }) {
                 </Text>
               )}
               {query.data?.reports.map((r) => (
-                <IssueConversation key={r.id} reportId={r.id} />
+                <View key={r.id}>
+                  <Text style={{ fontWeight: '600', color: me.ink }}>
+                    {r.category.replace(/_/g, ' ')} · {r.status}
+                  </Text>
+                  <IssueConversation reportId={r.id} />
+                </View>
               ))}
               {(offset > 0 || query.data?.hasMore) && (
                 <View

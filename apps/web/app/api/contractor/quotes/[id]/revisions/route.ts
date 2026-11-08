@@ -108,7 +108,7 @@ export const POST = withApiHandler(
       }
     );
     if (error?.code === 'P0002') throw new NotFoundError('Quote not found');
-    if (error?.code === '40001')
+    if (['PT409', '40001'].includes(error?.code ?? ''))
       throw new ConflictError(
         'Quote or request changed. Review the latest history before trying again.'
       );

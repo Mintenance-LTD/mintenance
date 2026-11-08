@@ -7,6 +7,7 @@ const m = vi.hoisted(() => ({
   role: 'owner' as string | null,
   entitled: true,
   error: null as { code: string } | null,
+  rpcError: null as { code: string } | null,
   filters: vi.fn(),
   rpc: vi.fn(),
   download: vi.fn(),
@@ -49,7 +50,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     rpc: (...args: unknown[]) => {
       m.rpc(...args);
-      return Promise.resolve({ data: report, error: m.error });
+      return Promise.resolve({ data: report, error: m.rpcError ?? m.error });
     },
     storage: { from: () => ({ download: m.download }) },
     from: (table: string) => {
@@ -92,6 +93,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
 import {
   GET as folders,
   POST as createFolder,
+  PATCH as updateFolder,
 } from '@/app/api/properties/[id]/tenancies/route';
 import {
   GET as reports,
@@ -121,6 +123,7 @@ beforeEach(() => {
   m.role = 'owner';
   m.entitled = true;
   m.error = null;
+  m.rpcError = null;
   m.photo = true;
   m.photoPath = `property-room-photos/uploader/${property}/kitchen/photo.jpg`;
   m.download.mockResolvedValue({
@@ -319,3 +322,22 @@ it('rejects malformed and oversized request bodies without writing', async () =>
   }
   expect(m.rpc).not.toHaveBeenCalled();
 });
+
+it.each(['40001', 'PT409'])(
+  'returns refresh-required conflict for stale folder (%s)',
+  async (code) => {
+    m.rpcError = { code };
+    await expect(
+      updateFolder(
+        request('PATCH', {
+          id: folder,
+          revision: 0,
+          label: 'Tenancy',
+          starts_on: '2026-01-01',
+          ends_on: null,
+        })
+      )
+    ).rejects.toMatchObject({ statusCode: 409 });
+    expect(m.rpc).toHaveBeenCalledTimes(1);
+  }
+);

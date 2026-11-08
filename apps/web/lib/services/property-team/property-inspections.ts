@@ -79,7 +79,7 @@ export function offset(value: string | null) {
 }
 export function databaseError(error: { code?: string } | null) {
   if (!error) return;
-  if (error.code === '40001')
+  if (['PT409', '40001'].includes(error.code ?? ''))
     throw new ConflictError('This folder changed. Reload before saving.');
   if (error.code === '42501')
     throw new NotFoundError('Property record not found');

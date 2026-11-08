@@ -94,15 +94,17 @@ export function AdminSupportInbox() {
   useEffect(() => {
     void load().catch((e) => setNotice(e.message));
   }, [load]);
-  async function open(id: string) {
+  async function open(id: string, resetDrafts = true) {
     const d = await api<{ ticket: Ticket; messages: Reply[] }>(
       `/api/admin/support/${id}`
     );
     setTicket(d.ticket);
     setReplies(d.messages);
-    setBody('');
-    setReason('');
-    setRequestId(crypto.randomUUID());
+    if (resetDrafts) {
+      setBody('');
+      setReason('');
+      setRequestId(crypto.randomUUID());
+    }
   }
   async function act(work: () => Promise<void>) {
     if (busy) return;
@@ -146,7 +148,18 @@ export function AdminSupportInbox() {
           />{' '}
           Include closed
         </label>
-        <button onClick={() => void act(load)}>Refresh inbox</button>
+        <button
+          disabled={busy}
+          onClick={() =>
+            void act(async () => {
+              // A refreshed list alone leaves the editor on its stale revision.
+              // Preserve unsent reply text and its idempotency key on refresh.
+              if (ticket) await open(ticket.id, false);
+            })
+          }
+        >
+          Refresh inbox
+        </button>
         {current && (
           <button
             disabled={busy}

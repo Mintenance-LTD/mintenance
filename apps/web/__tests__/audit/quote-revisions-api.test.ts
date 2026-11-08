@@ -119,6 +119,7 @@ it('allows an explicitly null legacy timestamp', async () => {
 it.each([
   ['P0002', 404],
   ['40001', 409],
+  ['PT409', 409],
   ['22023', 400],
   ['42P01', 500],
 ])('maps RPC %s without claiming success', async (code, statusCode) => {

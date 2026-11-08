@@ -45,6 +45,7 @@ interface Report {
   status: string;
   landlord_notes: string | null;
   created_at: string;
+  job_id?: string | null;
   properties: { id: string; property_name: string; address: string } | null;
 }
 
@@ -60,7 +61,7 @@ const TABS: { key: StatusKey; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'new', label: 'New' },
   { key: 'acknowledged', label: 'Acknowledged' },
-  { key: 'converted', label: 'Job created' },
+  { key: 'converted', label: 'Marked converted' },
   { key: 'resolved', label: 'Resolved' },
   { key: 'dismissed', label: 'Dismissed' },
 ];
@@ -71,7 +72,7 @@ function statusBadge(status: string) {
   if (s === 'acknowledged')
     return <span className='badge badge-warn'>Acknowledged</span>;
   if (s === 'converted')
-    return <span className='badge badge-ok'>Job created</span>;
+    return <span className='badge badge-ok'>Marked converted</span>;
   if (s === 'resolved') return <span className='badge badge-ok'>Resolved</span>;
   if (s === 'dismissed')
     return <span className='badge badge-mute'>Dismissed</span>;
@@ -96,14 +97,18 @@ function formatDate(iso: string): string {
 
 export function MintEditorialTenantReports({
   reports: initialReports,
+  initialReportId,
 }: {
   reports: Report[];
+  initialReportId?: string;
 }) {
   // Reports are kept in local state so a status mutation re-renders
   // the list + chip counts without a full page reload.
   const [reports, setReports] = useState(initialReports);
   const [filter, setFilter] = useState<StatusKey>('all');
-  const [selected, setSelected] = useState<Report | null>(null);
+  const [selected, setSelected] = useState<Report | null>(
+    () => initialReports.find((report) => report.id === initialReportId) ?? null
+  );
   const [updating, setUpdating] = useState(false);
 
   /** Optimistic status update — flips status locally, fires PATCH,
@@ -143,7 +148,9 @@ export function MintEditorialTenantReports({
               ? 'Acknowledged'
               : 'Status updated'
       );
-      if (closeAfter) setSelected(null);
+      setSelected((current) =>
+        current?.id === report.id ? (closeAfter ? null : fresh) : current
+      );
     } catch (err) {
       // Roll back
       setReports((prev) =>
@@ -186,6 +193,13 @@ export function MintEditorialTenantReports({
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto' }}>
+      {initialReportId &&
+        !reports.some((report) => report.id === initialReportId) && (
+          <p role='status'>
+            This report is unavailable in your inbox. Check the account you
+            signed in with.
+          </p>
+        )}
       <div className='col' style={{ gap: 4, marginBottom: 22 }}>
         <h1 className='t-h1'>Tenant Reports</h1>
         <p className='t-body'>
@@ -398,12 +412,14 @@ export function MintEditorialTenantReports({
                   <p className='t-meta'>{selected.properties.address}</p>
                 </div>
               ) : null}
-              <ReportConversationLink reportId={selected.id} />
+              <ReportConversationLink
+                reportId={selected.id}
+                propertyId={selected.properties?.id}
+                jobId={selected.job_id}
+              />
               <div className='col' style={{ gap: 8, marginTop: 6 }}>
-                {/* Status-aware action row — buttons depend on the
-                    current state. `converted` is a terminal state
-                    (the job already exists) so we only show a
-                    secondary Manage-links link there. */}
+                {/* A recorded job keeps conversion terminal; an unlinked legacy
+                    conversion can be explicitly reopened for review. */}
                 <div className='row' style={{ gap: 8, flexWrap: 'wrap' }}>
                   {selected.status === 'new' ? (
                     <>
@@ -450,7 +466,8 @@ export function MintEditorialTenantReports({
                     </>
                   ) : null}
                   {selected.status === 'resolved' ||
-                  selected.status === 'dismissed' ? (
+                  selected.status === 'dismissed' ||
+                  (selected.status === 'converted' && !selected.job_id) ? (
                     <button
                       type='button'
                       className='btn btn-secondary btn-sm'
@@ -463,6 +480,7 @@ export function MintEditorialTenantReports({
                 </div>
                 <div className='row' style={{ gap: 8, flexWrap: 'wrap' }}>
                   {selected.properties &&
+                  !selected.job_id &&
                   selected.status !== 'converted' &&
                   selected.status !== 'dismissed' ? (
                     <Link
@@ -472,6 +490,7 @@ export function MintEditorialTenantReports({
                           property_id: selected.properties.id,
                           category: selected.category,
                           description: selected.description,
+                          urgency: selected.urgency,
                         },
                       }}
                       className='btn btn-primary btn-sm'

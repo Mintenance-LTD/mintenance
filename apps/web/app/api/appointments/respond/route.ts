@@ -23,7 +23,7 @@ export const POST = withApiHandler({}, async (request, { user }) => {
     p_response: v.response,
   });
   if (error?.code === '42501') throw new ForbiddenError('Visit unavailable');
-  if (error?.code === '40001')
+  if (['PT409', '40001'].includes(error?.code ?? ''))
     return NextResponse.json(
       { error: 'Visit changed. Refresh before confirming.' },
       { status: 409 }

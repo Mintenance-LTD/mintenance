@@ -954,3 +954,408 @@ native sign-in MFA enforcement across custom MFA and Supabase sessions, provider
 incident recovery and historical financial reconciliation remain unverified.
 Jest rendering is not fresh-build physical-device acceptance. Beta enabled; full
 release acceptance remains incomplete.
+
+### Tenant case history and navigation — 8 November 2026
+
+Continued from clean feature commit bd9c022650d2679767c8526b88d17453f8334f00.
+Inspected the tenant inbox in both themes, queue links, shared web/native
+conversations, linked-job case lists, API authorization and the existing
+report_conversation/report_status_history SQL. Status changes already create
+system messages; no invented timeline, history backfill or new migration was added.
+
+Both web inbox layouts open the report targeted by notification query parameter;
+sign-in and retry preserve that target. Unavailable cases and failed inbox reads
+are explicit, rather than silently showing an empty inbox. Queue Review report
+opens the exact case. Detail views provide property and recorded linked-job links.
+Opening Create Job no longer PATCHes a report to converted before creation. Old
+converted records say Marked converted; a missing job link is stated explicitly.
+Unlinked converted cases offer an explicit Reopen action through the existing
+status endpoint; linked converted cases do not offer duplicate job creation/reopen.
+Existing status mutations reconcile the selected modal with the server response
+without closing a different case opened while the request was pending.
+
+Web/native case history now shows original category/description/submission time,
+current status, dated recorded messages and distinct system status updates. Dates
+use Europe/London. Latest updates resolves the final 25-message page after RPC
+authorization, with another authorization check before returning that page; an
+already-final page avoids the extra count/RPC. Older/newer navigation uses the
+server-returned offset. Original-summary reads project only category, description
+and created_at, excluding contact details, internal notes and receipt hashes.
+Summary failure remains visible alongside available messages. Existing receipt,
+manager/owner and assigned-contractor authorization is retained; viewers are not
+newly admitted. Shared history is distinct from internal property follow-up notes.
+
+Record-keyed web state and account/report-keyed native state isolate drafts and
+late completions. Reads have bounded waits and cancellation. Malformed history
+fails visibly. Writes use a ref lock and a stable message ID; only an exact API
+acknowledgement clears input. Unconfirmed sends retain and lock the draft for the
+same-ID retry, and confirmed sends open latest updates. Native job-case lists show
+category/status, validate responses and reset when the job/account changes.
+Native history controls have 48-point targets and multiline note space.
+
+Fresh local checks: 36 web tests/6 files and 14 mobile tests/3 suites passed;
+shared package build, full web/mobile TypeScript and changed-file web/mobile
+ESLint passed. The final Reopen visibility conditions also passed the added
+regression cases and changed-file lint. Logs:
+output/tenant-case-{web,mobile}-20261108.log,
+output/tenant-case-{web,mobile}-{types,lint}-20261108.log and
+output/tenant-case-shared-build-20261108.log. Existing React Native renderer
+deprecation warnings remain. Aikido tooling is unavailable; no clean scan claimed.
+
+The supplied Supabase CPU-alert screenshot is operational evidence, not an
+instruction to resize/deploy. Read-only system diagnostics on project
+ukrjudtlvapiajkjbcrd at 01:26 UTC found ACTIVE_HEALTHY project status, 14 idle/Client
+connections, one idle/Extension connection, one background/Extension connection
+and zero other active queries older than 30 seconds. Cumulative statement stats
+were last reset 1 November 2026 16:40:45 UTC; the top six execution-time entries
+included catalog/introspection and other statements. SQL text and customer rows
+were not retrieved. These are not CPU time-series measurements and do not establish
+the alert's cause or recovery. CPU correlation at the alert window remains open.
+Diagnostics used READ ONLY transactions with a five-second statement timeout;
+no compute setting, live record, financial record or notification was changed.
+
+No deployment, migration application or main merge. Beta stays enabled and feature
+auto-deployment remains disabled. The previous team-queue migration is still
+unapplied with its documented staged rollout dependency. This case-history API
+must precede native release because the new client validates pageOffset/messageId.
+Automatic report-to-job linking after successful creation remains unimplemented;
+historical converted records were not repaired. Inbox-wide server pagination,
+durable drafts/retry IDs across app exit, concurrent revocation/receipt rotation,
+real message delivery and fresh browser/device visual/accessibility checks remain
+open. Preserve deployed-relay MFA, native sign-in enforcement, physical-device and
+historical reconciliation limitations. Full release acceptance remains incomplete.
+
+
+### Supabase CPU alert investigation and local conflict prevention — 8 November 2026
+
+Read-only production investigation of project ukrjudtlvapiajkjbcrd, approximately
+10:09–10:22 UTC. The repository was clean at e556924af before this batch. No SQL
+mutation, RPC invocation, deployment, compute resize, termination, notification,
+account change or financial write was performed. System SQL used READ ONLY and a
+five-second statement timeout; logs were bounded to explicit time windows.
+
+Cause: strong time-correlated evidence of the previously observed operator-review
+retry loop, triggered by a deterministic stale-review exception incorrectly using
+serialization_failure (40001). PostgreSQL logs contain 9,570 such errors from
+review_quote_amendment_email, line 23 at RAISE, across two backend sessions between
+2026-11-07 21:25:40.506 and 2026-11-08 00:05:33.349 UTC. Of these, 7,510 fall in
+22:00–00:30, with approximately 60 logged errors/minute. These are logged errors,
+not a measured count of every internal retry. The ending timestamp matches the
+previously applied email-conflict migration (hosted 20261108000533). The earlier
+backend termination did NOT establish durable recovery: a second session also
+contributed to the incident. The migration, rather than caller timeout, ended the
+observed loop. No deliberate failing RPC was sent during this investigation.
+
+Authenticated Supabase Database Observability, custom 21:00–01:00 UTC window,
+shows CPU rising around 21:25, sustained roughly 80% combined user/system activity,
+and falling near idle around 00:05. These are approximate visual chart readings,
+not exported precise samples. The project overview at approximately 10:12 showed
+Healthy, Nano compute, CPU 4%, RAM 61%, and 16/60 connections. No 40001 was logged
+in the independently checked 00:06–10:10 window (one PT409, the previously verified
+stale test). Current system checks found zero other active client queries older
+than 30 seconds and zero idle-in-transaction client sessions. The chart/log timing
+strongly attributes this alert to the controlled stale-review retry incident;
+it does not prove absence of every concurrent contributor or future saturation.
+
+Cumulative pg_stat_statements (reset 1 November 16:40:45 UTC) ranks Realtime
+list_changes, PostgREST set_config, admin assignment RPCs and cron_job_runs writes
+among the largest totals. Those totals cannot identify incident CPU by themselves;
+failed work is not reliably represented by completed-statement rankings. Normal
+cron activity and frequent operations-dashboard reads were observed, without
+sufficient evidence to change schedules or remove indexes. No blanket index change.
+
+Additional findings: 1,207 collation-version warnings in 22:00–00:30 (1,184 postgres,
+23 template1), created version 153.120 versus OS 153.121. Another 5,498 warning
+entries occur after 00:06; these ongoing warnings require separate managed-database
+maintenance assessment, not a blind REFRESH COLLATION VERSION or reindex here.
+The dashboard also marks memory commitment Severe (~1.45 GB); this alone does not
+establish resident-memory exhaustion. Health advisors returned zero findings;
+performance 1,234 (45 unindexed FK, 4 no primary key, 1,185 unused-index notices),
+security 136 in seven existing categories. Advisory counts do not prove CPU cause
+or justify broad schema/security changes in this task.
+
+Local prevention prepared, NOT APPLIED:
+20261108101704_quote_amendment_business_conflicts.sql changes only eight business
+conflict SQLSTATE values in propose_quote_amendment and transition_quote_amendment
+from 40001 to PT409. Source function bodies match production exactly before these
+substitutions (MD5 42b9db4df81a790fa672c3c709f2fb0b and
+93521f571cedcdd5ba37efcfb9930d5b respectively). Both APIs now map PT409 to HTTP 409
+while retaining legacy 40001 handling. Function grants remain postgres/service_role
+only, SECURITY DEFINER and empty search_path unchanged. No accepted pricing,
+locking, authorization, idempotency, notifications or financial safeguards change.
+
+Release sequencing remains API first, migration second, then controlled hosted
+verification. The release migration guard is intact: a full feature-branch build
+will refuse production while migrations are pending. Use an explicitly authorized
+API-only release without pending SQL, as documented in the earlier conflict release;
+do not bypass the guard or apply SQL ahead of the compatible API. No release is
+authorized or attempted in this batch. Feature auto-deployment remains disabled.
+
+Fresh local validation: shared package build passed (10 tasks); 82 web tests in
+quote-revisions-api, quote-approval-api and quote-email-review-api passed; 57
+embedded PostgreSQL approval/application scenarios plus role/RLS checks passed;
+10 release-migration guard tests passed. SQL checks compare complete function
+bodies, ACLs, security settings and arguments before/after, asserting only the eight
+SQLSTATE changes. New cases cover proposal reuse/stale timestamp/non-accepted state,
+changed job and changed accepted bid, with PT409 assertions for stale decisions,
+closed states and changed payer. Existing replay, immutable history, notification
+atomicity and financial-footprint refusal scenarios still pass. An initial new
+synthetic draft fixture lacked required total_amount; it was corrected to zero and
+the complete SQL suite reran successfully. Targeted production-source ESLint passed;
+test files are ignored by repository ESLint configuration. Full web TypeScript (tsc --noEmit --incremental false) passed.
+Aikido scan tooling is unavailable; no security-scan pass is claimed. Local logs:
+output/cpu-{packages,conflicts-sql,conflicts-web,conflicts-types,conflicts-lint,release-guard}-20261108.log.
+
+Remaining risk inventory (read-only pg_proc inspection): seven other hosted
+functions still explicitly raise 40001: finish_account_cleanup_step,
+respond_to_visit, review_retained_evidence, schedule_retained_evidence_disposal,
+save_property_action_followup, update_property_tenancy_folder and update_support_case.
+The follow-up fix is already pending in the previous unapplied team-queue migration;
+others require caller mapping and behavioral tests before separate changes. No
+incident-window evidence attributes this alert to those functions. The two quote
+functions remain unchanged on production until authorized release of this batch.
+PGlite does not run PostgREST: hosted terminal-response verification remains open
+for these new cases. No load test was run against production.
+
+Beta gate remains enabled and unchanged. No deployment, main merge, financial
+mutation or hosted migration. Preserve all prior device/MFA relay, native sign-in
+challenge enforcement, physical-device visual, genuine provider recovery and
+historical financial reconciliation limitations. Full release acceptance is incomplete.
+
+References: Supabase high-CPU guidance
+https://supabase.com/kb/troubleshooting/high-cpu-usage and PostgREST custom SQLSTATE
+HTTP status handling https://docs.postgrest.org/en/stable/references/errors.html .
+
+
+### Remaining deterministic conflict codes — local completion, 8 November 2026
+
+Continued from clean feature head 7deb90dc4. Inspected the six remaining function
+bodies, their callers, the existing property-follow-up fix and historical migration
+order. This batch uses local files, mocked APIs and disposable PGlite only; no
+production query, failing RPC, provider call, financial write or deployment.
+
+Prepared, NOT APPLIED, migration
+20261108103023_remaining_business_conflicts.sql. Seven explicit business-conflict
+40001 codes become PT409 in six functions:
+- finish_account_cleanup_step: expired/replaced lease or already-completed step.
+- respond_to_visit: changed date, time or visit state.
+- review_retained_evidence: stale review revision.
+- schedule_retained_evidence_disposal: held/unclassified/stale evidence and an
+  already-existing incompatible disposal decision.
+- update_property_tenancy_folder: stale revision or mismatched folder/property.
+- update_support_case: missing/stale case revision.
+
+API callers for visit, evidence review/disposal, tenancy and support now map PT409
+to their existing refresh-required HTTP 409 response, retaining legacy 40001.
+The account-cleanup worker already fails closed for every checkpoint error; no
+worker behavior change was needed. Its PT409 regression verifies that an uncertain
+checkpoint does not claim completion and a later confirmed provider cancellation
+is not duplicated. All provider operations in that test are mocks.
+
+The property follow-up function was already replaced by pending migration
+20261108005044_property_followup_conflicts_team_queue.sql. It was preserved and
+retested, not overwritten by this migration. The earlier quote prevention migration
+20261108101704_quote_amendment_business_conflicts.sql also remains unapplied.
+The effective final local definitions of all ten functions from the CPU incident
+inventory now have no explicit ERRCODE='40001'. Historical migration files remain
+immutable; their old codes are intentionally still present. This inventory check
+covers the ten known functions, not arbitrary future functions or genuine engine
+serialization/deadlock errors; genuine retry handling was not changed.
+
+Fresh validation:
+- Shared package build: 10 successful cached tasks; Node 20.19.4.
+- 79 Vitest tests across six files: remaining-conflicts-api, evidence-review,
+  evidence-disposal, property-inspection-api, remediation-account-deletion-recovery
+  and property-followup-api.
+- 26 disposable PostgreSQL scenarios in test-remaining-business-conflicts.mjs:
+  valid transitions, stale/expired state, unchanged records after refusal, exact
+  visit/disposal replay, no duplicate notifications/review/support events,
+  administrator/deleted-admin/editor/property/assignee boundaries, and retention
+  safeguards. Full function bodies (normalized checkout line endings), signatures,
+  execution ACLs, SECURITY DEFINER/INVOKER and search_path compare equal before/after
+  except for exactly seven SQLSTATE substitutions. All six remain non-executable
+  by anon/authenticated and executable by service_role. The actual tenancy schema
+  and editor helper and evidence-review/disposal schemas are loaded; other tables
+  use minimal synthetic fixture schemas. This is not a full production-schema test.
+- 10 existing property-team queue/follow-up SQL scenarios plus grant/RLS checks.
+- 10 release-migration guard tests; the new migration is a required prerequisite.
+- Full web TypeScript (tsc --noEmit --incremental false), targeted production-source
+  ESLint and git diff --check passed. Aikido scan tools remain unavailable.
+
+Initial checks caught fixture-only issues: Windows checkout line endings differed
+in the body comparison (normalized both migration inputs), and the tenancy API mock
+injected its error into the permission read rather than the update RPC (separated
+rpcError). Both full affected suites passed after correction. Local ignored logs:
+output/remaining-conflicts-{packages,web,sql,followup,types,lint,release}-20261108.log.
+
+Release order remains compatible API first, reviewed migrations second, controlled
+hosted verification third. The release guard intentionally blocks a full production
+build while required migrations are pending; an authorized API-only release must
+exclude pending SQL as documented previously, without bypassing the guard. No
+schema application or deployment was requested or attempted. Hosted terminal HTTP
+responses, concurrent requests and real worker recovery remain unverified for these
+new cases: PGlite does not run PostgREST. The previous incident attribution and
+collation/memory maintenance findings are unchanged; no new CPU recovery claim.
+
+Beta remains enabled/unchanged; feature auto-deployment stays disabled. No main
+merge, messages, account mutation, live records or financial changes. Retain all
+prior physical-device visual, deployed MFA relay/native sign-in enforcement, genuine
+provider recovery and historical financial reconciliation limitations. Full release
+acceptance remains incomplete. Commit and push only this reviewed local batch.
+
+### Business-conflict production release — 8 November 2026
+
+Explicit user authorization superseded the preceding no-deploy checkpoint for
+these business-conflict fixes only. Released the compatible API first, applied
+the three reviewed migrations second, and verified controlled refusals third.
+No main merge, financial changes, account/permission changes or new messages.
+
+Release source and build:
+- Verified the serving production source was main commit 57d24eb43268be013d9fe4c8ef7dbf4f509b9383.
+- Created release/business-conflict-api-nov8 from that exact production source.
+  Copied eight compatible API/service files and eight targeted test files from
+  feature commit 84d28321d. This includes dual PT409/40001 handling and the property
+  follow-up moved-source/eligible-assignee safeguards. No pending SQL, release
+  guard, beta configuration, unrelated UI or scoped-queue API was included.
+- Reviewed, committed and pushed eca682cf8cd71f26f7b5820a8bf5785b8461533f.
+- Production deployment dpl_E22XSTTz1pp2sWogpgZHoKhnSenM reached READY at
+  2026-11-08T11:48:34.947Z. Verified www.mintenance.co.uk points to this deployment.
+  Build passed its unchanged production migration guard (15 prerequisites), shared
+  package builds, web TypeScript, lint and Next.js production build (five minutes).
+- Authenticated Vercel fetch of /api/version returned HTTP 200 and the exact release
+  SHA at 11:50:35 UTC; /api/health returned HTTP 200 / healthy at 11:53:29 UTC.
+  Ordinary unauthenticated access still required Vercel Authentication. Protection
+  was not disabled; the connector uses its scoped temporary access mechanism.
+
+Applied exact repository SQL using Supabase apply_migration, after API READY and
+alias verification. Production ledger records the tool-assigned versions:
+- 20261108114904 property_followup_conflicts_team_queue
+  (source 20261108005044_property_followup_conflicts_team_queue.sql).
+- 20261108114911 quote_amendment_business_conflicts
+  (source 20261108101704_quote_amendment_business_conflicts.sql).
+- 20261108114922 remaining_business_conflicts
+  (source 20261108103023_remaining_business_conflicts.sql).
+
+All three are function-only schema changes; there is no migration-time row update,
+backfill or reconciliation. Compared production function bodies before/after:
+the two quote functions and six remaining functions differ only by the intended
+15 SQLSTATE substitutions. Existing signatures, ACLs, SECURITY DEFINER/INVOKER and
+search_path settings match. The follow-up/queue changes match the reviewed migration;
+the new queue is executable by service_role, not anon/authenticated. No public
+function body remains with an explicit ERRCODE = '40001' in the checked inventory;
+genuine PostgreSQL serialization handling remains unchanged. The unchanged feature
+release guard's requiredMigrations/verifyApplied check passes all 19 prerequisites
+against the freshly fetched production ledger. A full feature build was not deployed;
+the new scoped queue UI/API and other unrelated feature work remain unreleased.
+
+Fresh local release validation:
+- Node 20.19.4; 134 Vitest tests in eight files from the isolated API release tree.
+- 26 remaining-conflict, 10 property-follow-up/team-queue and 57 quote-amendment SQL
+  scenarios (93 total), including body/grant/security, replay and side-effect checks.
+- 10 release-guard tests and 22 relay tests, including beta/MFA routing checks.
+- git diff --check; hosted full TypeScript/lint/build passed as above.
+  Initial local test startup failed because this isolated worktree lacked web
+  dependency links; then sandbox temporary-file renames failed. Linking the existing
+  dependencies and running the same tests outside that sandbox produced the passing
+  run. No application code was changed to hide either environment failure.
+
+Controlled production verification used only designated homeowner
+gloirenkouka380@gmail.com and admin@mintenance.co.uk actor IDs. Under service_role,
+with bounded timeouts and an explicitly rolled-back transaction, seven calls returned
+PT409 as required: stale and already-withdrawn amendment rejection; stale follow-up;
+changed visit date; nonexistent tenancy folder; nonexistent support case; nonexistent
+cleanup lease. Each check asserted the expected exception and would abort on success
+or a different error. The noncontractor homeowner proposal attempt returned P0002.
+These are database-function checks through the connector, not signed-in Next.js or
+PostgREST HTTP checks. No approval/application action or successful cleanup operation
+was invoked. No record was fabricated to exercise retention/disposal.
+
+Read-only designated homeowner queue checks returned team=12, mine=0, unassigned=12,
+with five overdue items; old portfolio_action_queue exactly matched team scope.
+Before/after fingerprints match for the house-check job, quote, bid, contract and
+signatories; all eight job-linked financial tables remain empty. Amendment state/
+events, follow-up/history and the selected visit fingerprints also match. Both test
+amendments remain withdrawn/version 2 and unapplied. The failed first follow-up left
+no placeholder or history. No tenant/contractor notification was committed.
+
+Post-release health advisors report zero findings. Security groups/counts are unchanged
+from preflight (136 across seven groups); performance counts are unchanged (1,234).
+These existing findings are not resolved by this release. A scoped ten-minute Vercel
+error/fatal query returned no groups; this is a short observation, not sustained CPU
+or comprehensive runtime acceptance. Ten restrictive beta database policies remain;
+website protection, relay deployment/allowlist and feature auto-deploy exclusion were
+unchanged.
+
+Remaining acceptance: the admin browser session expired and the prepared tab still
+shows Admin Sign In; the requested user sign-in has not completed. Signed-in operator
+UI and end-to-end HTTP conflict behavior remain unverified for this release. No
+designated contractor account was provided, so contractor proposal conflict branches
+were checked locally and by production body equivalence only. Designated accounts
+have no retention/disposal, tenancy or support fixture suitable for a real stale-edit
+check; missing-record tenancy/support checks do not replace that coverage. Successful
+real cleanup/provider recovery and hosted concurrent-request behavior remain open.
+No evidence that this release reconciles historical finances or establishes native
+MFA challenge enforcement. Preserve all Android/iOS deployed-relay device checks,
+fresh-build physical-device visuals and prior acceptance limitations. Beta remains
+enabled. Full release acceptance remains incomplete.
+
+Local ignored evidence: output/conflict-release-api-tests-20261108.log,
+output/conflict-release-relay-20261108.log and
+output/business-conflict-production-ledger.json. The release branch is pushed; this
+audit is recorded on feat/launch-terms-support-nov2 with automatic deployment excluded.
+
+### Signed-in operator conflict verification — 8 November 2026
+
+After the user completed sign-in, the production admin dashboard and customer
+service inbox loaded. The previous expired-session blocker is cleared. Production
+request logs identify the signed-in actor as the designated admin UUID ending
+4d1c (admin@mintenance.co.uk), on deployment dpl_E22XSTTz1pp2sWogpgZHoKhnSenM.
+
+Created one explicitly labelled nonfinancial support fixture, ca037228-55d8-40dc-
+b3ac-4342b9531c54, owned by the designated homeowner and assigned only to the
+designated admin. It has no job link. Inspected table constraints and confirmed
+there are no noninternal triggers before inserting the fixture and its labelled
+test-creation event. Did not invoke the general assignment routine, which can
+notify other operators. The fixture waits on the customer with a seven-day due
+date while being tested; no real customer issue, message or financial record was
+created. Closed it through the signed-in UI immediately after verification.
+
+Two browser tabs loaded revision 1. The first operator save succeeded and recorded
+revision 2 / one update event. Saving from the stale second tab displayed
+"Case changed or the assignee is unavailable. Refresh before updating." Production
+logs confirm PATCH HTTP 409 / CONFLICT at 11:59:18.961 UTC for the designated admin,
+request cq98t-1794139158690-63334688163a. The database stayed at revision 2 with no
+duplicate event. This establishes the deployed support API's terminal conflict
+mapping through an actual signed-in request, rather than only a direct SQL check.
+
+Found a separate production UI recovery defect: Refresh inbox cleared the notice
+and refreshed the list, but retained the selected editor's old revision. A retry
+therefore returned the conflict again. Reopening the case loaded the current
+revision and allowed closure. Final fixture state is closed, revision 3, assigned
+to the designated admin, no job link, three events total (test creation and two
+successful updates), zero support messages and zero matching communication-outbox
+entries. No account settings/permissions or customer/contractor messages changed.
+Fresh test-job source and financial fingerprints still match the pre-release check.
+
+Local fix in AdminSupportInbox: Refresh inbox now reloads the selected case before
+refreshing the list, updates the editor's revision and authoritative fields, and
+preserves unsent reply text, handover notes and the reply idempotency key. It disables
+refresh during an active operation and does not resubmit any mutation. Errors replace
+previous success notices. Reopening a case still resets drafts as before.
+
+Fresh checks: 10 tests passed (three support UI regression scenarios plus seven
+existing remaining-conflict API scenarios). These cover stale save -> refresh ->
+successful retry using the current revision, draft preservation, failed-refresh
+success-message reset and refreshing with no selected case. Full web TypeScript
+(tsc --noEmit --incremental false), targeted ESLint and git diff --check passed.
+Local logs: output/operator-conflict-ui-20261108.log and
+output/operator-conflict-types-20261108.log. Aikido scan tools are unavailable.
+
+This UI fix is local and pushed for review, NOT deployed; production still needs
+the case-reopen workaround until a subsequent UI release. No new deployment or
+migration was performed in this continuation. The production support conflict
+check supersedes that specific HTTP verification gap; it does not establish all
+visit, tenancy, contractor-proposal, evidence/disposal or worker recovery branches.
+Retain all prior physical-device, native MFA enforcement, concurrent-worker/provider
+and historical financial reconciliation gaps. Beta remains enabled; feature
+auto-deployment remains excluded and main was not merged. Full acceptance is open.

@@ -13,7 +13,7 @@ export function amendmentError(
   if (error.code === '42501')
     throw new ForbiddenError('You cannot perform this amendment action.');
   if (error.code === 'P0002') throw new NotFoundError('Amendment not found.');
-  if (error.code === '40001' || error.code === '23505')
+  if (['PT409', '40001', '23505'].includes(error.code ?? ''))
     throw new ConflictError(
       'This proposal or job changed. Refresh the review before continuing.'
     );
