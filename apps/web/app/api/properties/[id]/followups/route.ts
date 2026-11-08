@@ -51,13 +51,23 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
   if (!parsed.success) throw new BadRequestError('Invalid source');
   const { kind, sourceId } = parsed.data;
   await authorize(user.id, params.id, kind, sourceId);
+  const { data: followup, error: followupError } = await serverSupabase
+    .from('property_action_followups')
+    .select('*')
+    .eq('kind', kind)
+    .eq('source_id', sourceId)
+    .maybeSingle();
+  if (followupError) throw followupError;
+  // Source ownership can change; never disclose the former property's notes.
+  if (followup && followup.property_id !== params.id)
+    return NextResponse.json(
+      {
+        error:
+          'This follow-up belongs to a previous property. Contact support before updating it.',
+      },
+      { status: 409, headers: { 'Cache-Control': 'private, no-store' } }
+    );
   const results = await Promise.all([
-    serverSupabase
-      .from('property_action_followups')
-      .select('*')
-      .eq('kind', kind)
-      .eq('source_id', sourceId)
-      .maybeSingle(),
     serverSupabase
       .from('property_action_updates')
       .select('id,body,created_at,delivery:notification_id(status,sent_at)')
@@ -78,15 +88,16 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
       .in('role', ['admin', 'manager']),
   ]);
   for (const result of results) if (result.error) throw result.error;
-  const owner = results[2].data as { owner_id: string };
-  const members = results[3].data as { user_id: string }[];
+  const owner = results[1].data as { owner_id: string };
+  const members = results[2].data as { user_id: string }[];
   const { data: people, error } = await serverSupabase
     .from('profiles')
     .select('id,first_name,last_name')
-    .in('id', [owner.owner_id, ...members.map((row) => row.user_id)]);
+    .in('id', [owner.owner_id, ...members.map((row) => row.user_id)])
+    .is('deleted_at', null);
   if (error) throw error;
   return NextResponse.json(
-    { followup: results[0].data, updates: results[1].data, people },
+    { followup, updates: results[0].data, people },
     { headers: { 'Cache-Control': 'private, no-store' } }
   );
 });
@@ -109,10 +120,16 @@ export const PATCH = withApiHandler({}, async (request, { user, params }) => {
       p_note: value.note,
     }
   );
-  if (error?.code === '40001')
+  if (['PT409', '40001'].includes(error?.code ?? ''))
     return NextResponse.json(
       { error: 'Someone changed this follow-up. Reload before saving.' },
       { status: 409 }
+    );
+  if (error?.code === '42501')
+    throw new ForbiddenError('You cannot manage this follow-up');
+  if (error?.code === '22023')
+    throw new BadRequestError(
+      'Follow-up details or assignee are no longer valid. Reload before saving.'
     );
   if (error) throw error;
   return NextResponse.json({ followup: data });

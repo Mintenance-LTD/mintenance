@@ -89,7 +89,7 @@ export const POST = withApiHandler(
           });
     if (result.error?.code === 'P0002')
       throw new NotFoundError('Archived record not found.');
-    if (result.error?.code === '40001')
+    if (['PT409', '40001'].includes(result.error?.code ?? ''))
       throw new ConflictError(
         'The review or disposal decision changed. Reload before deciding.'
       );

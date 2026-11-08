@@ -61,7 +61,7 @@ export const PATCH = withApiHandler(
       p_priority: p.priority,
       p_reason: p.reason,
     });
-    if (error?.code === '40001' || error?.code === '23514')
+    if (['PT409', '40001', '23514'].includes(error?.code ?? ''))
       throw new ConflictError(
         'Case changed or the assignee is unavailable. Refresh before updating.'
       );

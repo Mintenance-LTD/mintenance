@@ -118,27 +118,30 @@ describe('durable deletion cleanup', () => {
       expectOutcome('needs_review');
     }
   );
-  it('recovers an already-canceled subscription after a lost outcome write', async () => {
-    mocks.rpc.mockImplementation(async (name) =>
-      name === 'claim_account_cleanup_step'
-        ? { data: step, error: null }
-        : { error: { code: '40001' } }
-    );
-    await expect(run()).rejects.toThrow('persist');
-    mocks.rpc.mockImplementation(async (name) =>
-      name === 'claim_account_cleanup_step'
-        ? { data: step, error: null }
-        : { error: null }
-    );
-    mocks.retrieve.mockResolvedValue({
-      id: 'sub_audit',
-      metadata: { userId },
-      status: 'canceled',
-    });
-    await run();
-    expect(mocks.cancel).toHaveBeenCalledTimes(1);
-    expectOutcome('completed');
-  });
+  it.each(['40001', 'PT409'])(
+    'recovers an already-canceled subscription after a rejected outcome write (%s)',
+    async (code) => {
+      mocks.rpc.mockImplementation(async (name) =>
+        name === 'claim_account_cleanup_step'
+          ? { data: step, error: null }
+          : { error: { code } }
+      );
+      await expect(run()).rejects.toThrow('persist');
+      mocks.rpc.mockImplementation(async (name) =>
+        name === 'claim_account_cleanup_step'
+          ? { data: step, error: null }
+          : { error: null }
+      );
+      mocks.retrieve.mockResolvedValue({
+        id: 'sub_audit',
+        metadata: { userId },
+        status: 'canceled',
+      });
+      await run();
+      expect(mocks.cancel).toHaveBeenCalledTimes(1);
+      expectOutcome('completed');
+    }
+  );
   it('keeps an unconfirmed cancellation pending', async () => {
     mocks.cancel.mockResolvedValue({ id: 'sub_audit', status: 'active' });
     expect(await run()).toMatchObject({ retried: 1 });
