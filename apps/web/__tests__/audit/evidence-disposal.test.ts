@@ -78,6 +78,7 @@ it('does not call the worker when database admin verification fails', async () =
 });
 it.each([
   ['40001', 409],
+  ['PT409', 409],
   ['P0002', 404],
   ['22023', 400],
   ['08006', 500],

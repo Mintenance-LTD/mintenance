@@ -2229,3 +2229,29 @@ SUPABASE CPU ALERT — READ-ONLY INVESTIGATION / LOCAL PREVENTION (8 NOVEMBER 20
 - Beta enabled/unchanged; feature auto-deploy disabled. No main merge, live messages
   or financial changes. Prior device/MFA/enforcement/visual/reconciliation and full
   release acceptance gaps remain. Commit/push this local batch only.
+
+
+REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
+- Prepared unapplied migration 20261108103023_remaining_business_conflicts.sql:
+  seven 40001 -> PT409 substitutions in finish_account_cleanup_step,
+  respond_to_visit, review_retained_evidence, schedule_retained_evidence_disposal,
+  update_property_tenancy_folder and update_support_case. No other function-body,
+  grant/security, locking, authorization, financial or side-effect changes.
+- Visit/evidence/tenancy/support API mappings now preserve refresh-required HTTP
+  409 for PT409 and legacy 40001. Cleanup worker already rejects failed checkpoints;
+  added PT409 recovery coverage with mocked provider calls and no duplicate cancel.
+- Preserved and retested the pending property-follow-up fix. All ten known functions
+  in the effective local migration definitions use terminal business conflicts;
+  historical migrations remain unchanged. Genuine engine retry handling unchanged.
+- Fresh checks passed: 79 web tests in six files; 26 new disposable SQL scenarios
+  plus six-function body/signature/ACL/security equivalence; 10 existing team queue/
+  follow-up SQL scenarios plus grants/RLS; 10 release guard tests; shared build
+  (10 cached tasks), full web TypeScript, targeted source ESLint, diff check.
+  Corrected fixture line-ending comparison and tenancy RPC-only error injection
+  before final successful runs. Aikido unavailable. See CURRENT-ACCEPTANCE details.
+- Local ignored evidence: output/remaining-conflicts-*-20261108.log. No hosted
+  queries, provider calls, messages or financial writes. API-first/migration-second
+  rollout still required; full release guard remains intact. Hosted PostgREST and
+  concurrent/real worker recovery checks remain open. Prior quote and follow-up
+  migrations are still unapplied. No deployment or main merge; beta enabled and
+  feature auto-deploy disabled. Preserve all prior device/MFA/reconciliation gaps.

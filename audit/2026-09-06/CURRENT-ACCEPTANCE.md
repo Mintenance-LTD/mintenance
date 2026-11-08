@@ -1125,3 +1125,80 @@ historical financial reconciliation limitations. Full release acceptance is inco
 References: Supabase high-CPU guidance
 https://supabase.com/kb/troubleshooting/high-cpu-usage and PostgREST custom SQLSTATE
 HTTP status handling https://docs.postgrest.org/en/stable/references/errors.html .
+
+
+### Remaining deterministic conflict codes — local completion, 8 November 2026
+
+Continued from clean feature head 7deb90dc4. Inspected the six remaining function
+bodies, their callers, the existing property-follow-up fix and historical migration
+order. This batch uses local files, mocked APIs and disposable PGlite only; no
+production query, failing RPC, provider call, financial write or deployment.
+
+Prepared, NOT APPLIED, migration
+20261108103023_remaining_business_conflicts.sql. Seven explicit business-conflict
+40001 codes become PT409 in six functions:
+- finish_account_cleanup_step: expired/replaced lease or already-completed step.
+- respond_to_visit: changed date, time or visit state.
+- review_retained_evidence: stale review revision.
+- schedule_retained_evidence_disposal: held/unclassified/stale evidence and an
+  already-existing incompatible disposal decision.
+- update_property_tenancy_folder: stale revision or mismatched folder/property.
+- update_support_case: missing/stale case revision.
+
+API callers for visit, evidence review/disposal, tenancy and support now map PT409
+to their existing refresh-required HTTP 409 response, retaining legacy 40001.
+The account-cleanup worker already fails closed for every checkpoint error; no
+worker behavior change was needed. Its PT409 regression verifies that an uncertain
+checkpoint does not claim completion and a later confirmed provider cancellation
+is not duplicated. All provider operations in that test are mocks.
+
+The property follow-up function was already replaced by pending migration
+20261108005044_property_followup_conflicts_team_queue.sql. It was preserved and
+retested, not overwritten by this migration. The earlier quote prevention migration
+20261108101704_quote_amendment_business_conflicts.sql also remains unapplied.
+The effective final local definitions of all ten functions from the CPU incident
+inventory now have no explicit ERRCODE='40001'. Historical migration files remain
+immutable; their old codes are intentionally still present. This inventory check
+covers the ten known functions, not arbitrary future functions or genuine engine
+serialization/deadlock errors; genuine retry handling was not changed.
+
+Fresh validation:
+- Shared package build: 10 successful cached tasks; Node 20.19.4.
+- 79 Vitest tests across six files: remaining-conflicts-api, evidence-review,
+  evidence-disposal, property-inspection-api, remediation-account-deletion-recovery
+  and property-followup-api.
+- 26 disposable PostgreSQL scenarios in test-remaining-business-conflicts.mjs:
+  valid transitions, stale/expired state, unchanged records after refusal, exact
+  visit/disposal replay, no duplicate notifications/review/support events,
+  administrator/deleted-admin/editor/property/assignee boundaries, and retention
+  safeguards. Full function bodies (normalized checkout line endings), signatures,
+  execution ACLs, SECURITY DEFINER/INVOKER and search_path compare equal before/after
+  except for exactly seven SQLSTATE substitutions. All six remain non-executable
+  by anon/authenticated and executable by service_role. The actual tenancy schema
+  and editor helper and evidence-review/disposal schemas are loaded; other tables
+  use minimal synthetic fixture schemas. This is not a full production-schema test.
+- 10 existing property-team queue/follow-up SQL scenarios plus grant/RLS checks.
+- 10 release-migration guard tests; the new migration is a required prerequisite.
+- Full web TypeScript (tsc --noEmit --incremental false), targeted production-source
+  ESLint and git diff --check passed. Aikido scan tools remain unavailable.
+
+Initial checks caught fixture-only issues: Windows checkout line endings differed
+in the body comparison (normalized both migration inputs), and the tenancy API mock
+injected its error into the permission read rather than the update RPC (separated
+rpcError). Both full affected suites passed after correction. Local ignored logs:
+output/remaining-conflicts-{packages,web,sql,followup,types,lint,release}-20261108.log.
+
+Release order remains compatible API first, reviewed migrations second, controlled
+hosted verification third. The release guard intentionally blocks a full production
+build while required migrations are pending; an authorized API-only release must
+exclude pending SQL as documented previously, without bypassing the guard. No
+schema application or deployment was requested or attempted. Hosted terminal HTTP
+responses, concurrent requests and real worker recovery remain unverified for these
+new cases: PGlite does not run PostgREST. The previous incident attribution and
+collation/memory maintenance findings are unchanged; no new CPU recovery claim.
+
+Beta remains enabled/unchanged; feature auto-deployment stays disabled. No main
+merge, messages, account mutation, live records or financial changes. Retain all
+prior physical-device visual, deployed MFA relay/native sign-in enforcement, genuine
+provider recovery and historical financial reconciliation limitations. Full release
+acceptance remains incomplete. Commit and push only this reviewed local batch.

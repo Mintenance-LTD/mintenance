@@ -159,7 +159,7 @@ export const POST = withApiHandler(
         p_review_due_at: d.reviewDueAt,
       }
     );
-    if (error?.code === '40001')
+    if (['PT409', '40001'].includes(error?.code ?? ''))
       throw new ConflictError(
         'Another administrator changed this review. Reload before deciding.'
       );
