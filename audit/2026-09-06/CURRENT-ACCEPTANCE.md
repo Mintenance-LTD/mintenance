@@ -779,3 +779,61 @@ custom MFA service and Supabase sessions. Jest does not replace fresh-build devi
 visual checks; escrow presentation does not establish historical reconciliation.
 Beta remains enabled. Full release acceptance remains incomplete. This audit is
 published on the existing feature branch; no merge into main is performed.
+
+### Lost-response replay and revoked-admin checks — 8 November 2026
+
+Continued from clean feature commit 904b63e082ad183ff2c99492bb2c3bcf36e89236.
+Added client regressions for a committed response lost at transport or body-read
+time: inputs freeze, no premature success, Retry same review sends identical JSON,
+and one saved result is recovered without a second write. Added 401/403-after-loss
+cases: exact retry becomes blocked, Refresh clears the selected form, and denied
+queue loading cannot appear as an empty successful queue. These use a stateful
+server stand-in; they do not simulate network loss on the deployed browser.
+Expanded disposable SQL tests for demoted/deleted admins rejecting both new reviews
+and replay, exact replay after access restoration, and replay of an older review
+without overwriting a later review. No application behavior change was necessary.
+
+At 2026-11-08T00:21:19.788615Z, production database verification reused committed
+request b1d5f03c-6d8c-4dd3-8c5c-0f802cec1201 for the designated admin/homeowner
+fixture. Replay returned the original full review JSON unchanged. Separate nested
+transactions temporarily demoted and soft-deleted the designated admin profile;
+both calls returned SQLSTATE 42501 before replay. Each test unconditionally raised
+a caught rollback sentinel, restoring the entire profile including updated_at.
+Exact replay succeeded after each rollback. No revocation was committed or visible
+to other sessions; no account/session security configuration was changed.
+
+Before running this check, inspected profile triggers: the relevant update only
+sets updated_at, with no external call. Exact actor/email/job/amendment guards and
+3-second lock/15-second statement limits bounded the check. Full profile, outbox
+and review JSON equality assertions passed. Separate postcheck confirmed both
+designated profile hashes unchanged. The amendment has five total historical
+reviews across its two email events: one original publish retry and four withdrawal
+reviews. Withdrawal event 2 remains reviewed_unknown/review_version 4/attempts 0/
+sent_at NULL. No new review or send occurred. All four controlled email rows retain
+their original state/attempts/timestamps. Five financial/source fingerprints and
+eight financial-table zero counts match preflight and the preceding audit.
+
+Fresh operator browser reload remained authenticated; the recovery queue loaded
+No emails in this queue after the database checks. This proves normal operator
+access remained available, not a revoked-session HTTP denial. Hosted database
+replay and transactional revoked-actor checks pass. Full browser-to-API replay
+after a genuinely lost committed response, and HTTP/UI behavior with a committed
+revocation, remain open: supported browser tooling does not provide targeted
+response interception, and this verification deliberately kept revocation local
+to a rolled-back transaction. Do not combine local UI and direct SQL evidence
+into a claim of end-to-end hosted verification.
+
+Fresh validation: 45 web tests in quote-email-review-ui/API and 54 disposable SQL
+scenarios plus role/RLS assertions passed. The initial sandbox web run failed
+before tests with temporary-file rename EPERM; the unrestricted rerun passed.
+Full web TypeScript and targeted test-file ESLint passed.
+Logs: output/operator-replay-{web,sql,types,lint}-20261108.log.
+Supabase security advisors are unchanged at 136 findings/seven categories; prior
+security findings remain open. Aikido scan tooling is unavailable; no clean scan
+is claimed. Only tests and audit documentation changed; no migration, deployment
+or main merge. Beta remains enabled, with no live financial changes.
+
+Genuine provider-incident recovery, Android/iOS deployed MFA status/enrolment/
+verification/disable/retry, native sign-in challenge enforcement across custom MFA
+and Supabase sessions, fresh-build physical-device visuals, and historical
+financial reconciliation remain unverified. Full release acceptance is incomplete.

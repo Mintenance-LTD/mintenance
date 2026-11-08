@@ -2014,3 +2014,58 @@ API-first production conflict release — 8 November 2026
   reconciliation remain unverified. Beta enabled; full release acceptance remains
   incomplete. Release branch pushed; audit published on the existing feature
   branch. No main merge or financial changes.
+
+Lost-response replay and revoked-admin verification — 8 November 2026
+- Started clean at 904b63e082ad183ff2c99492bb2c3bcf36e89236. Inspected the operator
+  component, API wrapper/current-admin checks, database function, existing tests,
+  instructions and acceptance evidence before changes. Tests only; no app fix needed.
+- Added four client regressions: transport/body response lost after a simulated
+  commit recovers the exact request with one saved result; 401/403 after an uncertain
+  response block retry and clear selection on Refresh without false empty-queue or
+  success claims. Stateful server stand-in is explicitly separate from real SQL.
+- Added three disposable SQL scenarios: demoted and deleted actors cannot submit
+  new reviews or replay existing ones; restored access returns the original row
+  without another write; an old request replay cannot undo a later review.
+- Production SQL check at 2026-11-08T00:21:19.788615Z reused existing committed
+  request b1d5f03c-6d8c-4dd3-8c5c-0f802cec1201, amendment
+  65e6e1af-842b-4bd0-82e8-b6d324ed3726, email event 2, review version 4.
+  Exact replay returns the identical original full JSON. Only designated admin
+  623398c7-2335-4707-90b5-8bcee7eb4d1c and homeowner
+  a2cf7faa-2ce3-436f-8949-45976481813e were involved; fixture guarded by actual
+  account emails, job, withdrawn/version-2/unapplied amendment and review fields.
+- Inspected all profile triggers before verification; role/deleted_at updates only
+  invoke updated_at assignment, no external side effect. Within nested transactions,
+  changed designated admin role to homeowner, then separately set deleted_at;
+  both exact replays denied with 42501. An unconditional caught PZ001 exception
+  rolls back each temporary update including updated_at. Whole-profile equality
+  asserted after each rollback; exact replay then succeeds. Lock timeout 3s,
+  statement timeout 15s. No committed account revocation or persistent role change.
+- Full before/after outbox and amendment-review JSON equality passed. Five total
+  amendment reviews means one original version-1 publish retry plus the same four
+  version-2 withdrawal reviews; no fifth withdrawal review was created. Final event
+  reviewed_unknown/review_version 4/attempts 0/sent_at NULL. Other three controlled
+  email rows retain original attempts/status/send timestamps. Profile hashes match:
+  admin 0f325d5f6a32ae36bc7bc8c4e9012947; homeowner 8f7bf369908b2f81728941307a0ea749.
+  Five job/quote/bid/contract/signatory hashes and eight financial zero counts still
+  equal the preceding audit. No new send, review, proposal or financial operation.
+- Fresh normal browser reload retained the designated admin session. Opening quote
+  amendment recovery loaded No emails in this queue. No browser mutation submitted.
+  The browser control surface has no targeted response interception; no production
+  response was dropped. Transaction-local revocation is invisible to other HTTP
+  sessions. Hosted SQL replay/authorization now verified, but lost-response replay
+  and committed-revocation denial across the production HTTP/UI path remain open.
+  Local mocks plus direct SQL must not be presented as full hosted end-to-end proof.
+- Fresh tests: quote-email-review-ui/API 45 passed (2 files); disposable SQL 54
+  scenarios plus role/RLS checks passed; full web TypeScript and targeted test-file
+  ESLint passed. Initial
+  sandbox Vitest temporary-file rename EPERM prevented tests from starting; rerun
+  outside that restriction passed. Evidence output/operator-replay-{web,sql,types,lint}-20261108.log.
+- Supabase advisors unchanged ignoring observed_at: 136 findings/seven categories,
+  including two pre-existing ERROR findings. Remediation references remain
+  https://supabase.com/docs/guides/database/database-linter and
+  https://supabase.com/docs/guides/auth/password-security. Aikido unavailable.
+  Transaction semantics reference: https://www.postgresql.org/docs/current/plpgsql-control-structures.html#PLPGSQL-ERROR-TRAPPING
+- Only test/audit changes published on feat/launch-terms-support-nov2. Beta enabled;
+  no deploy, migration or main merge. Retain native/device MFA and native challenge,
+  physical-device visuals, provider-incident and financial reconciliation gaps.
+  Full release acceptance remains incomplete.

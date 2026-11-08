@@ -811,6 +811,60 @@ await test('non-admin and deleted admins cannot review or replay', async () => {
   );
   await rejects(() => reviewEmail(), /Admin required/);
 });
+for (const revocation of ['demoted', 'deleted']) {
+  await test(`${revocation} admin cannot replay a committed review; restored access replays without a write`, async () => {
+    await failedEmail('needs_review');
+    const input = { action: 'close_unknown', evidence: 'unknown' };
+    const saved = await reviewEmail(input);
+    const before = await one('SELECT * FROM quote_amendment_email_outbox');
+    await db.exec(
+      `RESET ROLE; UPDATE profiles SET ${revocation === 'demoted' ? "role='homeowner'" : 'deleted_at=now()'} WHERE id='${operator}'; SET LOCAL ROLE service_role;`
+    );
+    await rejects(() => reviewEmail(input), {
+      code: '42501',
+      message: /Admin required/,
+    });
+    await rejects(
+      () => reviewEmail({ ...input, request: id(92), expected: 1 }),
+      { code: '42501', message: /Admin required/ }
+    );
+    await db.exec(
+      `RESET ROLE; UPDATE profiles SET role='admin',deleted_at=NULL WHERE id='${operator}'; SET LOCAL ROLE service_role;`
+    );
+    assert.deepEqual(await reviewEmail(input), saved);
+    assert.deepEqual(
+      await one('SELECT * FROM quote_amendment_email_outbox'),
+      before
+    );
+    assert.equal(
+      Number(
+        (await one('SELECT count(*) AS n FROM quote_amendment_email_reviews')).n
+      ),
+      1
+    );
+  });
+}
+await test('replaying an old committed review cannot undo a later review', async () => {
+  await failedEmail('needs_review');
+  const input = { action: 'close_unknown', evidence: 'unknown' };
+  const saved = await reviewEmail(input);
+  await db.exec(
+    "UPDATE quote_amendment_email_outbox SET status='needs_review'"
+  );
+  await reviewEmail({ ...input, request: id(92), expected: 1 });
+  const before = await one('SELECT * FROM quote_amendment_email_outbox');
+  assert.deepEqual(await reviewEmail(input), saved);
+  assert.deepEqual(
+    await one('SELECT * FROM quote_amendment_email_outbox'),
+    before
+  );
+  assert.equal(
+    Number(
+      (await one('SELECT count(*) AS n FROM quote_amendment_email_reviews')).n
+    ),
+    2
+  );
+});
 await test('mismatched evidence and short notes cannot authorize retries', async () => {
   await failedEmail('needs_review');
   for (const input of [
