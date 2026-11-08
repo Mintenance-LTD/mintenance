@@ -2283,3 +2283,20 @@ REMAINING BUSINESS-CONFLICT RETRIES — LOCAL FIXES (8 NOVEMBER 2026)
   concurrency, device/MFA/visual and historical reconciliation gaps remain. No main
   merge. Health/security/performance advisor counts unchanged. Full acceptance open.
 - See CURRENT-ACCEPTANCE.md production-release entry for precise evidence and limits.
+
+2026-11-08 — SIGNED-IN SUPPORT CONFLICT CHECK AND REFRESH FIX
+- User restored designated admin session. Two production UI tabs verified first
+  save success and stale save HTTP 409; revision/event counts did not advance on
+  conflict. Reopening the case recovered successfully.
+- Controlled support fixture ca037228-55d8-40dc-b3ac-4342b9531c54 was scoped only to
+  designated homeowner/admin accounts. Closed at revision 3; three events (creation
+  plus two successful updates), zero messages/outbox entries, no job or financial
+  link. Existing quote/job/contract/financial fingerprints remain unchanged.
+- Found production Refresh inbox did not reload the selected case revision. Fixed
+  locally to reload selected details, preserve unsent drafts/idempotency key, clear
+  old notices and disable refresh while busy. No automatic mutation retry.
+- 10 targeted UI/API tests passed, plus full web TypeScript, targeted lint and diff
+  check. Aikido absent.
+- UI fix is pushed only, NOT deployed; reopen the case as the current production
+  workaround. No new migration/deployment, main merge, beta/access change or financial
+  action. Other hosted branch/device/MFA/provider/reconciliation acceptance gaps stay.

@@ -1303,3 +1303,59 @@ Local ignored evidence: output/conflict-release-api-tests-20261108.log,
 output/conflict-release-relay-20261108.log and
 output/business-conflict-production-ledger.json. The release branch is pushed; this
 audit is recorded on feat/launch-terms-support-nov2 with automatic deployment excluded.
+
+### Signed-in operator conflict verification — 8 November 2026
+
+After the user completed sign-in, the production admin dashboard and customer
+service inbox loaded. The previous expired-session blocker is cleared. Production
+request logs identify the signed-in actor as the designated admin UUID ending
+4d1c (admin@mintenance.co.uk), on deployment dpl_E22XSTTz1pp2sWogpgZHoKhnSenM.
+
+Created one explicitly labelled nonfinancial support fixture, ca037228-55d8-40dc-
+b3ac-4342b9531c54, owned by the designated homeowner and assigned only to the
+designated admin. It has no job link. Inspected table constraints and confirmed
+there are no noninternal triggers before inserting the fixture and its labelled
+test-creation event. Did not invoke the general assignment routine, which can
+notify other operators. The fixture waits on the customer with a seven-day due
+date while being tested; no real customer issue, message or financial record was
+created. Closed it through the signed-in UI immediately after verification.
+
+Two browser tabs loaded revision 1. The first operator save succeeded and recorded
+revision 2 / one update event. Saving from the stale second tab displayed
+"Case changed or the assignee is unavailable. Refresh before updating." Production
+logs confirm PATCH HTTP 409 / CONFLICT at 11:59:18.961 UTC for the designated admin,
+request cq98t-1794139158690-63334688163a. The database stayed at revision 2 with no
+duplicate event. This establishes the deployed support API's terminal conflict
+mapping through an actual signed-in request, rather than only a direct SQL check.
+
+Found a separate production UI recovery defect: Refresh inbox cleared the notice
+and refreshed the list, but retained the selected editor's old revision. A retry
+therefore returned the conflict again. Reopening the case loaded the current
+revision and allowed closure. Final fixture state is closed, revision 3, assigned
+to the designated admin, no job link, three events total (test creation and two
+successful updates), zero support messages and zero matching communication-outbox
+entries. No account settings/permissions or customer/contractor messages changed.
+Fresh test-job source and financial fingerprints still match the pre-release check.
+
+Local fix in AdminSupportInbox: Refresh inbox now reloads the selected case before
+refreshing the list, updates the editor's revision and authoritative fields, and
+preserves unsent reply text, handover notes and the reply idempotency key. It disables
+refresh during an active operation and does not resubmit any mutation. Errors replace
+previous success notices. Reopening a case still resets drafts as before.
+
+Fresh checks: 10 tests passed (three support UI regression scenarios plus seven
+existing remaining-conflict API scenarios). These cover stale save -> refresh ->
+successful retry using the current revision, draft preservation, failed-refresh
+success-message reset and refreshing with no selected case. Full web TypeScript
+(tsc --noEmit --incremental false), targeted ESLint and git diff --check passed.
+Local logs: output/operator-conflict-ui-20261108.log and
+output/operator-conflict-types-20261108.log. Aikido scan tools are unavailable.
+
+This UI fix is local and pushed for review, NOT deployed; production still needs
+the case-reopen workaround until a subsequent UI release. No new deployment or
+migration was performed in this continuation. The production support conflict
+check supersedes that specific HTTP verification gap; it does not establish all
+visit, tenancy, contractor-proposal, evidence/disposal or worker recovery branches.
+Retain all prior physical-device, native MFA enforcement, concurrent-worker/provider
+and historical financial reconciliation gaps. Beta remains enabled; feature
+auto-deployment remains excluded and main was not merged. Full acceptance is open.
