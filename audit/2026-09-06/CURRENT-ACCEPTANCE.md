@@ -1024,3 +1024,104 @@ durable drafts/retry IDs across app exit, concurrent revocation/receipt rotation
 real message delivery and fresh browser/device visual/accessibility checks remain
 open. Preserve deployed-relay MFA, native sign-in enforcement, physical-device and
 historical reconciliation limitations. Full release acceptance remains incomplete.
+
+
+### Supabase CPU alert investigation and local conflict prevention — 8 November 2026
+
+Read-only production investigation of project ukrjudtlvapiajkjbcrd, approximately
+10:09–10:22 UTC. The repository was clean at e556924af before this batch. No SQL
+mutation, RPC invocation, deployment, compute resize, termination, notification,
+account change or financial write was performed. System SQL used READ ONLY and a
+five-second statement timeout; logs were bounded to explicit time windows.
+
+Cause: strong time-correlated evidence of the previously observed operator-review
+retry loop, triggered by a deterministic stale-review exception incorrectly using
+serialization_failure (40001). PostgreSQL logs contain 9,570 such errors from
+review_quote_amendment_email, line 23 at RAISE, across two backend sessions between
+2026-11-07 21:25:40.506 and 2026-11-08 00:05:33.349 UTC. Of these, 7,510 fall in
+22:00–00:30, with approximately 60 logged errors/minute. These are logged errors,
+not a measured count of every internal retry. The ending timestamp matches the
+previously applied email-conflict migration (hosted 20261108000533). The earlier
+backend termination did NOT establish durable recovery: a second session also
+contributed to the incident. The migration, rather than caller timeout, ended the
+observed loop. No deliberate failing RPC was sent during this investigation.
+
+Authenticated Supabase Database Observability, custom 21:00–01:00 UTC window,
+shows CPU rising around 21:25, sustained roughly 80% combined user/system activity,
+and falling near idle around 00:05. These are approximate visual chart readings,
+not exported precise samples. The project overview at approximately 10:12 showed
+Healthy, Nano compute, CPU 4%, RAM 61%, and 16/60 connections. No 40001 was logged
+in the independently checked 00:06–10:10 window (one PT409, the previously verified
+stale test). Current system checks found zero other active client queries older
+than 30 seconds and zero idle-in-transaction client sessions. The chart/log timing
+strongly attributes this alert to the controlled stale-review retry incident;
+it does not prove absence of every concurrent contributor or future saturation.
+
+Cumulative pg_stat_statements (reset 1 November 16:40:45 UTC) ranks Realtime
+list_changes, PostgREST set_config, admin assignment RPCs and cron_job_runs writes
+among the largest totals. Those totals cannot identify incident CPU by themselves;
+failed work is not reliably represented by completed-statement rankings. Normal
+cron activity and frequent operations-dashboard reads were observed, without
+sufficient evidence to change schedules or remove indexes. No blanket index change.
+
+Additional findings: 1,207 collation-version warnings in 22:00–00:30 (1,184 postgres,
+23 template1), created version 153.120 versus OS 153.121. Another 5,498 warning
+entries occur after 00:06; these ongoing warnings require separate managed-database
+maintenance assessment, not a blind REFRESH COLLATION VERSION or reindex here.
+The dashboard also marks memory commitment Severe (~1.45 GB); this alone does not
+establish resident-memory exhaustion. Health advisors returned zero findings;
+performance 1,234 (45 unindexed FK, 4 no primary key, 1,185 unused-index notices),
+security 136 in seven existing categories. Advisory counts do not prove CPU cause
+or justify broad schema/security changes in this task.
+
+Local prevention prepared, NOT APPLIED:
+20261108101704_quote_amendment_business_conflicts.sql changes only eight business
+conflict SQLSTATE values in propose_quote_amendment and transition_quote_amendment
+from 40001 to PT409. Source function bodies match production exactly before these
+substitutions (MD5 42b9db4df81a790fa672c3c709f2fb0b and
+93521f571cedcdd5ba37efcfb9930d5b respectively). Both APIs now map PT409 to HTTP 409
+while retaining legacy 40001 handling. Function grants remain postgres/service_role
+only, SECURITY DEFINER and empty search_path unchanged. No accepted pricing,
+locking, authorization, idempotency, notifications or financial safeguards change.
+
+Release sequencing remains API first, migration second, then controlled hosted
+verification. The release migration guard is intact: a full feature-branch build
+will refuse production while migrations are pending. Use an explicitly authorized
+API-only release without pending SQL, as documented in the earlier conflict release;
+do not bypass the guard or apply SQL ahead of the compatible API. No release is
+authorized or attempted in this batch. Feature auto-deployment remains disabled.
+
+Fresh local validation: shared package build passed (10 tasks); 82 web tests in
+quote-revisions-api, quote-approval-api and quote-email-review-api passed; 57
+embedded PostgreSQL approval/application scenarios plus role/RLS checks passed;
+10 release-migration guard tests passed. SQL checks compare complete function
+bodies, ACLs, security settings and arguments before/after, asserting only the eight
+SQLSTATE changes. New cases cover proposal reuse/stale timestamp/non-accepted state,
+changed job and changed accepted bid, with PT409 assertions for stale decisions,
+closed states and changed payer. Existing replay, immutable history, notification
+atomicity and financial-footprint refusal scenarios still pass. An initial new
+synthetic draft fixture lacked required total_amount; it was corrected to zero and
+the complete SQL suite reran successfully. Targeted production-source ESLint passed;
+test files are ignored by repository ESLint configuration. Full web TypeScript (tsc --noEmit --incremental false) passed.
+Aikido scan tooling is unavailable; no security-scan pass is claimed. Local logs:
+output/cpu-{packages,conflicts-sql,conflicts-web,conflicts-types,conflicts-lint,release-guard}-20261108.log.
+
+Remaining risk inventory (read-only pg_proc inspection): seven other hosted
+functions still explicitly raise 40001: finish_account_cleanup_step,
+respond_to_visit, review_retained_evidence, schedule_retained_evidence_disposal,
+save_property_action_followup, update_property_tenancy_folder and update_support_case.
+The follow-up fix is already pending in the previous unapplied team-queue migration;
+others require caller mapping and behavioral tests before separate changes. No
+incident-window evidence attributes this alert to those functions. The two quote
+functions remain unchanged on production until authorized release of this batch.
+PGlite does not run PostgREST: hosted terminal-response verification remains open
+for these new cases. No load test was run against production.
+
+Beta gate remains enabled and unchanged. No deployment, main merge, financial
+mutation or hosted migration. Preserve all prior device/MFA relay, native sign-in
+challenge enforcement, physical-device visual, genuine provider recovery and
+historical financial reconciliation limitations. Full release acceptance is incomplete.
+
+References: Supabase high-CPU guidance
+https://supabase.com/kb/troubleshooting/high-cpu-usage and PostgREST custom SQLSTATE
+HTTP status handling https://docs.postgrest.org/en/stable/references/errors.html .

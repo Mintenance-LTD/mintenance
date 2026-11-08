@@ -2197,3 +2197,35 @@ Tenant case history and navigation — 8 November 2026
   pagination, durable retry drafts, real delivery/concurrent revocation and fresh
   device visuals/keyboard/large text remain open. Preserve relay MFA, native
   challenge enforcement and reconciliation gaps. Full release acceptance incomplete.
+
+
+SUPABASE CPU ALERT — READ-ONLY INVESTIGATION / LOCAL PREVENTION (8 NOVEMBER 2026)
+- Strong incident attribution: review_quote_amendment_email raised 40001 for a
+  stale operator review. 9,570 logged errors across two sessions, 7 Nov 21:25:40.506
+  to 8 Nov 00:05:33.349 UTC. CPU chart for 21:00–01:00 rises around 21:25, stays
+  roughly 80% user+system, and returns near idle around the previously applied
+  00:05:33 email-conflict migration. Visual percentages/times are approximate.
+  Earlier connection termination alone did not establish durable recovery.
+- No 40001 in 00:06–10:10; overview around 10:12 showed CPU 4%, Healthy/Nano,
+  16/60 connections. Current bounded SQL: zero other active >30s or idle-in-tx
+  clients. No reproduction, hosted mutation, cancellation or financial write.
+- Repeated collation mismatch 153.120/153.121 (1,207 warnings in 22:00–00:30),
+  plus Severe memory commitment, need separate maintenance/capacity assessment.
+  No resize, collation refresh or index removal. Cumulative statement totals and
+  advisor notices alone do not establish incident cause. Details in acceptance.
+- Prepared unapplied migration 20261108101704_quote_amendment_business_conflicts:
+  eight 40001 -> PT409 changes in propose_quote_amendment/transition_quote_amendment.
+  Current hosted bodies match source; existing grants/security/financial logic
+  preserved. Compatible proposal/transition APIs now handle PT409 as terminal 409.
+- Fresh validation: 10 shared-build tasks, 82 web tests, 57 disposable PostgreSQL
+  scenarios plus role/RLS/equivalence checks, and 10 release-guard tests passed.
+  Targeted production-source ESLint passed (test files ignored); full web TypeScript passed.
+  Corrected new draft fixture's required amount before successful full SQL rerun.
+  Aikido unavailable. Evidence logs output/cpu-*-20261108.log (local ignored).
+- API-only compatible release must precede migration; preserve release guard.
+  Neither deployed nor applied. Hosted PostgREST behavior for new cases remains
+  unverified; seven other functions retain explicit 40001 business conflicts
+  (including already-pending property follow-up work). See acceptance inventory.
+- Beta enabled/unchanged; feature auto-deploy disabled. No main merge, live messages
+  or financial changes. Prior device/MFA/enforcement/visual/reconciliation and full
+  release acceptance gaps remain. Commit/push this local batch only.
