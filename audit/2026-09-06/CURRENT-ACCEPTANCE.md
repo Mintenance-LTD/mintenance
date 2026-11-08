@@ -551,3 +551,406 @@ enforcement, and historical financial reconciliation remain unverified as before
 No schema, role, beta gate, deployment or live financial change. UI changes require
 a subsequent deployment to appear on production. Feature branch only; full release
 acceptance remains incomplete.
+
+### Merge-readiness inspection — 7 November 2026
+
+GitHub already reports [PR #1467](https://github.com/Mintenance-LTD/mintenance/pull/1467)
+merged by MAmadouthetitan24 at 21:02:07 UTC, before this inspection performed any
+write. Main is `050123d60747c97376b52dad02ae24af320e8045`; feature head
+`c106a2875ca3f76b2f3e640a1b5733d9d7f8c0a8` is an ancestor and their trees are
+identical. There is no open PR for this feature branch and no remaining source
+change to merge. This agent did not merge it.
+
+For that exact feature SHA, GitHub returned 31 completed check runs: 20 successful,
+11 conditionally skipped, none failed or pending. The latest Code Quality &
+Testing, PR Quality Gate, Performance & Security Monitoring and Mobile E2E Smoke
+passed in run 42413038997. Both E2E shards passed in run 42411553042, including
+their web build steps. Security, CodeQL, bundle and Lighthouse checks also passed.
+Review threads and submitted reviews are empty; no change-request review exists.
+Lighthouse's reported performance score of 66 is a remaining performance concern,
+not a failed check or amendment-specific finding.
+
+Classic main branch-protection read returned 403 Resource not accessible by
+integration. Thus actual required-check enforcement cannot be fully attested.
+Readable active ruleset 8484854 has deletion/non-fast-forward protections and
+Copilot review configuration, but no required-status-check rule; ruleset 19408410
+is disabled. No repository protections were changed or bypassed.
+
+No code blocker found and no source edits or repeat local tests were necessary.
+The prior 98 targeted tests/type-check/lint evidence remains recorded separately;
+fresh evidence this turn is the exact-SHA hosted checks. Vercel's Git integration
+had already started production build dpl_8pou5eLaSsHDASXVsksMi67pXXt5 for the
+external merge (BUILDING when inspected); this is not deployment success evidence
+and the agent did not trigger, retry or alter it. This turn publishes only an
+audit commit to the feature branch, whose automatic Vercel deployment remains
+disabled. Beta gate and all live data/settings are untouched. Prior device/MFA,
+provider-failure and financial-reconciliation gaps still apply; full release
+acceptance remains incomplete.
+
+### Production deployment and review UI verification — 7 November 2026
+
+Automatic production deployment `dpl_8pou5eLaSsHDASXVsksMi67pXXt5` succeeded.
+Vercel reports READY at 21:07:25.362 UTC for main merge
+`050123d60747c97376b52dad02ae24af320e8045`, with `www.mintenance.co.uk` assigned
+to that deployment. Build logs confirm Build Completed, Deployment completed and
+cache upload completion. No retry, promotion, deployment or migration was invoked
+by the agent.
+
+After the owner completed normal sign-in for the designated homeowner account,
+verified the actual production house check amendment route (not the local preview):
+two withdrawn test amendments, new status badges and not-applied notices, styled
+before/proposed pricing panels, unchanged GBP 1.30 totals, zero tax and missing
+historical item-breakdown/terms labels. No approval/reject/apply/withdraw controls
+were present. Keyboard Enter opened the application guidance and decision history;
+the latest history displayed publish 20:12:30 and withdraw 20:16:42. Refresh
+reloaded both records. Back to job navigated to the expected job URL and browser
+Back restored the two-card review; no job action was submitted.
+
+Desktop pricing panels aligned side by side (1528px client/scroll width). At a
+390px viewport they stacked (375px client/scroll width); at 320px the client and
+scroll widths were both 305px, with zero overflowing main-content elements.
+Viewport overrides were reset. Saved local evidence:
+`output/production-amendment-review-20261107.jpg`,
+`output/production-amendment-pricing-desktop-20261107.jpg`, and
+`output/production-amendment-review-mobile-20261107.jpg`.
+
+This closes the deployed homeowner desktop/responsive visual check for the
+withdrawn fixtures. No source edits or repeated automated tests were needed.
+No new messages/reviews/proposals, financial operations, account changes or beta
+configuration changes were made. Operator success-message reset was not exercised
+through a new production review; its local regression evidence remains separate.
+Physical-device/native MFA and sign-in challenge checks, actual provider incidents,
+hosted conflict/revoked-admin cases and financial reconciliation remain open.
+Beta gate remains enabled; full release acceptance remains incomplete.
+
+### Operator recovery continuation — 7 November 2026, 21:18 UTC
+
+Fresh local validation: 40 tests passed across quote-email-review-ui and
+quote-email-review-api. This includes clearing success on refresh/queue change,
+conflict blocking, exact-request retry after an uncertain response, CSRF failure,
+confirmation, and list/history error handling. The initial sandbox run executed
+no tests because Vitest's temporary-file rename failed with EPERM; rerunning the
+same suites outside that restriction passed. Log:
+`output/operator-recovery-verification-20261107.log`.
+
+Production operator verification remains pending normal admin sign-in. Refreshing
+the existing dashboard redirected to Admin Sign In; the owner-supplied Settings
+tab likewise redirected when navigating to Dashboard. Cached admin content is not
+evidence of a current authenticated session or the deployed success-reset fix.
+The designated admin email was filled for owner sign-in; no credentials, tokens,
+roles or security settings were read or changed.
+
+Read-only checks confirmed the designated admin/homeowner profiles are active and
+the existing controlled withdrawal event remains reviewed_unknown, review_version
+1, attempts 0, sent_at NULL, with its original immutable review. Other test emails
+retain their original sent timestamps and single attempts. The proposal remains
+withdrawn/version 2 and unapplied. Five job/quote/bid/contract/signatory fingerprints
+match the preceding audit; all eight inspected job-related financial tables still
+have zero rows. No fixture was reopened and no review, retry, message, proposal or
+financial operation was submitted in this continuation.
+
+The hosted success-message reset and conflict/lost-response/revoked-admin checks
+remain open; local passing tests do not close those production gaps. Earlier
+controlled retry/close-unknown results remain valid within their original scope.
+Beta gate remains enabled. Native/device MFA, native sign-in challenge enforcement,
+physical-device visuals, genuine provider-incident recovery and historical financial
+reconciliation remain unverified; full release acceptance remains incomplete.
+
+### Signed-in operator reset verification and conflict defect — 7 November 2026
+
+Owner completed normal admin sign-in, resolving the preceding session blocker.
+Verified the deployed operator UI using only the existing designated admin and
+homeowner test fixture. Reopened withdrawal email event 2 for amendment
+`65e6e1af-842b-4bd0-82e8-b6d324ed3726` twice with exact row/status/version/recipient
+guards, changing only its reviewed_unknown status to needs_review. It was never
+queued for dispatch. Each normal operator close_unknown save preserved attempts=0
+and sent_at=NULL and added an immutable review by the designated admin:
+
+- Review version 2: `95437fbc-48f3-4431-b1a8-ba19b3ee8e05`, 21:25:12.409071 UTC.
+  The success message appeared, then disappeared on Refresh email reviews.
+- Review version 3: `195d8652-589a-48d1-a59e-f16459e0391c`, 21:29:40.415290 UTC.
+  The success message appeared, then disappeared on changing to Reviewed events
+  and retries. Reopening history showed all three reviews and no recovery controls.
+
+Both deployed success-reset branches now pass for this controlled fixture. A
+second tab holding the older review version exposed a separate production defect:
+the stale save returned HTTP 500/uncertain outcome instead of HTTP 409. Inputs
+froze, no success was claimed, and Retry same review also added no review or send.
+Vercel logged the 500 for the designated admin on the existing production build;
+Postgres logs showed repeated `Email changed; refresh review` / SQLSTATE 40001.
+Production identifies PostgREST 14.18, which retries serialization failures.
+
+The test request continued retrying after the caller timed out. A narrowly guarded
+pg_cancel_backend on PID 734810 did not stop that loop; pg_terminate_backend on the
+same PID, exact backend start, application/user and review-query signature ended
+the test connection. Subsequent inspection found that backend absent and no active
+or idle-in-transaction review RPCs. No service restart, account/security change or
+financial write was used for cleanup.
+
+Prepared, but DID NOT APPLY, migration
+`20261107213241_quote_amendment_email_conflict_code.sql`: replace only the review
+function's three deterministic conflict codes with PT409. API handling now maps
+PT409 to HTTP 409 while retaining legacy mappings. Existing privileges, checks,
+idempotent replay, row locks and all pricing/financial behavior are unchanged.
+The deployed conflict defect remains open until this migration and API change are
+released and the hosted stale-tab case is repeated. Release the compatible API
+mapping before applying the function migration; the old API does not map PT409.
+
+Fresh local validation: 41 targeted web tests passed; 51 disposable PGlite SQL
+scenarios plus role/RLS checks passed with explicit PT409 assertions for competing
+reviews, request-ID reuse, closed states and stale eligibility. Full web TypeScript
+and targeted ESLint passed. Aikido scan tooling is unavailable. PGlite does not
+run PostgREST and these results do not establish the hosted fix.
+
+Final fixture: reviewed_unknown/review_version 3, exactly three reviews including
+the original, zero attempts, sent_at NULL, zero open test emails. Both proposals
+remain withdrawn/version 2 and unapplied. All other controlled email attempts and
+sent timestamps are unchanged. Five job/quote/bid/contract/signatory fingerprints
+and eight financial-table zero counts still match the prior audit. No new message,
+proposal, approval, application or financial record change. Beta gate stays enabled.
+Evidence: `output/operator-reset-success-20261107.jpg`,
+`output/operator-reset-history-20261107.jpg`, `output/operator-uncertain-save-20261107.jpg`
+and `output/operator-conflict-{web,sql,types,lint}-20261107.log` (local ignored files).
+
+Unverified acceptance still includes a successful hosted conflict response,
+committed-save/lost-response replay, revoked-admin denial, genuine provider-incident
+recovery, physical-device visuals, deployed native MFA/relay and native sign-in
+challenge enforcement, and historical financial reconciliation. Full release
+acceptance remains incomplete. Feature-branch publication only; no merge or deploy.
+
+### API-first conflict release verified — 8 November 2026
+
+The owner authorized production deployment, then the function migration. The first
+build of 606e0dea8844265533cf6899b3a45a99de95f350
+(`dpl_EaPh7BCCrf3tpCmBHLtLQRhXXjuV`) correctly stopped at the missing-migration
+prerequisite. No guard was bypassed and no migration was applied ahead of the API.
+Created and pushed `release/quote-amendment-conflict-api` from prior production
+050123d60747c97376b52dad02ae24af320e8045, carrying only the compatible API mapping
+and its regression test. Release commit 53ce6f65f225e24d703b83d541837991dde86b27
+has the same complete apps/web tree as 606e0dea. Production deployment
+`dpl_3ttbd7jjcqoDMPn5tikXXCUZw9SF` passed migration prerequisites, TypeScript,
+lint and build, reached READY at 2026-11-08T00:05:04.056Z, and was verified as the
+deployment serving www.mintenance.co.uk before applying SQL. Main was not merged.
+
+Applied `quote_amendment_email_conflict_code` to production project
+`ukrjudtlvapiajkjbcrd`; hosted ledger version `20261108000533` corresponds to local
+`20261107213241_quote_amendment_email_conflict_code.sql`. Verified the function
+body matches the reviewed three 40001-to-PT409 substitutions exactly. Existing
+postgres/service_role-only execution grants, security-definer/search-path settings
+and both outbox/review RLS settings are unchanged. Migration itself left the test
+event at reviewed_unknown/version 3, attempts 0, sent_at NULL.
+
+After normal owner admin sign-in, exercised two production tabs using only the
+designated admin and existing homeowner fixture. Exactly guarded status-only
+staging reopened amendment `65e6e1af-842b-4bd0-82e8-b6d324ed3726`, event 2, at
+review_version 3; it never entered pending/sending. The first close_unknown save
+created review `b1d5f03c-6d8c-4dd3-8c5c-0f802cec1201` at
+2026-11-08T00:06:56.948781Z, advancing to review_version 4. The stale second tab
+displayed the refresh-required conflict, disabled Retry same review and retained
+Refresh. Refresh cleared the conflict/selection and showed no emails in the queue;
+Reviewed events displayed all four immutable reviews with no recovery controls.
+
+Vercel recorded HTTP 409 at 00:07:23.697Z for request
+`499hg-1794096443041-2c76aad1b02a` on the new deployment. Postgres recorded exactly
+one PT409 / Email changed; refresh review occurrence in the 00:07–00:09 UTC window.
+No stale duplicate review, dispatch attempt or lingering executing/idle-in-transaction
+review RPC remained. Final event: reviewed_unknown/version 4, attempts 0, sent_at
+NULL; open test emails 0. Both controlled amendments remain withdrawn/version 2
+and unapplied. Other controlled email attempts and original send timestamps are
+unchanged. Five job/quote/bid/contract/signatory hashes and all eight job-related
+financial-table zero counts match the preflight and preceding audit. No financial
+records, prices, account permissions or beta configuration were changed.
+
+Fresh evidence is the hosted production build, migration comparison, authenticated
+UI and database/log checks. The preceding 41 web tests, 51 disposable SQL scenarios,
+web TypeScript and targeted ESLint apply to the same code bytes; they were not
+rerun in this release-only continuation. Exact-606 GitHub check-runs/statuses were
+empty, not passing CI evidence. Supabase advisors remain unchanged: 136 findings
+across seven categories, including two pre-existing ERROR findings; no clean
+security scan is claimed. Aikido tooling remains unavailable.
+
+Local screenshots: `output/operator-conflict-released-20261108.jpg` and
+`output/operator-conflict-release-history-20261108.jpg`. The hosted stale-review
+conflict gap is closed for this controlled fixture. Committed-save/lost-response
+replay, revoked-admin denial and genuine provider-incident recovery remain open.
+Android/iOS deployed MFA status/enrolment/verification/disable/retry need devices;
+settings tests do not establish native sign-in challenge enforcement across the
+custom MFA service and Supabase sessions. Jest does not replace fresh-build device
+visual checks; escrow presentation does not establish historical reconciliation.
+Beta remains enabled. Full release acceptance remains incomplete. This audit is
+published on the existing feature branch; no merge into main is performed.
+
+### Lost-response replay and revoked-admin checks — 8 November 2026
+
+Continued from clean feature commit 904b63e082ad183ff2c99492bb2c3bcf36e89236.
+Added client regressions for a committed response lost at transport or body-read
+time: inputs freeze, no premature success, Retry same review sends identical JSON,
+and one saved result is recovered without a second write. Added 401/403-after-loss
+cases: exact retry becomes blocked, Refresh clears the selected form, and denied
+queue loading cannot appear as an empty successful queue. These use a stateful
+server stand-in; they do not simulate network loss on the deployed browser.
+Expanded disposable SQL tests for demoted/deleted admins rejecting both new reviews
+and replay, exact replay after access restoration, and replay of an older review
+without overwriting a later review. No application behavior change was necessary.
+
+At 2026-11-08T00:21:19.788615Z, production database verification reused committed
+request b1d5f03c-6d8c-4dd3-8c5c-0f802cec1201 for the designated admin/homeowner
+fixture. Replay returned the original full review JSON unchanged. Separate nested
+transactions temporarily demoted and soft-deleted the designated admin profile;
+both calls returned SQLSTATE 42501 before replay. Each test unconditionally raised
+a caught rollback sentinel, restoring the entire profile including updated_at.
+Exact replay succeeded after each rollback. No revocation was committed or visible
+to other sessions; no account/session security configuration was changed.
+
+Before running this check, inspected profile triggers: the relevant update only
+sets updated_at, with no external call. Exact actor/email/job/amendment guards and
+3-second lock/15-second statement limits bounded the check. Full profile, outbox
+and review JSON equality assertions passed. Separate postcheck confirmed both
+designated profile hashes unchanged. The amendment has five total historical
+reviews across its two email events: one original publish retry and four withdrawal
+reviews. Withdrawal event 2 remains reviewed_unknown/review_version 4/attempts 0/
+sent_at NULL. No new review or send occurred. All four controlled email rows retain
+their original state/attempts/timestamps. Five financial/source fingerprints and
+eight financial-table zero counts match preflight and the preceding audit.
+
+Fresh operator browser reload remained authenticated; the recovery queue loaded
+No emails in this queue after the database checks. This proves normal operator
+access remained available, not a revoked-session HTTP denial. Hosted database
+replay and transactional revoked-actor checks pass. Full browser-to-API replay
+after a genuinely lost committed response, and HTTP/UI behavior with a committed
+revocation, remain open: supported browser tooling does not provide targeted
+response interception, and this verification deliberately kept revocation local
+to a rolled-back transaction. Do not combine local UI and direct SQL evidence
+into a claim of end-to-end hosted verification.
+
+Fresh validation: 45 web tests in quote-email-review-ui/API and 54 disposable SQL
+scenarios plus role/RLS assertions passed. The initial sandbox web run failed
+before tests with temporary-file rename EPERM; the unrestricted rerun passed.
+Full web TypeScript and targeted test-file ESLint passed.
+Logs: output/operator-replay-{web,sql,types,lint}-20261108.log.
+Supabase security advisors are unchanged at 136 findings/seven categories; prior
+security findings remain open. Aikido scan tooling is unavailable; no clean scan
+is claimed. Only tests and audit documentation changed; no migration, deployment
+or main merge. Beta remains enabled, with no live financial changes.
+
+Genuine provider-incident recovery, Android/iOS deployed MFA status/enrolment/
+verification/disable/retry, native sign-in challenge enforcement across custom MFA
+and Supabase sessions, fresh-build physical-device visuals, and historical
+financial reconciliation remain unverified. Full release acceptance is incomplete.
+
+### Property-management follow-up recovery — 8 November 2026
+
+Continued from clean feature commit 93216ae871cc328866fa49a641976ff7cb442b38.
+Inspected the existing portfolio queue, property follow-up API/RPC, role checks,
+assignment/update history and web/mobile editors. Responsibility assignment,
+waiting-for state, due dates and internal updates already exist; this batch fixes
+their editing/recovery rather than claiming a new end-to-end case-management system.
+
+Both follow-up editors now use a shared London-calendar helper. New/edited dates
+save at the end of the selected UK day with GMT/BST adjustment; impossible dates
+are rejected. Existing exact timestamps are preserved when their displayed date
+is unchanged, so editing a note does not silently shift a previously stored
+deadline. Web history explicitly uses UK time. No historical timestamps were
+rewritten. Mobile controls now have 48-point minimum touch targets, visible
+selection styling, multiline note space and explicit disabled accessibility state.
+
+Record-keyed editors clear drafts when switching property/source and ignore late
+load/save callbacks from the previous record. Loads have explicit pending/error
+recovery, cancellation and bounded HTTP waits; malformed response collections are
+rejected instead of rendering an unusable form. Ref-based save locks prevent
+duplicate submission. Save success requires the returned next revision. Conflicts,
+access failures and unconfirmed saves preserve the note and block another save
+until a successful reload. Reload obtains current responsibility/date/revision
+while retaining the note for review against recorded updates. This is deliberate
+reload recovery, not automatic idempotent replay or persistence across app exit.
+
+Fresh local checks: 39 web tests across follow-up recovery, property work queue,
+portfolio queue API and property-team admin checks; 27 mobile tests across follow-up,
+portfolio queue and property-management parity, all passed. Shared package build,
+full web/mobile TypeScript checks and changed-file lint passed.
+The first sandbox mobile run failed before
+tests on transform-cache rename EPERM; rerun outside that restriction passed.
+An intermediate web fixture exposed a malformed-load rendering exception, fixed
+before the final clean run. Mobile logs retain existing react-test-renderer
+deprecation warnings. Evidence: output/property-followup-{web,mobile}-20261108.log
+and output/property-followup-{web,mobile}-{types,lint}-20261108.log.
+
+No API authorization, SQL/RLS, beta configuration or financial code changed; no
+hosted reads/writes, notification sends, migration, deployment or main merge.
+Feature-branch code/audit publication only. Aikido tools remain unavailable.
+Fresh browser/device visuals, large text, keyboard/scroll and real multi-manager
+conflict/response-loss acceptance remain open. The existing follow-up RPC still
+uses 40001 for revision conflicts; this batch does not establish terminal HTTP 409
+behavior through deployed PostgREST. Either 409 or an uncertain failure blocks
+another client save pending reload; a coordinated backend fix remains to review.
+
+Next property priorities: surface responsible person and permission-aware actions
+in the portfolio queue; implement correctly scoped Mine/Unassigned/Team filtering;
+continue tenant case-history/navigation and approval-control acceptance. Existing
+schema capabilities must be verified before claiming those features are absent
+or adding new ones. All prior deployed-relay/native MFA, native sign-in enforcement,
+fresh-build physical-device, provider-recovery and financial-reconciliation gaps
+remain. Beta enabled; full release acceptance remains incomplete.
+
+### Property follow-up backend conflicts and team queues — 8 November 2026
+
+Continued from clean feature commit ecb1dc51ed6e5ef4613b3e74524c26a6079256b1.
+Inspected the existing follow-up transaction, property roles, queue inclusion,
+pagination, web/native clients and prior acceptance evidence. Existing work and
+the beta gate are preserved. This batch has no hosted database or financial work.
+
+New local migration `20261108005044_property_followup_conflicts_team_queue.sql`
+is **unapplied**. It replaces stale-revision SQLSTATE 40001 with terminal PT409,
+retains row locking and atomic update/history/notification writes, and rejects
+null/negative revisions, invalid waiting states, deleted actors and ineligible
+assignees. A follow-up cannot be overwritten after its source moves properties.
+The API handles both PT409 and legacy 40001 as HTTP 409, plus permission and input
+failures without leaking database messages. GET blocks former-property history
+before reading updates and excludes deleted accounts from assignee choices.
+PT409 semantics: [PostgREST errors](https://docs.postgrest.org/en/stable/references/errors.html).
+
+The new service-only `portfolio_team_action_queue` RPC filters Team, Mine and
+Unassigned before counts and pagination. Team means all accessible active actions;
+Mine means an eligible assignment to the authenticated caller; Unassigned includes
+departed/deleted assignees marked Needs reassignment, without exposing their names
+or IDs. Existing job/report/maintenance/certificate inclusion rules remain. Tenant
+reports remain owner-only, accepted viewers remain read-only, and a platform admin
+does not gain access to unrelated properties. The old RPC signature delegates to
+Team for compatibility. Existing RLS and service-role-only grants are retained.
+
+Web/native queues show responsibility and server-derived editing permission.
+Changing scope resets pagination and closes the editor. Counts, empty states and
+responses must match the requested scope; an old/unfiltered response is an error,
+not a false successful Mine view. Reads have cancellation and bounded waits; late
+web responses are ignored. Native cache/state is scoped to account, scope and page,
+and signed-out queues are hidden. Dates display in London; native scope controls
+have 48-point targets and accessible selection state. Reassignment remains manual;
+this does not add absence cover, spending approval or tenant case management.
+
+Fresh local verification: 52 web tests across five files and 29 mobile tests across
+three suites passed. Disposable PGlite execution of the original and new SQL passed
+10 scenarios plus anon/authenticated execution-denial and RLS checks: row-preserving
+migration, scope counts/pagination, membership/owner/viewer boundaries, departed
+assignees, terminal stale conflicts without side effects, successful reload/save,
+invalid inputs, failed-first-save rollback and moved-source rejection. No app
+environment or network is used by `scripts/test-property-team-queue.mjs`.
+Changed source/test ESLint passed (web tests explicitly included with --no-ignore).
+Full web and mobile TypeScript checks passed.
+Evidence: `output/property-team-{sql,web,mobile}-20261108.log` and
+`output/property-team-{web,mobile}-{types,lint}-20261108.log`. Native logs retain the
+existing react-test-renderer deprecation warnings. Aikido tooling is unavailable;
+no clean security scan is claimed.
+
+Release dependency: deploy compatible PT409 API handling first, apply the reviewed
+migration, then enable the new queue RPC/client contract. This combined feature
+must not be released against the old schema without staging that order. No deploy,
+hosted migration, notification send, main merge or live financial mutation occurred.
+Feature auto-deploy remains disabled in vercel.json; publication is branch-only.
+Local SQL does not prove deployed PostgREST behavior, real simultaneous manager
+saves, concurrent membership revocation, notification receipt or response-loss
+recovery. Fresh browser/native-device, larger-text and keyboard/scroll acceptance
+remain open. Android/iOS relay MFA status/enrolment/verification/disable/retry,
+native sign-in MFA enforcement across custom MFA and Supabase sessions, provider
+incident recovery and historical financial reconciliation remain unverified.
+Jest rendering is not fresh-build physical-device acceptance. Beta enabled; full
+release acceptance remains incomplete.
