@@ -169,6 +169,7 @@ export {
 } from './assessment-evidence';
 
 export * from './property-presentation';
+export * from './property-followup-date';
 export * from './property-view-store';
 export * from './property-inspections';
 export * from './legal/customer-terms';

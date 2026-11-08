@@ -837,3 +837,57 @@ Genuine provider-incident recovery, Android/iOS deployed MFA status/enrolment/
 verification/disable/retry, native sign-in challenge enforcement across custom MFA
 and Supabase sessions, fresh-build physical-device visuals, and historical
 financial reconciliation remain unverified. Full release acceptance is incomplete.
+
+### Property-management follow-up recovery — 8 November 2026
+
+Continued from clean feature commit 93216ae871cc328866fa49a641976ff7cb442b38.
+Inspected the existing portfolio queue, property follow-up API/RPC, role checks,
+assignment/update history and web/mobile editors. Responsibility assignment,
+waiting-for state, due dates and internal updates already exist; this batch fixes
+their editing/recovery rather than claiming a new end-to-end case-management system.
+
+Both follow-up editors now use a shared London-calendar helper. New/edited dates
+save at the end of the selected UK day with GMT/BST adjustment; impossible dates
+are rejected. Existing exact timestamps are preserved when their displayed date
+is unchanged, so editing a note does not silently shift a previously stored
+deadline. Web history explicitly uses UK time. No historical timestamps were
+rewritten. Mobile controls now have 48-point minimum touch targets, visible
+selection styling, multiline note space and explicit disabled accessibility state.
+
+Record-keyed editors clear drafts when switching property/source and ignore late
+load/save callbacks from the previous record. Loads have explicit pending/error
+recovery, cancellation and bounded HTTP waits; malformed response collections are
+rejected instead of rendering an unusable form. Ref-based save locks prevent
+duplicate submission. Save success requires the returned next revision. Conflicts,
+access failures and unconfirmed saves preserve the note and block another save
+until a successful reload. Reload obtains current responsibility/date/revision
+while retaining the note for review against recorded updates. This is deliberate
+reload recovery, not automatic idempotent replay or persistence across app exit.
+
+Fresh local checks: 39 web tests across follow-up recovery, property work queue,
+portfolio queue API and property-team admin checks; 27 mobile tests across follow-up,
+portfolio queue and property-management parity, all passed. Shared package build,
+full web/mobile TypeScript checks and changed-file lint passed.
+The first sandbox mobile run failed before
+tests on transform-cache rename EPERM; rerun outside that restriction passed.
+An intermediate web fixture exposed a malformed-load rendering exception, fixed
+before the final clean run. Mobile logs retain existing react-test-renderer
+deprecation warnings. Evidence: output/property-followup-{web,mobile}-20261108.log
+and output/property-followup-{web,mobile}-{types,lint}-20261108.log.
+
+No API authorization, SQL/RLS, beta configuration or financial code changed; no
+hosted reads/writes, notification sends, migration, deployment or main merge.
+Feature-branch code/audit publication only. Aikido tools remain unavailable.
+Fresh browser/device visuals, large text, keyboard/scroll and real multi-manager
+conflict/response-loss acceptance remain open. The existing follow-up RPC still
+uses 40001 for revision conflicts; this batch does not establish terminal HTTP 409
+behavior through deployed PostgREST. Either 409 or an uncertain failure blocks
+another client save pending reload; a coordinated backend fix remains to review.
+
+Next property priorities: surface responsible person and permission-aware actions
+in the portfolio queue; implement correctly scoped Mine/Unassigned/Team filtering;
+continue tenant case-history/navigation and approval-control acceptance. Existing
+schema capabilities must be verified before claiming those features are absent
+or adding new ones. All prior deployed-relay/native MFA, native sign-in enforcement,
+fresh-build physical-device, provider-recovery and financial-reconciliation gaps
+remain. Beta enabled; full release acceptance remains incomplete.

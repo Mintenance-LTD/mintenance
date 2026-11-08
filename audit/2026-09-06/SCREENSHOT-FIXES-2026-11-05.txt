@@ -2069,3 +2069,46 @@ Lost-response replay and revoked-admin verification — 8 November 2026
   no deploy, migration or main merge. Retain native/device MFA and native challenge,
   physical-device visuals, provider-incident and financial reconciliation gaps.
   Full release acceptance remains incomplete.
+
+Property-management follow-up editors — 8 November 2026
+- Clean starting commit 93216ae871cc328866fa49a641976ff7cb442b38. Read applicable
+  AGENTS, property brief, saved screenshot/acceptance evidence and actual queue,
+  follow-up API/RPC, role checks and both editors. Existing assignments, due dates,
+  waiting-for state and history were retained; no new backend workflow invented.
+- Shared UK date conversion uses Europe/London, strict calendar validation and
+  end-of-day GMT/BST deadlines. Rejects impossible dates such as 30 February;
+  covers leap years and both UK clock-change dates. An unchanged displayed date
+  retains its original exact timestamp, including old UTC-created deadlines.
+  Web recorded-update times display in London. No backfill or stored-date rewrite.
+- Web/mobile editors key state by property + kind + source, cancel obsolete loads,
+  and suppress late callbacks. Loading/reload errors are explicit; malformed
+  collection payloads cannot crash the form. Web reads/saves use a 15-second HTTP
+  abort; mobile reads use 15-second HTTP timeout/no retries plus the existing
+  session-acquisition deadline. Mobile writes keep the existing bounded API client.
+- Ref-based save locks block duplicate submits. Confirmed next-revision response
+  required before clearing notes or notifying the queue. Conflict, access failure,
+  malformed success and unknown outcome retain input and block another save until
+  reload. Latest revision/assignee/date/waiting state load on reload while note is
+  retained for comparison with history. No automatic replay, no claim that abort
+  means the server did not save. New property/source cannot inherit the old draft.
+- Mobile assignment/waiting controls have visible selected borders/backgrounds,
+  48-point minimum targets and disabled accessibility state. Date and note inputs
+  have visible borders, adequate height and multiline note space. Web save/reload
+  controls have minimum height; status, permission and conflict copy explain the
+  recovery action. Notes remain internal; existing manager notifications unchanged.
+- Final web tests 39/4 files; mobile 27/3 suites; shared package build, full web/mobile
+  TypeScript and changed-file ESLint passed. Sandbox mobile run initially failed before execution
+  with cache-rename EPERM; unrestricted rerun passed. Intermediate web malformed
+  payload exception fixed before final run. Existing renderer deprecation warnings
+  retained in mobile logs. Evidence: output/property-followup-{web,mobile}-20261108.log
+  and output/property-followup-{web,mobile}-{types,lint}-20261108.log.
+- No hosted reads/writes, schema/RLS/API permission changes, live messages,
+  financial mutations, deployment or main merge. Beta remains enabled. Aikido
+  scan tooling unavailable. Fresh-device visuals/keyboard/larger text and real
+  multi-manager/response-loss journeys remain unaccepted. Existing follow-up RPC
+  still raises 40001 for stale revisions; terminal deployed HTTP 409 is not proven
+  by these local UI tests. A backend conflict-code rollout remains a separate gap.
+- Next: portfolio responsibility/permission visibility and server-scoped
+  Mine/Unassigned/Team queues, tenant case-history navigation and approval controls.
+  Preserve all prior native MFA/sign-in, physical-device and reconciliation limits.
+  This is one property-management correction batch, not closure of the full roadmap.
