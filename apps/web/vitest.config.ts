@@ -11,7 +11,7 @@ export default defineConfig({
   // can resolve outside the repository in restricted/CI environments.
   root: configDirectory,
   // Unit tests use synthetic setup values, never local deployment secrets.
-  envFile: false,
+  envDir: false,
   // Excluded test files otherwise fall back to the root Expo config. Vercel
   // installs only web workspaces, so that mobile-only extends cannot resolve.
   tsconfig: path.join(configDirectory, 'tsconfig.json'),
