@@ -26,7 +26,10 @@ export async function verifySandboxAcceptance() {
     type: 'custom',
     country: 'GB',
     business_type: 'individual',
-    capabilities: { transfers: { requested: true } },
+    capabilities: {
+      card_payments: { requested: true },
+      transfers: { requested: true },
+    },
     business_profile: {
       mcc: '1520',
       product_description: 'Synthetic plumbing services for readiness testing',

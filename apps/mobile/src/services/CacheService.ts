@@ -51,6 +51,7 @@ export class CacheService {
 
   // Cache statistics
   private stats: CacheStats;
+  private cleanupTimer?: ReturnType<typeof setInterval>;
 
   private constructor() {
     this.memoryCache = new Map();
@@ -378,13 +379,25 @@ export class CacheService {
 
   private startCleanupTimer(): void {
     // Clean up expired entries every 5 minutes
-    const timer = setInterval(
+    this.cleanupTimer = setInterval(
       () => {
         this.cleanupExpired();
       },
       1000 * 60 * 5
     );
-    (timer as ReturnType<typeof setInterval> & { unref?: () => void }).unref?.();
+    (
+      this.cleanupTimer as ReturnType<typeof setInterval> & {
+        unref?: () => void;
+      }
+    ).unref?.();
+  }
+
+  /** Stop scheduled maintenance when the cache owner is disposed. */
+  dispose(): void {
+    if (this.cleanupTimer !== undefined) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = undefined;
+    }
   }
 
   private async cleanupExpired(): Promise<void> {
@@ -467,3 +480,5 @@ export class CacheService {
 
 // Export singleton instance
 export const cacheService = CacheService.getInstance();
+// Unit tests create their own instances under controlled fake timers.
+if (process.env.NODE_ENV === 'test') cacheService.dispose();

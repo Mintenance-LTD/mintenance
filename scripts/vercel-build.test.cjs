@@ -36,7 +36,14 @@ function simulate(fail) {
       console: { log() {} },
       process: {
         version: process.version,
-        env: { NODE_ENV: 'production', VERCEL: '1' },
+        env: {
+          NODE_ENV: 'production',
+          VERCEL: '1',
+          PATH: '/usr/bin',
+          OPENAI_API_KEY: 'synthetic-deployment-key',
+          AUTO_VALIDATION_ENABLED: 'true',
+          SUPABASE_SERVICE_ROLE_KEY: 'synthetic-database-key',
+        },
         exit(code) {
           exitCode = code;
           throw stopped;
@@ -51,9 +58,11 @@ function simulate(fail) {
 
 test('unit tests use test mode while Next compilation inherits the deployment environment', () => {
   const { commands, options } = simulate();
-  const tests = options[commands.findIndex(command => command.includes('vitest run'))];
+  const tests =
+    options[commands.findIndex((command) => command.includes('vitest run'))];
   assert.equal(tests.env.NODE_ENV, 'test');
-  assert.equal(tests.env.VERCEL, '1');
+  assert.equal(tests.env.PATH, '/usr/bin');
+  assert.deepEqual(Object.keys(tests.env).sort(), ['NODE_ENV', 'PATH']);
   assert.equal(options.at(-1).env, undefined);
 });
 

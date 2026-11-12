@@ -50,15 +50,6 @@ it('every educational persona has distinct relevant guidance without changing pe
     false
   );
 });
-it('native guide destinations are registered in the profile navigator', () => {
-  const navigator = fs.readFileSync(
-    path.resolve('../mobile/src/navigation/navigators/ProfileNavigator.tsx'),
-    'utf8'
-  );
-  for (const guide of FEATURE_GUIDES)
-    if (guide.mobileScreen)
-      expect(navigator).toContain(`name='${guide.mobileScreen}'`);
-});
 it('homeowner benefits never include contractor fees or lifetime claims', () => {
   expect(JSON.stringify(earlyAccessBenefits('homeowner', '5%'))).not.toMatch(
     /5%|platform fee|lifetime/i

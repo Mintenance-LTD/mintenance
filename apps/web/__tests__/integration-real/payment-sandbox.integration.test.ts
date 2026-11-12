@@ -243,7 +243,10 @@ describe.skipIf(process.env.PAYMENT_SANDBOX_TESTS !== '1')(
         type: 'custom',
         country: 'GB',
         business_type: 'individual',
-        capabilities: { transfers: { requested: true } },
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
         business_profile: {
           mcc: '1520',
           product_description:

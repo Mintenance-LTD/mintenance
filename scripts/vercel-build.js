@@ -55,9 +55,18 @@ console.log('=== Building Next.js app ===');
 console.log('=== Checking internal links ===');
 run('npx tsx scripts/check-internal-links.ts');
 console.log('=== Testing web app ===');
+// Mock-based unit tests must not inherit provider credentials, deployment
+// feature flags or backend URLs. Their setup supplies synthetic configuration.
+// Keep only process-launch essentials; Next compilation still inherits the
+// original environment below.
+const testEnvironment = Object.fromEntries(
+  Object.entries(process.env).filter(([name]) =>
+    /^(PATH|HOME|USERPROFILE|SYSTEMROOT|COMSPEC|TMPDIR|TMP|TEMP|CI)$/i.test(name)
+  )
+);
 run('npx vitest run --maxWorkers=2', {
   cwd: 'apps/web',
-  env: { ...process.env, NODE_ENV: 'test' },
+  env: { ...testEnvironment, NODE_ENV: 'test' },
 });
 console.log('=== Building Next.js app ===');
 run('npx next build', { cwd: 'apps/web' });
