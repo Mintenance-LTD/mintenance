@@ -43,6 +43,7 @@ describe.skipIf(process.env.PAYMENT_SANDBOX_TESTS !== '1')(
       )
         throw new Error('Sandbox guard failed');
       const balance = await stripe.balance.retrieve();
+      expect(balance.livemode).toBe(false);
       const available =
         balance.available.find((row) => row.currency === 'gbp')?.amount ?? 0;
       if (available < 1000) {

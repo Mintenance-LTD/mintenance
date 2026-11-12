@@ -14,7 +14,8 @@ export async function submitAndVerifyBid(
   const id = jobId ?? fixtureJob(name);
   await page.goto(`/contractor/bid/${id}`);
   await expect(page).not.toHaveURL(/\/login/);
-  await page.getByLabel(/bid amount/i).fill('180.50');
+  // The simple quote adds the default 20% VAT: £150.50 + £30.10 = £180.60.
+  await page.getByLabel(/bid amount/i).fill('150.50');
   const description =
     'Synthetic audit proposal: qualified plumber will repair the leaking tap, including replacement parts and workmanship.';
   await page.getByLabel(/proposal description/i).fill(description);
@@ -37,7 +38,7 @@ export async function submitAndVerifyBid(
   expect(saved.ok()).toBeTruthy();
   const body = await saved.json();
   expect(body.bids).toHaveLength(1);
-  expect(Number(body.bids[0].amount)).toBe(180.5);
+  expect(Number(body.bids[0].amount)).toBe(180.6);
   expect(body.bids[0].description).toBe(description);
   expect(body.bids[0].estimated_duration_days).toBe(2);
 }

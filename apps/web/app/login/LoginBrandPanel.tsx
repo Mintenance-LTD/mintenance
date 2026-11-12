@@ -127,8 +127,8 @@ export function LoginBrandPanel() {
             margin: 0,
           }}
         >
-          Compare tradespeople, agree the scope and keep your job records together.
-          {PAYMENT_RELEASE_COPY.summary}
+          Compare tradespeople, agree the scope and keep your job records
+          together. {PAYMENT_RELEASE_COPY.summary}
         </p>
       </div>
 

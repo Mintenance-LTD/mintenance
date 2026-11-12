@@ -75,9 +75,13 @@ test.describe('Authenticated Job Posting Flow', () => {
     expect(hasMessage || leftWizard).toBeTruthy();
   });
 
-  test('job wizard exposes the supported publish workflow', async ({ page }) => {
+  test('job wizard exposes the supported publish workflow', async ({
+    page,
+  }) => {
     expect(await openJobWizard(page)).toBe(true);
-    await expect(page.getByRole('button', { name: /save.*draft/i })).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: /save.*draft/i })
+    ).toHaveCount(0);
     await expect(page.getByTestId('job-create-form')).toBeVisible();
   });
 
@@ -147,12 +151,24 @@ test.describe('Job Management', () => {
     await page.goto('/jobs/' + id + '/edit');
     const title = 'Synthetic edited job ' + Date.now();
     await page.getByLabel(/job title/i).fill(title);
-    const saved = page.waitForResponse(r => r.url().endsWith('/api/jobs/' + id) && r.request().method() === 'PUT');
-    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    const requirement = 'Synthetic access requirement ' + Date.now();
+    await page.getByPlaceholder('Add a requirement...').fill(requirement);
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    const saved = page.waitForResponse(
+      (r) =>
+        r.url().endsWith('/api/jobs/' + id) && r.request().method() === 'PUT'
+    );
+    await page
+      .getByRole('button', { name: 'Save Changes', exact: true })
+      .click();
     const response = await saved;
     expect(response.ok(), await response.text()).toBe(true);
     await page.goto('/jobs/' + id + '/edit');
     await expect(page.getByLabel(/job title/i)).toHaveValue(title);
+    await expect(page.getByText(requirement, { exact: true })).toBeVisible();
+    const stored = await page.request.get('/api/jobs/' + id);
+    const body = await stored.json();
+    expect(body.job.requirements.preferred_start_date).toBe('2026-12-01');
   });
 
   test('homeowner can delete a dedicated unassigned job', async ({ page }) => {
@@ -161,7 +177,10 @@ test.describe('Job Management', () => {
     await page.getByRole('button', { name: 'Delete Job', exact: true }).click();
     const dialog = page.getByRole('alertdialog');
     await expect(dialog).toBeVisible();
-    const removed = page.waitForResponse(r => r.url().endsWith('/api/jobs/' + id) && r.request().method() === 'DELETE');
+    const removed = page.waitForResponse(
+      (r) =>
+        r.url().endsWith('/api/jobs/' + id) && r.request().method() === 'DELETE'
+    );
     await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
     const response = await removed;
     expect(response.ok(), await response.text()).toBe(true);

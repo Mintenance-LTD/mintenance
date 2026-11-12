@@ -6,7 +6,12 @@
  */
 
 import { test, expect } from './fixtures';
-import { loginAsHomeowner, loginAsContractor } from './helpers/auth';
+import {
+  loginAsHomeowner,
+  loginAsContractor,
+  establishSessionInContext,
+  TEST_USERS,
+} from './helpers/auth';
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 
@@ -143,7 +148,12 @@ const pages = [
 
 test.describe('Accessibility Tests', () => {
   test.beforeEach(async ({ page }, testInfo) => {
-    if (testInfo.title.startsWith('Contractor ')) await loginAsContractor(page);
+    if (testInfo.title.startsWith('Contractor Discover ')) {
+      expect(
+        await establishSessionInContext(page, TEST_USERS.contractorNoLocation)
+      ).toBe(true);
+    } else if (testInfo.title.startsWith('Contractor '))
+      await loginAsContractor(page);
     else await loginAsHomeowner(page);
   });
   // Test each page for accessibility violations

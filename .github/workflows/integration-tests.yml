@@ -39,8 +39,66 @@ on:
       - 'scripts/db-tests/**'
       - '.github/workflows/integration-tests.yml'
   workflow_dispatch:
+    inputs:
+      payment_sandbox:
+        description: Run real Stripe test-mode payment acceptance against disposable Supabase
+        type: boolean
+        default: false
 
 jobs:
+  payment-sandbox:
+    name: Stripe sandbox payment acceptance
+    if: github.event_name == 'workflow_dispatch' && inputs.payment_sandbox
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '20.19.4'
+          cache: npm
+      - name: Require test-mode credentials
+        env:
+          SANDBOX_SECRET: ${{ secrets.STRIPE_TEST_SECRET_KEY || secrets.STRIPE_SECRET_KEY }}
+          SANDBOX_PUBLIC: ${{ secrets.STRIPE_TEST_PUBLISHABLE_KEY || secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const secret = process.env.SANDBOX_SECRET || '';
+          const publishable = process.env.SANDBOX_PUBLIC || '';
+          if (!/^sk_test_[A-Za-z0-9]+$/.test(secret) || !/^pk_test_[A-Za-z0-9]+$/.test(publishable)) {
+            throw new Error('Configure STRIPE_TEST_SECRET_KEY and STRIPE_TEST_PUBLISHABLE_KEY in Actions secrets. Live keys are rejected.');
+          }
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'payment-sandbox.env'),
+            'STRIPE_SECRET_KEY=' + secret + '\nNEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=' + publishable + '\n', { mode: 0o600 });
+          NODE
+      - name: Install dependencies
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
+        run: npm ci
+      - run: npm run build:packages
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520
+        with:
+          version: 2.119.0
+      - name: Prepare isolated payment database
+        run: node scripts/readiness/prepare-local.cjs
+      - name: Start isolated payment database
+        run: supabase start --workdir output/readiness-stack
+      - name: Exercise authenticated payment, refunds and settlement
+        run: |
+          supabase status --workdir output/readiness-stack --output json > "$RUNNER_TEMP/payment-db-status.json"
+          node scripts/readiness/run-payment-sandbox.cjs "$RUNNER_TEMP/payment-sandbox.env" "$RUNNER_TEMP/payment-db-status.json"
+      - name: Stop isolated payment database
+        if: always()
+        run: |
+          if [ -d output/readiness-stack ]; then supabase stop --workdir output/readiness-stack --no-backup; fi
+          rm -f "$RUNNER_TEMP/payment-sandbox.env" "$RUNNER_TEMP/payment-db-status.json"
+
   authorization-regressions:
     name: Database authorization and concurrency
     runs-on: ubuntu-latest

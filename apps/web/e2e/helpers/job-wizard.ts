@@ -122,9 +122,12 @@ export async function submitJobWizard(page: Page): Promise<void> {
     response.ok(),
     `Job creation failed (${response.status()}): ${await response.text()}`
   ).toBeTruthy();
-  await expect(page).toHaveURL(/\/jobs\/[a-z0-9-]+(?:[?#]|$)/, {
-    timeout: 30000,
-  });
+  await expect(page).toHaveURL(
+    /\/jobs\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:[?#]|$)/,
+    {
+      timeout: 30000,
+    }
+  );
 }
 
 /** Drive steps 1-3, leaving the wizard on the Review step. */

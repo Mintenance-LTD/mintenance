@@ -82,14 +82,22 @@ test.describe('Security: Auth Bypass Regression', () => {
     expect(url).not.toContain('/login');
   });
 
-  test('landing page links expose public guides and the sign-in entry point', async ({ page }) => {
+  test('landing page links expose public guides and the sign-in entry point', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     const nav = page.getByRole('navigation', { name: 'Main navigation' });
-    await expect(nav.getByRole('link', { name: 'For homeowners', exact: true })).toHaveAttribute('href', '/for-homeowners');
-    await expect(nav.getByRole('link', { name: 'For tradespeople', exact: true })).toHaveAttribute('href', '/for-contractors');
-    await expect(nav.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('href', '/login');
+    await expect(
+      nav.getByRole('link', { name: 'For homeowners', exact: true })
+    ).toHaveAttribute('href', '/for-homeowners');
+    await expect(
+      nav.getByRole('link', { name: 'For tradespeople', exact: true })
+    ).toHaveAttribute('href', '/for-contractors');
+    await expect(
+      nav.getByRole('link', { name: 'Sign in', exact: true })
+    ).toHaveAttribute('href', '/login');
   });
 
   test('landing page does not contain "Browse Contractors" button', async ({
@@ -111,33 +119,47 @@ test.describe('Security: Auth Bypass Regression', () => {
 // This environment deliberately has no live Stripe credentials. Test the
 // marketplace hand-off and its payout-readiness guard; provider settlement is
 // a separate test-mode acceptance requirement, never implied by this test.
-test('homeowner posts, contractor bids, homeowner reads bid and payout guard prevents acceptance', async ({ page }) => {
+test('homeowner posts, contractor bids, homeowner reads bid and payout guard prevents acceptance', async ({
+  page,
+}) => {
   test.setTimeout(180000);
-  expect(await establishSessionInContext(page, TEST_USERS.homeowner)).toBe(true);
+  expect(await establishSessionInContext(page, TEST_USERS.homeowner)).toBe(
+    true
+  );
   expect(await openJobWizard(page)).toBe(true);
   await fillJobWizardToReview(page, {
     title: 'Synthetic marketplace journey ' + Date.now(),
-    description: 'Synthetic kitchen tap repair for browser acceptance testing. Replace the leaking tap and check the plumbing connections.',
-    category: 'plumbing', urgency: 'medium',
+    description:
+      'Synthetic kitchen tap repair for browser acceptance testing. Replace the leaking tap and check the plumbing connections.',
+    category: 'plumbing',
+    urgency: 'medium',
   });
   await submitJobWizard(page);
   const id = new URL(page.url()).pathname.split('/')[2];
   expect(id).toMatch(/^[0-9a-f-]{36}$/);
 
-  expect(await establishSessionInContext(page, TEST_USERS.contractor)).toBe(true);
+  expect(await establishSessionInContext(page, TEST_USERS.contractor)).toBe(
+    true
+  );
   await submitAndVerifyBid(page, 'JOURNEY', id);
-  expect(await establishSessionInContext(page, TEST_USERS.homeowner)).toBe(true);
+  expect(await establishSessionInContext(page, TEST_USERS.homeowner)).toBe(
+    true
+  );
   const bidsResponse = await page.request.get('/api/jobs/' + id + '/bids');
   expect(bidsResponse.ok()).toBe(true);
   const { bids } = await bidsResponse.json();
   expect(bids).toHaveLength(1);
-  expect(Number(bids[0].amount)).toBe(180.50);
+  expect(Number(bids[0].amount)).toBe(180.6);
   const csrf = await page.request.get('/api/csrf');
   expect(csrf.ok()).toBe(true);
   const { token } = await csrf.json();
-  const acceptance = await page.request.post('/api/jobs/' + id + '/bids/' + bids[0].id + '/accept', {
-    headers: { 'X-CSRF-Token': token }, data: {},
-  });
+  const acceptance = await page.request.post(
+    '/api/jobs/' + id + '/bids/' + bids[0].id + '/accept',
+    {
+      headers: { 'X-CSRF-Token': token },
+      data: {},
+    }
+  );
   expect(acceptance.status()).toBe(403);
   expect(await acceptance.text()).toContain('payment account setup');
   const stillPending = await page.request.get('/api/jobs/' + id + '/bids');

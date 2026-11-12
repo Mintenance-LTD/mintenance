@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { getCsrfToken } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { readJobRequirements, writeJobRequirements } from './job-requirements';
 
 export interface JobFormData {
   title: string;
@@ -67,6 +68,9 @@ export function useJobEditForm(jobId: string) {
   });
 
   const [newRequirement, setNewRequirement] = useState('');
+  const [requirementMetadata, setRequirementMetadata] = useState<
+    Record<string, unknown>
+  >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -126,6 +130,8 @@ export function useJobEditForm(jobId: string) {
         const budgetMinValue = job.budget?.min ?? job.budget_min ?? '';
         const budgetMaxValue = job.budget?.max ?? job.budget_max ?? '';
 
+        const requirements = readJobRequirements(job.requirements);
+        setRequirementMetadata(requirements.metadata);
         setFormData({
           title: job.title || '',
           category: job.category || '',
@@ -150,7 +156,7 @@ export function useJobEditForm(jobId: string) {
           // (canonical create/update + new GET), `photos` (some
           // legacy responses), `images` (legacy edit-form shape).
           images: job.photoUrls ?? job.photos ?? job.images ?? [],
-          requirements: job.requirements || [],
+          requirements: requirements.items,
         });
 
         if (job.aiAnalysis) {
@@ -322,7 +328,10 @@ export function useJobEditForm(jobId: string) {
           propertyType: formData.propertyType,
           accessInfo: formData.accessInfo,
           images: formData.images,
-          requirements: formData.requirements,
+          requirements: writeJobRequirements(
+            requirementMetadata,
+            formData.requirements
+          ),
           startDate: formData.timeline.startDate,
           endDate: formData.timeline.endDate,
           flexibleTimeline: formData.timeline.flexible,
