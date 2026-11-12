@@ -800,3 +800,32 @@
   color: #784711;
   border-radius: 9px;
 }
+.property-workspace .pw-inspection-choice {
+  min-width: 0;
+  min-height: 100px;
+  padding: 14px;
+  text-align: left;
+  border: 1px solid #b9d3ca;
+  border-radius: 12px;
+  background: #f8fbf9;
+  color: #10151f;
+}
+.property-workspace .pw-inspection-choice span {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #52606d;
+}
+.property-workspace .pw-inspection-choice:disabled {
+  cursor: default;
+  border-color: #d7e2df;
+}
+.property-workspace .pw-inspection-choice:not(:disabled):hover,
+.property-workspace .pw-inspection-choice[aria-pressed='true'] {
+  border-color: #176b57;
+  background: #e6f0e9;
+}
+.property-workspace .pw-inspection-choice:focus-visible {
+  outline: 3px solid #348b75;
+  outline-offset: 3px;
+}

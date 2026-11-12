@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   INSPECTION_KINDS,
@@ -9,6 +9,7 @@ import {
   type InspectionReport,
   type InspectionPage,
   type DatedRoomPhoto,
+  type InspectionKind,
 } from '@mintenance/shared';
 import { inspectionRequest } from '@/lib/inspection-client';
 const control =
@@ -42,6 +43,9 @@ export default function TenancyInspections({
 }: {
   propertyId: string;
 }) {
+  return <TenancyWorkspace key={propertyId} propertyId={propertyId} />;
+}
+function TenancyWorkspace({ propertyId }: { propertyId: string }) {
   const [revision, setRevision] = useState(0);
   const [page, setPage] = useState(0);
   const [folder, setFolder] = useState<TenancyFolder | null>(null);
@@ -49,6 +53,14 @@ export default function TenancyInspections({
   const [editing, setEditing] = useState<TenancyFolder | null>(null);
   const [draft, setDraft] = useState({ label: '', starts_on: '', ends_on: '' });
   const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [error, setError] = useState('');
   const folders = useRecords<InspectionPage<TenancyFolder>>(
     '/api/properties/' + propertyId + '/tenancies?offset=' + page,
@@ -56,12 +68,13 @@ export default function TenancyInspections({
   );
   async function saveFolder(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (saving.current) return;
+    saving.current = true;
     const form = new FormData(event.currentTarget);
     setBusy(true);
     setError('');
     try {
-      await inspectionRequest(
+      const result = await inspectionRequest<{ id: string }>(
         '/api/properties/' + propertyId + '/tenancies',
         {
           label: String(form.get('label')),
@@ -72,14 +85,21 @@ export default function TenancyInspections({
         undefined,
         editing ? 'PATCH' : 'POST'
       );
+      if (!mounted.current) return;
+      if (!result?.id)
+        throw new Error(
+          'The folder save was not confirmed. Reload folders before retrying.'
+        );
       setCreate(false);
       setFolder(null);
       setPage(0);
       setRevision((v) => v + 1);
     } catch (e) {
+      if (!mounted.current) return;
       setError(e instanceof Error ? e.message : 'Unable to save folder.');
     } finally {
-      setBusy(false);
+      saving.current = false;
+      if (mounted.current) setBusy(false);
     }
   }
   return (
@@ -141,60 +161,62 @@ export default function TenancyInspections({
           onSubmit={saveFolder}
           className='my-4 grid gap-3 rounded-lg bg-gray-50 p-4'
         >
-          <label className='text-sm'>
-            Folder name
-            <input
-              value={draft.label}
-              onChange={(e) =>
-                setDraft((v) => ({ ...v, label: e.target.value }))
-              }
-              name='label'
-              required
-              maxLength={120}
-              placeholder='e.g. Tenancy 2026–27'
-              className={control}
-            />
-          </label>
-          <div className='grid gap-3 sm:grid-cols-2'>
+          <fieldset disabled={busy} className='min-w-0 grid gap-3'>
             <label className='text-sm'>
-              Tenancy starts
+              Folder name
               <input
-                value={draft.starts_on}
+                value={draft.label}
                 onChange={(e) =>
-                  setDraft((v) => ({ ...v, starts_on: e.target.value }))
+                  setDraft((v) => ({ ...v, label: e.target.value }))
                 }
-                name='starts_on'
-                type='date'
-                min='1900-01-01'
+                name='label'
                 required
+                maxLength={120}
+                placeholder='e.g. Tenancy 2026–27'
                 className={control}
               />
             </label>
-            <label className='text-sm'>
-              Tenancy ends (optional)
-              <input
-                value={draft.ends_on}
-                onChange={(e) =>
-                  setDraft((v) => ({ ...v, ends_on: e.target.value }))
-                }
-                name='ends_on'
-                type='date'
-                min='1900-01-01'
-                className={control}
-              />
-            </label>
-          </div>
-          <p className='text-xs text-gray-600'>
-            A folder records a tenancy period. It does not invite tenants or
-            grant access.
-          </p>
-          <button disabled={busy} className={button}>
-            {busy
-              ? 'Saving…'
-              : editing
-                ? 'Save folder changes'
-                : 'Create folder'}
-          </button>
+            <div className='grid gap-3 sm:grid-cols-2'>
+              <label className='text-sm'>
+                Tenancy starts
+                <input
+                  value={draft.starts_on}
+                  onChange={(e) =>
+                    setDraft((v) => ({ ...v, starts_on: e.target.value }))
+                  }
+                  name='starts_on'
+                  type='date'
+                  min='1900-01-01'
+                  required
+                  className={control}
+                />
+              </label>
+              <label className='text-sm'>
+                Tenancy ends (optional)
+                <input
+                  value={draft.ends_on}
+                  onChange={(e) =>
+                    setDraft((v) => ({ ...v, ends_on: e.target.value }))
+                  }
+                  name='ends_on'
+                  type='date'
+                  min={draft.starts_on || '1900-01-01'}
+                  className={control}
+                />
+              </label>
+            </div>
+            <p className='text-xs text-gray-600'>
+              A folder records a tenancy period. It does not invite tenants or
+              grant access.
+            </p>
+            <button disabled={busy} className={button}>
+              {busy
+                ? 'Saving…'
+                : editing
+                  ? 'Save folder changes'
+                  : 'Create folder'}
+            </button>
+          </fieldset>
         </form>
       )}
       {folders.data && (
@@ -203,6 +225,7 @@ export default function TenancyInspections({
             <label className='min-w-0 flex-1 text-sm'>
               Tenancy folder
               <select
+                disabled={busy}
                 className={control}
                 value={folder?.id ?? ''}
                 onChange={(e) =>
@@ -274,24 +297,7 @@ export default function TenancyInspections({
         </>
       )}
       {!folder && folders.data && (
-        <div className='pw-stats' style={{ marginTop: 20, marginBottom: 16 }}>
-          {INSPECTION_KINDS.map((kind) => (
-            <div
-              key={kind.value}
-              style={{
-                border: '1px solid #d7e2df',
-                borderRadius: 12,
-                padding: 14,
-                background: '#f8fbf9',
-              }}
-            >
-              <strong>{kind.label}</strong>
-              <p style={{ fontSize: 13, marginTop: 8, color: '#52606d' }}>
-                Select a tenancy first
-              </p>
-            </div>
-          ))}
-        </div>
+        <InspectionChoices disabled reason='Select a tenancy first' />
       )}
       {folder && folders.data && (
         <FolderReports
@@ -301,6 +307,36 @@ export default function TenancyInspections({
         />
       )}
     </section>
+  );
+}
+function InspectionChoices({
+  disabled,
+  reason,
+  selected,
+  onSelect,
+}: {
+  disabled?: boolean;
+  reason?: string;
+  selected?: InspectionKind;
+  onSelect?: (kind: InspectionKind) => void;
+}) {
+  return (
+    <div className='pw-stats' style={{ marginTop: 20, marginBottom: 16 }}>
+      {INSPECTION_KINDS.map((kind) => (
+        <button
+          key={kind.value}
+          type='button'
+          className='pw-inspection-choice'
+          disabled={disabled}
+          aria-label={`Create ${kind.label} report`}
+          aria-pressed={selected === kind.value}
+          onClick={() => onSelect?.(kind.value)}
+        >
+          <strong>{kind.label}</strong>
+          <span>{reason || 'Create report'}</span>
+        </button>
+      ))}
+    </div>
   );
 }
 function FolderReports({
@@ -313,6 +349,8 @@ function FolderReports({
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const [create, setCreate] = useState(false);
+  const [kind, setKind] = useState<InspectionKind>('check_in');
+  const [saving, setSaving] = useState(false);
   const reports = useRecords<InspectionPage<InspectionReport>>(
     '/api/properties/' +
       propertyId +
@@ -329,6 +367,7 @@ function FolderReports({
         {reports.data?.canCreate && (
           <button
             className={button}
+            disabled={saving}
             onClick={() => setCreate((v) => !v)}
             aria-expanded={create}
           >
@@ -336,10 +375,31 @@ function FolderReports({
           </button>
         )}
       </div>
+      <InspectionChoices
+        disabled={!reports.data?.canCreate || saving}
+        reason={
+          reports.loading
+            ? 'Loading reports…'
+            : reports.error
+              ? 'Retry loading reports first'
+              : !reports.data?.canCreate
+                ? 'Read-only access'
+                : undefined
+        }
+        selected={create ? kind : undefined}
+        onSelect={(value) => {
+          setKind(value);
+          setCreate(true);
+        }}
+      />
       {create && reports.data?.canCreate && (
         <ReportForm
           propertyId={propertyId}
           folderId={folder.id}
+          kind={kind}
+          onKindChange={setKind}
+          onSavingChange={setSaving}
+          cancel={() => setCreate(false)}
           saved={() => {
             setCreate(false);
             setPage(0);
@@ -405,10 +465,18 @@ function ReportForm({
   propertyId,
   folderId,
   saved,
+  kind,
+  onKindChange,
+  onSavingChange,
+  cancel,
 }: {
   propertyId: string;
   folderId: string;
   saved: () => void;
+  kind: InspectionKind;
+  onKindChange: (kind: InspectionKind) => void;
+  onSavingChange: (saving: boolean) => void;
+  cancel: () => void;
 }) {
   const [revision, setRevision] = useState(0);
   const photos = useRecords<{ photos: DatedRoomPhoto[] }>(
@@ -417,15 +485,25 @@ function ReportForm({
   );
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [error, setError] = useState('');
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (saving.current) return;
+    saving.current = true;
     const form = new FormData(event.currentTarget);
     setBusy(true);
+    onSavingChange(true);
     setError('');
     try {
-      await inspectionRequest(
+      const result = await inspectionRequest<{ id: string }>(
         '/api/properties/' + propertyId + '/inspections',
         {
           folder_id: folderId,
@@ -436,11 +514,21 @@ function ReportForm({
           photo_ids: selected,
         }
       );
+      if (!mounted.current) return;
+      if (!result?.id)
+        throw new Error(
+          'The report save was not confirmed. Check saved reports before retrying.'
+        );
       saved();
     } catch (e) {
+      if (!mounted.current) return;
       setError(e instanceof Error ? e.message : 'Unable to save report.');
     } finally {
-      setBusy(false);
+      saving.current = false;
+      if (mounted.current) {
+        setBusy(false);
+        onSavingChange(false);
+      }
     }
   }
   return (
@@ -448,113 +536,128 @@ function ReportForm({
       onSubmit={submit}
       className='my-4 grid gap-3 rounded-lg bg-gray-50 p-4'
     >
-      <label className='text-sm'>
-        Report title
-        <input required maxLength={160} name='title' className={control} />
-      </label>
-      <div className='grid gap-3 sm:grid-cols-2'>
+      <fieldset disabled={busy} className='min-w-0 grid gap-3'>
         <label className='text-sm'>
-          Inspection type
-          <select name='kind' className={control}>
-            {INSPECTION_KINDS.map((k) => (
-              <option key={k.value} value={k.value}>
-                {k.label}
-              </option>
-            ))}
-          </select>
+          Report title
+          <input required maxLength={160} name='title' className={control} />
         </label>
+        <div className='grid gap-3 sm:grid-cols-2'>
+          <label className='text-sm'>
+            Inspection type
+            <select
+              name='kind'
+              className={control}
+              value={kind}
+              onChange={(e) => onKindChange(e.target.value as InspectionKind)}
+            >
+              {INSPECTION_KINDS.map((k) => (
+                <option key={k.value} value={k.value}>
+                  {k.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className='text-sm'>
+            Inspection date
+            <input
+              required
+              name='inspected_on'
+              type='date'
+              min='1900-01-01'
+              className={control}
+            />
+          </label>
+        </div>
         <label className='text-sm'>
-          Inspection date
-          <input
-            required
-            name='inspected_on'
-            type='date'
-            min='1900-01-01'
+          Observations
+          <textarea
+            name='notes'
+            maxLength={10000}
+            rows={4}
             className={control}
           />
         </label>
-      </div>
-      <label className='text-sm'>
-        Observations
-        <textarea name='notes' maxLength={10000} rows={4} className={control} />
-      </label>
-      <fieldset>
-        <legend className='text-sm font-semibold'>
-          Room photos (up to 50)
-        </legend>
-        <p className='text-xs text-gray-600'>
-          Choose existing uploads. Upload dates do not prove when photos were
-          taken.
-        </p>
-        {photos.loading && <p role='status'>Loading photos…</p>}
-        {photos.error && (
-          <p role='alert'>
-            {photos.error}{' '}
-            <button
-              type='button'
-              className='min-h-11 underline'
-              onClick={() => {
-                setRevision((v) => v + 1);
-              }}
-            >
-              Retry photos
-            </button>
+        <fieldset>
+          <legend className='text-sm font-semibold'>
+            Room photos (up to 50)
+          </legend>
+          <p className='text-xs text-gray-600'>
+            Choose existing uploads. Upload dates do not prove when photos were
+            taken.
           </p>
-        )}
-        <div className='mt-2 max-h-64 overflow-y-auto'>
-          {photos.data?.photos.map((photo) => (
-            <label
-              key={photo.id}
-              className='flex min-h-11 items-center gap-3 rounded border p-2 text-sm'
-            >
-              <input
-                type='checkbox'
-                checked={selected.includes(photo.id)}
-                disabled={
-                  busy ||
-                  (!selected.includes(photo.id) && selected.length >= 50)
-                }
-                onChange={(e) =>
-                  setSelected((ids) =>
-                    e.target.checked
-                      ? [...ids, photo.id]
-                      : ids.filter((id) => id !== photo.id)
-                  )
-                }
-              />
-              <span className='min-w-0 break-words'>
-                {photo.room_type.replace(/_/g, ' ')} · {photo.file_name}
-                <span className='block text-xs text-gray-600'>
-                  {uploadedPhotoLabel(photo.created_at)}
+          {photos.loading && <p role='status'>Loading photos…</p>}
+          {photos.error && (
+            <p role='alert'>
+              {photos.error}{' '}
+              <button
+                type='button'
+                className='min-h-11 underline'
+                onClick={() => {
+                  setRevision((v) => v + 1);
+                }}
+              >
+                Retry photos
+              </button>
+            </p>
+          )}
+          <div className='mt-2 max-h-64 overflow-y-auto'>
+            {photos.data?.photos.map((photo) => (
+              <label
+                key={photo.id}
+                className='flex min-h-11 items-center gap-3 rounded border p-2 text-sm'
+              >
+                <input
+                  type='checkbox'
+                  checked={selected.includes(photo.id)}
+                  disabled={
+                    busy ||
+                    (!selected.includes(photo.id) && selected.length >= 50)
+                  }
+                  onChange={(e) =>
+                    setSelected((ids) =>
+                      e.target.checked
+                        ? [...ids, photo.id]
+                        : ids.filter((id) => id !== photo.id)
+                    )
+                  }
+                />
+                <span className='min-w-0 break-words'>
+                  {photo.room_type.replace(/_/g, ' ')} · {photo.file_name}
+                  <span className='block text-xs text-gray-600'>
+                    {uploadedPhotoLabel(photo.created_at)}
+                  </span>
                 </span>
-              </span>
-            </label>
-          ))}
-        </div>
-        {photos.data && !photos.data.photos.length && (
-          <p className='text-sm'>
-            No room photos yet. You can save a written report, or add room
-            photos first.
+              </label>
+            ))}
+          </div>
+          {photos.data && !photos.data.photos.length && (
+            <p className='text-sm'>
+              No room photos yet. You can save a written report, or add room
+              photos first.
+            </p>
+          )}
+        </fieldset>
+        {error && (
+          <p role='alert' className='text-sm text-red-800'>
+            {error}
           </p>
         )}
-      </fieldset>
-      {error && (
-        <p role='alert' className='text-sm text-red-800'>
-          {error}
+        <p className='text-xs text-gray-600'>
+          Saving shares this report with existing property members. Saved
+          reports cannot be rewritten; record corrections in a new report.
+          Attached images remain linked to the original uploads and can become
+          unavailable if deleted.
         </p>
-      )}
-      <p className='text-xs text-gray-600'>
-        Saving shares this report with existing property members. Saved reports
-        cannot be rewritten; record corrections in a new report. Attached images
-        remain linked to the original uploads and can become unavailable if
-        deleted.
-      </p>
-      <button
-        disabled={busy || photos.loading || !!photos.error}
-        className={button}
-      >
-        {busy ? 'Saving…' : 'Save shared report'}
-      </button>
+        <button
+          disabled={busy || photos.loading || !!photos.error}
+          className={button}
+        >
+          {busy ? 'Saving…' : 'Save shared report'}
+        </button>
+        <button type='button' className='min-h-11 underline' onClick={cancel}>
+          Cancel report
+        </button>
+      </fieldset>
     </form>
   );
 }

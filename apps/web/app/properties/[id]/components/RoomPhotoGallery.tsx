@@ -19,6 +19,9 @@ interface RoomPhotoGalleryProps {
 export default function RoomPhotoGallery({
   propertyId,
 }: RoomPhotoGalleryProps) {
+  return <RoomPhotos key={propertyId} propertyId={propertyId} />;
+}
+function RoomPhotos({ propertyId }: RoomPhotoGalleryProps) {
   const [photos, setPhotos] = useState<RoomPhoto[]>([]);
   const [error, setError] = useState(false);
   const [selectedDate, setSelectedDate] = useState('all');
@@ -28,6 +31,8 @@ export default function RoomPhotoGallery({
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mutation = useRef(false);
+  const mounted = useRef(true);
 
   const fetchPhotos = useCallback(async () => {
     const request = ++requestId.current;
@@ -35,7 +40,9 @@ export default function RoomPhotoGallery({
     setError(false);
     setPhotos([]);
     try {
-      const res = await fetch(`/api/properties/${propertyId}/room-photos`);
+      const res = await fetch(`/api/properties/${propertyId}/room-photos`, {
+        cache: 'no-store',
+      });
       if (!res.ok) throw new Error('Photos unavailable');
       const data = await res.json();
       if (!Array.isArray(data.photos)) throw new Error('Invalid response');
@@ -51,14 +58,17 @@ export default function RoomPhotoGallery({
   }, [propertyId]);
 
   useEffect(() => {
+    mounted.current = true;
     void fetchPhotos();
     return () => {
+      mounted.current = false;
       requestId.current++;
     };
   }, [fetchPhotos]);
 
-  const handleUpload = async (files: FileList) => {
-    if (!selectedRoom || !files.length) return;
+  const handleUpload = async (files: File[]) => {
+    if (mutation.current || !selectedRoom || !files.length || loading || error)
+      return;
     if (
       files.length > 10 ||
       Array.from(files).some((file) => file.size > 5 * 1024 * 1024)
@@ -66,6 +76,18 @@ export default function RoomPhotoGallery({
       toast.error('Choose up to 10 photos, each smaller than 5 MB.');
       return;
     }
+    if (
+      files.some(
+        (file) =>
+          !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(
+            file.type
+          )
+      )
+    ) {
+      toast.error('Choose JPEG, PNG, WebP or GIF photos.');
+      return;
+    }
+    mutation.current = true;
     setUploading(true);
 
     try {
@@ -74,6 +96,7 @@ export default function RoomPhotoGallery({
       Array.from(files).forEach((f) => formData.append('photos', f));
 
       const csrfHeaders = await getCsrfHeaders();
+      if (!mounted.current) return;
       const res = await fetch(`/api/properties/${propertyId}/room-photos`, {
         method: 'POST',
         headers: { ...csrfHeaders },
@@ -81,8 +104,30 @@ export default function RoomPhotoGallery({
       });
 
       const data = await res.json();
+      if (!mounted.current) return;
       if (!res.ok) {
-        toast.error(data.error || 'Upload failed');
+        toast.error(
+          typeof data.error === 'string'
+            ? data.error
+            : 'Upload failed. Please try again.'
+        );
+        return;
+      }
+      if (
+        !Number.isInteger(data.uploaded) ||
+        data.uploaded < 1 ||
+        data.uploaded > files.length ||
+        !Array.isArray(data.photos) ||
+        data.photos.length !== data.uploaded ||
+        data.photos.some(
+          (photo: { id?: string; room_type?: string }) =>
+            !photo?.id || photo.room_type !== selectedRoom
+        )
+      ) {
+        toast.error(
+          'Upload was not confirmed. Refresh photos before retrying.'
+        );
+        await fetchPhotos();
         return;
       }
 
@@ -92,35 +137,42 @@ export default function RoomPhotoGallery({
       if (data.warnings?.length) {
         toast.error(`${data.warnings.length} file(s) failed`);
       }
-      fetchPhotos();
+      await fetchPhotos();
     } catch {
-      toast.error('Upload failed');
+      if (mounted.current) toast.error('Upload failed');
     } finally {
-      setUploading(false);
+      mutation.current = false;
+      if (mounted.current) setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const handleDelete = async (photoId: string) => {
+    if (mutation.current || loading || error) return;
     if (!window.confirm('Delete this room photo? This cannot be undone.'))
       return;
+    mutation.current = true;
     setDeleting(photoId);
     try {
       const csrfHeaders = await getCsrfHeaders();
+      if (!mounted.current) return;
       const res = await fetch(
         `/api/properties/${propertyId}/room-photos?photoId=${photoId}`,
         { method: 'DELETE', headers: { ...csrfHeaders } }
       );
-      if (!res.ok) {
+      const data = await res.json();
+      if (!mounted.current) return;
+      if (!res.ok || data.success !== true) {
         toast.error('Failed to delete photo');
         return;
       }
       toast.success('Photo deleted');
-      fetchPhotos();
+      await fetchPhotos();
     } catch {
-      toast.error('Failed to delete photo');
+      if (mounted.current) toast.error('Failed to delete photo');
     } finally {
-      setDeleting(null);
+      mutation.current = false;
+      if (mounted.current) setDeleting(null);
     }
   };
 
@@ -179,6 +231,7 @@ export default function RoomPhotoGallery({
             type='button'
             className='pw-btn pw-btn-small'
             aria-pressed={(selectedRoom ?? '') === room.value}
+            disabled={uploading || !!deleting}
             onClick={() => {
               setSelectedRoom(room.value || null);
               setSelectedDate('all');
@@ -196,6 +249,8 @@ export default function RoomPhotoGallery({
         <label className='min-w-0 flex-1 basis-36 text-xs font-semibold text-gray-700'>
           Room
           <select
+            aria-label='Room'
+            disabled={uploading || !!deleting}
             value={selectedRoom ?? ''}
             onChange={(event) => {
               setSelectedRoom(event.target.value || null);
@@ -239,17 +294,21 @@ export default function RoomPhotoGallery({
             <input
               ref={fileInputRef}
               type='file'
+              aria-label='Choose room photos'
+              disabled={uploading || !!deleting || loading || error}
               accept='image/jpeg,image/png,image/webp,image/gif'
               multiple
               className='hidden'
-              onChange={(event) =>
-                event.target.files && handleUpload(event.target.files)
-              }
+              onChange={(event) => {
+                const files = Array.from(event.currentTarget.files ?? []);
+                event.currentTarget.value = '';
+                void handleUpload(files);
+              }}
             />
             <button
               type='button'
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+              disabled={uploading || !!deleting || loading || error}
               aria-label={
                 'Upload photos to ' +
                 ROOM_TYPES.find((room) => room.value === selectedRoom)?.label
@@ -328,7 +387,7 @@ export default function RoomPhotoGallery({
                   <button
                     type='button'
                     onClick={() => handleDelete(photo.id)}
-                    disabled={deleting === photo.id}
+                    disabled={uploading || !!deleting || loading || error}
                     aria-label={`Delete ${photo.file_name || 'room photo'}`}
                     className='min-h-11 w-full text-xs font-semibold text-red-800 hover:bg-red-50'
                   >
