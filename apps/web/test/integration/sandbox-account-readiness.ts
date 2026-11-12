@@ -9,16 +9,19 @@ export async function waitForSandboxAccount(
   if (!process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')) {
     throw new Error('Connect readiness polling requires Stripe test mode');
   }
-  for (let attempt = 0; attempt < 40; attempt++) {
+  // Real sandbox verification exceeded 40 seconds in CI. Allow up to five
+  // minutes, polling gently, while still failing closed on inactive accounts.
+  const deadline = Date.now() + 5 * 60_000;
+  while (Date.now() < deadline) {
     const account = await stripe.accounts.retrieve(id);
     if (
       account.capabilities?.transfers === 'active' &&
       (!requirePayouts || account.payouts_enabled)
     )
       return account;
-    if (attempt < 39) await setTimeout(1000);
+    await setTimeout(2000);
   }
   throw new Error(
-    'Synthetic Connect account did not become ready within 40 checks'
+    'Synthetic Connect account did not become ready within five minutes'
   );
 }
