@@ -401,7 +401,40 @@ test.describe('Accessibility Tests', () => {
 
   // Test skip links
   test('should have skip to content link', async ({ page }) => {
+    const progressResponse = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/onboarding/progress') &&
+        response.request().method() === 'GET'
+    );
     await page.goto('/dashboard');
+    const progress = await progressResponse;
+    expect(progress.ok()).toBe(true);
+    const { progress: journeys } = await progress.json();
+    const introduction = journeys.find(
+      (journey: { journey: string; platform: string }) =>
+        journey.journey === 'intro-homeowner' && journey.platform === 'web'
+    );
+    // The first-visit tour correctly traps keyboard focus. Dismiss it through
+    // the real UI and verify persistence before testing the underlying page.
+    if (!introduction || introduction.status === 'in_progress') {
+      const tour = page.getByRole('dialog').filter({
+        has: page.getByRole('button', { name: 'Skip tour', exact: true }),
+      });
+      await expect(tour).toBeVisible();
+      await expect(tour).toBeFocused();
+      const savedProgress = page.waitForResponse(
+        (response) =>
+          response.url().endsWith('/api/onboarding/progress') &&
+          response.request().method() === 'PUT'
+      );
+      await page.keyboard.press('Escape');
+      expect((await savedProgress).ok()).toBe(true);
+      await expect(tour).toBeHidden();
+      // A fresh navigation resets the keyboard starting position after the
+      // modal restores focus to the element active before it opened.
+      await page.reload();
+    }
+    await waitForAccessiblePage(page, '/dashboard');
 
     // Check for skip link
     // The layouts render `<a href="#main-content">Skip to content</a>`, which
