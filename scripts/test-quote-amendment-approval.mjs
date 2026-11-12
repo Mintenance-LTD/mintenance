@@ -62,6 +62,37 @@ const operator = id(90);
 await db.exec(`CREATE TABLE profiles(id uuid PRIMARY KEY,role text,deleted_at timestamptz);
  INSERT INTO profiles VALUES('${operator}','admin',NULL);
  BEGIN; ${sql('20261107150444_quote_amendment_email_review.sql')} COMMIT;`);
+await db.exec(
+  `BEGIN; ${sql('20261107213241_quote_amendment_email_conflict_code.sql')} COMMIT;`
+);
+// Prove the migration changes only the eight deterministic conflict codes.
+// Keep execution privileges, security settings, arguments and every other SQL byte.
+const functionState = async () =>
+  (
+    await db.query(`SELECT proname, prosrc, proacl::text AS acl,
+ prosecdef, proconfig, pg_get_function_identity_arguments(oid) AS arguments
+ FROM pg_proc WHERE pronamespace='public'::regnamespace
+ AND proname IN ('propose_quote_amendment','transition_quote_amendment') ORDER BY proname`)
+  ).rows;
+const beforeConflicts = await functionState();
+assert.equal(beforeConflicts.length, 2);
+assert.equal(
+  beforeConflicts.reduce(
+    (n, f) => n + (f.prosrc.match(/'40001'/g) || []).length,
+    0
+  ),
+  8
+);
+await db.exec(
+  `BEGIN; ${sql('20261108101704_quote_amendment_business_conflicts.sql')} COMMIT;`
+);
+assert.deepEqual(
+  await functionState(),
+  beforeConflicts.map((f) => ({
+    ...f,
+    prosrc: f.prosrc.replaceAll("'40001'", "'PT409'"),
+  }))
+);
 const version = '2026-11-06T12:00:00Z';
 let revision;
 async function seed(hasPayer = false) {
@@ -152,6 +183,98 @@ async function test(name, run, payerMode = false) {
     await db.exec('ROLLBACK');
   }
 }
+await test('proposal conflicts terminate and preserve the original revision', async () => {
+  const propose = (
+    request = id(21),
+    timestamp = version,
+    reason = 'Extra part',
+    quoteId = quote
+  ) =>
+    db.query('SELECT * FROM propose_quote_amendment($1,$2,$3,$4,$5,$6)', [
+      quoteId,
+      owner,
+      request,
+      timestamp,
+      reason,
+      JSON.stringify({
+        line_items: [
+          {
+            description: 'Revised repair',
+            quantity: 2,
+            unitPrice: 60,
+            total: 120,
+          },
+        ],
+        subtotal: 120,
+        tax_rate: 0,
+        tax_amount: 0,
+        total_amount: 120,
+      }),
+    ]);
+  await rejects(() => propose(id(20), version, 'Different request'), {
+    code: 'PT409',
+    message: /already used/,
+  });
+  await rejects(() => propose(id(21), '2026-11-06T11:00:00Z'), {
+    code: 'PT409',
+    message: /Quote changed/,
+  });
+  const replay = (await propose(id(20))).rows[0];
+  assert.equal(replay.id, revision);
+  await db.exec('RESET ROLE');
+  await db.query(
+    `INSERT INTO contractor_quotes(id,contractor_id,client_name,client_email,title,status,total_amount)
+    VALUES($1,$2,'Synthetic','synthetic@example.test','Draft','draft',0)`,
+    [id(25), owner]
+  );
+  await db.exec('SET LOCAL ROLE service_role');
+  await rejects(() => propose(id(21), null, 'Extra part', id(25)), {
+    code: 'PT409',
+    message: /Only accepted/,
+  });
+  assert.equal(
+    (
+      await one(
+        "SELECT count(*)::int AS n FROM quote_revisions WHERE kind='amendment_proposed'"
+      )
+    ).n,
+    1
+  );
+});
+await test('changed job returns terminal conflict without publishing or sending', async () => {
+  await db.query("UPDATE jobs SET status='completed' WHERE id=$1", [job]);
+  await rejects(() => transition('publish'), {
+    code: 'PT409',
+    message: /quote or job changed/,
+  });
+  for (const table of [
+    'quote_amendments',
+    'quote_amendment_events',
+    'notification_queue',
+    'quote_amendment_email_outbox',
+  ])
+    assert.equal((await one(`SELECT count(*)::int AS n FROM ${table}`)).n, 0);
+});
+await test('changed accepted bid returns terminal conflict and keeps approval', async () => {
+  await approve();
+  await db.query("UPDATE bids SET status='withdrawn' WHERE id=$1", [bid]);
+  await rejects(() => transition('apply', owner, 2), {
+    code: 'PT409',
+    message: /Accepted bid changed/,
+  });
+  assert.equal(
+    (await one('SELECT status FROM quote_amendments')).status,
+    'approved'
+  );
+  assert.equal(
+    (await one('SELECT count(*)::int AS n FROM quote_amendment_events')).n,
+    2
+  );
+  assert.equal(
+    (await one('SELECT count(*)::int AS n FROM contractor_quotes')).n,
+    1
+  );
+});
 await test('publish, approve, apply, original preservation and exact retry', async () => {
   const original = await one('SELECT * FROM contractor_quotes WHERE id=$1', [
     quote,
@@ -242,15 +365,24 @@ await test('read access, version binding, decision note binding and conflicting 
   await rejects(() => read(outsider), /access denied/);
   await rejects(() => transition('publish', customer), /access denied/);
   await transition('publish');
-  await rejects(() => transition('approve', customer, 0), /changed/);
+  await rejects(() => transition('approve', customer, 0), {
+    code: 'PT409',
+    message: /changed/,
+  });
   await transition('approve', customer, 1, 'Agreed');
   await rejects(
     () => transition('approve', customer, 1, 'Different'),
     /changed/
   );
-  await rejects(() => transition('reject', customer, 1), /changed/);
+  await rejects(() => transition('reject', customer, 1), {
+    code: 'PT409',
+    message: /changed/,
+  });
   await transition('withdraw', owner, 2);
-  await rejects(() => transition('apply', owner, 3), /no longer/);
+  await rejects(() => transition('apply', owner, 3), {
+    code: 'PT409',
+    message: /no longer/,
+  });
 });
 await test('reject preserves originals and prevents application', async () => {
   await transition('publish');
@@ -325,10 +457,10 @@ for (const [name, change] of [
 await test('payer reassignment invalidates approval before application', async () => {
   await approve();
   await db.query('UPDATE jobs SET payer_user_id=$1', [payer]);
-  await rejects(
-    () => transition('apply', owner, 2),
-    /responsible customer changed/
-  );
+  await rejects(() => transition('apply', owner, 2), {
+    code: 'PT409',
+    message: /responsible customer changed/,
+  });
   await transition('withdraw', owner, 2);
 });
 await test('event immutability and restricted direct application writes', async () => {
@@ -750,13 +882,16 @@ for (const [action, evidence, target] of [
 await test('competing reviews and changed request-id reuse are rejected', async () => {
   await failedEmail();
   await reviewEmail();
-  await rejects(() => reviewEmail({ request: id(92) }), /changed/);
+  await rejects(() => reviewEmail({ request: id(92) }), {
+    code: 'PT409',
+    message: /changed/,
+  });
   await rejects(
     () =>
       reviewEmail({
         note: 'Different evidence must not reuse an existing request.',
       }),
-    /already used/
+    { code: 'PT409', message: /already used/ }
   );
   assert.equal(
     Number(
@@ -805,6 +940,60 @@ await test('non-admin and deleted admins cannot review or replay', async () => {
   );
   await rejects(() => reviewEmail(), /Admin required/);
 });
+for (const revocation of ['demoted', 'deleted']) {
+  await test(`${revocation} admin cannot replay a committed review; restored access replays without a write`, async () => {
+    await failedEmail('needs_review');
+    const input = { action: 'close_unknown', evidence: 'unknown' };
+    const saved = await reviewEmail(input);
+    const before = await one('SELECT * FROM quote_amendment_email_outbox');
+    await db.exec(
+      `RESET ROLE; UPDATE profiles SET ${revocation === 'demoted' ? "role='homeowner'" : 'deleted_at=now()'} WHERE id='${operator}'; SET LOCAL ROLE service_role;`
+    );
+    await rejects(() => reviewEmail(input), {
+      code: '42501',
+      message: /Admin required/,
+    });
+    await rejects(
+      () => reviewEmail({ ...input, request: id(92), expected: 1 }),
+      { code: '42501', message: /Admin required/ }
+    );
+    await db.exec(
+      `RESET ROLE; UPDATE profiles SET role='admin',deleted_at=NULL WHERE id='${operator}'; SET LOCAL ROLE service_role;`
+    );
+    assert.deepEqual(await reviewEmail(input), saved);
+    assert.deepEqual(
+      await one('SELECT * FROM quote_amendment_email_outbox'),
+      before
+    );
+    assert.equal(
+      Number(
+        (await one('SELECT count(*) AS n FROM quote_amendment_email_reviews')).n
+      ),
+      1
+    );
+  });
+}
+await test('replaying an old committed review cannot undo a later review', async () => {
+  await failedEmail('needs_review');
+  const input = { action: 'close_unknown', evidence: 'unknown' };
+  const saved = await reviewEmail(input);
+  await db.exec(
+    "UPDATE quote_amendment_email_outbox SET status='needs_review'"
+  );
+  await reviewEmail({ ...input, request: id(92), expected: 1 });
+  const before = await one('SELECT * FROM quote_amendment_email_outbox');
+  assert.deepEqual(await reviewEmail(input), saved);
+  assert.deepEqual(
+    await one('SELECT * FROM quote_amendment_email_outbox'),
+    before
+  );
+  assert.equal(
+    Number(
+      (await one('SELECT count(*) AS n FROM quote_amendment_email_reviews')).n
+    ),
+    2
+  );
+});
 await test('mismatched evidence and short notes cannot authorize retries', async () => {
   await failedEmail('needs_review');
   for (const input of [
@@ -826,7 +1015,7 @@ for (const status of [
 ]) {
   await test(`cannot recover ${status} mail`, async () => {
     await failedEmail(status);
-    await rejects(() => reviewEmail(), /changed/);
+    await rejects(() => reviewEmail(), { code: 'PT409', message: /changed/ });
   });
 }
 await test('stale amendment or changed payer cannot be retried', async () => {
@@ -834,10 +1023,16 @@ await test('stale amendment or changed payer cannot be retried', async () => {
   await db.exec(
     `UPDATE jobs SET payer_user_id='${outsider}' WHERE id='${job}'`
   );
-  await rejects(() => reviewEmail(), /no longer current/);
+  await rejects(() => reviewEmail(), {
+    code: 'PT409',
+    message: /no longer current/,
+  });
   await db.exec(`UPDATE jobs SET payer_user_id=NULL WHERE id='${job}'`);
   await transition('withdraw', owner, 1);
-  await rejects(() => reviewEmail(), /no longer current/);
+  await rejects(() => reviewEmail(), {
+    code: 'PT409',
+    message: /no longer current/,
+  });
 });
 await test('review audit failure rolls back the queue reset', async () => {
   await failedEmail();

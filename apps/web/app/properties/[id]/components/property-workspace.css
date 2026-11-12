@@ -792,3 +792,11 @@
   min-height: 43px;
   font-size: 15px;
 }
+
+.property-workspace .pw-recovery {
+  grid-column: 1 / -1;
+  padding: 12px;
+  background: #fff4df;
+  color: #784711;
+  border-radius: 9px;
+}

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { ReportConversationLink } from './ReportConversationLink';
 import {
   CheckCircle2,
   FileText,
@@ -25,6 +26,7 @@ interface Report {
   status: string;
   landlord_notes: string | null;
   created_at: string;
+  job_id?: string | null;
   properties: { id: string; property_name: string; address: string } | null;
 }
 
@@ -34,7 +36,10 @@ const STATUS_BADGES: Record<string, { label: string; className: string }> = {
     label: 'Acknowledged',
     className: 'bg-amber-100 text-amber-800',
   },
-  converted: { label: 'Job Created', className: 'bg-green-100 text-green-800' },
+  converted: {
+    label: 'Marked converted',
+    className: 'bg-green-100 text-green-800',
+  },
   resolved: { label: 'Resolved', className: 'bg-gray-100 text-gray-800' },
   dismissed: { label: 'Dismissed', className: 'bg-red-100 text-red-700' },
 };
@@ -48,11 +53,15 @@ const URGENCY_COLORS: Record<string, string> = {
 
 export function TenantReportsClient({
   reports: initialReports,
+  initialReportId,
 }: {
   reports: Report[];
+  initialReportId?: string;
 }) {
   const [reports, setReports] = useState(initialReports);
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(
+    () => initialReports.find((report) => report.id === initialReportId) ?? null
+  );
   const [filter, setFilter] = useState<string>('all');
   const [updating, setUpdating] = useState(false);
 
@@ -92,7 +101,9 @@ export function TenantReportsClient({
       const { report: fresh } = (await res.json()) as { report: Report };
       setReports((prev) => prev.map((r) => (r.id === fresh.id ? fresh : r)));
       toast.success('Status updated');
-      if (closeAfter) setSelectedReport(null);
+      setSelectedReport((current) =>
+        current?.id === report.id ? (closeAfter ? null : fresh) : current
+      );
     } catch (err) {
       setReports((prev) =>
         prev.map((r) => (r.id === report.id ? { ...r, status: previous } : r))
@@ -108,6 +119,13 @@ export function TenantReportsClient({
 
   return (
     <div className='max-w-5xl mx-auto px-4 sm:px-6 py-8'>
+      {initialReportId &&
+        !reports.some((report) => report.id === initialReportId) && (
+          <p role='status'>
+            This report is unavailable in your inbox. Check the account you
+            signed in with.
+          </p>
+        )}
       <div className='mb-8'>
         <h1 className='text-2xl font-bold text-gray-900'>Tenant Reports</h1>
         <p className='mt-1 text-gray-500'>
@@ -278,12 +296,11 @@ export function TenantReportsClient({
                   {new Date(selectedReport.created_at).toLocaleString('en-GB')}
                 </p>
               </div>
-              <Link
-                className='underline'
-                href={`/maintenance/reports/${selectedReport.id}`}
-              >
-                Open shared issue conversation
-              </Link>
+              <ReportConversationLink
+                reportId={selectedReport.id}
+                propertyId={selectedReport.properties?.id}
+                jobId={selectedReport.job_id}
+              />
               {/* Status mutation row — buttons depend on the current
                   state. Audit fix (2026-05-12): the filter tabs implied
                   the user could change a report's status, but there
@@ -337,7 +354,9 @@ export function TenantReportsClient({
                   </>
                 )}
                 {(selectedReport.status === 'resolved' ||
-                  selectedReport.status === 'dismissed') && (
+                  selectedReport.status === 'dismissed' ||
+                  (selectedReport.status === 'converted' &&
+                    !selectedReport.job_id)) && (
                   <button
                     type='button'
                     disabled={updating}
@@ -351,53 +370,24 @@ export function TenantReportsClient({
               </div>
               <div className='flex gap-2 pt-2'>
                 {selectedReport.properties &&
-                selectedReport.status !== 'converted' &&
-                selectedReport.status !== 'dismissed' ? (
-                  // 2026-05-23 audit: previously a plain <a> link to
-                  // /jobs/create. The report stayed in 'new' bucket
-                  // forever even after the landlord created the job —
-                  // the "Job Created" filter never lit up and the same
-                  // report sat in the inbox indefinitely.
-                  //
-                  // Now we optimistically PATCH the report to
-                  // 'converted' on click, then push the user into the
-                  // create flow. The destination URL includes
-                  // ?report_id so the create page can later attach
-                  // job_id via the same PATCH endpoint (follow-up:
-                  // wire that callback inside /jobs/create's submit
-                  // handler so the report row links to the actual
-                  // created job, not just "acted on"). Optimistic
-                  // mark is the right tradeoff: a landlord who
-                  // abandons mid-flow can manually reopen the report;
-                  // the failure mode is "report still says converted"
-                  // rather than the previous "report still says new
-                  // forever."
-                  <button
-                    type='button'
-                    onClick={async () => {
-                      if (updating) return;
-                      const reportToConvert = selectedReport;
-                      const propertyId = reportToConvert.properties!.id;
-                      await updateStatus(
-                        reportToConvert,
-                        'converted',
-                        /* closeAfter */ false
-                      );
-                      const params = new URLSearchParams({
-                        property_id: propertyId,
-                        category: reportToConvert.category,
-                        description: reportToConvert.description,
-                        report_id: reportToConvert.id,
-                      });
-                      window.location.href = `/jobs/create?${params.toString()}`;
-                    }}
-                    disabled={updating}
-                    className='flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2 px-3 text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                  >
-                    <FileText className='w-4 h-4' />
-                    Create Job
-                  </button>
-                ) : null}
+                  !selectedReport.job_id &&
+                  selectedReport.status !== 'converted' &&
+                  selectedReport.status !== 'dismissed' && (
+                    <Link
+                      href={{
+                        pathname: '/jobs/create',
+                        query: {
+                          property_id: selectedReport.properties.id,
+                          category: selectedReport.category,
+                          description: selectedReport.description,
+                          urgency: selectedReport.urgency,
+                        },
+                      }}
+                      className='flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2 px-3 text-sm font-medium'
+                    >
+                      <FileText className='w-4 h-4' /> Create Job
+                    </Link>
+                  )}
                 <button
                   type='button'
                   onClick={() => setSelectedReport(null)}

@@ -120,7 +120,7 @@ it('preserves a native schedule edit after a revision conflict and sends the loa
       expected_updated_at: '2026-09-22T12:00:00Z',
       title: 'Updated boiler service',
     }),
-    undefined
+    { timeout: 15000, retries: 0 }
   );
   expect(view.getByLabelText('Schedule title').props.value).toBe(
     'Updated boiler service'
@@ -178,6 +178,9 @@ it('uses the selected first due date and suppresses duplicate create taps', asyn
     })
   );
   const view = wrap(<RecurringMaintenance propertyId='property' editable />);
+  await waitFor(() =>
+    expect(view.queryByText('Loading recurring schedules...')).toBeNull()
+  );
   fireEvent.press(view.getByLabelText('Add recurring schedule'));
   fireEvent.changeText(
     view.getByLabelText('Schedule title'),
@@ -196,7 +199,11 @@ it('uses the selected first due date and suppresses duplicate create taps', asyn
       next_due_date: '2026-12-15',
       frequency: 'monthly',
     }),
-    { headers: { 'Idempotency-Key': 'test-request' } }
+    {
+      timeout: 15000,
+      retries: 0,
+      headers: { 'Idempotency-Key': 'test-request' },
+    }
   );
   await act(async () =>
     finish({ schedule: { id: 'schedule', property_id: 'property' } })
@@ -229,6 +236,9 @@ it('rejects an impossible due date without sending a schedule', async () => {
   mockGet.mockResolvedValue({ schedules: [] });
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   const view = wrap(<RecurringMaintenance propertyId='property' editable />);
+  await waitFor(() =>
+    expect(view.queryByText('Loading recurring schedules...')).toBeNull()
+  );
   fireEvent.press(view.getByLabelText('Add recurring schedule'));
   fireEvent.changeText(
     view.getByLabelText('Schedule title'),
@@ -250,6 +260,9 @@ it('preserves schedule input when the server does not confirm the created record
   mockPost.mockResolvedValue({});
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   const view = wrap(<RecurringMaintenance propertyId='property' editable />);
+  await waitFor(() =>
+    expect(view.queryByText('Loading recurring schedules...')).toBeNull()
+  );
   fireEvent.press(view.getByLabelText('Add recurring schedule'));
   fireEvent.changeText(
     view.getByLabelText('Schedule title'),
@@ -282,6 +295,9 @@ it('preserves a schedule after a connection failure, suppresses double taps, and
       })
   );
   const view = wrap(<RecurringMaintenance propertyId='property' editable />);
+  await waitFor(() =>
+    expect(view.queryByText('Loading recurring schedules...')).toBeNull()
+  );
   fireEvent.press(view.getByLabelText('Add recurring schedule'));
   fireEvent.changeText(
     view.getByLabelText('Schedule title'),

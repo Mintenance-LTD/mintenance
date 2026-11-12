@@ -2,7 +2,7 @@ import { scheduleRequest } from '../../../utils/scheduleRequestKey';
 /**
  * RecurringMaintenance - Manage recurring maintenance schedules for a property
  */
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,7 @@ interface Schedule {
 interface Props {
   propertyId: string;
   editable?: boolean;
+  onAccessDenied?: () => void;
 }
 
 // 2026-05-24 audit-31 P1: live recurring_schedules_frequency_check
@@ -60,10 +61,43 @@ const FREQ_LABEL: Record<string, string> = {
 export const RecurringMaintenance: React.FC<Props> = ({
   propertyId,
   editable = false,
+  onAccessDenied,
+}) => {
+  const { user } = useAuth();
+  if (!user) return <Text>Sign in to view recurring schedules.</Text>;
+  return (
+    <RecurringEditor
+      key={`${user.id}:${propertyId}:${editable}`}
+      propertyId={propertyId}
+      editable={editable}
+      onAccessDenied={onAccessDenied}
+    />
+  );
+};
+
+const RecurringEditor: React.FC<Props> = ({
+  propertyId,
+  editable = false,
+  onAccessDenied,
 }) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const creating = useRef(false);
+  const mounted = useRef(true);
+  const allowed = useRef(false);
+  const contractorRead = useRef<AbortController | null>(null);
+  const [needsReload, setNeedsReload] = useState(false);
+  const [staleDraft, setStaleDraft] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [recovery, setRecovery] = useState('');
+  const [loadingContractors, setLoadingContractors] = useState(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      contractorRead.current?.abort();
+    };
+  }, []);
   const [firstDueDate, setFirstDueDate] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
@@ -76,18 +110,46 @@ export const RecurringMaintenance: React.FC<Props> = ({
     { id: string; name: string }[]
   >([]);
   const loadContractors = async () => {
+    if (!allowed.current || creating.current) return;
+    contractorRead.current?.abort();
+    const controller = new AbortController();
+    contractorRead.current = controller;
+    setLoadingContractors(true);
     try {
       const result = await mobileApiClient.get<{
         contractors: { id: string; name: string }[];
-      }>(`/api/properties/${propertyId}/recurring-contractors`);
+      }>(`/api/properties/${propertyId}/recurring-contractors`, {
+        signal: controller.signal,
+        timeout: 15000,
+        retries: 0,
+      });
+      if (!mounted.current || controller.signal.aborted) return;
+      if (
+        !Array.isArray(result.contractors) ||
+        result.contractors.some(
+          (c) => !c || typeof c.id !== 'string' || typeof c.name !== 'string'
+        )
+      )
+        throw new Error('Incomplete contractor response');
       setContractors(result.contractors);
       if (!result.contractors.length)
         Alert.alert(
           'No contractors',
           'No previously hired contractors are available.'
         );
-    } catch {
+    } catch (error) {
+      if (!mounted.current || controller.signal.aborted) return;
+      setContractors([]);
+      if (
+        [401, 403, 404].includes(
+          (error as { statusCode?: number })?.statusCode ?? 0
+        )
+      )
+        recordFailure(error);
       Alert.alert('Could not load contractors', 'Please retry.');
+    } finally {
+      if (mounted.current && contractorRead.current === controller)
+        setLoadingContractors(false);
     }
   };
 
@@ -101,6 +163,7 @@ export const RecurringMaintenance: React.FC<Props> = ({
     queryKey: ['recurring-maintenance', propertyId, user?.id],
     enabled: !!user && !!propertyId,
     retry: false,
+    networkMode: 'always',
     queryFn: async ({ signal }) => {
       const res = await mobileApiClient.get<
         { schedules: Schedule[] } | Schedule[]
@@ -118,6 +181,7 @@ export const RecurringMaintenance: React.FC<Props> = ({
             typeof row.id !== 'string' ||
             typeof row.title !== 'string' ||
             typeof row.next_due_date !== 'string' ||
+            !Number.isFinite(Date.parse(row.next_due_date)) ||
             typeof row.is_active !== 'boolean'
         )
       )
@@ -126,7 +190,36 @@ export const RecurringMaintenance: React.FC<Props> = ({
     },
   });
 
+  const recordFailure = (error: unknown, hasDraft = !!editing) => {
+    if (!mounted.current) return;
+    const status =
+      (error as { statusCode?: number; status?: number })?.statusCode ??
+      (error as { status?: number })?.status;
+    if ([401, 403, 404].includes(status ?? 0)) {
+      setAccessDenied(true);
+      setNeedsReload(true);
+      setRecovery(
+        'Access unavailable. Return to Properties to recheck your account and property permissions.'
+      );
+      queryClient.removeQueries({
+        predicate: (query) => query.queryKey.includes(propertyId),
+      });
+      onAccessDenied?.();
+    } else if (![400, 402, 422].includes(status ?? 0)) {
+      setNeedsReload(true);
+      setStaleDraft(hasDraft);
+      setRecovery(
+        'The schedule may have changed. Refresh schedules before another action.' +
+          (hasDraft
+            ? ' Your draft is retained; discard it and edit the latest schedule after refreshing.'
+            : '')
+      );
+    }
+  };
+
   const createMutation = useMutation({
+    retry: false,
+    networkMode: 'always',
     mutationFn: async () => {
       if (editing && !editing.updated_at)
         throw new Error('Reload schedules before editing.');
@@ -144,19 +237,21 @@ export const RecurringMaintenance: React.FC<Props> = ({
       const operation = editing
         ? null
         : await scheduleRequest(`${user?.id}:${propertyId}`, payload);
+      if (!mounted.current) throw new Error('Property changed before saving.');
       const result = await mobileApiClient[editing ? 'patch' : 'post']<{
-        schedule?: { id?: string; property_id?: string };
-      }>(
-        `/api/properties/${propertyId}/recurring-maintenance`,
-        payload,
-        operation
-          ? { headers: { 'Idempotency-Key': operation.key } }
-          : undefined
-      );
+        schedule?: { id?: string; property_id?: string; updated_at?: string };
+      }>(`/api/properties/${propertyId}/recurring-maintenance`, payload, {
+        timeout: 15000,
+        retries: 0,
+        ...(operation ? { headers: { 'Idempotency-Key': operation.key } } : {}),
+      });
       if (
         !result?.schedule?.id ||
         result.schedule.property_id !== propertyId ||
-        (editing && result.schedule.id !== editing.id)
+        (editing &&
+          (result.schedule.id !== editing.id ||
+            !result.schedule.updated_at ||
+            result.schedule.updated_at === editing.updated_at))
       )
         throw new Error(
           'Schedule creation could not be confirmed. Refresh before retrying.'
@@ -164,6 +259,7 @@ export const RecurringMaintenance: React.FC<Props> = ({
       await operation?.complete();
     },
     onSuccess: () => {
+      if (!mounted.current) return;
       queryClient.invalidateQueries({
         queryKey: ['recurring-maintenance', propertyId, user?.id],
       });
@@ -171,8 +267,17 @@ export const RecurringMaintenance: React.FC<Props> = ({
       setFirstDueDate('');
       setShowForm(false);
       setEditing(null);
+      setRecovery('');
     },
     onError: (err: unknown) => {
+      if (!mounted.current) return;
+      if (
+        editing ||
+        [401, 403, 404].includes(
+          (err as { statusCode?: number })?.statusCode ?? 0
+        )
+      )
+        recordFailure(err);
       // 2026-05-28 T2: the server returns 402 with
       // { requiresSubscription, feature, message } when a free-tier
       // homeowner tries to schedule recurring maintenance (a Landlord+
@@ -233,33 +338,56 @@ export const RecurringMaintenance: React.FC<Props> = ({
   });
 
   const toggleMutation = useMutation({
+    retry: false,
+    networkMode: 'always',
     mutationFn: async ({
       id,
       is_active,
+      updated_at,
     }: {
       id: string;
       is_active: boolean;
+      updated_at: string;
     }) => {
+      if (!updated_at)
+        throw new Error('Reload schedules before changing their status.');
       const result = await mobileApiClient.patch<{
-        schedule?: { id: string; is_active: boolean };
-      }>(`/api/properties/${propertyId}/recurring-maintenance`, {
-        scheduleId: id,
-        is_active: !is_active,
-      });
+        schedule?: {
+          id: string;
+          property_id: string;
+          is_active: boolean;
+          updated_at: string;
+        };
+      }>(
+        `/api/properties/${propertyId}/recurring-maintenance`,
+        {
+          scheduleId: id,
+          is_active: !is_active,
+          expected_updated_at: updated_at,
+        },
+        { timeout: 15000, retries: 0 }
+      );
       if (
         result.schedule?.id !== id ||
-        result.schedule.is_active !== !is_active
+        result.schedule.is_active !== !is_active ||
+        result.schedule.property_id !== propertyId ||
+        !result.schedule.updated_at ||
+        result.schedule.updated_at === updated_at
       )
         throw new Error(
           'Schedule update was not confirmed. Refresh before retrying.'
         );
     },
-    onError: (error: unknown) =>
+    onError: (error: unknown) => {
+      if (!mounted.current) return;
+      recordFailure(error);
       Alert.alert(
         'Schedule not saved',
         error instanceof Error ? error.message : 'Please retry.'
-      ),
+      );
+    },
     onSuccess: () => {
+      if (!mounted.current) return;
       queryClient.invalidateQueries({
         queryKey: ['recurring-maintenance', propertyId, user?.id],
       });
@@ -267,43 +395,90 @@ export const RecurringMaintenance: React.FC<Props> = ({
   });
 
   const deleteMutation = useMutation({
+    retry: false,
+    networkMode: 'always',
     mutationFn: async (scheduleId: string) => {
       const result = await mobileApiClient.delete<{
         success?: boolean;
         scheduleId?: string;
       }>(
-        `/api/properties/${propertyId}/recurring-maintenance?scheduleId=${scheduleId}`
+        `/api/properties/${propertyId}/recurring-maintenance?scheduleId=${scheduleId}`,
+        { timeout: 15000, retries: 0 }
       );
       if (result.success !== true || result.scheduleId !== scheduleId)
         throw new Error(
           'Schedule removal was not confirmed. Refresh before retrying.'
         );
     },
-    onError: (error: unknown) =>
+    onError: (error: unknown) => {
+      if (!mounted.current) return;
+      recordFailure(error);
       Alert.alert(
         'Schedule not saved',
         error instanceof Error ? error.message : 'Please retry.'
-      ),
-    onSuccess: () => {
+      );
+    },
+    onSuccess: (_result, scheduleId) => {
+      if (!mounted.current) return;
+      if (editing?.id === scheduleId) {
+        setEditing(null);
+        setShowForm(false);
+        setStaleDraft(false);
+        setRecovery('');
+      }
       queryClient.invalidateQueries({
         queryKey: ['recurring-maintenance', propertyId, user?.id],
       });
     },
   });
 
+  const busy =
+    createMutation.isPending ||
+    toggleMutation.isPending ||
+    deleteMutation.isPending;
+  const blocked =
+    busy ||
+    isLoading ||
+    isFetching ||
+    !!loadError ||
+    needsReload ||
+    accessDenied;
+  useLayoutEffect(() => {
+    allowed.current = editable && !blocked;
+  }, [editable, blocked]);
+  const runMutation = (operation: () => Promise<unknown>) => {
+    if (!mounted.current || !allowed.current || creating.current) return;
+    creating.current = true;
+    void operation()
+      .catch(() => undefined)
+      .finally(() => {
+        creating.current = false;
+      });
+  };
+  const refreshSchedules = async () => {
+    if (!mounted.current || creating.current || isFetching) return;
+    const result = await refetch();
+    if (!mounted.current || result.isError) return;
+    setNeedsReload(false);
+    // A successful list read proves viewing access, not management permission.
+    // Re-enter the authorized property page after a mutation access failure.
+    if (!staleDraft && !accessDenied) setRecovery('');
+  };
+
   const handleDelete = (id: string, itemTitle: string) => {
+    if (!allowed.current || creating.current) return;
     Alert.alert('Delete Schedule', `Remove "${itemTitle}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => deleteMutation.mutate(id),
+        onPress: () => runMutation(() => deleteMutation.mutateAsync(id)),
       },
     ]);
   };
 
   const handleCreate = () => {
-    if (!editable) return;
+    if (!allowed.current || staleDraft) return;
     if (favouriteOnly && !preferredId) {
       Alert.alert(
         'Choose a contractor',
@@ -330,14 +505,7 @@ export const RecurringMaintenance: React.FC<Props> = ({
       );
       return;
     }
-    if (creating.current) return;
-    creating.current = true;
-    void createMutation
-      .mutateAsync()
-      .catch(() => undefined)
-      .finally(() => {
-        creating.current = false;
-      });
+    runMutation(() => createMutation.mutateAsync());
   };
 
   return (
@@ -350,8 +518,13 @@ export const RecurringMaintenance: React.FC<Props> = ({
             accessibilityLabel={
               showForm ? 'Close schedule form' : 'Add recurring schedule'
             }
-            disabled={createMutation.isPending}
+            disabled={blocked}
+            accessibilityState={{ disabled: blocked }}
+            style={styles.actionBtn}
             onPress={() => {
+              if (!allowed.current || creating.current) return;
+              setStaleDraft(false);
+              setRecovery('');
               setEditing(null);
               setCategory('handyman');
               setPreferredId(null);
@@ -371,9 +544,31 @@ export const RecurringMaintenance: React.FC<Props> = ({
         )}
       </View>
 
-      {editable && showForm && (
+      <TouchableOpacity
+        accessibilityRole='button'
+        accessibilityLabel='Refresh schedules'
+        disabled={busy || isFetching}
+        accessibilityState={{ disabled: busy || isFetching }}
+        style={styles.actionBtn}
+        onPress={() => void refreshSchedules()}
+      >
+        <Text style={styles.emptyText}>Refresh schedules</Text>
+      </TouchableOpacity>
+      {!!recovery && (
+        <Text accessibilityRole='alert' style={styles.emptyText}>
+          {recovery}
+        </Text>
+      )}
+
+      {editable && showForm && !accessDenied && !loadError && (
         <View style={styles.form}>
+          {staleDraft && (
+            <Text style={styles.emptyText}>
+              Unsaved draft — review the latest schedule before saving
+            </Text>
+          )}
           <TextInput
+            editable={!blocked}
             style={styles.input}
             value={title}
             onChangeText={setTitle}
@@ -382,6 +577,7 @@ export const RecurringMaintenance: React.FC<Props> = ({
             placeholderTextColor={me.ink3}
           />
           <TextInput
+            editable={!blocked}
             style={styles.input}
             accessibilityLabel='First due date, YYYY-MM-DD'
             placeholder='First due date: YYYY-MM-DD'
@@ -410,7 +606,11 @@ export const RecurringMaintenance: React.FC<Props> = ({
                 key={trade}
                 style={styles.freqChip}
                 accessibilityRole='radio'
-                accessibilityState={{ checked: category === trade }}
+                disabled={blocked}
+                accessibilityState={{
+                  checked: category === trade,
+                  disabled: blocked,
+                }}
                 onPress={() => setCategory(trade)}
               >
                 <Text>
@@ -422,7 +622,9 @@ export const RecurringMaintenance: React.FC<Props> = ({
           </View>
           <TouchableOpacity
             accessibilityRole='checkbox'
-            accessibilityState={{ checked: favouriteOnly }}
+            disabled={blocked}
+            style={styles.actionBtn}
+            accessibilityState={{ checked: favouriteOnly, disabled: blocked }}
             onPress={() => setFavouriteOnly(!favouriteOnly)}
           >
             <Text style={styles.emptyText}>
@@ -433,17 +635,27 @@ export const RecurringMaintenance: React.FC<Props> = ({
             <View>
               <TouchableOpacity
                 accessibilityRole='button'
+                disabled={blocked || loadingContractors}
+                accessibilityState={{ disabled: blocked || loadingContractors }}
+                style={styles.actionBtn}
                 onPress={loadContractors}
               >
                 <Text style={styles.emptyText}>
-                  Load previously hired contractors
+                  {loadingContractors
+                    ? 'Loading contractors...'
+                    : 'Load previously hired contractors'}
                 </Text>
               </TouchableOpacity>
               {contractors.map((c) => (
                 <TouchableOpacity
                   key={c.id}
                   accessibilityRole='radio'
-                  accessibilityState={{ checked: preferredId === c.id }}
+                  disabled={blocked}
+                  style={styles.actionBtn}
+                  accessibilityState={{
+                    checked: preferredId === c.id,
+                    disabled: blocked,
+                  }}
                   onPress={() => setPreferredId(c.id)}
                 >
                   <Text style={styles.emptyText}>
@@ -466,6 +678,12 @@ export const RecurringMaintenance: React.FC<Props> = ({
             {FREQ_OPTIONS.map((f) => (
               <TouchableOpacity
                 key={f}
+                accessibilityRole='radio'
+                disabled={blocked}
+                accessibilityState={{
+                  checked: frequency === f,
+                  disabled: blocked,
+                }}
                 style={[
                   styles.freqChip,
                   frequency === f && { backgroundColor: FREQ_COLORS[f] },
@@ -485,8 +703,10 @@ export const RecurringMaintenance: React.FC<Props> = ({
           </View>
           <TouchableOpacity
             style={styles.createBtn}
+            accessibilityRole='button'
             onPress={handleCreate}
-            disabled={createMutation.isPending}
+            disabled={blocked || staleDraft}
+            accessibilityState={{ disabled: blocked || staleDraft }}
           >
             <Text style={styles.createBtnText}>
               {createMutation.isPending
@@ -505,7 +725,8 @@ export const RecurringMaintenance: React.FC<Props> = ({
         <TouchableOpacity
           accessibilityRole='button'
           accessibilityLabel='Retry loading schedules'
-          onPress={() => refetch()}
+          style={styles.actionBtn}
+          onPress={() => void refreshSchedules()}
         >
           <Text style={{ color: me.ink }}>
             {[401, 403, 404].includes(
@@ -515,7 +736,7 @@ export const RecurringMaintenance: React.FC<Props> = ({
               : 'Could not load schedules. Tap to retry.'}
           </Text>
         </TouchableOpacity>
-      ) : schedules.length === 0 && !showForm ? (
+      ) : accessDenied ? null : schedules.length === 0 && !showForm ? (
         <View style={styles.emptyWrap}>
           <Ionicons name='repeat-outline' size={20} color={me.ink3} />
           <Text style={styles.emptyText}>No recurring schedules yet</Text>
@@ -532,12 +753,11 @@ export const RecurringMaintenance: React.FC<Props> = ({
             {editable && (
               <TouchableOpacity
                 style={styles.toggleBtn}
-                disabled={toggleMutation.isPending}
+                disabled={blocked}
+                accessibilityState={{ disabled: blocked }}
                 accessibilityRole='button'
                 accessibilityLabel={`${s.is_active ? 'Pause' : 'Resume'} ${s.title}`}
-                onPress={() =>
-                  toggleMutation.mutate({ id: s.id, is_active: s.is_active })
-                }
+                onPress={() => runMutation(() => toggleMutation.mutateAsync(s))}
               >
                 <Ionicons
                   name={s.is_active ? 'checkmark-circle' : 'ellipse-outline'}
@@ -576,10 +796,14 @@ export const RecurringMaintenance: React.FC<Props> = ({
                 </View>
                 {s.next_due_date && (
                   <Text style={styles.dueDate}>
-                    Due{' '}
-                    {new Date(s.next_due_date).toLocaleDateString('en-GB', {
+                    {s.is_active ? 'Due' : 'Paused · recorded due date'}{' '}
+                    {new Date(
+                      s.next_due_date.slice(0, 10) + 'T00:00:00Z'
+                    ).toLocaleDateString('en-GB', {
                       day: 'numeric',
                       month: 'short',
+                      year: 'numeric',
+                      timeZone: 'UTC',
                     })}
                   </Text>
                 )}
@@ -589,9 +813,14 @@ export const RecurringMaintenance: React.FC<Props> = ({
               <>
                 <TouchableOpacity
                   accessibilityRole='button'
-                  accessibilityLabel={`Edit ${s.title}`}
-                  disabled={createMutation.isPending}
+                  accessibilityLabel={`${staleDraft ? 'Discard draft and edit latest' : 'Edit'} ${s.title}`}
+                  disabled={blocked}
+                  style={styles.actionBtn}
+                  accessibilityState={{ disabled: blocked }}
                   onPress={() => {
+                    if (!allowed.current || creating.current) return;
+                    setStaleDraft(false);
+                    setRecovery('');
                     setEditing(s);
                     setCategory(s.category || 'handyman');
                     setPreferredId(s.preferred_contractor_id ?? null);
@@ -602,12 +831,16 @@ export const RecurringMaintenance: React.FC<Props> = ({
                     setShowForm(true);
                   }}
                 >
-                  <Text style={styles.dueDate}>Edit</Text>
+                  <Text style={styles.dueDate}>
+                    {staleDraft ? 'Discard draft and edit latest' : 'Edit'}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   accessibilityRole='button'
                   accessibilityLabel={`Remove ${s.title}`}
-                  disabled={deleteMutation.isPending}
+                  disabled={blocked}
+                  style={styles.actionBtn}
+                  accessibilityState={{ disabled: blocked }}
                   onPress={() => handleDelete(s.id, s.title)}
                 >
                   <Ionicons name='trash-outline' size={18} color={me.errFg} />

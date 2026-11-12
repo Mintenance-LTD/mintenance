@@ -220,6 +220,87 @@ it('blocks conflicting reviews until refreshed', async () => {
     expect(screen.queryByLabelText('Selected email review')).toBeNull()
   );
 });
+it.each(['transport', 'body'])(
+  'recovers the same committed review after losing the %s response',
+  async (loss) => {
+    // Stateful server stand-in: commit once, lose the response, replay that row.
+    // Production RPC idempotency is checked separately; this tests the client.
+    const commit = mocks.post.getMockImplementation()!;
+    let saved: Awaited<ReturnType<typeof response>> | undefined;
+    let writes = 0;
+    mocks.post.mockImplementation(async (url: string, options: RequestInit) => {
+      if (saved) return saved;
+      saved = await commit(url, options);
+      writes++;
+      mocks.read.mockResolvedValue(
+        response(200, { rows: [], next_before: null })
+      );
+      if (loss === 'transport') throw new TypeError('Network response lost');
+      return {
+        ...saved,
+        json: async () => {
+          throw new SyntaxError('Response body lost');
+        },
+      };
+    });
+    await setup();
+    fill();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close with delivery unknown' })
+    );
+    await screen.findByRole('alert');
+    expect(
+      screen.queryByText(/Review recorded with delivery unknown/)
+    ).toBeNull();
+    expect(
+      screen.getByLabelText('Evidence reference and review note')
+    ).toBeDisabled();
+    expect(screen.getByLabelText('Email review queue')).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry same review' }));
+    await screen.findByText(
+      'Review recorded with delivery unknown. No email will be resent.'
+    );
+    expect(mocks.post).toHaveBeenCalledTimes(2);
+    expect(mocks.post.mock.calls[1][1].body).toBe(
+      mocks.post.mock.calls[0][1].body
+    );
+    expect(writes).toBe(1);
+    await screen.findByText('No emails in this queue.');
+  }
+);
+it.each([401, 403])(
+  'blocks a %s after access is revoked before exact-request retry',
+  async (status) => {
+    mocks.post.mockRejectedValueOnce(new TypeError('Network response lost'));
+    await setup();
+    fill();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close with delivery unknown' })
+    );
+    await screen.findByRole('alert');
+    mocks.post.mockResolvedValue(response(status, {}));
+    mocks.read.mockResolvedValue(response(status, {}));
+    mocks.history.mockResolvedValue(response(status, {}));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry same review' }));
+    await screen.findByText(/Review unavailable or changed/);
+    expect(mocks.post.mock.calls[1][1].body).toBe(
+      mocks.post.mock.calls[0][1].body
+    );
+    expect(
+      screen.getByRole('button', { name: 'Retry same review' })
+    ).toBeDisabled();
+    expect(
+      screen.queryByText(/Review recorded with delivery unknown/)
+    ).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Refresh email reviews' })
+    );
+    await screen.findByText(/Email recovery could not be verified/);
+    expect(screen.queryByLabelText('Selected email review')).toBeNull();
+    expect(screen.queryByText('No emails in this queue.')).toBeNull();
+    expect(mocks.post).toHaveBeenCalledTimes(2);
+  }
+);
 it('does not claim success for an unconfirmed response', async () => {
   mocks.post.mockResolvedValueOnce(
     response(200, { review: { request_id: 'invalid' } })

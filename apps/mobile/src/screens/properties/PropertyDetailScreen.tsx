@@ -763,6 +763,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         key={`${user?.id}:${propertyId}`}
         propertyId={propertyId}
         editable={caps.canManageMaintenance}
+        onAccessDenied={() => setAccessDenied(true)}
       />
       <ComplianceCertificates
         key={`${user?.id}:${propertyId}`}

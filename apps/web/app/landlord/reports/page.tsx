@@ -11,18 +11,28 @@ export const metadata: Metadata = {
   description: 'View and manage maintenance reports submitted by tenants.',
 };
 
-export default async function TenantReportsPage() {
+export default async function TenantReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reportId?: string | string[] }>;
+}) {
+  const query = await searchParams;
+  const initialReportId =
+    typeof query.reportId === 'string' ? query.reportId : undefined;
   const user = await getCurrentUserFromCookies();
 
   if (!user) {
-    redirect('/login?redirect=/landlord/reports');
+    const returnTo = initialReportId
+      ? `/landlord/reports?reportId=${encodeURIComponent(initialReportId)}`
+      : '/landlord/reports';
+    redirect(`/login?redirect=${encodeURIComponent(returnTo)}`);
   }
   if (user.role !== 'homeowner' && user.role !== 'admin') {
     redirect('/dashboard');
   }
 
   // Fetch all anonymous reports for this owner's properties
-  const { data: reports } = await serverSupabase
+  const { data: reports, error } = await serverSupabase
     .from('anonymous_reports')
     .select(
       `
@@ -34,6 +44,26 @@ export default async function TenantReportsPage() {
     .eq('anonymous_report_tokens.owner_id', user.id)
     .order('created_at', { ascending: false });
 
+  if (error)
+    return (
+      <main className='mx-auto max-w-3xl p-6'>
+        <h1 className='text-2xl font-semibold'>Tenant reports</h1>
+        <p role='alert'>
+          Reports could not be loaded. Your inbox has not been confirmed empty.
+        </p>
+        <a
+          className='underline'
+          href={
+            initialReportId
+              ? `/landlord/reports?reportId=${encodeURIComponent(initialReportId)}`
+              : '/landlord/reports'
+          }
+        >
+          Retry reports
+        </a>
+      </main>
+    );
+
   // Phase-2 design rebrand. Server-side cookie check picks the
   // canonical Mint Editorial layout when the homeowner has opted in
   // via Settings → Appearance. Both branches consume the same data.
@@ -42,8 +72,20 @@ export default async function TenantReportsPage() {
     cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
 
   if (isMintEditorial) {
-    return <MintEditorialTenantReports reports={reports || []} />;
+    return (
+      <MintEditorialTenantReports
+        key={initialReportId ?? 'inbox'}
+        reports={reports || []}
+        initialReportId={initialReportId}
+      />
+    );
   }
 
-  return <TenantReportsClient reports={reports || []} />;
+  return (
+    <TenantReportsClient
+      key={initialReportId ?? 'inbox'}
+      reports={reports || []}
+      initialReportId={initialReportId}
+    />
+  );
 }
