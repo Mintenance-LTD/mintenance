@@ -47,10 +47,10 @@ export const PATCH = withApiHandler({ roles: ['admin'], rateLimit: { maxRequests
 
   const updateMaterialSchema = z.object({
     name: z.string().min(1).max(300).optional(),
-    category: z.enum(materialCategories, { errorMap: () => ({ message: 'Invalid material category' }) }).optional(),
+    category: z.enum(materialCategories, { error: () => ({ message: 'Invalid material category' }) }).optional(),
     description: z.string().max(2000).optional(),
     unit_price: z.number().positive('Unit price must be positive').optional(),
-    unit: z.enum(materialUnits, { errorMap: () => ({ message: 'Invalid unit type' }) }).optional(),
+    unit: z.enum(materialUnits, { error: () => ({ message: 'Invalid unit type' }) }).optional(),
     bulk_quantity: z.number().int().positive().optional(),
     bulk_unit_price: z.number().positive().optional(),
     sku: z.string().max(100).optional(),
@@ -59,7 +59,7 @@ export const PATCH = withApiHandler({ roles: ['admin'], rateLimit: { maxRequests
     in_stock: z.boolean().optional(),
     stock_quantity: z.number().int().min(0).optional(),
     lead_time_days: z.number().int().min(0).optional(),
-    specifications: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+    specifications: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
     image_url: z.string().url().max(2000).optional(),
     supplier_name: z.string().max(300).optional(),
     supplier_id: z.string().uuid().optional(),

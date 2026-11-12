@@ -63,11 +63,9 @@ export function BasicInfoSection({
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Job Title *
+          <label htmlFor="job-edit-job-title" className="block text-sm font-medium text-gray-700 mb-2">Job Title *
           </label>
-          <input
-            type="text"
+          <input id="job-edit-job-title"             type="text"
             value={title}
             onChange={(e) => onInputChange('title', e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -76,11 +74,9 @@ export function BasicInfoSection({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Category *
+          <label htmlFor="job-edit-category" className="block text-sm font-medium text-gray-700 mb-2">Category *
           </label>
-          <select
-            value={category}
+          <select id="job-edit-category"             value={category}
             onChange={(e) => onInputChange('category', e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           >
@@ -93,11 +89,9 @@ export function BasicInfoSection({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Description *
+          <label htmlFor="job-edit-description" className="block text-sm font-medium text-gray-700 mb-2">Description *
           </label>
-          <textarea
-            value={description}
+          <textarea id="job-edit-description"             value={description}
             onChange={(e) => onInputChange('description', e.target.value)}
             rows={6}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
@@ -131,11 +125,9 @@ export function BasicInfoSection({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Property Type *
+          <label htmlFor="job-edit-property-type" className="block text-sm font-medium text-gray-700 mb-2">Property Type *
           </label>
-          <select
-            value={propertyType}
+          <select id="job-edit-property-type"             value={propertyType}
             onChange={(e) => onInputChange('propertyType', e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           >

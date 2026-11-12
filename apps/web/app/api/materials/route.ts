@@ -175,12 +175,12 @@ export const POST = withApiHandler(
     const createMaterialSchema = z.object({
       name: z.string().min(1, 'Name is required').max(300),
       category: z.enum(materialCategories, {
-        errorMap: () => ({ message: 'Invalid material category' }),
+        error: () => ({ message: 'Invalid material category' }),
       }),
       description: z.string().max(2000).optional(),
       unit_price: z.number().positive('Unit price must be positive'),
       unit: z.enum(materialUnits, {
-        errorMap: () => ({ message: 'Invalid unit type' }),
+        error: () => ({ message: 'Invalid unit type' }),
       }),
       bulk_quantity: z.number().int().positive().optional(),
       bulk_unit_price: z.number().positive().optional(),
@@ -191,7 +191,7 @@ export const POST = withApiHandler(
       stock_quantity: z.number().int().min(0).optional(),
       lead_time_days: z.number().int().min(0).optional(),
       specifications: z
-        .record(z.union([z.string(), z.number(), z.boolean()]))
+        .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
         .optional(),
       image_url: z.string().url().max(2000).optional(),
       supplier_name: z.string().max(300).optional(),

@@ -8,7 +8,7 @@ import { validateRequest } from '@/lib/validation/validator';
 
 const trackInteractionSchema = z.object({
   interaction_type: z.string().min(1).max(100),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const POST = withApiHandler(

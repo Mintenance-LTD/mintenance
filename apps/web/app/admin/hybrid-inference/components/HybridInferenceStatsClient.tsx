@@ -11,7 +11,7 @@
  * - Model performance over time
  */
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 interface RoutingStats {
@@ -49,11 +49,7 @@ export function HybridInferenceStatsClient() {
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
 
-  useEffect(() => {
-    fetchStats();
-  }, [timeRange]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -77,7 +73,11 @@ export function HybridInferenceStatsClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [timeRange, fetchStats]);
 
   if (loading) {
     return (

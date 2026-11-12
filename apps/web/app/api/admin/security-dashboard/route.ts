@@ -15,14 +15,14 @@ const securityDashboardActionSchema = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('block_ip'),
-    ipAddress: z.string().ip(),
+    ipAddress: z.union([z.ipv4(), z.ipv6()]),
     reason: z.string().min(1).max(500),
     expiresAt: z.string().datetime().optional(),
     securityEventIds: z.array(z.string().uuid()).optional(),
   }),
   z.object({
     action: z.literal('unblock_ip'),
-    ipAddress: z.string().ip(),
+    ipAddress: z.union([z.ipv4(), z.ipv6()]),
   }),
 ]);
 

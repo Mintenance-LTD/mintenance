@@ -14,6 +14,7 @@
  * dashboard data shape, just a calmer surface.
  */
 
+import { PAYMENT_RELEASE_COPY } from '@mintenance/shared';
 import React from 'react';
 import styles from '@/app/dashboard/components/HomeownerDashboard.module.css';
 import Link from 'next/link';
@@ -167,7 +168,7 @@ export function MintEditorialContractorDashboard({
             <span>
               {metrics.pendingEscrowCount > 0
                 ? `across ${metrics.pendingEscrowCount} ${metrics.pendingEscrowCount === 1 ? 'job' : 'jobs'}`
-                : 'released on sign-off'}
+                : PAYMENT_RELEASE_COPY.compact}
             </span>
           </div>
         </div>

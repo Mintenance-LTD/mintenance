@@ -149,7 +149,7 @@ function isInsideComment(text: string, index: number): boolean {
   return lastOpen > lastClose;
 }
 
-async function checkFile(file: string, routes: string[]): Promise<Finding[]> {
+export async function checkFile(file: string, routes: string[]): Promise<Finding[]> {
   const text = await fs.readFile(file, 'utf8');
   const findings: Finding[] = [];
 
@@ -157,6 +157,9 @@ async function checkFile(file: string, routes: string[]): Promise<Finding[]> {
     pattern.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = pattern.exec(text))) {
+      // A concatenated prefix is not a complete destination, just like an
+      // interpolated template literal. Do not report it as a broken URL.
+      if (/^\s*\+/.test(text.slice(pattern.lastIndex))) continue;
       const url = m[1] ?? '';
       if (url.startsWith('/api/')) continue;
       if (url.startsWith('/_next/') || url.startsWith('/.well-known/'))
@@ -256,7 +259,7 @@ async function main() {
   process.exit(1);
 }
 
-main().catch((err) => {
+if (require.main === module) main().catch((err) => {
   console.error('check-internal-links threw:', err);
   process.exit(2);
 });

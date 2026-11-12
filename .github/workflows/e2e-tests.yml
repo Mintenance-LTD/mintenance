@@ -3,22 +3,8 @@ name: E2E Tests
 on:
   push:
     branches: [main, develop]
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - '.github/workflows/e2e-tests.yml'
-      - 'scripts/ci/*e2e*'
-      - 'supabase/migrations/**'
-      - 'supabase/config.toml'
   pull_request:
     branches: [main, develop]
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - '.github/workflows/e2e-tests.yml'
-      - 'scripts/ci/*e2e*'
-      - 'supabase/migrations/**'
-      - 'supabase/config.toml'
   workflow_dispatch:
 
 jobs:
@@ -58,6 +44,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6

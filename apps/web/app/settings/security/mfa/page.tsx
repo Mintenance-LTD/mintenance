@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -48,11 +48,7 @@ export default function MFASettingsPage() {
   const [showBackupCodes, setShowBackupCodes] = useState(false);
 
   // Fetch MFA status
-  useEffect(() => {
-    fetchMFAStatus();
-  }, []);
-
-  const fetchMFAStatus = async () => {
+  const fetchMFAStatus = useCallback(async () => {
     setStatusError(false);
     try {
       const response = await fetch('/api/auth/mfa/status');
@@ -75,7 +71,11 @@ export default function MFASettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMFAStatus();
+  }, [fetchMFAStatus]);
 
   const handleStartEnrollment = async () => {
     setEnrolling(true);

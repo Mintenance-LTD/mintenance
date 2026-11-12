@@ -44,7 +44,7 @@ const settingsSchema = z.object({
   automationLevel: z
     .enum(['none', 'minimal', 'moderate', 'full'])
     .default('none'),
-  agents: z.record(agentSettingSchema).default({}),
+  agents: z.record(z.string(), agentSettingSchema).default({}),
 });
 
 export const GET = withApiHandler({}, async (_req, { user }) => {

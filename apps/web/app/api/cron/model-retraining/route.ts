@@ -9,7 +9,7 @@ import { BadRequestError } from '@/lib/errors/api-error';
 const manualRetrainingSchema = z.object({
   force: z.boolean().default(false),
   dryRun: z.boolean().optional(),
-  config: z.record(z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

@@ -14,7 +14,7 @@
 
 import { test, expect } from './fixtures';
 import { establishSessionInContext, TEST_USERS } from './helpers/auth';
-import { createTestBid, waitForNetworkIdle } from './helpers/test-data';
+import { fixtureJob, submitAndVerifyBid } from './helpers/bid-journey';
 
 const AUTH_UNAVAILABLE =
   'E2E auth fixture unavailable — set E2E_TESTING=true + E2E_AUTH_SECRET on the ' +
@@ -28,7 +28,7 @@ const AUTH_UNAVAILABLE =
 test.describe('Authenticated Contractor Flow', () => {
   test.beforeEach(async ({ page }) => {
     const authed = await establishSessionInContext(page, TEST_USERS.contractor);
-    test.skip(!authed, AUTH_UNAVAILABLE);
+    expect(authed, AUTH_UNAVAILABLE).toBe(true);
   });
 
   test('contractor can access job discovery page', async ({ page }) => {
@@ -42,31 +42,13 @@ test.describe('Authenticated Contractor Flow', () => {
     await expect(page.locator('#main-content')).toBeVisible();
   });
 
-  test('contractor can view job details', async ({ page }) => {
+  test('contractor can view job details from discovery', async ({ page }) => {
     await page.goto('/contractor/discover');
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
-
-    // Find first job card or link
-    const jobLink = page
-      .getByRole('link', { name: /view.*detail|details|see.*job/i })
-      .first();
-    const jobCard = page.locator('[data-testid="job-card"]').first();
-
-    // Job discovery depends on seeded jobs, which the e2e seed does not create.
-    // Skip only for that data gap (explicit), but when a job IS present the
-    // navigation + details render are asserted for real.
-    const hasLink = await jobLink.isVisible().catch(() => false);
-    const hasCard = !hasLink && (await jobCard.isVisible().catch(() => false));
-    test.skip(!hasLink && !hasCard, 'No seeded jobs on the discover feed');
-
-    if (hasLink) {
-      await jobLink.click();
-    } else {
-      await jobCard.click();
-    }
-    await expect(page).toHaveURL(/\/jobs\/|\/contractor\/jobs\//);
-    await expect(page.getByText(/description|details|budget/i)).toBeVisible();
+    const jobLink = page.locator('[data-job-id="' + fixtureJob() + '"]');
+    await expect(jobLink).toBeVisible();
+    await jobLink.click();
+    await expect(page).toHaveURL('/contractor/bid/' + fixtureJob() + '/details');
+    await expect(page.getByText('Synthetic BID fixture').first()).toBeVisible();
   });
 
   test('contractor can access bid submission form', async ({ page }) => {
@@ -97,64 +79,7 @@ test.describe('Authenticated Contractor Flow', () => {
   });
 
   test('contractor can submit a bid', async ({ page }) => {
-    const testBid = createTestBid();
-
-    // Navigate to discover page
-    await page.goto('/contractor/discover');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Find and click first job
-    const firstJobLink = page.locator('a[href*="/jobs/"]').first();
-    // Data gap, not a bug: the e2e seed creates no jobs to bid on.
-    test.skip(
-      !(await firstJobLink.isVisible().catch(() => false)),
-      'No seeded jobs on the discover feed'
-    );
-
-    await firstJobLink.click();
-    await page.waitForLoadState('domcontentloaded');
-
-    // Click bid button
-    const bidButton = page.getByRole('button', {
-      name: /submit.*bid|place.*bid/i,
-    });
-    if (await bidButton.isVisible().catch(() => false)) {
-      await bidButton.click();
-      await page.waitForTimeout(500);
-    }
-
-    // Fill bid form
-    const quoteInput = page.getByLabel(/quote|amount|price/i);
-    if (await quoteInput.isVisible().catch(() => false)) {
-      await quoteInput.fill(testBid.quoteAmount.toString());
-    }
-
-    const descriptionInput = page.getByLabel(/description|details|message/i);
-    if (await descriptionInput.isVisible().catch(() => false)) {
-      await descriptionInput.fill(testBid.description);
-    }
-
-    const daysInput = page.getByLabel(/days|timeline|duration/i);
-    if (await daysInput.isVisible().catch(() => false)) {
-      await daysInput.fill(testBid.estimatedDays.toString());
-    }
-
-    // Submit bid
-    const submitButton = page.getByRole('button', {
-      name: /submit|send.*bid/i,
-    });
-    await submitButton.click();
-
-    await waitForNetworkIdle(page);
-
-    // Should see success message or redirect
-    const successMessage = await page
-      .getByText(/success|submitted|sent/i)
-      .isVisible()
-      .catch(() => false);
-    const redirectedAway = !page.url().includes('/bid');
-
-    expect(successMessage || redirectedAway).toBeTruthy();
+    await submitAndVerifyBid(page, 'SUBMIT_BID');
   });
 
   test('contractor can view their submitted bids', async ({ page }) => {
@@ -167,6 +92,24 @@ test.describe('Authenticated Contractor Flow', () => {
     await expect(
       page.getByRole('heading', { name: 'Quotes', exact: true })
     ).toBeVisible();
+  });
+
+  test('availability saves atomically and invalid times preserve the saved schedule', async ({ page }) => {
+    const csrf = await page.request.get('/api/csrf');
+    expect(csrf.ok()).toBe(true);
+    const { token } = await csrf.json();
+    const availability = [1, 2].map(dayOfWeek => ({ dayOfWeek, startTime: '09:00', endTime: '17:00', isAvailable: true }));
+    const saved = await page.request.put('/api/contractor/availability', { headers: { 'X-CSRF-Token': token }, data: { availability } });
+    expect(saved.ok(), await saved.text()).toBe(true);
+    const invalid = await page.request.put('/api/contractor/availability', { headers: { 'X-CSRF-Token': token }, data: { availability: [{ ...availability[0], endTime: '08:00' }] } });
+    expect(invalid.status()).toBe(400);
+    const persisted = await page.request.get('/api/contractor/availability');
+    const body = await persisted.json();
+    expect(body.availability).toHaveLength(2);
+    expect(body.availability.map((slot: { dayOfWeek: number }) => slot.dayOfWeek)).toEqual([1, 2]);
+    const stats = await page.request.get('/api/contractor/appointments/stats');
+    expect(stats.ok()).toBe(true);
+    expect((await stats.json()).stats.availableHours).toBe(16);
   });
 
   test('contractor can view their profile', async ({ page }) => {
@@ -187,10 +130,7 @@ test.describe('Authenticated Contractor Flow', () => {
 
     const editButton = page.getByRole('button', { name: /edit|update/i });
     // The edit affordance is a UI-variant/feature gate, not an auth gate.
-    test.skip(
-      !(await editButton.isVisible().catch(() => false)),
-      'No edit affordance on /contractor/profile in this UI variant'
-    );
+    await expect(editButton).toBeVisible();
 
     await editButton.click();
     const bioInput = page.getByLabel(/bio|about|description/i);
@@ -219,64 +159,19 @@ test.describe('Authenticated Contractor Flow', () => {
 test.describe('Contractor Job Filtering', () => {
   test.beforeEach(async ({ page }) => {
     const authed = await establishSessionInContext(page, TEST_USERS.contractor);
-    test.skip(!authed, AUTH_UNAVAILABLE);
+    expect(authed, AUTH_UNAVAILABLE).toBe(true);
     await page.goto('/contractor/discover');
     await page.waitForLoadState('domcontentloaded');
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
   });
 
-  test('contractor can filter jobs by category', async ({ page }) => {
-    const categoryFilter = page.getByLabel(/category|type/i);
-    // The filter control is a UI-variant gate; skip explicitly when absent.
-    test.skip(
-      !(await categoryFilter.isVisible().catch(() => false)),
-      'No category filter control on the discover page in this UI variant'
-    );
-
-    await categoryFilter.selectOption('plumbing');
-    await waitForNetworkIdle(page);
-
-    // After filtering, the feed must resolve to a concrete state: matching
-    // jobs OR an explicit empty-state — never a blank page.
-    const jobsPresent = await page
-      .getByText(/job|project/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const noResultsMessage = await page
-      .getByText(/no.*job|no.*result|nothing/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
-    expect(jobsPresent || noResultsMessage).toBeTruthy();
-  });
-
-  test('contractor can search jobs by location', async ({ page }) => {
-    const searchInput = page.getByPlaceholder(/search|location|postcode/i);
-    test.skip(
-      !(await searchInput.isVisible().catch(() => false)),
-      'No location search control on the discover page in this UI variant'
-    );
-
-    await searchInput.fill('London');
-    const searchButton = page.getByRole('button', { name: /search/i });
-    if (await searchButton.isVisible().catch(() => false)) {
-      await searchButton.click();
-    }
-    await waitForNetworkIdle(page);
-
-    // The search must resolve to results or an explicit empty-state — assert a
-    // concrete landmark rather than "body has any text" (true even on /login).
-    const jobsPresent = await page
-      .getByText(/job|project/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const noResultsMessage = await page
-      .getByText(/no.*job|no.*result|nothing/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
-    expect(jobsPresent || noResultsMessage).toBeTruthy();
+  test('contractor can filter jobs by category and radius', async ({ page }) => {
+    const plumbing = page.getByRole('button', { name: /^plumbing$/i });
+    await plumbing.click();
+    await expect(plumbing).toHaveAttribute('aria-pressed', 'true');
+    const radius = page.getByRole('button', { name: '3 mi', exact: true });
+    await radius.click();
+    await expect(radius).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByText('Synthetic BID fixture').first()).toBeVisible();
   });
 });

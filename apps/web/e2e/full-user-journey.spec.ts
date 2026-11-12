@@ -1,11 +1,8 @@
 /**
  * Full User Journey E2E Test: Homeowner & Contractor Flow
  *
- * Tests the complete lifecycle:
- * 1. Homeowner logs in, posts a job
- * 2. Contractor logs in, discovers the job, submits a bid
- * 3. Homeowner reviews bids, accepts the contractor's bid
- * 4. Validates UI updates, notifications, and DB state at each step
+ * Covers protected routes and the real disposable marketplace hand-off.
+ * Provider payout/refund requires the separately configured Stripe test environment.
  *
  * Prerequisites:
  * - Test users must exist in the database (see helpers/auth.ts TEST_USERS)
@@ -13,19 +10,14 @@
  */
 
 import { test, expect } from './fixtures';
-import type { Page } from '@playwright/test';
+import { submitAndVerifyBid } from './helpers/bid-journey';
 import {
   loginAsHomeowner,
-  loginAsContractor,
-  login,
+  establishSessionInContext,
   TEST_USERS,
   clearAuth,
 } from './helpers/auth';
-import {
-  createTestJob,
-  createTestBid,
-  waitForNetworkIdle,
-} from './helpers/test-data';
+
 import {
   openJobWizard,
   fillJobWizardToReview,
@@ -116,263 +108,46 @@ test.describe('Security: Auth Bypass Regression', () => {
 
 // ---- Full User Journey ----
 
-test.describe('Full User Journey: Job Post → Bid → Accept', () => {
-  const testJob = createTestJob({
-    title: `E2E Test: Kitchen Tap Repair (${Date.now()})`,
-    description:
-      'The kitchen tap has been leaking for a week. Need a qualified plumber to diagnose and repair. Must be available this week.',
-    category: 'plumbing',
-    budget: 250,
-    urgency: 'medium',
-    postcode: 'M1 1AA',
+// This environment deliberately has no live Stripe credentials. Test the
+// marketplace hand-off and its payout-readiness guard; provider settlement is
+// a separate test-mode acceptance requirement, never implied by this test.
+test('homeowner posts, contractor bids, homeowner reads bid and payout guard prevents acceptance', async ({ page }) => {
+  test.setTimeout(180000);
+  expect(await establishSessionInContext(page, TEST_USERS.homeowner)).toBe(true);
+  expect(await openJobWizard(page)).toBe(true);
+  await fillJobWizardToReview(page, {
+    title: 'Synthetic marketplace journey ' + Date.now(),
+    description: 'Synthetic kitchen tap repair for browser acceptance testing. Replace the leaking tap and check the plumbing connections.',
+    category: 'plumbing', urgency: 'medium',
   });
+  await submitJobWizard(page);
+  const id = new URL(page.url()).pathname.split('/')[2];
+  expect(id).toMatch(/^[0-9a-f-]{36}$/);
 
-  const testBid = createTestBid({
-    quoteAmount: 200,
-    description:
-      'I am a qualified plumber with 15 years experience. I can fix this within 2 hours. Parts and labour included.',
-    estimatedDays: 1,
+  expect(await establishSessionInContext(page, TEST_USERS.contractor)).toBe(true);
+  await submitAndVerifyBid(page, 'JOURNEY', id);
+  expect(await establishSessionInContext(page, TEST_USERS.homeowner)).toBe(true);
+  const bidsResponse = await page.request.get('/api/jobs/' + id + '/bids');
+  expect(bidsResponse.ok()).toBe(true);
+  const { bids } = await bidsResponse.json();
+  expect(bids).toHaveLength(1);
+  expect(Number(bids[0].amount)).toBe(180.50);
+  const csrf = await page.request.get('/api/csrf');
+  expect(csrf.ok()).toBe(true);
+  const { token } = await csrf.json();
+  const acceptance = await page.request.post('/api/jobs/' + id + '/bids/' + bids[0].id + '/accept', {
+    headers: { 'X-CSRF-Token': token }, data: {},
   });
-
-  // -- Step 1: Homeowner posts a job --
-
-  test('Step 1: Homeowner logs in and posts a new job', async ({ page }) => {
-    await loginAsHomeowner(page);
-
-    if (!(await openJobWizard(page))) {
-      // skipped: runtime bail — session not accepted, redirected to login
-      test.skip();
-      return;
-    }
-
-    // The wizard is four gated steps; the helper fills each via data-testid and
-    // asserts Next becomes enabled before clicking. The previous blind
-    // getByLabel sweep never selected a property or category and never filled
-    // the description (the ProgressBar's aria-label collides with
-    // getByLabel(/details/i)), so Next stayed disabled and the click burned the
-    // full 60s timeout.
-    await fillJobWizardToReview(page, {
-      title: testJob.title,
-      description: testJob.description,
-      category: testJob.category,
-      urgency: 'medium',
-    });
-
-    await submitJobWizard(page);
-
-    const hasSuccess =
-      (await page
-        .getByText(/success|created|posted/i)
-        .first()
-        .isVisible()
-        .catch(() => false)) || !page.url().includes('/jobs/create');
-
-    expect(hasSuccess).toBeTruthy();
-  });
-
-  // -- Step 2: Contractor discovers the job and submits a bid --
-
-  test('Step 2: Contractor logs in, finds job, and submits a bid', async ({
-    page,
-  }) => {
-    await loginAsContractor(page);
-
-    // Navigate to job discovery
-    await page.goto('/contractor/discover');
-    await page.waitForLoadState('networkidle');
-    await expect(page).not.toHaveURL(/login/);
-
-    await page.waitForTimeout(3000);
-
-    // Look for any job listing
-    const pageText = await page.textContent('body');
-    const hasJobListings = pageText && pageText.length > 200;
-
-    if (!hasJobListings) {
-      // Try alternative job listing pages
-      await page.goto('/contractor/jobs-near-you');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(3000);
-    }
-
-    // Try to find and click on a job to view details
-    // Scoped to #main-content: unscoped this matched the sidebar's
-    // /contractor/reviews nav item, which sits under the mobile-nav backdrop.
-    const content = page.locator('#main-content');
-    const jobLink = content
-      .getByRole('link', { name: /view|details|bid/i })
-      .or(content.locator('[data-testid="job-card"]'))
-      .first();
-
-    const hasJobLink = await jobLink.isVisible().catch(() => false);
-
-    if (hasJobLink) {
-      await jobLink.click();
-      await page.waitForLoadState('networkidle');
-
-      // Look for bid submission form or button
-      const bidButton = page
-        .getByRole('button', { name: /bid|quote|submit.*bid|place.*bid/i })
-        .first();
-      const hasBidButton = await bidButton.isVisible().catch(() => false);
-
-      if (hasBidButton) {
-        await bidButton.click();
-        await page.waitForTimeout(1000);
-
-        // Fill in bid amount
-        const amountInput = page.getByLabel(/amount|quote|price|bid/i);
-        if (await amountInput.isVisible().catch(() => false)) {
-          await amountInput.fill(testBid.quoteAmount.toString());
-        }
-
-        // Fill in bid description/message
-        const messageInput = page.getByLabel(
-          /message|description|details|cover/i
-        );
-        if (await messageInput.isVisible().catch(() => false)) {
-          await messageInput.fill(testBid.description);
-        }
-
-        // Submit the bid
-        const submitBidBtn = page
-          .getByRole('button', {
-            name: /submit.*bid|send.*bid|place.*bid|confirm/i,
-          })
-          .first();
-        if (await submitBidBtn.isVisible().catch(() => false)) {
-          await submitBidBtn.click();
-          await waitForNetworkIdle(page);
-
-          const bidSuccess =
-            (await page
-              .getByText(/success|submitted|sent/i)
-              .isVisible()
-              .catch(() => false)) || page.url().includes('/bid');
-
-          expect(bidSuccess).toBeTruthy();
-        }
-      }
-    }
-
-    // Regardless, verify contractor can access their dashboard
-    await page.goto('/contractor/dashboard-enhanced');
-    await page.waitForLoadState('networkidle');
-    await expect(page).not.toHaveURL(/login/);
-  });
-
-  // -- Step 3: Homeowner reviews bids and accepts --
-
-  test('Step 3: Homeowner reviews bids and accepts contractor bid', async ({
-    page,
-  }) => {
-    await loginAsHomeowner(page);
-
-    // Navigate to jobs list to see bids
-    await page.goto('/jobs');
-    await page.waitForLoadState('networkidle');
-    await expect(page).not.toHaveURL(/login/);
-
-    await page.waitForTimeout(3000);
-
-    // Look for a job with bids
-    const jobWithBids = page.getByText(/bid|quote|proposal/i).first();
-    const hasBids = await jobWithBids.isVisible().catch(() => false);
-
-    if (hasBids) {
-      // Click to view bids
-      const viewBidsLink = page
-        .getByRole('link', { name: /view.*bid|review.*bid|see.*bid|bids/i })
-        .or(page.getByRole('button', { name: /view.*bid|review.*bid/i }))
-        .first();
-
-      if (await viewBidsLink.isVisible().catch(() => false)) {
-        await viewBidsLink.click();
-        await page.waitForLoadState('networkidle');
-
-        // Look for accept button on a bid
-        const acceptButton = page
-          .getByRole('button', { name: /accept|approve|hire/i })
-          .first();
-
-        if (await acceptButton.isVisible().catch(() => false)) {
-          await acceptButton.click();
-          await page.waitForTimeout(1000);
-
-          // Handle confirmation dialog if present
-          const confirmButton = page.getByRole('button', {
-            name: /confirm|yes|accept/i,
-          });
-          if (await confirmButton.isVisible().catch(() => false)) {
-            await confirmButton.click();
-          }
-
-          await waitForNetworkIdle(page);
-
-          // Verify acceptance
-          const accepted =
-            (await page
-              .getByText(/accepted|hired|approved/i)
-              .isVisible()
-              .catch(() => false)) ||
-            (await page
-              .getByText(/contract|schedule|escrow/i)
-              .isVisible()
-              .catch(() => false));
-
-          expect(accepted).toBeTruthy();
-        }
-      }
-    }
-  });
-
-  // -- Step 4: Post-acceptance lifecycle --
-
-  test('Step 4: Verify post-acceptance lifecycle (scheduling, contract, escrow)', async ({
-    page,
-  }) => {
-    await loginAsHomeowner(page);
-
-    // Check scheduling page
-    await page.goto('/scheduling');
-    await page.waitForLoadState('networkidle');
-    const onScheduling = !page.url().includes('/login');
-
-    // Check escrow status
-    await page.goto('/homeowner/escrow/approve');
-    await page.waitForLoadState('networkidle');
-    const onEscrow = !page.url().includes('/login');
-
-    // Check financials
-    await page.goto('/financials');
-    await page.waitForLoadState('networkidle');
-    const onFinancials = !page.url().includes('/login');
-
-    // At least one post-acceptance page should be accessible
-    expect(onScheduling || onEscrow || onFinancials).toBeTruthy();
-  });
-
-  // -- Step 5: Notifications validation --
-
-  test('Step 5: Validate notifications are accessible', async ({ page }) => {
-    // Check homeowner notifications
-    await loginAsHomeowner(page);
-
-    const notifResponse = await page.request.get('/api/notifications');
-    // Should return 200 (even if empty array)
-    expect([200, 401]).toContain(notifResponse.status());
-
-    // Check contractor notifications
-    await clearAuth(page);
-    await loginAsContractor(page);
-
-    const contractorNotifResponse =
-      await page.request.get('/api/notifications');
-    expect([200, 401]).toContain(contractorNotifResponse.status());
-  });
+  expect(acceptance.status()).toBe(403);
+  expect(await acceptance.text()).toContain('payment account setup');
+  const stillPending = await page.request.get('/api/jobs/' + id + '/bids');
+  expect((await stillPending.json()).bids[0].status).toBe('pending');
+  for (const account of [TEST_USERS.homeowner, TEST_USERS.contractor]) {
+    expect(await establishSessionInContext(page, account)).toBe(true);
+    const notifications = await page.request.get('/api/notifications');
+    expect(notifications.ok()).toBe(true);
+  }
 });
-
-// ---- Profile Image Regression ----
 
 test.describe('Profile Image Display', () => {
   test('Profile page loads and shows avatar area', async ({ page }) => {
@@ -413,7 +188,6 @@ test.describe('Subscription Status API', () => {
       expect(data).toHaveProperty('earlyAccess');
       expect(data.earlyAccess).toHaveProperty('eligible');
     }
-    // 401 is also acceptable if session cookie doesn't propagate to request context
-    expect([200, 401]).toContain(response.status());
+    expect(response.status()).toBe(200);
   });
 });

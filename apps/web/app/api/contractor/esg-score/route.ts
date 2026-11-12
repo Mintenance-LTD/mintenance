@@ -11,7 +11,7 @@ const upsertESGScoreSchema = z.object({
   social_score: z.number().min(0).max(100),
   governance_score: z.number().min(0).max(100),
   total_score: z.number().min(0).max(100),
-  breakdown: z.record(z.unknown()).optional(),
+  breakdown: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const POST = withApiHandler(

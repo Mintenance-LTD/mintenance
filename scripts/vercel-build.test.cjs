@@ -60,6 +60,8 @@ for (const [stage, matches] of [
   ['public assets', (s) => s.startsWith('cp ')],
   ['type check', (s) => s === 'npx tsc --noEmit'],
   ['lint', (s) => s.startsWith('npx eslint')],
+  ['internal links', (s) => s.includes('check-internal-links')],
+  ['web tests', (s) => s.startsWith('npx vitest run')],
 ]) {
   test(`${stage} failure blocks the application build`, () => {
     const { commands, exitCode } = simulate(matches);

@@ -5,14 +5,16 @@
   "description": "Shared API request/response schemas and types for Mintenance apps",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "zod": "^3.23.4"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

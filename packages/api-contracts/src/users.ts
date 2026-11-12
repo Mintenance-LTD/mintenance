@@ -50,13 +50,13 @@ export const userSettingsUpdateSchema = z.object({
 
 export const adminSettingUpdateSchema = z.object({
   key: z.string().min(1).max(255).regex(/^[a-zA-Z0-9._-]+$/),
-  value: z.union([z.string().max(10000), z.number().finite(), z.boolean(), z.record(z.any()), z.array(z.any())]),
+  value: z.union([z.string().max(10000), z.number().finite(), z.boolean(), z.record(z.string(), z.unknown()), z.array(z.any())]),
   oldValue: z.any().optional(),
 });
 
 export const adminSettingCreateSchema = z.object({
   key: z.string().min(1).max(255).regex(/^[a-zA-Z0-9._-]+$/),
-  value: z.union([z.string().max(10000), z.number().finite(), z.boolean(), z.record(z.any()), z.array(z.any())]),
+  value: z.union([z.string().max(10000), z.number().finite(), z.boolean(), z.record(z.string(), z.unknown()), z.array(z.any())]),
   type: z.enum(['string', 'number', 'boolean', 'json', 'array']),
   category: z.enum(['general', 'email', 'security', 'features', 'payment', 'notifications']),
   description: z.string().max(1000).optional(),

@@ -1,3 +1,4 @@
+import { PAYMENT_RELEASE_COPY } from '@mintenance/shared';
 import React from 'react';
 import Link from 'next/link';
 import { Check, X } from 'lucide-react';
@@ -28,7 +29,7 @@ const COMPARISON_ROWS = [
   {
     feature: 'Payment protection',
     traditional: 'Pay up front: and hope',
-    mintenance: 'Held safely until you approve the work',
+    mintenance: PAYMENT_RELEASE_COPY.summary,
   },
 ];
 

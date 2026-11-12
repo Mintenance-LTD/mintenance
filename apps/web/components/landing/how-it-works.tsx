@@ -1,3 +1,4 @@
+import { PAYMENT_RELEASE_COPY } from '@mintenance/shared';
 import React from 'react';
 import Link from 'next/link';
 
@@ -23,7 +24,7 @@ const STEPS = [
     number: 3,
     title: 'Hire & approve',
     description:
-      "Pick your tradesperson. Payment is held safely and only released once you're happy with the work.",
+      PAYMENT_RELEASE_COPY.summary,
   },
 ];
 

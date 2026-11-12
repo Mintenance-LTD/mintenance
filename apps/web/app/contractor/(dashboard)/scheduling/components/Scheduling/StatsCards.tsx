@@ -56,8 +56,8 @@ export function StatsCards({ stats }: StatsCardsProps) {
           <div className='sub'>This week</div>
         </div>
         <div className='kpi'>
-          <div className='label'>Available slots</div>
-          <div className='num'>{stats.availableSlots}</div>
+          <div className='label'>Available hours</div>
+          <div className='num'>{stats.availableHours}</div>
           <div className='sub'>Next 7 days</div>
         </div>
       </div>
@@ -135,11 +135,11 @@ export function StatsCards({ stats }: StatsCardsProps) {
             <Calendar className='w-6 h-6 text-purple-600' />
           </div>
           <p className='text-sm font-semibold text-slate-600'>
-            Available Slots
+            Available hours
           </p>
         </div>
         <p className='text-3xl font-bold text-slate-900'>
-          {stats.availableSlots}
+          {stats.availableHours}
         </p>
         <p className='text-xs text-slate-500 mt-1'>Next 7 days</p>
       </MotionDiv>

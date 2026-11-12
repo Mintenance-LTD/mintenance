@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FileText, Plus } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 // Empty State
 export const EmptyState = ({ filter }: { filter: string }) => (
@@ -20,20 +20,8 @@ export const EmptyState = ({ filter }: { filter: string }) => (
     </h3>
     <p className='text-gray-600 mb-8 max-w-md mx-auto'>
       {filter === 'all'
-        ? 'Start creating invoices to track your payments and manage your business finances.'
+        ? 'Create invoices in the Mintenance mobile app. Your invoices appear here so you can track, send and manage them on the web.'
         : `You don't have any ${filter} invoices at the moment.`}
     </p>
-    {filter === 'all' && (
-      <Link href='/contractor/quotes/create'>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className='px-8 py-4 bg-teal-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl hover:bg-teal-700 transition-all'
-        >
-          <Plus className='w-5 h-5 inline mr-2' />
-          Create Your First Quote
-        </motion.button>
-      </Link>
-    )}
   </motion.div>
 );

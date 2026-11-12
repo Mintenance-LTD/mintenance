@@ -9,7 +9,7 @@
  * "History" link. We don't have a dedicated `property_systems` table
  * yet, so we derive each system's state from job history by category:
  *
- *   - last completed job in that bucket → "Last serviced {date}"
+ *   - completed job in that bucket → factual job record, not system condition
  *   - any active job in that bucket    → "In progress" chip
  *   - nothing on file                  → "No history" muted chip
  *
@@ -71,16 +71,6 @@ const SYSTEMS: SystemDef[] = [
   },
 ];
 
-function relTime(dateStr: string): string {
-  const then = new Date(dateStr).getTime();
-  if (Number.isNaN(then)) return dateStr;
-  const months = (Date.now() - then) / (1000 * 60 * 60 * 24 * 30.4);
-  if (months < 1) return 'this month';
-  if (months < 11) return `${Math.round(months)} months ago`;
-  const years = months / 12;
-  return years < 1.5 ? '1 year ago' : `${Math.round(years)} years ago`;
-}
-
 function deriveStatus(jobs: JobItem[], cats: string[]) {
   const matching = jobs.filter((j) =>
     cats.includes((j.category || '').toLowerCase())
@@ -100,8 +90,8 @@ function deriveStatus(jobs: JobItem[], cats: string[]) {
   }
   if (lastDone) {
     return {
-      copy: `Last serviced ${relTime(lastDone.date)}`,
-      badge: { tone: 'ok' as const, label: 'OK' },
+      copy: `Completed job recorded · ${lastDone.title}. Service date and system condition not recorded.`,
+      badge: { tone: 'mute' as const, label: 'Job history' },
     };
   }
   return {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { ConflictError } from '@/lib/errors/api-error';
+import { ConflictError, BadRequestError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
@@ -53,7 +53,14 @@ export const GET = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
     const { searchParams } = new URL(request.url);
-    const daysAhead = parseInt(searchParams.get('daysAhead') || '30');
+    const daysAhead = Number(searchParams.get('daysAhead') || '30');
+    const rangeStart = searchParams.get('startDate');
+    const rangeEnd = searchParams.get('endDate');
+    const validDate = (value: string | null): value is string => !!value && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+    if (!Number.isInteger(daysAhead) || daysAhead < 1 || daysAhead > 366) throw new BadRequestError('Invalid daysAhead');
+    if ((rangeStart || rangeEnd) && (!validDate(rangeStart) || !validDate(rangeEnd) || rangeEnd < rangeStart || Date.parse(rangeEnd) - Date.parse(rangeStart) > 62 * 86400000)) {
+      throw new BadRequestError('Provide a valid date range of at most 63 days');
+    }
     const status = searchParams.get('status');
 
     // Build query
@@ -79,10 +86,10 @@ export const GET = withApiHandler(
       `
       )
       .eq('contractor_id', user.id)
-      .gte('appointment_date', new Date().toISOString().split('T')[0])
+      .gte('appointment_date', rangeStart || new Date().toISOString().split('T')[0])
       .lte(
         'appointment_date',
-        new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
+        rangeEnd || new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
           .toISOString()
           .split('T')[0]
       )
@@ -108,7 +115,7 @@ export const GET = withApiHandler(
       appointments
         ?.filter((apt) => {
           const job = Array.isArray(apt.job) ? apt.job[0] : apt.job;
-          return !job || !['completed', 'cancelled'].includes(job.status);
+          return !!rangeStart || !job || !['completed', 'cancelled'].includes(job.status);
         })
         .map((apt) => ({
           id: apt.id,

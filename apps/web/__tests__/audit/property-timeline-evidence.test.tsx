@@ -17,8 +17,9 @@ it('does not manufacture completion or receipt events from a completed job creat
       ]}
     />
   );
-  expect(screen.getByText('Repair tap — created')).toBeTruthy();
-  expect(screen.getByText('Current status: completed')).toBeTruthy();
+  expect(screen.getByText('Plumbing job created')).toBeTruthy();
+  expect(screen.getByText('Repair tap')).toBeTruthy();
+  expect(screen.getByText(/Current status: completed/i)).toBeTruthy();
   expect(screen.queryByText('Receipt filed')).toBeNull();
   expect(screen.queryByText('Repair tap complete')).toBeNull();
   expect(screen.getByText('Completed job budgets')).toBeTruthy();

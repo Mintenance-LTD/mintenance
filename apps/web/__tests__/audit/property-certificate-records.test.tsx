@@ -23,7 +23,7 @@ it('renders actual certificate metadata and supports issuer search without inven
     screen.getByRole('textbox', { name: 'Search certificates' }),
     { target: { value: 'absent' } }
   );
-  expect(screen.getByText('No certificates match your search.')).toBeTruthy();
+  expect(screen.getByText(/^No certificates match your search\.?$/)).toBeTruthy();
   fireEvent.change(
     screen.getByRole('textbox', { name: 'Search certificates' }),
     { target: { value: 'synthetic' } }

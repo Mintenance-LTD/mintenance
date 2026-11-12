@@ -36,18 +36,25 @@ async function main() {
     if (error) throw new Error('Synthetic account creation failed: ' + error.message);
     userIds[role] = data.user.id;
     const { error: profileError } = await db.from('profiles').update({ role, verified: true, phone_verified: true,
-      onboarding_completed: true, first_name: 'Test', last_name: role }).eq('id', data.user.id);
+      onboarding_completed: true, first_name: 'Test', last_name: role,
+      ...(role === 'contractor' ? { verification_status: 'verified', admin_verified: true,
+        latitude: 51.501, longitude: -0.141, city: 'London', postcode: 'SW1A 1AA' } : {}) }).eq('id', data.user.id);
     if (profileError) throw new Error('Synthetic profile setup failed: ' + profileError.message);
   }
-  // Dedicated job for bid-form tests, independent of test order and other shards.
-  env.E2E_BID_JOB_ID = crypto.randomUUID();
-  const { error: jobError } = await db.from('jobs').insert({
-    id: env.E2E_BID_JOB_ID, homeowner_id: userIds.homeowner,
-    title: 'Synthetic bid form fixture', description: 'Fix a synthetic leaking tap for isolated browser tests.',
-    status: 'posted', category: 'plumbing', urgency: 'medium',
-    location: 'London', budget_min: 100, budget_max: 200,
-  });
-  if (jobError) throw new Error('Synthetic job setup failed: ' + jobError.message);
+  const { error: trialError } = await db.rpc('initialize_trial_period', { p_contractor_id: userIds.contractor });
+  if (trialError) throw new Error('Synthetic trial setup failed: ' + trialError.message);
+  // Separate mutation fixtures prevent test-order and retry coupling.
+  for (const name of ['BID', 'SUBMIT_BID', 'REGRESSION_BID', 'EDIT', 'DELETE']) {
+    env['E2E_' + name + '_JOB_ID'] = crypto.randomUUID();
+    const { error: jobError } = await db.from('jobs').insert({
+      id: env['E2E_' + name + '_JOB_ID'], homeowner_id: userIds.homeowner,
+      title: 'Synthetic ' + name + ' fixture', description: 'Fix a synthetic leaking tap for isolated browser tests.',
+      status: 'posted', category: 'plumbing', urgency: 'medium',
+      location: 'London', city: 'London', postcode: 'SW1A 1AA',
+      latitude: 51.501, longitude: -0.141, budget: 200, budget_min: 100, budget_max: 200,
+    });
+    if (jobError) throw new Error('Synthetic job setup failed: ' + jobError.message);
+  }
   const output = process.env.GITHUB_ENV || 'output/e2e-stack/runtime.json';
   if (process.env.GITHUB_ENV) {
     for (const [name, value] of Object.entries(env)) {

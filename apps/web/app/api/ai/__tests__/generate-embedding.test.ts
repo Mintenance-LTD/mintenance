@@ -158,7 +158,7 @@ describe('POST /api/ai/generate-embedding', () => {
 
       expect(response.status).toBe(400);
       // Zod-validated body: missing `text` surfaces the default "Required" issue message
-      expect(data.error).toContain('Required');
+      expect(data.error).toMatch(/expected string/i);
     });
 
     it('should return 400 for non-string text', async () => {
@@ -176,7 +176,7 @@ describe('POST /api/ai/generate-embedding', () => {
 
       expect(response.status).toBe(400);
       // Zod-validated body: non-string `text` surfaces "Expected string, received number"
-      expect(data.error).toContain('Expected string');
+      expect(data.error).toMatch(/expected string/i);
     });
 
     it('should return 400 for text exceeding 32000 characters', async () => {
@@ -195,7 +195,7 @@ describe('POST /api/ai/generate-embedding', () => {
 
       expect(response.status).toBe(400);
       // Zod-validated body: over-length `text` surfaces the .max(32000) issue message
-      expect(data.error).toContain('at most');
+      expect(data.error).toMatch(/too big|at most/i);
       expect(data.error).toContain('32000');
     });
 

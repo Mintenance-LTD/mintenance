@@ -28,7 +28,7 @@ export interface Stats {
   upcomingAppointments: number;
   completedThisWeek: number;
   totalHours: number;
-  availableSlots: number;
+  availableHours: number;
   weekOverWeekChange?: number;
 }
 

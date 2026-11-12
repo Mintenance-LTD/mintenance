@@ -35,11 +35,9 @@ export function LocationSection({
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Street Address *
+          <label htmlFor="job-edit-street-address" className="block text-sm font-medium text-gray-700 mb-2">Street Address *
           </label>
-          <input
-            type="text"
+          <input id="job-edit-street-address"             type="text"
             value={address}
             onChange={(e) => onInputChange('location.address', e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -49,11 +47,9 @@ export function LocationSection({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              City *
+            <label htmlFor="job-edit-city" className="block text-sm font-medium text-gray-700 mb-2">City *
             </label>
-            <input
-              type="text"
+          <input id="job-edit-city"               type="text"
               value={city}
               onChange={(e) => onInputChange('location.city', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -61,11 +57,9 @@ export function LocationSection({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Postcode *
+            <label htmlFor="job-edit-postcode" className="block text-sm font-medium text-gray-700 mb-2">Postcode *
             </label>
-            <input
-              type="text"
+          <input id="job-edit-postcode"               type="text"
               value={postcode}
               onChange={(e) => onInputChange('location.postcode', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -75,11 +69,9 @@ export function LocationSection({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Access Information
+          <label htmlFor="job-edit-access-information" className="block text-sm font-medium text-gray-700 mb-2">Access Information
           </label>
-          <textarea
-            value={accessInfo}
+          <textarea id="job-edit-access-information"             value={accessInfo}
             onChange={(e) => onInputChange('accessInfo', e.target.value)}
             rows={3}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"

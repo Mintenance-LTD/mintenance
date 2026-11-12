@@ -1,3 +1,4 @@
+import { PAYMENT_RELEASE_COPY } from '@mintenance/shared';
 /**
  * Helpers for the Mint Editorial /jobs/[id] surface. Pure functions —
  * kept out of the component file so the component stays under the
@@ -196,7 +197,7 @@ export function computeNextStep(
   if (contractStatus === 'accepted' && !isEscrowFunded(escrowStatus)) {
     return {
       title: 'Pay into escrow',
-      body: 'Your payment is held until you approve the finished work. Funds only release on sign-off.',
+      body: PAYMENT_RELEASE_COPY.details,
       cta: { label: 'Pay now', href: `/jobs/${jobId}/payment` },
     };
   }

@@ -45,9 +45,16 @@ console.log('=== Type-checking web app ===');
 run('npx tsc --noEmit', { cwd: 'apps/web' });
 
 console.log('=== Linting web app ===');
-run('npx eslint . --max-warnings 5000', {
+run('npx eslint . --max-warnings 810', {
   cwd: 'apps/web',
 });
 
+console.log('=== Building Next.js app ===');
+// Git deployments build independently of GitHub Actions. These checks must
+// fail here too, before Vercel can publish a build with failed web tests.
+console.log('=== Checking internal links ===');
+run('npx tsx scripts/check-internal-links.ts');
+console.log('=== Testing web app ===');
+run('npx vitest run --maxWorkers=2', { cwd: 'apps/web' });
 console.log('=== Building Next.js app ===');
 run('npx next build', { cwd: 'apps/web' });

@@ -107,7 +107,7 @@ export const POST = withApiHandler(
     } catch (e) {
       if (e instanceof z.ZodError) {
         return NextResponse.json(
-          { error: 'Invalid request data', details: e.errors },
+          { error: 'Invalid request data', details: e.issues },
           { status: 400 }
         );
       }

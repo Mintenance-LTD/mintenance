@@ -17,7 +17,7 @@ export const POST = withApiHandler({ roles: ['contractor'], rateLimit: { maxRequ
 
   if (!validationResult.success) {
     return NextResponse.json(
-      { error: 'Invalid feedback data', details: validationResult.error.errors },
+      { error: 'Invalid feedback data', details: validationResult.error.issues },
       { status: 400 }
     );
   }

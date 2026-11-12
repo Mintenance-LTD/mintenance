@@ -1,7 +1,7 @@
 'use client';
 
 import { useAdminFetch } from '@/components/admin/AdminVerificationProvider';
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -72,13 +72,7 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (open && userId) {
-      fetchUserDetails();
-    }
-  }, [open, userId]);
-
-  const fetchUserDetails = async () => {
+  const fetchUserDetails = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -102,7 +96,13 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
     } finally {
       setLoading(false);
     }
-  };
+  }, [adminFetch, userId]);
+
+  useEffect(() => {
+    if (open && userId) {
+      fetchUserDetails();
+    }
+  }, [open, userId, fetchUserDetails]);
 
   const handleVerificationAction = async () => {
     if (!action) return;

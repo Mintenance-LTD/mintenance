@@ -69,6 +69,7 @@ function Chip({
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       className='px-3 py-1 text-xs font-medium rounded-full border transition-all whitespace-nowrap'
       style={{
         fontFamily: 'var(--me-font-body)',

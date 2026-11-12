@@ -10,6 +10,7 @@
  * CI) or letting a login redirect make body-length assertions pass vacuously.
  */
 
+import { fixtureJob, submitAndVerifyBid } from '../helpers/bid-journey';
 import { test, expect } from '../fixtures';
 import type { Page } from '@playwright/test';
 import { establishSessionInContext, TEST_USERS } from '../helpers/auth';
@@ -34,7 +35,7 @@ type Role = { email: string; password: string; role: string };
 /** Mint a session for `user`; skip the test if the fixture is unavailable. */
 async function auth(page: Page, user: Role): Promise<void> {
   const ok = await establishSessionInContext(page, user);
-  test.skip(!ok, AUTH_UNAVAILABLE);
+  expect(ok, AUTH_UNAVAILABLE).toBe(true);
 }
 
 /** Wait for the page to leave a loading state (skeleton / spinner gone). */
@@ -147,80 +148,13 @@ test.describe('Regression: Contractor Bid Flow', () => {
 
   test('contractor can view a job and access bid form', async ({ page }) => {
     await auth(page, TEST_USERS.contractor);
-    await navigateAuthenticated(page, '/contractor/discover');
-
-    const jobLink = page
-      .locator('a[href*="/jobs/"]')
-      .or(page.locator('[data-testid="job-card"]'))
-      .first();
-    // Data gap: the e2e seed creates no jobs to open.
-    test.skip(
-      !(await jobLink.isVisible().catch(() => false)),
-      'No seeded jobs on the discover feed'
-    );
-
-    await jobLink.click();
-    await waitForContentLoaded(page);
-    await expect(page).toHaveURL(/\/jobs\//);
-
-    const bidButton = page
-      .getByRole('button', { name: /submit.*bid|place.*bid|bid.*now/i })
-      .first();
-    if (await bidButton.isVisible().catch(() => false)) {
-      await bidButton.click();
-      await expect(page.getByLabel(/quote|amount|price|bid/i)).toBeVisible({
-        timeout: 5000,
-      });
-    }
+    await navigateAuthenticated(page, '/contractor/jobs/' + fixtureJob() + '/view');
+    await page.getByRole('button', { name: /submit.*bid|place.*bid/i }).first().click();
+    await expect(page.getByLabel(/proposal description/i)).toBeVisible();
   });
-
   test('contractor can submit a bid', async ({ page }) => {
     await auth(page, TEST_USERS.contractor);
-    await navigateAuthenticated(page, '/contractor/discover');
-
-    const jobLink = page.locator('a[href*="/jobs/"]').first();
-    test.skip(
-      !(await jobLink.isVisible().catch(() => false)),
-      'No seeded jobs on the discover feed'
-    );
-
-    await jobLink.click();
-    await waitForContentLoaded(page);
-
-    const bidTrigger = page
-      .getByRole('button', { name: /submit.*bid|place.*bid/i })
-      .first();
-    if (await bidTrigger.isVisible().catch(() => false)) {
-      await bidTrigger.click();
-      await page.waitForTimeout(500);
-    }
-
-    const quoteInput = page.getByLabel(/quote|amount|price/i);
-    // Reaching a job detail without a bid form is a real regression, not a skip.
-    await expect(quoteInput).toBeVisible({ timeout: 5000 });
-    await quoteInput.fill(bidData.quoteAmount.toString());
-
-    const messageInput = page.getByLabel(/message|description|details|cover/i);
-    if (await messageInput.isVisible().catch(() => false)) {
-      await messageInput.fill(bidData.description);
-    }
-    const daysInput = page.getByLabel(/days|timeline|duration/i);
-    if (await daysInput.isVisible().catch(() => false)) {
-      await daysInput.fill(bidData.estimatedDays.toString());
-    }
-
-    await page
-      .getByRole('button', { name: /submit|send.*bid|confirm/i })
-      .first()
-      .click();
-    await waitForNetworkIdle(page);
-
-    const bidSubmitted =
-      (await page
-        .getByText(/success|submitted|sent/i)
-        .isVisible()
-        .catch(() => false)) || !page.url().includes('/bid');
-    expect(bidSubmitted).toBeTruthy();
+    await submitAndVerifyBid(page, 'REGRESSION_BID');
   });
 });
 
@@ -231,21 +165,7 @@ test.describe('Regression: Contractor Bid Flow', () => {
 test.describe('Regression: Payment & Escrow Flow', () => {
   test('homeowner can view bids on their job', async ({ page }) => {
     await auth(page, TEST_USERS.homeowner);
-    await navigateAuthenticated(page, '/jobs');
-
-    const content = page.locator('#main-content');
-    const jobLink = content
-      .locator('a[href*="/jobs/"]:not([href$="/jobs/create"])')
-      .or(content.getByRole('link', { name: /view|details/i }))
-      .first();
-    // Data gap: no seeded jobs to open.
-    test.skip(
-      !(await jobLink.isVisible().catch(() => false)),
-      'No seeded jobs to open'
-    );
-
-    await jobLink.click();
-    await waitForContentLoaded(page);
+    await navigateAuthenticated(page, '/jobs/' + fixtureJob());
     const hasBidsSection =
       (await page
         .getByText(/bid|quote|proposal/i)
@@ -381,18 +301,12 @@ test.describe('Regression: Profile Flow', () => {
 
     const editBtn = page.getByRole('button', { name: /edit|update/i }).first();
     // Edit affordance is a UI-variant gate, not an auth gate.
-    test.skip(
-      !(await editBtn.isVisible().catch(() => false)),
-      'No edit affordance on /contractor/profile in this UI variant'
-    );
+    await expect(editBtn).toBeVisible();
     await editBtn.click();
     await page.waitForTimeout(500);
 
     const bioInput = page.getByLabel(/bio|about|description/i);
-    test.skip(
-      !(await bioInput.isVisible().catch(() => false)),
-      'No editable bio field in this profile variant'
-    );
+    await expect(bioInput).toBeVisible();
     const testBio = 'Regression test bio update';
     await bioInput.fill(testBio);
     await page

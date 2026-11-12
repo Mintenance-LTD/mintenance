@@ -8,12 +8,12 @@ import { UUIDSchema, DateSchema, MoneySchema } from './common';
 const PaymentStatusSchema = z.enum(
   ['pending', 'processing', 'completed', 'failed', 'cancelled', 'refunded'],
   {
-    errorMap: () => ({ message: 'Invalid payment status' }),
+    error: () => ({ message: 'Invalid payment status' }),
   }
 );
 
 const PaymentMethodSchema = z.enum(['card', 'bank_transfer', 'escrow'], {
-  errorMap: () => ({ message: 'Invalid payment method' }),
+  error: () => ({ message: 'Invalid payment method' }),
 });
 
 const PaymentSchema = z.object({

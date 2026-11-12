@@ -1,8 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Filter, Download } from 'lucide-react';
-import type { FilterTab } from './useQuotesData';
+import { Search } from 'lucide-react';
+import { QuoteExport } from './QuoteExport';
+import type { Quote, FilterTab } from './useQuotesData';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -10,6 +11,8 @@ const fadeInUp = {
 };
 
 interface QuotesFilterBarProps {
+  quotes: Quote[];
+  loading: boolean;
   filterTabs: { value: FilterTab; label: string; count: number }[];
   activeFilter: FilterTab;
   onFilterChange: (filter: FilterTab) => void;
@@ -18,6 +21,8 @@ interface QuotesFilterBarProps {
 }
 
 export function QuotesFilterBar({
+  quotes,
+  loading,
   filterTabs,
   activeFilter,
   onFilterChange,
@@ -70,14 +75,7 @@ export function QuotesFilterBar({
           />
         </div>
         <div className='flex gap-2'>
-          <button className='flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-slate-200 text-slate-700 rounded-xl hover:bg-gray-100 transition-all text-sm font-medium'>
-            <Filter className='w-4 h-4' />
-            Filter
-          </button>
-          <button className='flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-slate-200 text-slate-700 rounded-xl hover:bg-gray-100 transition-all text-sm font-medium'>
-            <Download className='w-4 h-4' />
-            Export
-          </button>
+          <QuoteExport quotes={quotes} loading={loading} />
         </div>
       </div>
     </motion.div>

@@ -21,12 +21,12 @@ export const JobCategorySchema = z.enum(
     'other',
   ],
   {
-    errorMap: () => ({ message: 'Invalid job category' }),
+    error: () => ({ message: 'Invalid job category' }),
   }
 );
 
 const JobPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent'], {
-  errorMap: () => ({
+  error: () => ({
     message: 'Priority must be low, medium, high, or urgent',
   }),
 });
@@ -34,7 +34,7 @@ const JobPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent'], {
 const JobStatusSchema = z.enum(
   ['draft', 'posted', 'in_progress', 'completed', 'cancelled', 'disputed'],
   {
-    errorMap: () => ({ message: 'Invalid job status' }),
+    error: () => ({ message: 'Invalid job status' }),
   }
 );
 
@@ -141,7 +141,7 @@ const JobFilterSchema = z.object({
 const BidStatusSchema = z.enum(
   ['pending', 'accepted', 'rejected', 'withdrawn', 'expired'],
   {
-    errorMap: () => ({ message: 'Invalid bid status' }),
+    error: () => ({ message: 'Invalid bid status' }),
   }
 );
 

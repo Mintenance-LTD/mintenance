@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
 import type { Notification } from './notificationDropdownUtils';
@@ -31,46 +31,7 @@ export function NotificationDropdown(props: NotificationDropdownProps) {
   const prevUnreadRef = useRef<number>(-1);
 
   // Prevent hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () =>
-        document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
-  // Fetch notifications when dropdown opens or on mount
-  useEffect(() => {
-    if (userId) {
-      fetchNotifications();
-      // Poll for new notifications every 60 seconds
-      pollingRef.current = setInterval(fetchNotifications, 60000);
-      return () => clearInterval(pollingRef.current);
-    }
-  }, [userId]);
-
-  // Also fetch when dropdown opens to get latest notifications
-  useEffect(() => {
-    if (isOpen && userId) {
-      fetchNotifications();
-    }
-  }, [isOpen, userId]);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!userId) return;
 
     setLoading(true);
@@ -102,7 +63,46 @@ export function NotificationDropdown(props: NotificationDropdownProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  // Fetch notifications when dropdown opens or on mount
+  useEffect(() => {
+    if (userId) {
+      fetchNotifications();
+      // Poll for new notifications every 60 seconds
+      pollingRef.current = setInterval(fetchNotifications, 60000);
+      return () => clearInterval(pollingRef.current);
+    }
+  }, [userId, fetchNotifications]);
+
+  // Also fetch when dropdown opens to get latest notifications
+  useEffect(() => {
+    if (isOpen && userId) {
+      fetchNotifications();
+    }
+  }, [isOpen, userId, fetchNotifications]);
 
   const markAsRead = async (notificationId: string) => {
     try {

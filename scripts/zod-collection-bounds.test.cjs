@@ -3,37 +3,17 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { patchZodSource } = require('./patch-zod-v3.cjs');
+const { applyPatches } = require('./apply-security-patches.cjs');
 
-// Use a private copy so local checks never alter another worktree's dependencies.
-const base = path.resolve(__dirname, '../output/zod-bound-tests');
-fs.mkdirSync(base, { recursive: true });
-const fixture = fs.mkdtempSync(path.join(base, 'fixture-'));
 const installed = path.dirname(require.resolve('zod/package.json'));
-fs.cpSync(path.join(installed, 'v3'), path.join(fixture, 'v3'), {
-  recursive: true,
-});
-fs.writeFileSync(path.join(fixture, 'package.json'), '{"type":"module"}');
-for (const format of ['cjs', 'js']) {
-  const file = path.join(fixture, 'v3', `types.${format}`);
-  const source = fs.readFileSync(file, 'utf8');
-  const patched = patchZodSource(source, format);
-  fs.writeFileSync(file, patched);
-  test(`${format}: patch is idempotent and rejects unexpected source`, () => {
-    assert.equal(patchZodSource(patched, format), patched);
-    assert.throws(
-      () => patchZodSource(source + '\n// unexpected edit', format),
-      /Unrecognized/
-    );
-  });
-}
+test('all locked Zod installations use the upstream security fix', () => applyPatches());
 
 for (const format of ['cjs', 'js']) {
   test(`${format}: bounded collections reject before invoking element parsers`, async () => {
     const { z } =
       format === 'cjs'
-        ? require(path.join(fixture, 'v3/index.cjs'))
-        : await import(pathToFileURL(path.join(fixture, 'v3/index.js')).href);
+        ? require('zod')
+        : await import(pathToFileURL(path.join(installed, 'index.js')).href);
     let visited = 0;
     let refined = 0;
     const element = z.preprocess((value) => {
