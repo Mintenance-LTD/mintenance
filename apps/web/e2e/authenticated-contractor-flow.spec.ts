@@ -47,7 +47,9 @@ test.describe('Authenticated Contractor Flow', () => {
     const jobLink = page.locator('[data-job-id="' + fixtureJob() + '"]');
     await expect(jobLink).toBeVisible();
     await jobLink.click();
-    await expect(page).toHaveURL('/contractor/bid/' + fixtureJob() + '/details');
+    await expect(page).toHaveURL(
+      '/contractor/bid/' + fixtureJob() + '/details'
+    );
     await expect(page.getByText('Synthetic BID fixture').first()).toBeVisible();
   });
 
@@ -94,19 +96,34 @@ test.describe('Authenticated Contractor Flow', () => {
     ).toBeVisible();
   });
 
-  test('availability saves atomically and invalid times preserve the saved schedule', async ({ page }) => {
+  test('availability saves atomically and invalid times preserve the saved schedule', async ({
+    page,
+  }) => {
     const csrf = await page.request.get('/api/csrf');
     expect(csrf.ok()).toBe(true);
     const { token } = await csrf.json();
-    const availability = [1, 2].map(dayOfWeek => ({ dayOfWeek, startTime: '09:00', endTime: '17:00', isAvailable: true }));
-    const saved = await page.request.put('/api/contractor/availability', { headers: { 'X-CSRF-Token': token }, data: { availability } });
+    const availability = [1, 2].map((dayOfWeek) => ({
+      dayOfWeek,
+      startTime: '09:00',
+      endTime: '17:00',
+      isAvailable: true,
+    }));
+    const saved = await page.request.put('/api/contractor/availability', {
+      headers: { 'X-CSRF-Token': token },
+      data: { availability },
+    });
     expect(saved.ok(), await saved.text()).toBe(true);
-    const invalid = await page.request.put('/api/contractor/availability', { headers: { 'X-CSRF-Token': token }, data: { availability: [{ ...availability[0], endTime: '08:00' }] } });
+    const invalid = await page.request.put('/api/contractor/availability', {
+      headers: { 'X-CSRF-Token': token },
+      data: { availability: [{ ...availability[0], endTime: '08:00' }] },
+    });
     expect(invalid.status()).toBe(400);
     const persisted = await page.request.get('/api/contractor/availability');
     const body = await persisted.json();
     expect(body.availability).toHaveLength(2);
-    expect(body.availability.map((slot: { dayOfWeek: number }) => slot.dayOfWeek)).toEqual([1, 2]);
+    expect(
+      body.availability.map((slot: { dayOfWeek: number }) => slot.dayOfWeek)
+    ).toEqual([1, 2]);
     const stats = await page.request.get('/api/contractor/appointments/stats');
     expect(stats.ok()).toBe(true);
     expect((await stats.json()).stats.availableHours).toBe(16);
@@ -147,12 +164,16 @@ test.describe('Authenticated Contractor Flow', () => {
         .filter({ hasText: /^Profile updated successfully!?$/ })
     ).toBeVisible();
     await expect(bioInput).not.toBeVisible();
-    await expect(page.getByText(updatedBio, { exact: true })).toBeVisible();
+    await expect(
+      page.getByText(updatedBio, { exact: true }).filter({ visible: true })
+    ).toHaveCount(1);
 
     // Reload from the server so optimistic/local form state cannot pass the test.
     await page.reload();
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
-    await expect(page.getByText(updatedBio, { exact: true })).toBeVisible();
+    await expect(
+      page.getByText(updatedBio, { exact: true }).filter({ visible: true })
+    ).toHaveCount(1);
   });
 });
 
@@ -165,7 +186,9 @@ test.describe('Contractor Job Filtering', () => {
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
   });
 
-  test('contractor can filter jobs by category and radius', async ({ page }) => {
+  test('contractor can filter jobs by category and radius', async ({
+    page,
+  }) => {
     const plumbing = page.getByRole('button', { name: /^plumbing$/i });
     await plumbing.click();
     await expect(plumbing).toHaveAttribute('aria-pressed', 'true');

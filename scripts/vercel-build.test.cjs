@@ -17,6 +17,7 @@ test('legacy dashboard shell command delegates to the checked entrypoint', () =>
 });
 function simulate(fail) {
   const commands = [];
+  const options = [];
   let exitCode;
   const stopped = new Error('build stopped');
   try {
@@ -24,8 +25,9 @@ function simulate(fail) {
       require(name) {
         assert.equal(name, 'child_process');
         return {
-          execSync(command) {
+          execSync(command, opts) {
             commands.push(command);
+            options.push(opts);
             if (fail?.(command))
               throw Object.assign(new Error('failed'), { status: 7 });
           },
@@ -34,6 +36,7 @@ function simulate(fail) {
       console: { log() {} },
       process: {
         version: process.version,
+        env: { NODE_ENV: 'production', VERCEL: '1' },
         exit(code) {
           exitCode = code;
           throw stopped;
@@ -43,8 +46,16 @@ function simulate(fail) {
   } catch (error) {
     if (error !== stopped) throw error;
   }
-  return { commands, exitCode };
+  return { commands, options, exitCode };
 }
+
+test('unit tests use test mode while Next compilation inherits the deployment environment', () => {
+  const { commands, options } = simulate();
+  const tests = options[commands.findIndex(command => command.includes('vitest run'))];
+  assert.equal(tests.env.NODE_ENV, 'test');
+  assert.equal(tests.env.VERCEL, '1');
+  assert.equal(options.at(-1).env, undefined);
+});
 
 test('explicit security preparation precedes compilation even with lifecycle scripts disabled', () => {
   const { commands, exitCode } = simulate();

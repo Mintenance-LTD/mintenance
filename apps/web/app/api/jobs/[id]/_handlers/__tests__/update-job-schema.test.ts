@@ -1,6 +1,26 @@
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { updateJobSchema } from '../shared';
 
+describe('job edit optional dates', () => {
+  it('converts empty form dates to SQL null and preserves omitted fields', () => {
+    const cleared = updateJobSchema.parse({ startDate: '', endDate: '' });
+    expect(cleared.startDate).toBeNull();
+    expect(cleared.endDate).toBeNull();
+    expect(
+      updateJobSchema.parse({ title: 'Rename' }).startDate
+    ).toBeUndefined();
+    expect(updateJobSchema.parse({ startDate: null }).startDate).toBeNull();
+  });
+  it('accepts calendar dates and rejects invalid dates before reaching PostgreSQL', () => {
+    expect(updateJobSchema.parse({ startDate: '2028-02-29' }).startDate).toBe(
+      '2028-02-29'
+    );
+    for (const startDate of ['2026-02-30', 'not-a-date', ' ']) {
+      expect(updateJobSchema.safeParse({ startDate }).success).toBe(false);
+    }
+  });
+});
+
 /**
  * Regression: the homeowner bulk "Archive" action
  * (app/jobs/components/JobsBulkActionsSection.tsx) used to PATCH

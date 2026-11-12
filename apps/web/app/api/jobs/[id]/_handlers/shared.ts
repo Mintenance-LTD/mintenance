@@ -75,6 +75,12 @@ export const jobSelectFields =
  * showed "saved successfully". Closed in this commit by writing to
  * `urgency` and reading from either alias.
  */
+// Empty date inputs clear an optional date; PostgreSQL rejects an empty string.
+const optionalJobDate = z.preprocess(
+  (value) => (value === '' ? null : value),
+  z.iso.date().nullable().optional()
+);
+
 export const updateJobSchema = z
   .object({
     title: z
@@ -127,8 +133,8 @@ export const updateJobSchema = z
     images: z.array(z.string().url()).optional(),
     // jsonb on the live DB; matches the create-route shape.
     requirements: z.record(z.string(), z.unknown()).optional(),
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
+    startDate: optionalJobDate,
+    endDate: optionalJobDate,
     flexibleTimeline: z.boolean().optional(),
     // AI analysis options
     analyzeWithAI: z.boolean().default(true),

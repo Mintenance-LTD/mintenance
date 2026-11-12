@@ -5,7 +5,7 @@ const { execSync } = require('child_process');
 function run(cmd, opts = {}) {
   console.log(`> ${cmd}`);
   try {
-    execSync(cmd, { stdio: 'inherit', cwd: opts.cwd });
+    execSync(cmd, { stdio: 'inherit', cwd: opts.cwd, env: opts.env });
   } catch (e) {
     if (opts.allowFailure) {
       console.log(`WARN: "${cmd}" failed (non-fatal)`);
@@ -55,6 +55,9 @@ console.log('=== Building Next.js app ===');
 console.log('=== Checking internal links ===');
 run('npx tsx scripts/check-internal-links.ts');
 console.log('=== Testing web app ===');
-run('npx vitest run --maxWorkers=2', { cwd: 'apps/web' });
+run('npx vitest run --maxWorkers=2', {
+  cwd: 'apps/web',
+  env: { ...process.env, NODE_ENV: 'test' },
+});
 console.log('=== Building Next.js app ===');
 run('npx next build', { cwd: 'apps/web' });
