@@ -134,7 +134,7 @@ export function TenantReportingCard({
 
   return (
     <div className='card card-pad'>
-      <div className='row' style={{ gap: 8, marginBottom: 8 }}>
+      <div className='pw-row' style={{ gap: 8, marginBottom: 8 }}>
         <Link2
           size={14}
           strokeWidth={1.75}
@@ -148,14 +148,14 @@ export function TenantReportingCard({
       </p>
       <button
         type='button'
-        className='btn btn-primary btn-sm'
+        className='pw-btn pw-btn-primary'
         onClick={handleGenerateReportToken}
         disabled={
           loading || loadError || isGeneratingToken || updating !== null
         }
         style={{ width: '100%', justifyContent: 'center', marginBottom: 10 }}
       >
-        {isGeneratingToken ? 'Generating…' : 'Generate report link'}
+        {isGeneratingToken ? 'Generating…' : 'Create reporting link'}
       </button>
       {loading && <p role='status'>Loading reporting links…</p>}
       {loadError && (
@@ -174,11 +174,11 @@ export function TenantReportingCard({
         <p>No reporting links yet.</p>
       )}
       {!loadError && reportTokens.length > 0 ? (
-        <div className='col' style={{ gap: 6 }}>
+        <div className='pw-stack' style={{ gap: 6 }}>
           {reportTokens.map((token) => (
             <div
               key={token.id}
-              className='row'
+              className='pw-row'
               style={{
                 gap: 8,
                 padding: '8px 10px',
@@ -202,17 +202,17 @@ export function TenantReportingCard({
               <button
                 type='button'
                 onClick={() => copyReportLink(token.token)}
-                className='btn btn-ghost btn-sm'
+                className='pw-btn pw-btn-small'
                 aria-label={`Copy ${token.label || 'reporting link'}`}
                 style={{ padding: '4px 6px' }}
               >
-                <Copy size={12} strokeWidth={1.75} />
+                <Copy size={15} strokeWidth={1.75} /> Copy link
               </button>
               <button
                 type='button'
                 disabled={isGeneratingToken || updating !== null}
                 onClick={() => handleToggleToken(token.id, token.is_active)}
-                className='btn btn-ghost btn-sm'
+                className='pw-btn pw-btn-small'
                 style={{ padding: '4px 8px', fontSize: 12 }}
               >
                 {updating === token.id

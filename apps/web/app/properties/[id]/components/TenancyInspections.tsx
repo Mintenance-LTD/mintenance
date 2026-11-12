@@ -273,6 +273,26 @@ export default function TenancyInspections({
           )}
         </>
       )}
+      {!folder && folders.data && (
+        <div className='pw-stats' style={{ marginTop: 20, marginBottom: 16 }}>
+          {INSPECTION_KINDS.map((kind) => (
+            <div
+              key={kind.value}
+              style={{
+                border: '1px solid #d7e2df',
+                borderRadius: 12,
+                padding: 14,
+                background: '#f8fbf9',
+              }}
+            >
+              <strong>{kind.label}</strong>
+              <p style={{ fontSize: 13, marginTop: 8, color: '#52606d' }}>
+                Select a tenancy first
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
       {folder && folders.data && (
         <FolderReports
           key={propertyId + folder.id}

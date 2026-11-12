@@ -155,10 +155,11 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
           <h4 className='text-sm font-semibold text-gray-900'>Team Access</h4>
         </div>
         <button
+          aria-label='Manage team access'
           onClick={() => setShowForm(!showForm)}
-          className='p-1 hover:bg-gray-100 rounded transition-colors'
+          className='pw-btn pw-btn-small'
         >
-          <Plus className='w-4 h-4 text-gray-500' />
+          <Plus className='w-4 h-4 text-gray-500' /> Manage access
         </button>
       </div>
 
@@ -220,6 +221,7 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
                   {m.email}
                 </span>
                 <button
+                  aria-label={'Remove team member ' + m.email}
                   onClick={() => handleRemove(m.id)}
                   className='p-0.5 hover:bg-red-100 rounded ml-2 flex-shrink-0'
                 >

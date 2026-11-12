@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { Award, Plus } from 'lucide-react';
 export interface PropertyCertificateRecord {
   id: string;
   cert_type: string;
@@ -23,7 +24,7 @@ export function MintEditorialPropertyDocuments({
     )
   );
   return (
-    <section className='card card-pad'>
+    <section className='pw-card'>
       <div className='flex flex-wrap items-center justify-between gap-4'>
         <div>
           <h2 className='t-h2'>Certificate records</h2>
@@ -33,26 +34,43 @@ export function MintEditorialPropertyDocuments({
           </p>
         </div>
         {canManage ? (
-          <Link href='/properties/compliance' className='btn btn-secondary'>
+          <Link href='/properties/compliance' className='pw-btn'>
             Manage certificates
           </Link>
         ) : null}
       </div>
-      <label className='mt-5 block'>
-        Search certificates
-        <input
-          className='field mt-2 w-full'
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder='Type, number or issuer'
-        />
-      </label>
+      {certificates.length > 0 && (
+        <label className='mt-5 block'>
+          Search certificates
+          <input
+            className='field mt-2 w-full'
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder='Type, number or issuer'
+          />
+        </label>
+      )}
       {filtered.length === 0 ? (
-        <p className='mt-5'>
-          {certificates.length === 0
-            ? 'No certificate records have been added for this property.'
-            : 'No certificates match your search.'}
-        </p>
+        <div className='pw-empty'>
+          <span className='pw-icon'>
+            <Award size={30} />
+          </span>
+          <h3>
+            {certificates.length === 0
+              ? 'No certificate records yet'
+              : 'No certificates match your search'}
+          </h3>
+          <p>Keep expiry dates and supporting certificates together.</p>
+          {canManage && (
+            <Link
+              className='pw-btn pw-btn-primary'
+              href='/properties/compliance'
+            >
+              <Plus size={18} />
+              Add certificate
+            </Link>
+          )}
+        </div>
       ) : (
         <ul className='mt-5 divide-y divide-gray-200'>
           {filtered.map((cert) => (

@@ -44,6 +44,7 @@ import TenancyInspections from './TenancyInspections';
 import YearOverYearComparison from './YearOverYearComparison';
 import PropertyAssessments from './PropertyAssessments';
 import { PropertyFileHub } from './PropertyFileHub';
+import './property-workspace.css';
 
 interface Job {
   id: string;
@@ -459,7 +460,7 @@ export default function PropertyDetailsClient({
   ];
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='property-workspace min-h-screen bg-gray-50'>
       {/* Back to Properties */}
       <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6'>
         <button

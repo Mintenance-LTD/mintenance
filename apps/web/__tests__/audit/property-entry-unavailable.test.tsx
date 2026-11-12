@@ -26,10 +26,10 @@ it('disables access edits after a failed secret lookup and sends no mutation', a
     />
   );
   expect(screen.getByLabelText(/Lock-box code/)).toBeDisabled();
-  expect(screen.getByRole('status').textContent).toContain(
+  expect(screen.getByRole('alert').textContent).toContain(
     'could not be loaded'
   );
-  fireEvent.change(screen.getByLabelText('Notes for the contractor'), {
+  fireEvent.change(screen.getByLabelText('Access instructions'), {
     target: { value: 'Synthetic notes' },
   });
   fireEvent.click(screen.getByRole('button', { name: /Save/ }));

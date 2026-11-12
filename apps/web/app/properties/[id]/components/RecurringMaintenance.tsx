@@ -7,7 +7,16 @@ import { scheduleRequest } from '@/lib/schedule-request-key';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
-import { Calendar, Plus, Trash2, Loader2 } from 'lucide-react';
+import {
+  Calendar,
+  Plus,
+  Trash2,
+  Loader2,
+  Flame,
+  ShieldCheck,
+  Zap,
+  House,
+} from 'lucide-react';
 
 import toast from 'react-hot-toast';
 
@@ -52,8 +61,12 @@ const FREQUENCY_COLORS: Record<string, string> = {
 
 export default function RecurringMaintenance({
   propertyId,
+  plan = false,
+  onCountChange,
 }: {
   propertyId: string;
+  plan?: boolean;
+  onCountChange?: (count: number) => void;
 }) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
 
@@ -295,6 +308,11 @@ export default function RecurringMaintenance({
     }
   };
 
+  useEffect(() => {
+    if (!loading && !loadError)
+      onCountChange?.(schedules.filter((s) => s.is_active).length);
+  }, [schedules, loading, loadError, onCountChange]);
+
   const isDueSoon = (date: string) => {
     const due = new Date(date);
 
@@ -322,7 +340,7 @@ export default function RecurringMaintenance({
           <Calendar className='w-4 h-4 text-teal-600' />
 
           <h4 className='text-sm font-semibold text-gray-900'>
-            Recurring Maintenance
+            Recurring maintenance
           </h4>
         </div>
 
@@ -334,8 +352,8 @@ export default function RecurringMaintenance({
   }
 
   return (
-    <div className='p-4 border border-gray-200 rounded-xl'>
-      <div className='flex items-center justify-between mb-3'>
+    <div className={plan ? 'pw-plan-grid' : 'pw-card'}>
+      <div className='pw-between pw-plan-header'>
         <div className='flex items-center gap-2'>
           <Calendar className='w-4 h-4 text-teal-600' />
 
@@ -358,56 +376,74 @@ export default function RecurringMaintenance({
             });
             setShowForm(!showForm);
           }}
-          className='p-1 hover:bg-gray-100 rounded transition-colors'
+          className='pw-btn pw-btn-primary'
         >
-          <Plus className='w-4 h-4 text-gray-500' />
+          <Plus size={18} /> Add recurring task
         </button>
       </div>
 
-      {showForm && (
-        <div className='mb-3 p-3 bg-gray-50 rounded-lg space-y-2'>
-          <input
-            type='text'
-            placeholder='e.g. Boiler service'
-            aria-label='Task title'
-            value={form.title}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, title: e.target.value }))
-            }
-            className='w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:border-teal-500'
-          />
-
-          <RecurringAudienceFields
-            propertyId={propertyId}
-            value={audience}
-            onChange={setAudience}
-          />
+      {(showForm || plan) && (
+        <div className='pw-card pw-plan-form'>
+          <h3>{editing ? 'Edit recurring task' : 'Set up a recurring task'}</h3>
+          <label className='pw-label'>
+            Task name
+            <input
+              type='text'
+              placeholder='e.g. Boiler service'
+              aria-label='Task title'
+              value={form.title}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, title: e.target.value }))
+              }
+              className='w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:border-teal-500'
+            />
+          </label>
+          <details
+            open={plan ? undefined : true}
+            className='pw-notification-options'
+          >
+            <summary>Contractor notifications</summary>
+            <RecurringAudienceFields
+              propertyId={propertyId}
+              value={audience}
+              onChange={setAudience}
+            />
+          </details>
 
           <div className='grid grid-cols-2 gap-2'>
-            <select
-              aria-label='Frequency'
-              value={form.frequency}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, frequency: e.target.value }))
-              }
-              className='px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:border-teal-500'
-            >
-              {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <label className='pw-label'>
+              Repeat
+              <select
+                aria-label='Frequency'
+                value={form.frequency}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, frequency: e.target.value }))
+                }
+                className='px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:border-teal-500'
+              >
+                {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-            <input
-              type='date'
-              aria-label='First due date'
-              value={form.next_due_date}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, next_due_date: e.target.value }))
-              }
-              className='px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:border-teal-500'
-            />
+            <label className='pw-label'>
+              First due date
+              <input
+                type='date'
+                aria-label='First due date'
+                value={form.next_due_date}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    next_due_date: e.target.value,
+                  }))
+                }
+                className='px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:border-teal-500'
+              />
+            </label>
           </div>
 
           <div className='flex gap-2'>
@@ -416,13 +452,19 @@ export default function RecurringMaintenance({
               disabled={saving}
               className='flex-1 px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 disabled:opacity-50'
             >
-              {saving ? 'Saving...' : editing ? 'Save Changes' : 'Add Schedule'}
+              {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create task'}
             </button>
 
             <button
               disabled={saving}
               onClick={() => {
                 setShowForm(false);
+                setForm({
+                  title: '',
+                  category: '',
+                  frequency: 'monthly',
+                  next_due_date: '',
+                });
                 setEditing(null);
                 setAudience(emptyAudience);
               }}
@@ -435,11 +477,70 @@ export default function RecurringMaintenance({
       )}
 
       {schedules.length === 0 ? (
-        <p className='text-xs text-gray-500'>
-          No recurring schedules yet. Add one to track regular maintenance.
-        </p>
+        <div className={plan ? 'pw-card pw-plan-list' : ''}>
+          {plan && <h3>Build your maintenance plan</h3>}
+          <div className='pw-empty'>
+            <span className='pw-icon'>
+              <Calendar size={30} />
+            </span>
+            <h3>No recurring tasks yet</h3>
+            <p>
+              {plan
+                ? 'Choose a template or create your own task.'
+                : 'Create a schedule to track regular work, such as boiler servicing or gutter cleaning.'}
+            </p>
+          </div>
+          {plan && (
+            <div className='pw-templates'>
+              {[
+                { title: 'Boiler service', category: 'heating', icon: Flame },
+                {
+                  title: 'Gas safety check',
+                  category: 'heating',
+                  icon: ShieldCheck,
+                },
+                {
+                  title: 'Electrical inspection',
+                  category: 'electrical',
+                  icon: Zap,
+                },
+                { title: 'Gutter cleaning', category: 'roofing', icon: House },
+              ].map(({ title, category, icon: Icon }) => (
+                <div className='pw-template' key={title}>
+                  <span className='pw-icon'>
+                    <Icon size={22} />
+                  </span>
+                  <strong>{title}</strong>
+                  <button
+                    type='button'
+                    className='pw-btn pw-btn-small'
+                    disabled={saving}
+                    onClick={() => {
+                      setEditing(null);
+                      setForm({
+                        title,
+                        category,
+                        frequency: 'annual',
+                        next_due_date: '',
+                      });
+                      setAudience({ ...emptyAudience, category });
+                      setShowForm(true);
+                    }}
+                  >
+                    Set up<span className='sr-only'> {title}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {plan && (
+            <p className='pw-muted' style={{ fontSize: 13, marginTop: 14 }}>
+              Choose a frequency that suits the property and the work required.
+            </p>
+          )}
+        </div>
       ) : (
-        <div className='space-y-2'>
+        <div className={plan ? 'pw-card pw-plan-list space-y-3' : 'space-y-3'}>
           {schedules.map((s) => (
             <div
               key={s.id}

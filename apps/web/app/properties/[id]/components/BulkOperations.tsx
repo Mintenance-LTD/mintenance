@@ -103,7 +103,7 @@ export default function BulkOperations({
       link.download = `property-${propertyId}-completed-job-history.csv`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success('Compliance report downloaded');
+      toast.success('Job history downloaded');
     } catch {
       toast.error('Failed to export');
     } finally {
@@ -167,23 +167,25 @@ export default function BulkOperations({
     <div className='p-4 border border-gray-200 rounded-xl'>
       <div className='flex items-center gap-2 mb-3'>
         <Layers className='w-4 h-4 text-teal-600' />
-        <h4 className='text-sm font-semibold text-gray-900'>Work planning</h4>
+        <h4 className='text-sm font-semibold text-gray-900'>Arrange work</h4>
       </div>
       <div className='space-y-2'>
         <Link
           href={`/jobs/create?property_id=${propertyId}`}
-          className='w-full px-3 py-2 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 transition-colors flex items-center justify-center gap-2'
+          className='pw-btn pw-btn-primary'
+          style={{ width: '100%', padding: '20px 16px', marginBottom: 12 }}
         >
           <Plus className='w-3.5 h-3.5' />
-          Post Job for This Property
+          Post a job for this property
         </Link>
 
         <button
           onClick={() => setShowBulkForm(!showBulkForm)}
-          className='w-full px-3 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2'
+          className='pw-btn'
+          style={{ width: '100%', marginBottom: 18 }}
         >
           <Send className='w-3.5 h-3.5' />
-          Bulk Post to Multiple Properties
+          Post across multiple properties
         </button>
 
         {showBulkForm && (
@@ -277,17 +279,17 @@ export default function BulkOperations({
             </>
           ) : (
             <>
-              <Download className='w-3.5 h-3.5 text-gray-500' /> Export
-              Compliance Report
+              <Download className='w-3.5 h-3.5 text-gray-500' /> Export job
+              history
             </>
           )}
         </button>
-        <p className='text-[10px] text-gray-400'>
+        <p className='pw-muted' style={{ marginTop: 10, fontSize: 13 }}>
           {jobs.filter((j) => j.status === 'completed').length} completed job
           {jobs.filter((j) => j.status === 'completed').length !== 1
             ? 's'
             : ''}{' '}
-          available for export
+          available for export. Job history is not a compliance certificate.
         </p>
       </div>
     </div>

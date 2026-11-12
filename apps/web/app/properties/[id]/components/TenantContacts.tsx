@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { User, Plus, Trash2, Loader2, Mail, Phone } from 'lucide-react';
+import { User, Plus, Trash2, Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getCsrfToken } from '@/lib/csrf-client';
+import { WorkspaceBadge } from './PropertyWorkspacePrimitives';
 
 interface Tenant {
   id: string;
@@ -19,6 +20,7 @@ interface Tenant {
 }
 
 export default function TenantContacts({ propertyId }: { propertyId: string }) {
+  const [search, setSearch] = useState('');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -179,9 +181,7 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
       <div className='p-4 border border-gray-200 rounded-xl'>
         <div className='flex items-center gap-2 mb-2'>
           <User className='w-4 h-4 text-teal-600' />
-          <h4 className='text-sm font-semibold text-gray-900'>
-            Tenant & Contact Records
-          </h4>
+          <h4 className='text-sm font-semibold text-gray-900'>Contacts</h4>
         </div>
         <div className='flex items-center justify-center py-4'>
           <Loader2 className='w-4 h-4 animate-spin text-gray-400' />
@@ -195,16 +195,14 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
       <div className='flex items-center justify-between mb-3'>
         <div className='flex items-center gap-2'>
           <User className='w-4 h-4 text-teal-600' />
-          <h4 className='text-sm font-semibold text-gray-900'>
-            Tenant & Contact Records
-          </h4>
+          <h4 className='text-sm font-semibold text-gray-900'>Contacts</h4>
         </div>
         <button
           aria-label='Add tenant'
           onClick={() => setShowForm(!showForm)}
-          className='p-1 hover:bg-gray-100 rounded transition-colors'
+          className='pw-btn pw-btn-small'
         >
-          <Plus className='w-4 h-4 text-gray-500' />
+          <Plus size={16} /> Add contact
         </button>
       </div>
 
@@ -300,64 +298,107 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
         </div>
       )}
 
-      {tenants.length === 0 ? (
-        <p className='text-xs text-gray-500'>
-          No tenants recorded. Add tenants to track contact details and lease
-          dates.
+      <p className='pw-muted' style={{ marginBottom: 16 }}>
+        Manage your property contacts and invitations.
+      </p>
+      <label className='pw-search' style={{ marginBottom: 18 }}>
+        <Search size={18} />
+        <input
+          type='search'
+          aria-label='Search contacts'
+          placeholder='Search contacts…'
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </label>
+      <div className='pw-table-wrap'>
+        <table className='pw-table'>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tenants
+              .filter((t) =>
+                (t.name + ' ' + (t.email ?? ''))
+                  .toLowerCase()
+                  .includes(search.toLowerCase())
+              )
+              .map((t) => (
+                <tr key={t.id}>
+                  <td>
+                    {t.name}
+                    <p className='pw-muted'>
+                      {t.email || t.phone || 'Contact details saved'}
+                    </p>
+                    {(t.lease_start || t.lease_end) && (
+                      <p className='pw-muted'>
+                        Lease: {formatDate(t.lease_start)} —{' '}
+                        {formatDate(t.lease_end)}
+                      </p>
+                    )}
+                    {t.notes && <p className='pw-muted'>{t.notes}</p>}
+                  </td>
+                  <td>
+                    <WorkspaceBadge
+                      tone={
+                        t.user_id || t.invitation_accepted_at ? '' : 'neutral'
+                      }
+                    >
+                      {t.user_id || t.invitation_accepted_at
+                        ? 'Connected'
+                        : 'Contact saved'}
+                    </WorkspaceBadge>
+                  </td>
+                  <td>
+                    <div className='pw-actions'>
+                      {t.email && !t.user_id && !t.invitation_accepted_at && (
+                        <button
+                          className='pw-btn pw-btn-small'
+                          disabled={sendingInvite}
+                          onClick={() => retryInvitation(t.id)}
+                        >
+                          Send invitation
+                        </button>
+                      )}
+                      <details>
+                        <summary
+                          aria-label={'More actions for ' + t.name}
+                          style={{ cursor: 'pointer', padding: 8 }}
+                        >
+                          •••
+                        </summary>
+                        <button
+                          aria-label={'Remove tenant ' + t.name}
+                          className='pw-btn pw-btn-small'
+                          onClick={() => handleDelete(t.id)}
+                        >
+                          <Trash2 size={14} />
+                          Remove
+                        </button>
+                      </details>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+      {!tenants.length && (
+        <p className='pw-empty'>
+          No contacts yet. Add a contact to keep their details with this
+          property.
         </p>
-      ) : (
-        <div className='space-y-2'>
-          {tenants.map((t) => (
-            <div
-              key={t.id}
-              className='p-2.5 bg-white rounded-lg border border-gray-200 text-xs'
-            >
-              <div className='flex items-center justify-between mb-1'>
-                <span className='font-medium text-gray-900'>{t.name}</span>
-                <button
-                  aria-label={`Remove tenant ${t.name}`}
-                  onClick={() => handleDelete(t.id)}
-                  className='p-0.5 hover:bg-red-100 rounded'
-                >
-                  <Trash2 className='w-3 h-3 text-red-400' />
-                </button>
-              </div>
-              <div className='flex flex-wrap items-center gap-3 text-gray-500'>
-                {t.email && (
-                  <span className='flex items-center gap-1'>
-                    <Mail className='w-3 h-3' /> {t.email}
-                  </span>
-                )}
-                {t.phone && (
-                  <span className='flex items-center gap-1'>
-                    <Phone className='w-3 h-3' /> {t.phone}
-                  </span>
-                )}
-              </div>
-              {t.email && !t.user_id && !t.invitation_accepted_at && (
-                <button
-                  type='button'
-                  disabled={sendingInvite}
-                  onClick={() => retryInvitation(t.id)}
-                  className='mt-2 text-teal-700 underline'
-                >
-                  Send invitation
-                </button>
-              )}
-              {(t.lease_start || t.lease_end) && (
-                <div className='mt-1 text-[10px] text-gray-400'>
-                  Lease: {formatDate(t.lease_start)} — {formatDate(t.lease_end)}
-                </div>
-              )}
-              {t.notes && (
-                <div className='mt-1 text-[10px] text-gray-400 italic'>
-                  {t.notes}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
       )}
+      {tenants.length > 0 &&
+        !tenants.some((t) =>
+          (t.name + ' ' + (t.email ?? ''))
+            .toLowerCase()
+            .includes(search.toLowerCase())
+        ) && <p className='pw-empty'>No contacts match your search.</p>}
     </div>
   );
 }

@@ -124,8 +124,29 @@ export default function RoomPhotoGallery({
     }
   };
 
-  const roomPhotos = photos.filter((photo) => photo.room_type === selectedRoom);
-  const albums = groupRoomPhotoAlbums(photos, selectedRoom ?? '');
+  const roomPhotos = selectedRoom
+    ? photos.filter((photo) => photo.room_type === selectedRoom)
+    : photos;
+  const grouped = [
+    ...new Set(roomPhotos.map((photo) => photo.room_type)),
+  ].flatMap((room) => groupRoomPhotoAlbums(roomPhotos, room));
+  const albumMap = new Map<string, (typeof grouped)[number]>();
+  grouped.forEach((album) => {
+    const previous = albumMap.get(album.date);
+    albumMap.set(
+      album.date,
+      previous
+        ? { ...album, photos: [...previous.photos, ...album.photos] }
+        : album
+    );
+  });
+  const albums = [...albumMap.values()].sort((a, b) =>
+    a.date === 'unknown'
+      ? 1
+      : b.date === 'unknown'
+        ? -1
+        : b.date.localeCompare(a.date)
+  );
   const visibleAlbums = albums.filter(
     (album) => selectedDate === 'all' || album.date === selectedDate
   );
@@ -146,6 +167,31 @@ export default function RoomPhotoGallery({
         recorded.
       </p>
 
+      <div className='pw-actions' style={{ marginBottom: 16 }}>
+        {[
+          { value: '', label: 'All rooms' },
+          ...ROOM_TYPES.filter((room) =>
+            ['kitchen', 'living_room', 'bedroom'].includes(room.value)
+          ),
+        ].map((room) => (
+          <button
+            key={room.value}
+            type='button'
+            className='pw-btn pw-btn-small'
+            aria-pressed={(selectedRoom ?? '') === room.value}
+            onClick={() => {
+              setSelectedRoom(room.value || null);
+              setSelectedDate('all');
+            }}
+            style={{
+              background:
+                (selectedRoom ?? '') === room.value ? '#e6f0e9' : undefined,
+            }}
+          >
+            {room.label}
+          </button>
+        ))}
+      </div>
       <div className='mb-4 flex flex-wrap items-end gap-2'>
         <label className='min-w-0 flex-1 basis-36 text-xs font-semibold text-gray-700'>
           Room
@@ -157,7 +203,7 @@ export default function RoomPhotoGallery({
             }}
             className='mt-1 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm'
           >
-            <option value=''>Choose a room</option>
+            <option value=''>All rooms — choose one to upload</option>
             {ROOM_TYPES.map((room) => {
               const count = photos.filter(
                 (photo) => photo.room_type === room.value
@@ -273,6 +319,10 @@ export default function RoomPhotoGallery({
                     />
                   </a>
                   <figcaption className='p-2 text-xs text-gray-700 break-words'>
+                    <strong className='block'>
+                      {ROOM_TYPES.find((room) => room.value === photo.room_type)
+                        ?.label ?? 'Room not assigned'}
+                    </strong>
                     {uploadedPhotoLabel(photo.created_at)}
                   </figcaption>
                   <button
@@ -301,11 +351,11 @@ export default function RoomPhotoGallery({
         </div>
       )}
 
-      {!loading && !error && !selectedRoom && (
+      {!loading && !error && !selectedRoom && photos.length === 0 && (
         <div className='flex flex-col items-center py-6 text-gray-600'>
           <Camera className='w-8 h-8 mb-2' />
           <p className='text-xs'>
-            Select a room above to view or upload photos
+            No room photos yet. Choose a room to upload photos.
           </p>
         </div>
       )}

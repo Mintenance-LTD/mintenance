@@ -40,7 +40,7 @@ it('renders structured API errors as text and preserves the unsaved task', async
   fireEvent.change(screen.getByLabelText('First due date'), {
     target: { value: '2030-05-01' },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Add Schedule' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Create task' }));
   await waitFor(() =>
     expect(toast.error).toHaveBeenCalledWith('The due date is invalid')
   );
@@ -97,10 +97,10 @@ it('shows a property schedule read failure with retry rather than an empty list'
   vi.stubGlobal('fetch', fetch);
   render(<PropertyRecurringMaintenance propertyId='property' />);
   await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
-  expect(screen.queryByText(/No recurring schedules yet/)).toBeNull();
+  expect(screen.queryByText(/No recurring tasks yet/)).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Retry schedules' }));
   await waitFor(() =>
-    expect(screen.getByText(/No recurring schedules yet/)).toBeTruthy()
+    expect(screen.getByText(/No recurring tasks yet/)).toBeTruthy()
   );
   fireEvent.click(
     screen.getByRole('button', { name: 'Add recurring schedule' })
@@ -135,8 +135,8 @@ it('preserves the property form after an unconfirmed save and prevents double ta
   fireEvent.change(screen.getByLabelText('First due date'), {
     target: { value: '2027-12-15' },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Add Schedule' }));
-  fireEvent.click(screen.getByRole('button', { name: /Add Schedule|Saving/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Create task' }));
+  fireEvent.click(screen.getByRole('button', { name: /Create task|Saving/ }));
   await waitFor(() =>
     expect(toast.error).toHaveBeenCalledWith(
       expect.stringContaining('could not be confirmed')
@@ -147,7 +147,7 @@ it('preserves the property form after an unconfirmed save and prevents double ta
   expect(screen.getByDisplayValue('Synthetic maintenance')).toBeTruthy();
   const originalKey = fetch.mock.calls[1][1].headers['Idempotency-Key'];
   expect(originalKey).toMatch(/^[0-9a-f-]{36}$/i);
-  fireEvent.click(screen.getByRole('button', { name: 'Add Schedule' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Create task' }));
   await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
   expect(fetch.mock.calls[2][1].headers['Idempotency-Key']).toBe(originalKey);
 });

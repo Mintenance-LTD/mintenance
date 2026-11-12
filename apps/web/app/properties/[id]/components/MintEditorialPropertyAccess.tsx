@@ -22,7 +22,10 @@ import {
   KeyRound,
   Lock,
   User,
-  ArrowRight,
+  Droplets,
+  Flame,
+  Zap,
+  Info,
   AlertTriangle,
   Save,
   Loader2,
@@ -70,13 +73,13 @@ const MODES: AccessModeOption[] = [
     // sees the instructions written in `access_notes`. Tracked as
     // a dedicated rollout (needs lock vendor selection +
     // OAuth/API integration + schema + reveal flow).
-    sub: 'Instructions only — full integration coming soon',
+    sub: 'Instructions only',
   },
   {
     key: 'in_person',
     icon: <User size={16} strokeWidth={1.75} />,
-    label: "You'll be home",
-    sub: 'Default — needs scheduling',
+    label: 'Meet on site',
+    sub: 'Arrange for someone to meet the contractor',
   },
 ];
 
@@ -152,11 +155,12 @@ export function MintEditorialPropertyAccess({
   // went back to its disabled / "Saved" pill state.
   const [baseline, setBaseline] = useState<PropertyAccessValues>({
     access_mode: initialAccess?.access_mode ?? null,
-    key_safe_code: initialAccess?.key_safe_code ?? null,
-    access_notes: initialAccess?.access_notes ?? null,
-    stopcock_location: initialAccess?.stopcock_location ?? null,
-    gas_isolator_location: initialAccess?.gas_isolator_location ?? null,
-    consumer_unit_location: initialAccess?.consumer_unit_location ?? null,
+    key_safe_code: initialAccess?.key_safe_code?.trim() || null,
+    access_notes: initialAccess?.access_notes?.trim() || null,
+    stopcock_location: initialAccess?.stopcock_location?.trim() || null,
+    gas_isolator_location: initialAccess?.gas_isolator_location?.trim() || null,
+    consumer_unit_location:
+      initialAccess?.consumer_unit_location?.trim() || null,
   });
   const [mode, setMode] = useState<AccessModeKey | null>(baseline.access_mode);
   const [keySafeCode, setKeySafeCode] = useState(baseline.key_safe_code ?? '');
@@ -253,415 +257,260 @@ export function MintEditorialPropertyAccess({
     }
   };
 
+  function resetChanges() {
+    setMode(baseline.access_mode);
+    setKeySafeCode(baseline.key_safe_code ?? '');
+    setAccessNotes(baseline.access_notes ?? '');
+    setStopcock(baseline.stopcock_location ?? '');
+    setGasIsolator(baseline.gas_isolator_location ?? '');
+    setConsumerUnit(baseline.consumer_unit_location ?? '');
+  }
   return (
     <fieldset
-      disabled={entrySecretUnavailable}
-      className='col'
-      style={{ gap: 22, border: 0, padding: 0, margin: 0, minWidth: 0 }}
+      disabled={entrySecretUnavailable || saving}
+      className='pw-stack'
+      style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
     >
-      <div className='col' style={{ gap: 4 }}>
-        <h2 className='t-h2' style={{ fontSize: 28 }}>
-          Access &amp; <em>contacts</em>
-        </h2>
-        <p className='t-body'>
-          Who can get in, what they need to know, who to call when something
-          breaks.
+      {entrySecretUnavailable && (
+        <p
+          id='entry-code-unavailable'
+          role='alert'
+          className='pw-notice pw-error'
+        >
+          The saved entry code could not be loaded. Refresh the page before
+          editing access details.
         </p>
-      </div>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)',
-          gap: 22,
-          alignItems: 'flex-start',
-        }}
-      >
-        <div className='col' style={{ gap: 22 }}>
-          <div>
-            <h3 className='t-h3' style={{ marginBottom: 12 }}>
-              How contractors get in
-            </h3>
-            <div className='card card-pad'>
-              {/* Tri-mode picker — clickable now. The selected card
-                  uses brand border + brand-soft background; the others
-                  stay neutral until clicked. */}
-              <div className='row' style={{ gap: 12, marginBottom: 16 }}>
-                {MODES.map((m) => {
-                  const active = mode === m.key;
-                  return (
-                    <button
-                      key={m.key}
-                      type='button'
-                      onClick={() => setMode(m.key)}
-                      style={{
-                        flex: 1,
-                        padding: 14,
-                        borderRadius: 12,
-                        border: active
-                          ? '2px solid var(--me-brand)'
-                          : '1px solid var(--me-line)',
-                        background: active
-                          ? 'var(--me-brand-soft)'
-                          : 'var(--me-surface)',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        fontFamily: 'inherit',
-                      }}
-                      aria-pressed={active}
-                    >
-                      <div
-                        className='row'
-                        style={{
-                          gap: 8,
-                          marginBottom: 6,
-                          color: active ? 'var(--me-brand)' : 'var(--me-ink-2)',
-                        }}
-                      >
-                        {m.icon}
-                        <span
-                          style={{
-                            fontWeight: 600,
-                            fontSize: 13,
-                            color: 'var(--me-ink)',
-                          }}
-                        >
-                          {m.label}
-                        </span>
-                      </div>
-                      <p className='t-meta' style={{ margin: 0, fontSize: 12 }}>
-                        {m.sub}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {entrySecretUnavailable ? (
-                <p id='entry-code-unavailable' role='status'>
-                  The saved entry code could not be loaded. Refresh the page
-                  before editing access details.
-                </p>
-              ) : null}
-              {/* Key-safe code input — only shown when key_safe is
-                  picked. Marked sensitive in copy. */}
-              {mode === 'key_safe' ? (
-                <div className='col' style={{ gap: 6, marginBottom: 16 }}>
-                  <label
-                    htmlFor='access-keysafe-code'
-                    className='t-meta'
-                    style={{ fontWeight: 600 }}
-                  >
-                    Lock-box code (only revealed to contractors within 1h of the
-                    scheduled start)
-                  </label>
+      )}
+      <div className='pw-split'>
+        <div className='pw-stack'>
+          <section className='pw-card'>
+            <h2>Contractor access</h2>
+            <div className='pw-mode-grid'>
+              {MODES.map((m) => (
+                <button
+                  key={m.key}
+                  type='button'
+                  className='pw-mode'
+                  onClick={() => setMode(m.key)}
+                  aria-pressed={mode === m.key}
+                >
+                  <span className='pw-row'>
+                    {m.icon}
+                    <strong>{m.label}</strong>
+                  </span>
+                  <small>{m.sub}</small>
+                </button>
+              ))}
+            </div>
+            <div className='pw-stack'>
+              {mode === 'key_safe' && (
+                <label className='pw-label' htmlFor='access-keysafe-code'>
+                  Lock-box code
                   <input
                     id='access-keysafe-code'
-                    disabled={entrySecretUnavailable}
-                    aria-describedby={
-                      entrySecretUnavailable
-                        ? 'entry-code-unavailable'
-                        : undefined
-                    }
-                    type='text'
-                    className='field'
+                    className='pw-field'
+                    type='password'
+                    autoComplete='off'
+                    maxLength={64}
                     value={keySafeCode}
                     onChange={(e) => setKeySafeCode(e.target.value)}
-                    placeholder='e.g. 4827'
-                    maxLength={64}
-                    autoComplete='off'
-                    style={{ fontFamily: 'monospace', letterSpacing: '0.1em' }}
                   />
-                </div>
-              ) : null}
-
-              {/* Free-text notes — homeowners can leave guidance
-                  ("Keys with neighbour at no. 22. Cat in kitchen,
-                  please keep door closed."). */}
-              <div className='col' style={{ gap: 6, marginBottom: 16 }}>
-                <label
-                  htmlFor='access-notes'
-                  className='t-meta'
-                  style={{ fontWeight: 600 }}
-                >
-                  Notes for the contractor
                 </label>
+              )}
+              {mode === 'in_person' && (
+                <p className='pw-notice'>
+                  <User size={18} />
+                  Include who will meet the contractor and how to contact them
+                  in your instructions.
+                </p>
+              )}
+              <label className='pw-label' htmlFor='access-notes'>
+                Access instructions
                 <textarea
                   id='access-notes'
-                  className='field'
+                  className='pw-field'
+                  rows={4}
                   value={accessNotes}
                   onChange={(e) => setAccessNotes(e.target.value)}
-                  placeholder='Anything they need to know — neighbour with spare keys, pets, parking instructions…'
-                  rows={3}
                   maxLength={2000}
-                  style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                  placeholder='Add parking, pets, meeting arrangements and entry information for the contractor…'
+                />
+              </label>
+              <p className='pw-row pw-muted' style={{ fontSize: 13 }}>
+                <Lock size={16} />
+                Sensitive access details are shared only with authorised
+                contractors.
+              </p>
+            </div>
+          </section>
+          <section className='pw-card'>
+            <h2>Utility locations</h2>
+            {[
+              {
+                id: 'access-stopcock',
+                label: 'Water stopcock',
+                icon: Droplets,
+                value: stopcock,
+                set: setStopcock,
+                placeholder: 'e.g. Under kitchen sink',
+              },
+              {
+                id: 'access-gas',
+                label: 'Gas isolator',
+                icon: Flame,
+                value: gasIsolator,
+                set: setGasIsolator,
+                placeholder: 'e.g. Meter cupboard',
+              },
+              {
+                id: 'access-consumer-unit',
+                label: 'Consumer unit',
+                icon: Zap,
+                value: consumerUnit,
+                set: setConsumerUnit,
+                placeholder: 'e.g. Hall cupboard',
+              },
+            ].map(({ id, label, icon: Icon, value, set, placeholder }) => (
+              <div key={id} className='pw-utility'>
+                <span className='pw-icon'>
+                  <Icon size={22} />
+                </span>
+                <label htmlFor={id}>
+                  <strong>{label}</strong>
+                </label>
+                <input
+                  className='pw-field'
+                  id={id}
+                  value={value}
+                  onChange={(e) => set(e.target.value)}
+                  placeholder={placeholder}
+                  maxLength={500}
                 />
               </div>
-
-              {/* Stopcock / isolator / consumer-unit locations —
-                  small inputs side-by-side on wide viewports. */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: 12,
-                  marginBottom: 16,
-                }}
-              >
-                <div className='col' style={{ gap: 4 }}>
-                  <label
-                    htmlFor='access-stopcock'
-                    className='t-meta'
-                    style={{ fontWeight: 600 }}
-                  >
-                    Water stopcock
-                  </label>
-                  <input
-                    id='access-stopcock'
-                    type='text'
-                    className='field'
-                    value={stopcock}
-                    onChange={(e) => setStopcock(e.target.value)}
-                    placeholder='Under kitchen sink'
-                    maxLength={500}
-                  />
-                </div>
-                <div className='col' style={{ gap: 4 }}>
-                  <label
-                    htmlFor='access-gas'
-                    className='t-meta'
-                    style={{ fontWeight: 600 }}
-                  >
-                    Gas isolator
-                  </label>
-                  <input
-                    id='access-gas'
-                    type='text'
-                    className='field'
-                    value={gasIsolator}
-                    onChange={(e) => setGasIsolator(e.target.value)}
-                    placeholder='Meter cupboard, hall'
-                    maxLength={500}
-                  />
-                </div>
-                <div className='col' style={{ gap: 4 }}>
-                  <label
-                    htmlFor='access-consumer-unit'
-                    className='t-meta'
-                    style={{ fontWeight: 600 }}
-                  >
-                    Consumer unit
-                  </label>
-                  <input
-                    id='access-consumer-unit'
-                    type='text'
-                    className='field'
-                    value={consumerUnit}
-                    onChange={(e) => setConsumerUnit(e.target.value)}
-                    placeholder='Top of stairs cupboard'
-                    maxLength={500}
-                  />
-                </div>
+            ))}
+          </section>
+        </div>
+        <aside className='pw-stack'>
+          <section className='pw-card'>
+            <h2>Emergency contacts</h2>
+            {EMERGENCY.map(([label, phone], i) => (
+              <div className='pw-summary-row' key={label}>
+                <span className='pw-icon'>
+                  {i === 0 ? (
+                    <Flame />
+                  ) : i === 1 ? (
+                    <Droplets />
+                  ) : i === 2 ? (
+                    <Zap />
+                  ) : (
+                    <User />
+                  )}
+                </span>
+                <strong style={{ fontSize: 14 }}>{label}</strong>
+                <a
+                  href={'tel:' + phone.replace(/\s/g, '')}
+                  className='pw-text-button'
+                >
+                  {phone}
+                </a>
               </div>
-
-              {/* Save bar */}
-              <div
-                className='between'
-                style={{ alignItems: 'center', flexWrap: 'wrap', gap: 12 }}
-              >
+            ))}
+            <p className='pw-notice' style={{ marginTop: 16 }}>
+              <Info size={18} />
+              These are directory contacts. Confirm the water supplier and
+              electricity network for this property.
+            </p>
+          </section>
+          <section className='pw-card'>
+            <h2>Saved trades</h2>
+            {trades.length ? (
+              trades.map((t) => (
                 <div
-                  className='row'
-                  style={{
-                    gap: 6,
-                    alignItems: 'center',
-                    color: 'var(--me-ink-3)',
-                    fontSize: 12,
-                  }}
+                  key={t.name}
+                  className='pw-stack'
+                  style={{ padding: '12px 0' }}
                 >
-                  {savedAt && !isDirty ? (
-                    <>
-                      <CheckCircle2
-                        size={13}
-                        strokeWidth={1.75}
-                        style={{ color: 'var(--me-ok)' }}
-                      />
-                      <span>
-                        Saved · contractors on assigned jobs will see this.
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertTriangle
-                        size={13}
-                        strokeWidth={1.75}
-                        style={{ color: 'var(--me-warn-fg)' }}
-                      />
-                      <span>
-                        Lock-box codes are masked from contractors until escrow
-                        is funded.
-                      </span>
-                    </>
-                  )}
-                </div>
-                <button
-                  type='button'
-                  className='btn btn-primary btn-sm'
-                  onClick={handleSave}
-                  disabled={saving || !isDirty || entrySecretUnavailable}
-                >
-                  {saving ? (
-                    <Loader2
-                      size={13}
-                      strokeWidth={1.75}
-                      className='animate-spin'
-                    />
-                  ) : (
-                    <Save size={13} strokeWidth={1.75} />
-                  )}
-                  {saving ? 'Saving…' : 'Save access details'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div
-              className='between'
-              style={{ alignItems: 'flex-end', marginBottom: 12 }}
-            >
-              <h3 className='t-h3'>Your saved trades</h3>
-              <span className='t-meta'>{trades.length} on file</span>
-            </div>
-            {trades.length === 0 ? (
-              <div
-                className='card card-pad'
-                style={{ textAlign: 'center', padding: '32px 20px' }}
-              >
-                <p className='t-body' style={{ marginBottom: 10 }}>
-                  No trades yet. Pros show up here automatically after they
-                  complete a job at this property.
-                </p>
-                <Link
-                  href={`/jobs/create?property_id=${propertyId}`}
-                  className='btn btn-primary btn-sm'
-                >
-                  Post a job
-                </Link>
-              </div>
-            ) : (
-              <div className='card'>
-                {trades.map((t, i) => (
-                  <div
-                    key={t.name}
-                    className='row'
-                    style={{
-                      padding: '14px 18px',
-                      borderTop: i ? '1px solid var(--me-line-2)' : 0,
-                      gap: 14,
-                      alignItems: 'center',
-                    }}
-                  >
-                    <span
-                      className='avatar'
-                      style={{
-                        width: 36,
-                        height: 36,
-                        background: 'var(--me-brand-soft)',
-                        color: 'var(--me-brand)',
-                        fontWeight: 600,
-                        fontSize: 13,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: '50%',
-                        flexShrink: 0,
-                      }}
-                    >
+                  <div className='pw-row'>
+                    <span className='pw-icon' style={{ borderRadius: '50%' }}>
                       {initials(t.name)}
                     </span>
-                    <div
-                      className='col'
-                      style={{ gap: 2, flex: 1, minWidth: 0 }}
-                    >
-                      <h4
-                        className='t-h4'
-                        style={{ fontSize: 14, fontWeight: 600 }}
-                      >
-                        {t.name}
-                      </h4>
-                      <span className='t-meta' style={{ fontSize: 12 }}>
-                        {t.category} · {t.jobs} {t.jobs === 1 ? 'job' : 'jobs'}{' '}
-                        · {t.last}
-                      </span>
+                    <div>
+                      <strong>{t.name}</strong>
+                      <p className='pw-muted' style={{ fontSize: 13 }}>
+                        {t.category} · {t.jobs} jobs · {t.last}
+                      </p>
                     </div>
+                  </div>
+                  <div className='pw-actions'>
                     <Link
-                      href={`/messages?contractorName=${encodeURIComponent(t.name)}`}
-                      className='btn btn-ghost btn-sm'
+                      className='pw-btn pw-btn-small'
+                      href={
+                        '/messages?contractorName=' + encodeURIComponent(t.name)
+                      }
                     >
                       Message
                     </Link>
                     <Link
-                      href={`/jobs/create?property_id=${propertyId}&contractor=${encodeURIComponent(t.name)}`}
-                      className='btn btn-secondary btn-sm'
+                      className='pw-btn pw-btn-small'
+                      href={
+                        '/jobs/create?property_id=' +
+                        propertyId +
+                        '&contractor=' +
+                        encodeURIComponent(t.name)
+                      }
                     >
                       Rebook
                     </Link>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
+            ) : (
+              <p className='pw-muted'>
+                Trades from this property's jobs will appear here.
+              </p>
             )}
-          </div>
-        </div>
-
-        <aside className='col' style={{ gap: 16 }}>
-          <div className='card card-pad'>
-            <div className='t-eyebrow' style={{ marginBottom: 10 }}>
-              Emergency contacts
-            </div>
-            {EMERGENCY.map(([k, v], i) => (
-              <div
-                key={k}
-                className='row'
-                style={{
-                  padding: '8px 0',
-                  borderTop: i ? '1px solid var(--me-line-2)' : 0,
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: 'var(--me-ink-3)', flex: 1 }}>{k}</span>
-                <a
-                  href={`tel:${v.replace(/\s/g, '')}`}
-                  style={{
-                    fontWeight: 600,
-                    fontFamily: 'ui-monospace, monospace',
-                    color: 'var(--me-ink)',
-                    textDecoration: 'none',
-                  }}
-                >
-                  {v}
-                </a>
-              </div>
-            ))}
-          </div>
-          <div className='card card-pad'>
-            <div className='t-eyebrow' style={{ marginBottom: 10 }}>
-              Stopcock &amp; isolators
-            </div>
-            <p
-              className='t-body'
-              style={{ fontSize: 13, lineHeight: 1.55, marginBottom: 10 }}
-            >
-              Save the exact location of your water stopcock, gas isolator, and
-              consumer unit. Mint will surface it to any pro you dispatch.
-            </p>
-            <Link
-              href={`/properties/${propertyId}/edit`}
-              className='btn btn-ghost btn-sm'
-            >
-              Add details <ArrowRight size={12} strokeWidth={1.75} />
-            </Link>
-          </div>
+          </section>
         </aside>
+      </div>
+      <div className='pw-savebar'>
+        <span className='pw-row' role='status'>
+          {isDirty ? (
+            <>
+              <AlertTriangle size={20} color='#ab6505' />
+              Unsaved changes
+            </>
+          ) : savedAt ? (
+            <>
+              <CheckCircle2 size={20} />
+              Changes saved
+            </>
+          ) : (
+            <>
+              <Lock size={18} />
+              Access details
+            </>
+          )}
+        </span>
+        <div className='pw-actions'>
+          {isDirty && (
+            <button className='pw-btn' onClick={resetChanges} type='button'>
+              Cancel
+            </button>
+          )}
+          <button
+            type='button'
+            className='pw-btn pw-btn-primary'
+            disabled={!isDirty || saving || entrySecretUnavailable}
+            onClick={handleSave}
+          >
+            {saving ? (
+              <Loader2 size={18} className='animate-spin' />
+            ) : (
+              <Save size={18} />
+            )}{' '}
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
       </div>
     </fieldset>
   );
