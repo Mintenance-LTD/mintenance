@@ -85,10 +85,10 @@ export function MintEditorialPropertyManage({
               aria-controls={'manage-' + id}
               onClick={() => setSection(id)}
             >
-              <span className='pw-icon'>
-                <Icon size={26} />
+              <span className='pw-icon' aria-hidden='true'>
+                <Icon size={24} strokeWidth={1.8} />
               </span>
-              <div>
+              <div className='pw-section-copy'>
                 <strong>{title}</strong>
                 <span>{detail}</span>
               </div>

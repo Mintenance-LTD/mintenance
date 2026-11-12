@@ -30,8 +30,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <ConfirmDialogProvider>
-          <FeatureGuideLink />
           {children}
+          <FeatureGuideLink />
           {/*
           react-hot-toast portal. Mounted globally because 107+ files
           across the web app `import toast from 'react-hot-toast'` and

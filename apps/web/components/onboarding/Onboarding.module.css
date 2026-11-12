@@ -1,7 +1,7 @@
 /* Component surfaces deliberately do not use .me-root: it owns page height. */
 .panel,
 .overlay,
-.featureBar {
+.featureHelp {
   color: var(--me-ink);
   font-family: var(--me-font-body, sans-serif);
   font-size: 14px;
@@ -58,8 +58,7 @@
 .primary,
 .secondary,
 .textButton,
-.setupLink,
-.featureBar a {
+.setupLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -105,7 +104,7 @@
 .panel button:focus-visible,
 .overlay a:focus-visible,
 .overlay button:focus-visible,
-.featureBar a:focus-visible {
+.featureHelp :is(a, summary):focus-visible {
   outline: 2px solid var(--me-brand);
   outline-offset: 3px;
 }
@@ -147,20 +146,79 @@
 .syncDetails > div {
   padding: 6px 0;
 }
-.featureBar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px 16px;
-  padding: 4px 24px;
-  border-bottom: 1px solid var(--me-line);
-  background: var(--me-surface);
+.featureHelp {
+  position: relative;
+  width: max-content;
+  margin: 16px 24px 24px auto;
+  z-index: 35;
 }
-.featureBar a {
-  padding: 4px 0;
-  color: var(--me-brand);
-  font-size: 12px;
+.featureHelp summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--me-line, #d7e2df);
+  border-radius: 24px;
+  background: var(--me-surface, #fff);
+  color: var(--me-brand, #176b57);
+  box-shadow: 0 2px 10px #193b2310;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.featureHelp summary::-webkit-details-marker {
+  display: none;
+}
+.featureHelp[open] summary {
+  background: var(--me-brand-soft, #e9f3ed);
+}
+.featureHelpPanel {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: min(300px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--me-line, #d7e2df);
+  border-radius: 14px;
+  background: var(--me-surface, #fff);
+  box-shadow: 0 8px 28px #193b2318;
+}
+.featureHelpPanel p {
+  margin: 4px 10px 8px;
+  font-weight: 650;
+}
+.featureHelpPanel a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px;
+  border-radius: 8px;
+  color: var(--me-brand, #176b57);
+  text-decoration: none;
+}
+.featureHelpPanel a:hover {
+  background: var(--me-brand-soft, #e9f3ed);
+}
+.featureHelpPanel svg {
+  flex-shrink: 0;
+}
+@media (max-width: 1023px) {
+  .featureHelp {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: max-content;
+    margin: 16px 16px calc(84px + env(safe-area-inset-bottom)) auto;
+  }
+}
+@media print {
+  .featureHelp {
+    display: none;
+  }
 }
 .overlay {
   position: fixed;
@@ -309,10 +367,6 @@
   .tourFooter .primary,
   .tourFooter .secondary {
     padding: 9px 12px;
-  }
-  .featureBar {
-    justify-content: space-between;
-    padding: 4px 16px;
   }
 }
 
