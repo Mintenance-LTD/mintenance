@@ -109,7 +109,7 @@ const submitTaxInfoSchema = z
       .transform((val) => (val ? sanitizeText(val, 100) : val)),
     postcode: z.string().regex(UK_POSTCODE_REGEX, 'Enter a valid UK postcode'),
     certification: z.literal(true, {
-      errorMap: () => ({
+      error: () => ({
         message: 'You must certify the information is correct',
       }),
     }),

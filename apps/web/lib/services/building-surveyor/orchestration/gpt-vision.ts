@@ -27,7 +27,7 @@ const gptResponseSchema = z
     severity: z.string().optional(),
     confidence: z.number().min(0).max(100).optional(),
     riskScore: z.number().min(0).max(100).optional(),
-    damageAssessment: z.record(z.unknown()).optional(),
+    damageAssessment: z.record(z.string(), z.unknown()).optional(),
   })
   .passthrough();
 

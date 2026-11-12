@@ -21,8 +21,9 @@
  */
 
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Filter, Download, FileText } from 'lucide-react';
+import { Plus, Search, FileText } from 'lucide-react';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
+import { QuoteExport } from './QuoteExport';
 import { QuoteCard } from './QuoteCard';
 import type { FilterTab, Quote } from './useQuotesData';
 
@@ -175,24 +176,12 @@ export function MintEditorialQuotesView({
                 }}
               />
             </div>
-            <button
-              type='button'
-              className='btn btn-secondary btn-sm'
-              aria-label='Filter quotes'
-              title='Filter (coming soon)'
-              disabled
-            >
-              <Filter size={14} strokeWidth={1.75} /> Filter
-            </button>
-            <button
-              type='button'
-              className='btn btn-secondary btn-sm'
-              aria-label='Export quotes'
-              title='Export (coming soon)'
-              disabled
-            >
-              <Download size={14} strokeWidth={1.75} /> Export
-            </button>
+            <label className='row' style={{ gap: 8 }}>Status
+              <select aria-label='Filter quotes by status' value={activeFilter} onChange={event => onFilterChange(event.target.value as FilterTab)}>
+                {filterTabs.map(tab => <option key={tab.value} value={tab.value}>{tab.label}</option>)}
+              </select>
+            </label>
+            <QuoteExport quotes={filteredQuotes} loading={loading} />
           </div>
         </div>
       </div>

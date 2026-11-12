@@ -3,13 +3,5 @@
   "critical": true,
   "skip-dev": true,
   "report-type": "important",
-  "allowlist": [
-    {
-      "GHSA-mrhx-c7xc-m3w5|zod": {
-        "active": true,
-        "notes": "Revalidated 2026-10-30 against current upstream advisory and issue #6653: no Zod 3 fix is published. The exact-source-hash bounded-array/set backport passes CJS/ESM, async, nested-path, zero-element-parser and tamper-refusal regression checks. Required Vercel build preparation and CI verify this mitigation. Zod 4 tooling remains 4.6.7. Unbounded input requires application body/schema limits. This is a time-limited mitigation, not an upstream fixed v3 release; migrate app/SDK consumers together before removing it. Next review 2026-11-13.",
-        "expiry": "2026-11-13",
-      },
-    },
-  ],
+  "allowlist": []
 }

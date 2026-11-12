@@ -1,5 +1,6 @@
 import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { TrackedQueryClient as QueryClient } from '../setup/TrackedQueryClient';
 import { render, waitFor, act } from '../test-utils';
 import { HomeScreen } from '../../screens/home';
 import { useAuth } from '../../contexts/AuthContext';

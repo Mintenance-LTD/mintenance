@@ -20,7 +20,7 @@ const summariesQuerySchema = z.object({
     ),
   status: z
     .enum(['pending', 'generated', 'filed'], {
-      errorMap: () => ({
+      error: () => ({
         message: 'Status must be "pending", "generated", or "filed"',
       }),
     })

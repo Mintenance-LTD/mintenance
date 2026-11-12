@@ -16,6 +16,7 @@
  *   - Test users exist (for authenticated tests)
  */
 
+import { fixtureJob } from '../helpers/bid-journey';
 import { test, expect } from '../fixtures';
 import type { Page } from '@playwright/test';
 import {
@@ -33,7 +34,7 @@ type Role = { email: string; password: string; role: string };
 /** Mint a session for `user`; skip the test if the fixture is unavailable. */
 async function auth(page: Page, user: Role): Promise<void> {
   const ok = await establishSessionInContext(page, user);
-  test.skip(!ok, AUTH_UNAVAILABLE);
+  expect(ok, AUTH_UNAVAILABLE).toBe(true);
 }
 
 // ---------------------------------------------------------------------------
@@ -445,7 +446,7 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
     await page.goto('/dashboard');
     // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
     if (!(await captureAndAssert(page, testInfo, 'dashboard')))
-      test.skip(true, 'Authenticated page redirected before screenshot');
+      throw new Error('Authenticated page redirected before screenshot');
   });
 
   test('payments table', async ({ page }, testInfo) => {
@@ -453,7 +454,7 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
     await page.goto('/payments');
     // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
     if (!(await captureAndAssert(page, testInfo, 'payments')))
-      test.skip(true, 'Authenticated page redirected before screenshot');
+      throw new Error('Authenticated page redirected before screenshot');
   });
 
   test('financials ledger', async ({ page }, testInfo) => {
@@ -461,7 +462,7 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
     await page.goto('/financials');
     // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
     if (!(await captureAndAssert(page, testInfo, 'financials')))
-      test.skip(true, 'Authenticated page redirected before screenshot');
+      throw new Error('Authenticated page redirected before screenshot');
   });
 
   test('scheduling calendar', async ({ page }, testInfo) => {
@@ -469,7 +470,7 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
     await page.goto('/scheduling');
     // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
     if (!(await captureAndAssert(page, testInfo, 'scheduling')))
-      test.skip(true, 'Authenticated page redirected before screenshot');
+      throw new Error('Authenticated page redirected before screenshot');
   });
 
   test('settings sections', async ({ page }, testInfo) => {
@@ -477,7 +478,7 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
     await page.goto('/settings');
     // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
     if (!(await captureAndAssert(page, testInfo, 'settings')))
-      test.skip(true, 'Authenticated page redirected before screenshot');
+      throw new Error('Authenticated page redirected before screenshot');
   });
 
   // Property detail (tabs / overview / stats / maintenance plan) needs a real
@@ -497,10 +498,7 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
       .or(content.locator('a[href*="/properties/"]'))
       .first();
     // The seed creates two properties; if none are linked it's a data gap.
-    test.skip(
-      !(await open.isVisible().catch(() => false)),
-      'No property link visible (seed data missing)'
-    );
+    await expect(open).toBeVisible();
     await open.click();
     await page.waitForLoadState('networkidle').catch(() => {});
     await captureAndAssert(page, testInfo, 'property-overview');
@@ -533,16 +531,8 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
     await page.waitForTimeout(1500);
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
-    const jobLink = page
-      .locator('a[href*="/jobs/"]')
-      .filter({ hasNot: page.locator('a[href*="/jobs/create"]') })
-      .first();
-    // The e2e seed creates no jobs — a data gap, not a bug.
-    test.skip(
-      !(await jobLink.isVisible().catch(() => false)),
-      'No job link visible (seed data missing)'
-    );
-    await jobLink.click();
+    await page.goto('/jobs/' + fixtureJob());
+
     await page.waitForLoadState('networkidle').catch(() => {});
     await captureAndAssert(page, testInfo, 'job-detail');
   });

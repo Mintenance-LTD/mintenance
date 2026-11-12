@@ -41,7 +41,7 @@ export const POST = withApiHandler(
     const parsed = stepUpSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid step-up payload', details: parsed.error.errors },
+        { error: 'Invalid step-up payload', details: parsed.error.issues },
         { status: 400 }
       );
     }

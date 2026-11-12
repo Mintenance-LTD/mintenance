@@ -7,6 +7,8 @@
  * and §4 of that document for the legal rationale.
  */
 
+import { PAYMENT_RELEASE_COPY } from '../payment-release-copy';
+
 /**
  * Primary user-facing noun for the money-holding mechanism on homeowner
  * surfaces. Replace all customer-visible literal "escrow" strings in
@@ -28,12 +30,11 @@ export const PROTECTED_PAYMENT_BADGE = 'Protected Payment';
 /**
  * One-line explainer suitable for tooltips and info cards.
  */
-export const PROTECTED_PAYMENT_EXPLAINER =
-  'Your money is held securely until you approve the completed work.';
+export const PROTECTED_PAYMENT_EXPLAINER = PAYMENT_RELEASE_COPY.summary;
 
 /**
  * Contractor-side framing — the same custody mechanism, but described
  * from the trades person's perspective. See R2 move #21 in the roadmap.
  */
 export const PROTECTED_PAYMENT_CONTRACTOR_EXPLAINER =
-  'Payment is funded before you arrive on-site and released to you after the homeowner approves the work (or automatically after the 7-day review window).';
+  PAYMENT_RELEASE_COPY.details;

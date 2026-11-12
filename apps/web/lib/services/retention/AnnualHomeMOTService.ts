@@ -14,7 +14,6 @@
  */
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
 import { env } from '@/lib/env';
 import { EmailService } from '@/lib/email-service';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -68,6 +67,38 @@ function recommendedChecks(ageYears: number | null): string[] {
   ];
 }
 
+interface AnniversaryProperty {
+  id: string;
+  owner_id: string;
+  property_name: string;
+  year_built: number | null;
+  created_at: string;
+}
+
+/** Keyset pagination continues even if the server caps pages below our limit. */
+export async function loadAnniversaryProperties(now: Date, month: string, day: string): Promise<AnniversaryProperty[]> {
+  const matches: AnniversaryProperty[] = [];
+  let after: string | undefined;
+  for (;;) {
+    let query = serverSupabase.from('properties')
+      .select('id, owner_id, property_name, year_built, created_at')
+      .lt('created_at', now.getUTCFullYear() + '-01-01T00:00:00Z')
+      .order('id', { ascending: true }).limit(500);
+    if (after) query = query.gt('id', after);
+    const { data, error } = await query;
+    if (error) throw new Error('Annual Home MOT property scan failed: ' + error.message);
+    const rows = (data ?? []) as AnniversaryProperty[];
+    if (!rows.length) return matches;
+    const last = rows[rows.length - 1].id;
+    if (after && last <= after) throw new Error('Annual Home MOT pagination did not advance');
+    after = last;
+    for (const row of rows) {
+      const date = new Date(row.created_at);
+      if (String(date.getUTCMonth() + 1).padStart(2, '0') === month && String(date.getUTCDate()).padStart(2, '0') === day) matches.push(row);
+    }
+  }
+}
+
 export class AnnualHomeMOTService {
   /**
    * For each property whose `created_at` anniversary is today, send
@@ -84,64 +115,20 @@ export class AnnualHomeMOTService {
     const mm = (now.getUTCMonth() + 1).toString().padStart(2, '0');
     const dd = now.getUTCDate().toString().padStart(2, '0');
 
-    // Anniversary match: month+day of created_at equals today's month+day.
-    // Postgres `to_char(created_at, 'MM-DD')` is cheap against a small
-    // properties table; if the table grows past ~100k rows we'll add a
-    // generated column + index.
-    const { data, error } = await serverSupabase.rpc(
-      'select_properties_with_anniversary_today',
-      { today_md: `${mm}-${dd}` }
-    );
-
-    // Fallback: if the RPC isn't defined, issue the query directly.
-    let rows: Array<{
-      id: string;
-      owner_id: string;
-      property_name: string;
-      year_built: number | null;
-    }> | null = data as typeof rows | null;
-
-    if (error || !rows) {
-      logger.info('annual-home-mot: RPC missing, using fallback query', {
-        service: 'AnnualHomeMOTService',
-      });
-      const fallback = await serverSupabase
-        .from('properties')
-        .select('id, owner_id, property_name, year_built, created_at')
-        .limit(5000);
-      if (fallback.error) {
-        logger.warn('annual-home-mot: fallback query failed', {
-          err: fallback.error.message,
-        });
-        return result;
-      }
-      rows = (fallback.data ?? [])
-        .filter((r) => {
-          if (!r.created_at) return false;
-          const d = new Date(r.created_at as string);
-          const m = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-          const day = d.getUTCDate().toString().padStart(2, '0');
-          return m === mm && day === dd;
-        })
-        .map((r) => ({
-          id: r.id as string,
-          owner_id: r.owner_id as string,
-          property_name: r.property_name as string,
-          year_built: r.year_built as number | null,
-        }));
-    }
+    const rows = await loadAnniversaryProperties(now, mm, dd);
 
     if (!rows || rows.length === 0) return result;
     result.evaluated = rows.length;
 
     // Load owner profiles once.
     const ownerIds = Array.from(new Set(rows.map((r) => r.owner_id)));
-    const { data: profiles } = await serverSupabase
-      .from('profiles')
-      .select('id, first_name, email')
-      .in('id', ownerIds)
-      .eq('role', 'homeowner');
-    const byOwner = new Map((profiles ?? []).map((p) => [p.id as string, p]));
+    const byOwner = new Map<string, { id: string; first_name: string | null; email: string | null }>();
+    for (let start = 0; start < ownerIds.length; start += 200) {
+      const { data: profiles, error } = await serverSupabase.from('profiles')
+        .select('id, first_name, email').in('id', ownerIds.slice(start, start + 200)).eq('role', 'homeowner');
+      if (error) throw new Error('Annual Home MOT owner lookup failed: ' + error.message);
+      for (const profile of profiles ?? []) byOwner.set(profile.id, profile);
+    }
 
     const baseUrl = env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
     const viewUrl = `${baseUrl}/jobs/create`;

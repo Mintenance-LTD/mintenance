@@ -4,11 +4,13 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import type { Appointment } from './types';
+import { calendarDays, dateKey, moveCalendar } from '@/lib/scheduling/calendar';
 
 interface CalendarViewProps {
   selectedDate: Date;
   view: 'week' | 'month';
   setView: (v: 'week' | 'month') => void;
+  setSelectedDate: (date: Date) => void;
   appointments: Appointment[];
 }
 
@@ -16,8 +18,11 @@ export function CalendarView({
   selectedDate,
   view,
   setView,
+  setSelectedDate,
   appointments,
 }: CalendarViewProps) {
+  const days = calendarDays(selectedDate, view);
+  const todayKey = dateKey(new Date());
   return (
     <MotionDiv
       initial={{ opacity: 0, y: 20 }}
@@ -30,6 +35,8 @@ export function CalendarView({
         <div className='flex items-center gap-3'>
           <div className='flex gap-1 bg-slate-100 p-1 rounded-xl'>
             <button
+              type='button'
+              aria-pressed={view === 'week'}
               onClick={() => setView('week')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 view === 'week'
@@ -40,6 +47,8 @@ export function CalendarView({
               Week
             </button>
             <button
+              type='button'
+              aria-pressed={view === 'month'}
               onClick={() => setView('month')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 view === 'month'
@@ -51,16 +60,16 @@ export function CalendarView({
             </button>
           </div>
           <div className='flex items-center gap-2'>
-            <button className='p-2 hover:bg-slate-100 rounded-xl transition-all'>
+            <button type='button' aria-label={`Previous ${view}`} onClick={() => setSelectedDate(moveCalendar(selectedDate, view, -1))} className='p-2 hover:bg-slate-100 rounded-xl transition-all'>
               <ChevronLeft className='w-5 h-5 text-slate-700' />
             </button>
             <span className='px-4 py-2 text-sm font-semibold text-slate-900 min-w-[140px] text-center'>
-              {selectedDate.toLocaleDateString('en-GB', {
+              {view === 'week' ? `${days[0].toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${days[6].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : selectedDate.toLocaleDateString('en-GB', {
                 month: 'long',
                 year: 'numeric',
               })}
             </span>
-            <button className='p-2 hover:bg-slate-100 rounded-xl transition-all'>
+            <button type='button' aria-label={`Next ${view}`} onClick={() => setSelectedDate(moveCalendar(selectedDate, view, 1))} className='p-2 hover:bg-slate-100 rounded-xl transition-all'>
               <ChevronRight className='w-5 h-5 text-slate-700' />
             </button>
           </div>
@@ -77,42 +86,17 @@ export function CalendarView({
             {day}
           </div>
         ))}
-        {Array.from({ length: 35 }, (_, i) => {
-          const today = new Date();
-          const firstDayOfMonth = new Date(
-            selectedDate.getFullYear(),
-            selectedDate.getMonth(),
-            1
-          );
-          const startingDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7; // Adjust for Monday start
-          const dayNumber = i - startingDayOfWeek + 1;
-          const currentDate = new Date(
-            selectedDate.getFullYear(),
-            selectedDate.getMonth(),
-            dayNumber
-          );
-          const isToday = currentDate.toDateString() === today.toDateString();
-          const isCurrentMonth =
-            dayNumber > 0 &&
-            dayNumber <=
-              new Date(
-                selectedDate.getFullYear(),
-                selectedDate.getMonth() + 1,
-                0
-              ).getDate();
-
-          // Find appointments for this day
-          const dayAppointments = isCurrentMonth
-            ? appointments.filter((apt) => {
-                const aptDate = new Date(apt.date);
-                return aptDate.toDateString() === currentDate.toDateString();
-              })
-            : [];
+        {days.map((currentDate) => {
+          const key = dateKey(currentDate);
+          const isToday = key === todayKey;
+          const isCurrentMonth = currentDate.getMonth() === selectedDate.getMonth();
+          const dayAppointments = appointments.filter(apt => apt.date === key && apt.status !== 'cancelled');
 
           return (
             <div
-              key={i}
-              className='min-h-[90px] p-2 bg-white hover:bg-slate-50 transition-all cursor-pointer'
+              key={key}
+              aria-label={currentDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+              className='min-h-[90px] p-2 bg-white'
             >
               <div
                 className={`text-sm mb-1 flex items-center justify-center w-8 h-8 rounded-xl mx-auto font-semibold ${
@@ -123,7 +107,7 @@ export function CalendarView({
                       : 'text-slate-300'
                 }`}
               >
-                {isCurrentMonth ? dayNumber : ''}
+                {currentDate.getDate()}
               </div>
               {dayAppointments.length > 0 && (
                 <div className='space-y-1'>
@@ -132,7 +116,7 @@ export function CalendarView({
                       key={apt.id}
                       className='px-2 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs truncate font-medium border border-teal-100'
                     >
-                      {apt.time}
+                      <span title={`${apt.time} · ${apt.title}`}>{apt.time} · {apt.title}</span>
                     </div>
                   ))}
                   {dayAppointments.length > 2 && (

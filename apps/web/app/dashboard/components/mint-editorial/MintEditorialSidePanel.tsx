@@ -1,3 +1,4 @@
+import { PAYMENT_RELEASE_COPY } from '@mintenance/shared';
 import Link from 'next/link';
 import { ArrowRight, AlertCircle, ShieldCheck, Home } from 'lucide-react';
 import {
@@ -239,8 +240,7 @@ function PaymentProtectedCard({ escrow }: { escrow: number }) {
         </h2>
       </div>
       <p className='t-body' style={{ fontSize: 13, color: 'var(--me-ink-2)' }}>
-        {formatGBP(escrow)} is held in escrow. Funds release only when you sign
-        off the work.
+        {formatGBP(escrow)} is held in escrow. {PAYMENT_RELEASE_COPY.details}
       </p>
     </div>
   );

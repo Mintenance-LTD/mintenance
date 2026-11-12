@@ -55,7 +55,7 @@ export function useSessionMonitor({
 }: { enabled?: boolean } = {}) {
   const [state, setState] = useState<SessionMonitorState>({
     status: null,
-    isLoading: !enabled,
+    isLoading: enabled,
     isExtending: false,
     error: null,
     hasShownWarning: false,
@@ -63,12 +63,15 @@ export function useSessionMonitor({
   });
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const backoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollingGeneration = useRef(0);
   const isVisibleRef = useRef<boolean>(true);
 
   /**
    * Fetch current session status from API
    */
-  const fetchSessionStatus = useCallback(async () => {
+  const fetchSessionStatus = useCallback(async function pollSessionStatus() {
+    const generation = pollingGeneration.current;
     try {
       const response = await fetch('/api/auth/session-status', {
         method: 'GET',
@@ -77,6 +80,8 @@ export function useSessionMonitor({
           'Cache-Control': 'no-cache',
         },
       });
+
+      if (generation !== pollingGeneration.current) return;
 
       if (response.status === 429) {
         // Rate limited — stop the current interval so we don't keep hammering the endpoint
@@ -95,14 +100,16 @@ export function useSessionMonitor({
           pollIntervalRef.current = null;
         }
 
-        setTimeout(
+        if (backoffRef.current) clearTimeout(backoffRef.current);
+        backoffRef.current = setTimeout(
           () => {
+            if (generation !== pollingGeneration.current) return;
             const pollIntervalSeconds = parseInt(
               process.env.NEXT_PUBLIC_SESSION_POLL_INTERVAL_SECONDS || '60'
             );
             setState((prev) => ({ ...prev, error: null }));
             pollIntervalRef.current = setInterval(() => {
-              if (isVisibleRef.current) fetchSessionStatus();
+              if (isVisibleRef.current) pollSessionStatus();
             }, pollIntervalSeconds * 1000);
           },
           2 * 60 * 1000
@@ -281,8 +288,14 @@ export function useSessionMonitor({
     }, pollIntervalMs);
 
     return () => {
+      pollingGeneration.current += 1;
+      if (backoffRef.current) {
+        clearTimeout(backoffRef.current);
+        backoffRef.current = null;
+      }
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
     };
   }, [fetchSessionStatus, enabled]);

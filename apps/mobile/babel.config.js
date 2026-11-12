@@ -27,7 +27,7 @@ module.exports = function (api) {
         ['@babel/plugin-transform-modules-commonjs', { strictMode: false }],
         '@babel/plugin-transform-dynamic-import',
       ]
-    : ['react-native-reanimated/plugin'];
+    : [require.resolve('./babel-icon-imports.cjs'), 'react-native-reanimated/plugin'];
 
   return {
     presets: [

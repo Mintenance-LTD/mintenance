@@ -86,6 +86,11 @@ export const TEST_USERS = {
     password: process.env.E2E_ADMIN_PASSWORD || 'TestAdmin123!',
     role: 'admin' as const,
   },
+  contractorNoLocation: {
+    email: 'test-contractor-no-location@example.com',
+    password: 'TestContractor123!',
+    role: 'contractor' as const,
+  },
 };
 
 /**

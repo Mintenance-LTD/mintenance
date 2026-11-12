@@ -177,3 +177,4 @@ export * from './legal/customer-terms';
 export * from './legal/privacy-policy';
 export * from './quotePricing';
 export * from './report-history';
+export * from './payment-release-copy';

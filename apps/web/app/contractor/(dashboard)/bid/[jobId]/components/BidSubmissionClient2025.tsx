@@ -35,9 +35,9 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
   );
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>(
-    existingBid?.lineItems?.map((item) => ({
+    existingBid?.lineItems?.map((item, index) => ({
       ...item,
-      id: Math.random().toString(),
+      id: `existing-${index}`,
       type: 'labor' as const,
     })) || []
   );
@@ -155,7 +155,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
   useEffect(() => {
     if (lineItems.length > 0 && subtotal > 0) {
       const newAmount = totalAmount.toFixed(2);
-      if (amount !== newAmount) setAmount(newAmount);
+      setAmount(current => current === newAmount ? current : newAmount);
     }
   }, [totalAmount, lineItems.length, subtotal]);
 

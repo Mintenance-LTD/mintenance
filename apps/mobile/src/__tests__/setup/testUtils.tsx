@@ -6,7 +6,8 @@
 
 import React from 'react';
 import { render, RenderOptions } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { TrackedQueryClient as QueryClient } from './TrackedQueryClient';
 import { AuthContextProvider } from '../../contexts/AuthContext-fallback';
 
 // Create a custom render function that includes providers

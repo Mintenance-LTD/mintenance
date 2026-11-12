@@ -231,6 +231,8 @@ export function DiscoverJobCard({
   return (
     <div
       data-theme='mint-editorial'
+      data-testid='job-card'
+      data-job-id={job.id}
       className='rounded-xl overflow-hidden cursor-pointer transition-shadow'
       style={{
         background: 'var(--me-surface)',

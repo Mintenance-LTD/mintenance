@@ -26,6 +26,7 @@ import {
   type ReconciliationSource,
 } from '@/lib/services/payment/reconciliation-funding';
 import { StripeWebhookService } from '@/lib/services/stripe-webhook/stripe-webhook-service';
+import { waitForSandboxAccount } from '../../test/integration/sandbox-account-readiness';
 
 describe.skipIf(process.env.PAYMENT_SANDBOX_TESTS !== '1')(
   'Payment sandbox readiness',
@@ -34,7 +35,7 @@ describe.skipIf(process.env.PAYMENT_SANDBOX_TESTS !== '1')(
       const { verifySandboxAcceptance } =
         await import('../../test/integration/payment-acceptance-sandbox');
       await verifySandboxAcceptance();
-    }, 60000);
+    }, 420000);
 
     beforeAll(async () => {
       if (
@@ -43,6 +44,7 @@ describe.skipIf(process.env.PAYMENT_SANDBOX_TESTS !== '1')(
       )
         throw new Error('Sandbox guard failed');
       const balance = await stripe.balance.retrieve();
+      expect(balance.livemode).toBe(false);
       const available =
         balance.available.find((row) => row.currency === 'gbp')?.amount ?? 0;
       if (available < 1000) {
@@ -242,7 +244,10 @@ describe.skipIf(process.env.PAYMENT_SANDBOX_TESTS !== '1')(
         type: 'custom',
         country: 'GB',
         business_type: 'individual',
-        capabilities: { transfers: { requested: true } },
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
         business_profile: {
           mcc: '1520',
           product_description:
@@ -267,6 +272,7 @@ describe.skipIf(process.env.PAYMENT_SANDBOX_TESTS !== '1')(
         },
         metadata: { readiness: 'phase6' },
       });
+      await waitForSandboxAccount(account.id);
       expect(
         (
           await db
@@ -303,7 +309,7 @@ describe.skipIf(process.env.PAYMENT_SANDBOX_TESTS !== '1')(
       expect(record.data?.transfer_id).toBe(transfer.id);
       // Retain the isolated synthetic ledger/provider objects as auditable evidence.
       // This checks Connect transfer, not a bank payout or the completion/photo UI.
-    }, 60000);
+    }, 420000);
 
     it('rejects bad signatures and acknowledges only durably completed webhook duplicates', async () => {
       const event = {

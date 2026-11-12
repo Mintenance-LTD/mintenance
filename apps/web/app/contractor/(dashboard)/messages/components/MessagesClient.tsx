@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import type { User } from '@mintenance/types';
@@ -64,13 +64,11 @@ export function MessagesClient() {
   });
 
   useEffect(() => {
-    loadUserAndMessages();
-  }, []);
-  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const loadUserAndMessages = async () => {
+  const targetJobId = searchParams.get('jobId');
+  const loadUserAndMessages = useCallback(async () => {
     try {
       setLoading(true);
       const currentUser = await fetchCurrentUser();
@@ -119,7 +117,6 @@ export function MessagesClient() {
       setConversations(transformedConversations);
 
       // Auto-select conversation if jobId is in URL params
-      const targetJobId = searchParams.get('jobId');
       if (targetJobId) {
         const match = transformedConversations.find(
           (c: Conversation) => c.id === targetJobId
@@ -132,7 +129,11 @@ export function MessagesClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, targetJobId]);
+
+  useEffect(() => {
+    void loadUserAndMessages();
+  }, [loadUserAndMessages]);
 
   useEffect(() => {
     if (!selectedConversation) return;

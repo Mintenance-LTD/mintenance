@@ -1,5 +1,6 @@
 'use client';
 
+import { PAYMENT_RELEASE_COPY } from '@mintenance/shared';
 import Link from 'next/link';
 import { DashboardOnboarding } from '@/components/onboarding/OnboardingWrapper';
 import { Plus, FileText } from 'lucide-react';
@@ -90,7 +91,7 @@ export function MintEditorialHomeownerDashboard({
           <div className='sub'>
             <span>
               {escrowHeld > 0
-                ? 'released on sign-off'
+                ? PAYMENT_RELEASE_COPY.compact
                 : 'no active payments yet'}
             </span>
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useCallback, useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
 
@@ -41,11 +41,7 @@ export function useQuotesData() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadQuotes();
-  }, []);
-
-  const loadQuotes = async () => {
+  const loadQuotes = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/contractor/quotes');
@@ -58,7 +54,11 @@ export function useQuotesData() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadQuotes();
+  }, [loadQuotes]);
 
   const stats = useMemo(() => {
     const total = quotes.length;

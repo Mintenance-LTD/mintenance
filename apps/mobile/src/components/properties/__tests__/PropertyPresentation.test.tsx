@@ -1,7 +1,8 @@
 import React from 'react';
 import { Alert } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { TrackedQueryClient as QueryClient } from '../../../__tests__/setup/TrackedQueryClient';
 import { PropertyViewSwitcher } from '../PropertyViewSwitcher';
 import { RoomPhotoAlbums } from '../../../screens/properties/components/RoomPhotoAlbums';
 import { mobileApiClient } from '../../../utils/mobileApiClient';

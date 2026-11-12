@@ -1,9 +1,10 @@
 'use client';
 
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
+import { calendarDays, dateKey } from '@/lib/scheduling/calendar';
 import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
 import toast from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
@@ -25,7 +26,7 @@ interface SchedulingClientProps {
   userId: string;
 }
 
-export function SchedulingClient({ userId }: SchedulingClientProps) {
+export function SchedulingClient(_props: SchedulingClientProps) {
   const searchParams = useSearchParams();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [view, setView] = useState<'week' | 'month'>('month');
@@ -35,11 +36,33 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
     upcomingAppointments: 0,
     completedThisWeek: 0,
     totalHours: 0,
-    availableSlots: 0,
+    availableHours: 0,
   });
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingAvailability, setSavingAvailability] = useState(false);
+  const [calendarAppointments, setCalendarAppointments] = useState<Appointment[]>([]);
+  const [calendarError, setCalendarError] = useState(false);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarRefresh, setCalendarRefresh] = useState(0);
+  const visibleDays = calendarDays(selectedDate, view);
+  const rangeStart = dateKey(visibleDays[0]);
+  const rangeEnd = dateKey(visibleDays[visibleDays.length - 1]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setCalendarLoading(true);
+    setCalendarError(false);
+    fetch('/api/contractor/appointments?' + new URLSearchParams({ startDate: rangeStart, endDate: rangeEnd }), { signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error('Calendar unavailable');
+        const data = await response.json();
+        if (!controller.signal.aborted) setCalendarAppointments(data.appointments ?? []);
+      })
+      .catch(() => { if (!controller.signal.aborted) setCalendarError(true); })
+      .finally(() => { if (!controller.signal.aborted) setCalendarLoading(false); });
+    return () => controller.abort();
+  }, [rangeStart, rangeEnd, calendarRefresh]);
 
   // Form state for new appointment
   const [newAppt, setNewAppt] = useState<NewAppointmentForm>({
@@ -56,8 +79,6 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
   });
 
   useEffect(() => {
-    loadData();
-
     // Check if we should open the modal with pre-filled data from Messages
     const jobId = searchParams.get('jobId');
     const clientName = searchParams.get('clientName');
@@ -74,19 +95,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
     }
   }, [searchParams]);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      await Promise.all([loadAppointments(), loadStats(), loadAvailability()]);
-    } catch (error) {
-      logger.error('Error loading data', error, { service: 'ui' });
-      toast.error('Failed to load scheduling data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAppointments = async () => {
+  const loadAppointments = useCallback(async () => {
     try {
       const response = await fetch('/api/contractor/appointments?daysAhead=30');
       if (!response.ok) throw new Error('Failed to fetch appointments');
@@ -112,44 +121,25 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       logger.error('Error loading appointments:', error, { service: 'ui' });
       throw error;
     }
-  };
+  }, []);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       const response = await fetch('/api/contractor/appointments/stats');
       if (!response.ok) throw new Error('Failed to fetch stats');
 
       const data = await response.json();
-      setStats(data.stats || stats);
+      setStats(prev => data.stats || prev);
     } catch (error) {
       logger.error('Error loading stats:', error, { service: 'ui' });
       throw error;
     }
-  };
+  }, []);
 
-  const loadAvailability = async () => {
+  const loadAvailability = useCallback(async () => {
     try {
       const response = await fetch('/api/contractor/availability');
-      if (!response.ok) {
-        // If no availability set, use defaults
-        const defaultAvailability = [
-          'Monday',
-          'Tuesday',
-          'Wednesday',
-          'Thursday',
-          'Friday',
-          'Saturday',
-          'Sunday',
-        ].map((day, index) => ({
-          day,
-          dayOfWeek: (index + 1) % 7, // Monday = 1, Sunday = 0
-          startTime: '09:00',
-          endTime: '17:00',
-          isAvailable: index < 5, // Monday-Friday enabled by default
-        }));
-        setAvailability(defaultAvailability);
-        return;
-      }
+      if (!response.ok) throw new Error('Failed to fetch availability');
 
       const data = await response.json();
 
@@ -183,7 +173,19 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       logger.error('Error loading availability:', error, { service: 'ui' });
       throw error;
     }
-  };
+  }, []);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([loadAppointments(), loadStats(), loadAvailability()]);
+    } catch (error) {
+      logger.error('Error loading data', error, { service: 'ui' });
+      toast.error('Failed to load scheduling data');
+    } finally { setLoading(false); }
+  }, [loadAppointments, loadStats, loadAvailability]);
+
+  useEffect(() => { void loadData(); }, [loadData]);
 
   const handleNewAppointment = () => {
     setShowNewAppointmentModal(true);
@@ -244,6 +246,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
       // Reload data
       await loadData();
+      setCalendarRefresh(value => value + 1);
     } catch (error: unknown) {
       logger.error('Error creating appointment:', error, { service: 'ui' });
       toast.error(
@@ -283,6 +286,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       }
 
       toast.success('Availability settings saved');
+      await loadStats();
     } catch (error) {
       logger.error('Error saving availability:', error, { service: 'ui' });
       toast.error('Failed to save availability settings');
@@ -303,17 +307,10 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
     );
   };
 
-  // Get appointments for display (next 7 days)
-  const upcomingAppointments = appointments
-    .filter((apt) => {
-      const aptDate = new Date(apt.date);
-      const today = new Date();
-      const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-      return (
-        aptDate >= today && aptDate <= weekFromNow && apt.status !== 'cancelled'
-      );
-    })
-    .slice(0, 5); // Show top 5
+  const today = new Date();
+  const todayDate = dateKey(today);
+  const nextWeek = dateKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7));
+  const upcomingAppointments = appointments.filter(apt => apt.date >= todayDate && apt.date < nextWeek && ['scheduled', 'confirmed'].includes(apt.status)).slice(0, 5);
 
   // Hydration-safe theme detection — hooks must run unconditionally
   // so this lives above the loading early-return.
@@ -397,11 +394,14 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
           <div className='lg:col-span-2'>
+            {calendarError && <p role='alert'>Calendar could not be loaded. <button type='button' onClick={() => setCalendarRefresh(value => value + 1)}>Retry</button></p>}
+            {calendarLoading && <p role='status'>Loading appointments…</p>}
             <CalendarView
               selectedDate={selectedDate}
               view={view}
               setView={setView}
-              appointments={appointments}
+              setSelectedDate={setSelectedDate}
+              appointments={calendarError || calendarLoading ? [] : calendarAppointments}
             />
           </div>
           <div>

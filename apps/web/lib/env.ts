@@ -157,7 +157,7 @@ const envSchema = z.object({
     .string()
     .transform((val) => parseInt(val, 10))
     .pipe(z.number().positive())
-    .default('10000')
+    .prefault('10000')
     .describe('Roboflow API timeout in milliseconds'),
 
   // Google Maps (REQUIRED for location features)
@@ -293,7 +293,7 @@ const envSchema = z.object({
     .string()
     .transform((val) => parseInt(val, 10))
     .pipe(z.number().positive())
-    .default('30000')
+    .prefault('30000')
     .describe('Timeout (ms) for outbound AI service HTTP calls'),
 
   // Sprint 5 (1.9 follow-up): per-user AI spend cap. Enforced in
@@ -303,7 +303,7 @@ const envSchema = z.object({
     .string()
     .transform((val) => parseFloat(val))
     .pipe(z.number().nonnegative())
-    .default('5')
+    .prefault('5')
     .describe('Per-user daily AI spend cap in USD'),
 });
 
@@ -495,7 +495,7 @@ function validateEnv(): Env {
   } catch (error) {
     if (error instanceof z.ZodError) {
       // Format validation errors for easy debugging
-      const errorMessages = error.errors
+      const errorMessages = error.issues
         .map((err) => {
           const path = err.path.join('.') || 'unknown';
           return `  - ${path}: ${err.message}`;
@@ -557,7 +557,7 @@ function validateEnv(): Env {
           logger.error('Environment validation failed (fail-soft)', undefined, {
             service: 'env-validation',
             vercelEnv: process.env.VERCEL_ENV || 'unknown',
-            issues: error.errors.map((e) => ({
+            issues: error.issues.map((e) => ({
               path: e.path.join('.'),
               message: e.message,
             })),

@@ -40,11 +40,18 @@ describe('CacheService', () => {
   });
 
   afterEach(() => {
+    cache.dispose();
     jest.clearAllTimers();
     jest.useRealTimers();
   });
 
   describe('getInstance', () => {
+    it('stops scheduled maintenance when disposed, including repeated disposal', () => {
+      expect(jest.getTimerCount()).toBe(1);
+      cache.dispose();
+      cache.dispose();
+      expect(jest.getTimerCount()).toBe(0);
+    });
     it('returns the same singleton on repeated calls', () => {
       const a = CacheService.getInstance();
       const b = CacheService.getInstance();

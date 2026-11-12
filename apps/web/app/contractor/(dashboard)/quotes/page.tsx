@@ -94,6 +94,8 @@ export default function QuotesPage() {
       <QuotesStatsGrid stats={stats} />
 
       <QuotesFilterBar
+        quotes={filteredQuotes}
+        loading={loading}
         filterTabs={filterTabs}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}

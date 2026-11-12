@@ -5,6 +5,7 @@
   "scripts": {
     "test": "node authoritative-mutations.mjs",
     "test:onboarding": "node onboarding.mjs",
+    "test:availability": "node availability.mjs",
     "test:operator-alerts": "node operator-alerts.mjs",
     "test:chargebacks": "node stripe-chargebacks.mjs",
     "test:transfer-recovery": "node transfer-balance-recovery.mjs",

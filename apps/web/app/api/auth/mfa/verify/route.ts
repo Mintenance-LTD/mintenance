@@ -34,7 +34,7 @@ export const POST = withApiHandler(
     const validation = verifyMFASchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: validation.error.errors },
+        { error: 'Invalid request', details: validation.error.issues },
         { status: 400 }
       );
     }

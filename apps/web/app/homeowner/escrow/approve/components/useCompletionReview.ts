@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { fetchWithCsrf } from '@/lib/csrf-client';
@@ -45,7 +45,7 @@ export function useCompletionReview(escrowId: string | null) {
   const pending = useRef(false);
   const loadSequence = useRef(0);
   const currentEscrow = useRef(escrowId);
-  currentEscrow.current = escrowId;
+  useLayoutEffect(() => { currentEscrow.current = escrowId; }, [escrowId]);
 
   const fetchApprovalData = useCallback(
     async (signal?: AbortSignal) => {

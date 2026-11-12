@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Plus,
-  Filter,
   ArrowRight,
   Check,
   Droplet,
@@ -117,6 +116,8 @@ const TABS: { id: Tab; label: string; match: (s: string) => boolean }[] = [
 
 export function MintEditorialJobsList({ jobs }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('all');
+  const [category, setCategory] = useState('all');
+  const categories = useMemo(() => [...new Set(jobs.map(job => job.category).filter((value): value is string => !!value))].sort(), [jobs]);
 
   const counts = useMemo(
     () =>
@@ -128,8 +129,8 @@ export function MintEditorialJobsList({ jobs }: Props) {
 
   const visible = useMemo(() => {
     const matcher = TABS.find((t) => t.id === activeTab)!.match;
-    return jobs.filter((j) => matcher(j.status));
-  }, [jobs, activeTab]);
+    return jobs.filter((j) => matcher(j.status) && (category === 'all' || j.category === category));
+  }, [jobs, activeTab, category]);
 
   // Split visible jobs into "active-ish" (everything except completed) and
   // "recently completed" — matches the design's two grouped sections.
@@ -166,9 +167,12 @@ export function MintEditorialJobsList({ jobs }: Props) {
         className='row'
         style={{ gap: 8, marginBottom: 14, justifyContent: 'flex-end' }}
       >
-        <button type='button' className='btn btn-secondary btn-sm' disabled>
-          <Filter size={13} strokeWidth={1.75} /> Filter
-        </button>
+        <label className='row' style={{ gap: 8 }}>Category
+          <select aria-label='Filter jobs by category' className='btn btn-secondary btn-sm' value={category} onChange={event => setCategory(event.target.value)}>
+            <option value='all'>All categories</option>
+            {categories.map(value => <option key={value} value={value}>{value}</option>)}
+          </select>
+        </label>
         <Link href='/jobs/create' className='btn btn-primary btn-sm'>
           <Plus size={13} strokeWidth={2} /> Post a job
         </Link>
@@ -181,11 +185,11 @@ export function MintEditorialJobsList({ jobs }: Props) {
           style={{ padding: '56px 24px', textAlign: 'center' }}
         >
           <p className='t-body' style={{ marginBottom: 12 }}>
-            {activeTab === 'all'
+            {activeTab === 'all' && category === 'all'
               ? 'No jobs yet. Post your first one and local tradespeople will respond.'
               : 'No jobs match this filter.'}
           </p>
-          {activeTab === 'all' ? (
+          {activeTab === 'all' && category === 'all' ? (
             <Link href='/jobs/create' className='btn btn-primary'>
               <Plus size={14} strokeWidth={2} /> Post your first job
             </Link>
@@ -193,7 +197,7 @@ export function MintEditorialJobsList({ jobs }: Props) {
             <button
               type='button'
               className='btn btn-secondary'
-              onClick={() => setActiveTab('all')}
+              onClick={() => { setActiveTab('all'); setCategory('all'); }}
             >
               See all jobs
             </button>

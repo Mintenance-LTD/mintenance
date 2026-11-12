@@ -16,7 +16,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const featureFlagMetricsSchema = z.object({
   flag: z.string().min(1).max(200),
-  metrics: z.record(z.unknown()).optional(),
+  metrics: z.record(z.string(), z.unknown()).optional(),
   userId: z.string().uuid().optional(),
   sessionId: z.string().max(200).optional(),
   reason: z.string().min(1).max(1000).optional(),

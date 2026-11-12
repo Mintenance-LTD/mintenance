@@ -18,7 +18,8 @@
 import React from 'react';
 import * as Location from 'expo-location';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { TrackedQueryClient as QueryClient } from '../../../__tests__/setup/TrackedQueryClient';
 
 const mockPost = jest.fn();
 jest.mock('../../../utils/mobileApiClient', () => ({

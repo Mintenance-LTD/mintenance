@@ -7,6 +7,7 @@
  * the 500-line pre-commit cap.
  */
 
+import { PAYMENT_RELEASE_COPY } from '@mintenance/shared';
 import React from 'react';
 import Link from 'next/link';
 import {
@@ -208,8 +209,7 @@ export function MintEditorialContractorDashboardRail({
           >
             {formatMoney(metrics.pendingEscrowAmount)} is held in escrow across{' '}
             {metrics.pendingEscrowCount} active{' '}
-            {metrics.pendingEscrowCount === 1 ? 'job' : 'jobs'}. Funds release
-            within 24h after the homeowner signs off.
+            {metrics.pendingEscrowCount === 1 ? 'job' : 'jobs'}. {PAYMENT_RELEASE_COPY.details}
           </p>
         </div>
       ) : (

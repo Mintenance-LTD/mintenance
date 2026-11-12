@@ -324,7 +324,7 @@ describe('POST /api/jobs/[id]/review', () => {
     // custom message; a missing rating coerces undefined -> NaN, so Zod's
     // default "Expected number, received nan" is surfaced as the 400 message.
     const body = await res.json();
-    expect(body.error.message).toContain('Expected number');
+    expect(body.error.message).toMatch(/expected number/i);
   });
 
   it('should return 400 when rating is out of range', async () => {

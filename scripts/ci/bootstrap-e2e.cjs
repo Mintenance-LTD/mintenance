@@ -3,9 +3,12 @@ const crypto = require('node:crypto');
 const { createClient } = require('@supabase/supabase-js');
 const { validateE2EEnvironment } = require('./check-e2e-environment.cjs');
 async function main() {
-  const status = JSON.parse(fs.readFileSync(process.argv[2], 'utf8').replace(/^\uFEFF/, ''));
+  const status = JSON.parse(
+    fs.readFileSync(process.argv[2], 'utf8').replace(/^\uFEFF/, '')
+  );
   const url = new URL(status.API_URL);
-  if (url.hostname !== '127.0.0.1' || url.port !== '56321') throw new Error('Only the disposable local E2E stack is allowed.');
+  if (url.hostname !== '127.0.0.1' || url.port !== '56321')
+    throw new Error('Only the disposable local E2E stack is allowed.');
   const env = {
     E2E_SUPABASE_URL: status.API_URL,
     E2E_SUPABASE_ANON_KEY: status.ANON_KEY,
@@ -26,28 +29,99 @@ async function main() {
     REDIS_REQUIRED: 'false',
   };
   validateE2EEnvironment(env);
-  const db = createClient(status.API_URL, status.SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-  const userIds = {};
-  for (const role of ['homeowner', 'contractor', 'admin']) {
-    const email = 'test-' + role + '@example.com';
-    const password = 'Test' + role[0].toUpperCase() + role.slice(1) + '123!';
-    const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true,
-      user_metadata: { role: role === 'admin' ? 'homeowner' : role, first_name: 'Test', last_name: role } });
-    if (error) throw new Error('Synthetic account creation failed: ' + error.message);
-    userIds[role] = data.user.id;
-    const { error: profileError } = await db.from('profiles').update({ role, verified: true, phone_verified: true,
-      onboarding_completed: true, first_name: 'Test', last_name: role }).eq('id', data.user.id);
-    if (profileError) throw new Error('Synthetic profile setup failed: ' + profileError.message);
-  }
-  // Dedicated job for bid-form tests, independent of test order and other shards.
-  env.E2E_BID_JOB_ID = crypto.randomUUID();
-  const { error: jobError } = await db.from('jobs').insert({
-    id: env.E2E_BID_JOB_ID, homeowner_id: userIds.homeowner,
-    title: 'Synthetic bid form fixture', description: 'Fix a synthetic leaking tap for isolated browser tests.',
-    status: 'posted', category: 'plumbing', urgency: 'medium',
-    location: 'London', budget_min: 100, budget_max: 200,
+  const db = createClient(status.API_URL, status.SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
   });
-  if (jobError) throw new Error('Synthetic job setup failed: ' + jobError.message);
+  const userIds = {};
+  for (const account of [
+    'homeowner',
+    'contractor',
+    'contractor-no-location',
+    'admin',
+  ]) {
+    const role = account === 'contractor-no-location' ? 'contractor' : account;
+    const email = 'test-' + account + '@example.com';
+    const password = 'Test' + role[0].toUpperCase() + role.slice(1) + '123!';
+    const { data, error } = await db.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        role: role === 'admin' ? 'homeowner' : role,
+        first_name: 'Test',
+        last_name: role,
+      },
+    });
+    if (error)
+      throw new Error('Synthetic account creation failed: ' + error.message);
+    userIds[account] = data.user.id;
+    const { error: profileError } = await db
+      .from('profiles')
+      .update({
+        role,
+        verified: true,
+        phone_verified: true,
+        onboarding_completed: true,
+        first_name: 'Test',
+        last_name: role,
+        ...(role === 'contractor'
+          ? {
+              verification_status: 'verified',
+              admin_verified: true,
+              ...(account === 'contractor'
+                ? {
+                    latitude: 51.501,
+                    longitude: -0.141,
+                    city: 'London',
+                    postcode: 'SW1A 1AA',
+                  }
+                : {}),
+            }
+          : {}),
+      })
+      .eq('id', data.user.id);
+    if (profileError)
+      throw new Error(
+        'Synthetic profile setup failed: ' + profileError.message
+      );
+  }
+  const { error: trialError } = await db.rpc('initialize_trial_period', {
+    p_contractor_id: userIds.contractor,
+  });
+  if (trialError)
+    throw new Error('Synthetic trial setup failed: ' + trialError.message);
+  // Separate mutation fixtures prevent test-order and retry coupling.
+  for (const name of [
+    'BID',
+    'SUBMIT_BID',
+    'REGRESSION_BID',
+    'EDIT',
+    'DELETE',
+  ]) {
+    env['E2E_' + name + '_JOB_ID'] = crypto.randomUUID();
+    const { error: jobError } = await db.from('jobs').insert({
+      id: env['E2E_' + name + '_JOB_ID'],
+      homeowner_id: userIds.homeowner,
+      title: 'Synthetic ' + name + ' fixture',
+      description: 'Fix a synthetic leaking tap for isolated browser tests.',
+      status: 'posted',
+      category: 'plumbing',
+      urgency: 'medium',
+      location: 'London',
+      city: 'London',
+      postcode: 'SW1A 1AA',
+      latitude: 51.501,
+      longitude: -0.141,
+      budget: 200,
+      budget_min: 100,
+      budget_max: 200,
+      ...(name === 'EDIT'
+        ? { requirements: { preferred_start_date: '2026-12-01' } }
+        : {}),
+    });
+    if (jobError)
+      throw new Error('Synthetic job setup failed: ' + jobError.message);
+  }
   const output = process.env.GITHUB_ENV || 'output/e2e-stack/runtime.json';
   if (process.env.GITHUB_ENV) {
     for (const [name, value] of Object.entries(env)) {
@@ -55,6 +129,11 @@ async function main() {
       fs.appendFileSync(output, name + '=' + value + '\n');
     }
   } else fs.writeFileSync(output, JSON.stringify(env), { mode: 0o600 });
-  console.log('Synthetic E2E accounts and isolated runtime configuration ready.');
+  console.log(
+    'Synthetic E2E accounts and isolated runtime configuration ready.'
+  );
 }
-main().catch(error => { console.error(error.message); process.exitCode = 1; });
+main().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});

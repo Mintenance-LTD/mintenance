@@ -1,3 +1,4 @@
+import { PAYMENT_RELEASE_COPY } from '@mintenance/shared';
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -126,9 +127,8 @@ export function LoginBrandPanel() {
             margin: 0,
           }}
         >
-          Mintenance is the modern home-maintenance platform built around real
-          trust: verified people, fair prices, payments only released when
-          you&apos;re happy.
+          Compare tradespeople, agree the scope and keep your job records
+          together. {PAYMENT_RELEASE_COPY.summary}
         </p>
       </div>
 
@@ -146,7 +146,7 @@ export function LoginBrandPanel() {
       >
         {[
           'Post a job and compare bids from verified trades',
-          'Payments held securely until you approve the work',
+          PAYMENT_RELEASE_COPY.summary,
           'Photo proof before and after every job',
         ].map((line) => (
           <li

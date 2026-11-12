@@ -527,6 +527,9 @@ export class MemoryManager {
 
 // Export singleton instance
 export const memoryManager = MemoryManager.getInstance();
+// Importing a utility in a test must not leave a real background interval.
+// Dedicated monitoring tests create their own instance under fake timers.
+if (process.env.NODE_ENV === 'test') memoryManager.stopMemoryMonitoring();
 
 // React hook for memory management
 export const useMemoryCleanup = (cleanupFn?: () => void) => {

@@ -96,22 +96,24 @@ export function JobDetailsClient({
     );
   }, []);
 
-  // Check if job is already saved on mount
+  // Cancel stale reads when navigating between jobs.
   useEffect(() => {
-    checkIfSaved();
-  }, [job.id]);
-
-  const checkIfSaved = async () => {
-    try {
-      const response = await fetch('/api/contractor/saved-jobs');
-      if (response.ok) {
-        const data = await response.json();
-        setIsSaved(data.jobIds?.includes(job.id) || false);
+    const controller = new AbortController();
+    setIsSaved(false);
+    async function checkIfSaved() {
+      try {
+        const response = await fetch('/api/contractor/saved-jobs', { signal: controller.signal });
+        if (response.ok) {
+          const data = await response.json();
+          if (!controller.signal.aborted) setIsSaved(data.jobIds?.includes(job.id) || false);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) logger.error('Error checking saved status:', error, { service: 'ui' });
       }
-    } catch (error) {
-      logger.error('Error checking saved status:', error, { service: 'ui' });
     }
-  };
+    void checkIfSaved();
+    return () => controller.abort();
+  }, [job.id]);
 
   const handleSaveToggle = async () => {
     setIsSaving(true);

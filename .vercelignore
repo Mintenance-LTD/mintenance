@@ -20,10 +20,8 @@ beta-testing-data
 credentials
 /tools
 e2e
-*.test.ts
-*.test.tsx
-*.spec.ts
-*.spec.tsx
+# Web unit tests are required by scripts/vercel-build.js before publication.
+# Browser journeys remain excluded via e2e above and run in disposable CI.
 apps/demo-video/out
 apps/demo-video/public
 # NOTE: do NOT add `apps/web/public/screenshots` here — those PNGs are

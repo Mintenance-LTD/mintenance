@@ -38,11 +38,9 @@ export function BudgetTimelineSection({
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Minimum Budget (£) *
+            <label htmlFor="job-edit-minimum-budget" className="block text-sm font-medium text-gray-700 mb-2">Minimum Budget (£) *
             </label>
-            <input
-              type="number"
+          <input id="job-edit-minimum-budget"               type="number"
               value={budgetMin}
               onChange={(e) => onInputChange('budget.min', e.target.value)}
               min="0"
@@ -51,11 +49,9 @@ export function BudgetTimelineSection({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Maximum Budget (£) *
+            <label htmlFor="job-edit-maximum-budget" className="block text-sm font-medium text-gray-700 mb-2">Maximum Budget (£) *
             </label>
-            <input
-              type="number"
+          <input id="job-edit-maximum-budget"               type="number"
               value={budgetMax}
               onChange={(e) => onInputChange('budget.max', e.target.value)}
               min="0"
@@ -67,22 +63,18 @@ export function BudgetTimelineSection({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
+            <label htmlFor="job-edit-start-date" className="block text-sm font-medium text-gray-700 mb-2">Start Date
             </label>
-            <input
-              type="date"
+          <input id="job-edit-start-date"               type="date"
               value={startDate}
               onChange={(e) => onInputChange('timeline.startDate', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Date
+            <label htmlFor="job-edit-end-date" className="block text-sm font-medium text-gray-700 mb-2">End Date
             </label>
-            <input
-              type="date"
+          <input id="job-edit-end-date"               type="date"
               value={endDate}
               onChange={(e) => onInputChange('timeline.endDate', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"

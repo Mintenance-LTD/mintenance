@@ -13,7 +13,7 @@ import {
 // ============================================================================
 
 export const UserRoleSchema = z.enum(['homeowner', 'contractor'], {
-  errorMap: () => ({ message: 'Role must be either homeowner or contractor' }),
+  error: () => ({ message: 'Role must be either homeowner or contractor' }),
 });
 
 const UserSchema = z.object({

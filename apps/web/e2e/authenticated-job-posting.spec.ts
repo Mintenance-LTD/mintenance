@@ -11,6 +11,7 @@
  * e2e/.auth/homeowner.json
  */
 
+import { fixtureJob } from './helpers/bid-journey';
 import { test, expect } from './fixtures';
 import {
   createTestJob,
@@ -38,7 +39,7 @@ test.describe('Authenticated Job Posting Flow', () => {
   // letting a login redirect make the assertions below pass vacuously.
   test.beforeEach(async ({ page }) => {
     const authed = await establishSessionInContext(page, TEST_USERS.homeowner);
-    test.skip(!authed, AUTH_UNAVAILABLE);
+    expect(authed, AUTH_UNAVAILABLE).toBe(true);
   });
 
   test('homeowner can access job creation page', async ({ page }) => {
@@ -74,38 +75,14 @@ test.describe('Authenticated Job Posting Flow', () => {
     expect(hasMessage || leftWizard).toBeTruthy();
   });
 
-  test('homeowner can save job as draft', async ({ page }) => {
-    // Verify we can access job creation page
-    await page.goto('/jobs/create');
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page).not.toHaveURL(/login/);
-
-    // Wait for page to load
-    await page.waitForTimeout(3000);
-
-    // Look for "Save as draft" button
-    const draftButton = page.getByRole('button', {
-      name: /save.*draft|draft/i,
-    });
-    // Save-as-draft is an optional feature, not an auth gate — skip explicitly
-    // when the wizard variant doesn't offer it.
-    test.skip(
-      !(await draftButton.isVisible().catch(() => false)),
-      'Save-as-draft not present in this wizard variant'
-    );
-
-    // If draft button exists, test the functionality
-    const titleInput = page.getByLabel(/title/i);
-    if (await titleInput.isVisible().catch(() => false)) {
-      await titleInput.fill('Incomplete job - draft test');
-    }
-
-    await draftButton.click();
-    await waitForNetworkIdle(page);
-
-    // Verify draft was saved
-    const savedIndicator = page.getByText(/draft.*saved|saved as draft/i);
-    await expect(savedIndicator).toBeVisible({ timeout: 10000 });
+  test('job wizard exposes the supported publish workflow', async ({
+    page,
+  }) => {
+    expect(await openJobWizard(page)).toBe(true);
+    await expect(
+      page.getByRole('button', { name: /save.*draft/i })
+    ).toHaveCount(0);
+    await expect(page.getByTestId('job-create-form')).toBeVisible();
   });
 
   test('homeowner can view their posted jobs', async ({ page }) => {
@@ -166,76 +143,48 @@ test.describe('Authenticated Job Posting Flow', () => {
 test.describe('Job Management', () => {
   test.beforeEach(async ({ page }) => {
     const authed = await establishSessionInContext(page, TEST_USERS.homeowner);
-    test.skip(!authed, AUTH_UNAVAILABLE);
+    expect(authed, AUTH_UNAVAILABLE).toBe(true);
   });
 
   test('homeowner can edit their own job', async ({ page }) => {
-    // Navigate to jobs list
-    await page.goto('/jobs');
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
-
-    // Find an "Edit" button or link
-    const editButton = page
-      .getByRole('link', { name: /edit/i })
-      .or(page.getByRole('button', { name: /edit/i }))
-      .first();
-    // The e2e seed creates no jobs, so there may be nothing to edit — a data
-    // gap, not a bug. When a job IS present the edit flow is asserted for real.
-    test.skip(
-      !(await editButton.isVisible().catch(() => false)),
-      'No seeded jobs to edit'
+    const id = fixtureJob('EDIT');
+    await page.goto('/jobs/' + id + '/edit');
+    const title = 'Synthetic edited job ' + Date.now();
+    await page.getByLabel(/job title/i).fill(title);
+    const requirement = 'Synthetic access requirement ' + Date.now();
+    await page.getByPlaceholder('Add a requirement...').fill(requirement);
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    const saved = page.waitForResponse(
+      (r) =>
+        r.url().endsWith('/api/jobs/' + id) && r.request().method() === 'PUT'
     );
-
-    // Test edit functionality
-    await editButton.click();
-    await page.waitForLoadState('domcontentloaded');
-
-    // Should be on edit page
-    await expect(page).toHaveURL(/edit/);
-
-    // Should see form with existing data
-    const titleInput = page.getByLabel(/title/i);
-    await expect(titleInput).toBeVisible({ timeout: 10000 });
-
-    // Verify it has a value (the existing job title)
-    const titleValue = await titleInput.inputValue();
-    expect(titleValue.length).toBeGreaterThan(0);
+    await page
+      .getByRole('button', { name: 'Save Changes', exact: true })
+      .click();
+    const response = await saved;
+    expect(response.ok(), await response.text()).toBe(true);
+    await page.goto('/jobs/' + id + '/edit');
+    await expect(page.getByLabel(/job title/i)).toHaveValue(title);
+    await expect(page.getByText(requirement, { exact: true })).toBeVisible();
+    const stored = await page.request.get('/api/jobs/' + id);
+    const body = await stored.json();
+    expect(body.job.requirements.preferred_start_date).toBe('2026-12-01');
   });
 
-  test('homeowner can delete their own job (if no bids)', async ({ page }) => {
-    // Navigate to jobs list
-    await page.goto('/jobs');
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
-
-    // Find a "Delete" button
-    const deleteButton = page
-      .getByRole('button', { name: /delete|remove/i })
-      .first();
-    // The e2e seed creates no jobs, so there may be nothing to delete.
-    test.skip(
-      !(await deleteButton.isVisible().catch(() => false)),
-      'No seeded jobs to delete'
+  test('homeowner can delete a dedicated unassigned job', async ({ page }) => {
+    const id = fixtureJob('DELETE');
+    await page.goto('/jobs/' + id + '/edit');
+    await page.getByRole('button', { name: 'Delete Job', exact: true }).click();
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toBeVisible();
+    const removed = page.waitForResponse(
+      (r) =>
+        r.url().endsWith('/api/jobs/' + id) && r.request().method() === 'DELETE'
     );
-
-    // Test delete functionality
-    await deleteButton.click();
-    await page.waitForTimeout(1000);
-
-    // A destructive action MUST surface a confirmation dialog — its absence is
-    // a real regression, so assert it rather than skipping.
-    const confirmButton = page.getByRole('button', {
-      name: /confirm|yes.*delete/i,
-    });
-    await expect(confirmButton).toBeVisible({ timeout: 5000 });
-
-    await confirmButton.click();
-    await waitForNetworkIdle(page);
-
-    // Should see success message
-    await expect(page.getByText(/deleted|removed/i)).toBeVisible({
-      timeout: 10000,
-    });
+    await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
+    const response = await removed;
+    expect(response.ok(), await response.text()).toBe(true);
+    const absent = await page.request.get('/api/jobs/' + id);
+    expect(absent.status()).toBe(404);
   });
 });

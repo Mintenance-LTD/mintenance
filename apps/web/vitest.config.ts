@@ -10,6 +10,11 @@ export default defineConfig({
   // tsconfig in the monorepo makes startup depend on filesystem traversal and
   // can resolve outside the repository in restricted/CI environments.
   root: configDirectory,
+  // Unit tests use synthetic setup values, never local deployment secrets.
+  envDir: false,
+  // Excluded test files otherwise fall back to the root Expo config. Vercel
+  // installs only web workspaces, so that mobile-only extends cannot resolve.
+  tsconfig: path.join(configDirectory, 'tsconfig.json'),
   plugins: [react()],
   test: {
     // Test environment
@@ -150,6 +155,10 @@ export default defineConfig({
       '@mintenance/types': path.resolve(
         configDirectory,
         '../../packages/types/src'
+      ),
+      '@mintenance/data-access': path.resolve(
+        configDirectory,
+        '../../packages/data-access/src'
       ),
       '@mintenance/auth': path.resolve(
         configDirectory,

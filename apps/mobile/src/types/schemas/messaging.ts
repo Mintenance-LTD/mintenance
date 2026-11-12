@@ -6,7 +6,7 @@ import { UUIDSchema, DateSchema } from './common';
 // ============================================================================
 
 const MessageTypeSchema = z.enum(['text', 'image', 'file', 'system'], {
-  errorMap: () => ({ message: 'Invalid message type' }),
+  error: () => ({ message: 'Invalid message type' }),
 });
 
 const MessageSchema = z.object({

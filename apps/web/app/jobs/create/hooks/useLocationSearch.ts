@@ -45,20 +45,6 @@ export function useLocationSearch({
   // component" warnings and stale results clobbering newer ones.
   const abortRef = useRef<AbortController | null>(null);
 
-  // Debounced address search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (location.trim().length >= 3) {
-        searchAddresses(location);
-      } else {
-        setSuggestions([]);
-        setShowSuggestions(false);
-      }
-    }, debounceMs);
-
-    return () => clearTimeout(timer);
-  }, [location, debounceMs]);
-
   // Abort any in-flight request on unmount.
   useEffect(() => {
     return () => {
@@ -108,6 +94,20 @@ export function useLocationSearch({
       }
     }
   }, []);
+
+  // Debounced address search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (location.trim().length >= 3) {
+        searchAddresses(location);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, debounceMs);
+
+    return () => { clearTimeout(timer); abortRef.current?.abort(); };
+  }, [location, debounceMs, searchAddresses]);
 
   const handleLocationSelect = useCallback((address: string) => {
     if (onLocationSelect) {
