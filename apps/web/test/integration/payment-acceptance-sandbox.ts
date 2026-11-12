@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { NextRequest } from 'next/server';
+import { CUSTOMER_TERMS_VERSION } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
 import { serverSupabase as db } from '@/lib/api/supabaseServer';
 import { createTestUser, createTestJob, createTestBid } from './fixtures';
@@ -79,9 +80,14 @@ export async function verifySandboxAcceptance() {
   });
   assert.equal(ownerSession.error, null);
   assert.equal(contractorSession.error, null);
-  const request = (url: string, role: 'owner' | 'contractor', body: unknown) =>
+  const request = (
+    url: string,
+    role: 'owner' | 'contractor',
+    body: unknown,
+    method: 'GET' | 'POST' = 'POST'
+  ) =>
     new NextRequest(`http://localhost${url}`, {
-      method: 'POST',
+      method,
       headers: {
         'content-type': 'application/json',
         authorization: `Bearer ${(role === 'owner' ? ownerSession : contractorSession).data.session!.access_token}`,
@@ -107,7 +113,7 @@ export async function verifySandboxAcceptance() {
     .eq('job_id', job.id)
     .single();
   assert.equal(contract.error, null);
-  const { POST: submit } = await import('@/app/api/contracts/route');
+  const { POST: submit, GET: review } = await import('@/app/api/contracts/route');
   const submitted = await submit(
     request('/api/contracts', 'contractor', {
       job_id: job.id,
@@ -128,8 +134,29 @@ export async function verifySandboxAcceptance() {
   );
   const { POST: sign } = await import('@/app/api/contracts/[id]/accept/route');
   for (const role of ['contractor', 'owner'] as const) {
+    // Read the same current agreement revision shown by the application before
+    // each synthetic signature. Signing changes the revision for the next party.
+    const reviewed = await review(
+      request(`/api/contracts?job_id=${job.id}`, role, undefined, 'GET'),
+      { params: Promise.resolve({}) }
+    );
+    const reviewBody = await reviewed.json();
+    assert.ok(reviewed.ok, `Contract review: ${JSON.stringify(reviewBody.error)}`);
+    const revision = reviewBody.contracts.find(
+      (row: { id: string }) => row.id === contract.data!.id
+    );
+    assert.ok(revision?.review_token, 'Current agreement review token required');
     const signed = await sign(
-      request(`/api/contracts/${contract.data!.id}/accept`, role, {}),
+      request(`/api/contracts/${contract.data!.id}/accept`, role, {
+        legalConsent: {
+          termsVersion: CUSTOMER_TERMS_VERSION,
+          termsAccepted: true,
+          expectedUpdatedAt: revision.updated_at,
+          expectedReviewToken: revision.review_token,
+          earlyStartRequested: role === 'owner',
+          fullPerformanceAcknowledged: false,
+        },
+      }),
       { params: Promise.resolve({ id: contract.data!.id }) }
     );
     const body = await signed.json();
