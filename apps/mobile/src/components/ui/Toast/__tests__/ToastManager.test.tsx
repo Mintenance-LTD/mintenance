@@ -600,18 +600,16 @@ describe('ToastManager Component', () => {
       expect(getByText('Custom Show')).toBeTruthy();
     });
 
-    it('should support dismiss method', async () => {
+    it('should support dismiss method', () => {
+      let dismissToast = () => {
+        throw new Error('Toast hook did not mount');
+      };
       const TestComponent = () => {
         const toast = useToast();
-        const [toastId, setToastId] = React.useState<string>('');
 
         React.useEffect(() => {
           const id = toast.success('Temporary');
-          setToastId(id);
-
-          setTimeout(() => {
-            toast.dismiss(id);
-          }, 100);
+          dismissToast = () => toast.dismiss(id);
         }, []);
 
         return null;
@@ -624,12 +622,9 @@ describe('ToastManager Component', () => {
         </>
       );
 
-      await waitFor(
-        () => {
-          expect(queryByText('Temporary')).toBeNull();
-        },
-        { timeout: 500 }
-      );
+      expect(queryByText('Temporary')).not.toBeNull();
+      act(() => dismissToast());
+      expect(queryByText('Temporary')).toBeNull();
     });
   });
 
