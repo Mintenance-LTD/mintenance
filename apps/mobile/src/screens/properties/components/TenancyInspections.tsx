@@ -1,3 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
+import { me } from '../../../design-system/mint-editorial';
+import { workspaceStyles as ws } from './PropertyWorkspaceUI';
 import React, { useState } from 'react';
 import {
   View,
@@ -216,6 +219,46 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
           }}
         />
       )}
+      <View style={{ marginVertical: 8 }}>
+        {INSPECTION_KINDS.map((option) => {
+          const disabled =
+            !folder || !reports.data?.canCreate || reports.isError || busy;
+          return (
+            <TouchableOpacity
+              key={option.value}
+              accessibilityRole='button'
+              accessibilityLabel={option.value === 'routine' ? option.label : option.label + ' inspection'}
+              accessibilityState={{ disabled }}
+              disabled={disabled}
+              style={ws.row}
+              onPress={() => {
+                if (disabled) return;
+                if (mode !== 'report') begin('report');
+                setKind(option.value);
+              }}
+            >
+              <Ionicons
+                name={
+                  option.value === 'routine'
+                    ? 'calendar-outline'
+                    : 'clipboard-outline'
+                }
+                size={23}
+                color={disabled ? me.ink3 : me.brand2}
+              />
+              <Text style={ws.rowText}>{option.label}</Text>
+              <Text style={ws.muted}>
+                {!folder
+                  ? 'Select tenancy first'
+                  : disabled
+                    ? 'View only'
+                    : 'Create'}
+              </Text>
+              <Ionicons name='chevron-forward' size={16} color={me.ink3} />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
       {folder && (
         <View>
           {reports.isLoading && (

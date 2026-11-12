@@ -70,12 +70,12 @@ const MODES: { key: AccessMode; label: string; sub: string }[] = [
     // 2026-05-23 audit: per-contractor one-time-code feature isn't
     // built yet (no smart_lock_codes table / generation service).
     // Until it ships, smart-lock mode just means "instructions only".
-    sub: 'Instructions only — full integration coming soon.',
+    sub: 'Contractor uses your smart lock. Add instructions below.',
   },
   {
     key: 'in_person',
-    label: "You'll be home",
-    sub: 'Default — coordinate via the in-app chat.',
+    label: 'Meet on site',
+    sub: 'You or a contact will meet the contractor at the property.',
   },
 ];
 
@@ -90,6 +90,7 @@ export const PropertyAccessSection: React.FC<Props> = ({
     (initial.access_mode as AccessMode | null) ?? null
   );
   const [code, setCode] = useState<string>(initial.key_safe_code ?? '');
+  const [utilitiesOpen, setUtilitiesOpen] = useState(true);
   const [notes, setNotes] = useState<string>(initial.access_notes ?? '');
   const [stopcock, setStopcock] = useState<string>(
     initial.stopcock_location ?? ''
@@ -203,7 +204,7 @@ export const PropertyAccessSection: React.FC<Props> = ({
             <Ionicons name='key-outline' size={18} color={me.brand} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Access & contacts</Text>
+            <Text style={styles.title}>Contractor access</Text>
             <Text style={styles.subtitle}>
               How contractors get in + where the key utilities are.
             </Text>
@@ -280,32 +281,53 @@ export const PropertyAccessSection: React.FC<Props> = ({
         maxLength={2000}
       />
 
-      <Text style={styles.sectionLabel}>Utility locations (optional)</Text>
-      <TextInput
-        value={stopcock}
-        onChangeText={setStopcock}
-        placeholder='Stopcock location'
-        placeholderTextColor={me.ink3}
-        style={styles.input}
-        maxLength={500}
-      />
-      <TextInput
-        value={gas}
-        onChangeText={setGas}
-        placeholder='Gas isolator location'
-        placeholderTextColor={me.ink3}
-        style={styles.input}
-        maxLength={500}
-      />
-      <TextInput
-        value={consumer}
-        onChangeText={setConsumer}
-        placeholder='Consumer unit location'
-        placeholderTextColor={me.ink3}
-        style={styles.input}
-        maxLength={500}
-      />
-
+      <Text style={[styles.subtitle, { textAlign: 'right' }]}>
+        {notes.length} / 2000
+      </Text>
+      <TouchableOpacity
+        accessibilityRole='button'
+        accessibilityState={{ expanded: utilitiesOpen }}
+        onPress={() => setUtilitiesOpen(!utilitiesOpen)}
+        style={styles.headerRow}
+      >
+        <Text style={[styles.title, { flex: 1 }]}>Utility locations</Text>
+        <Ionicons
+          name={utilitiesOpen ? 'chevron-up' : 'chevron-down'}
+          size={22}
+          color={me.ink2}
+        />
+      </TouchableOpacity>
+      {utilitiesOpen && (
+        <>
+          <TextInput
+            value={stopcock}
+            onChangeText={setStopcock}
+            placeholder='Stopcock location'
+            placeholderTextColor={me.ink3}
+            accessibilityLabel='Water stopcock location'
+            style={styles.input}
+            maxLength={500}
+          />
+          <TextInput
+            value={gas}
+            onChangeText={setGas}
+            placeholder='Gas isolator location'
+            accessibilityLabel='Gas isolator location'
+            placeholderTextColor={me.ink3}
+            style={styles.input}
+            maxLength={500}
+          />
+          <TextInput
+            value={consumer}
+            onChangeText={setConsumer}
+            placeholder='Consumer unit location'
+            accessibilityLabel='Consumer unit location'
+            placeholderTextColor={me.ink3}
+            style={styles.input}
+            maxLength={500}
+          />
+        </>
+      )}
       <TouchableOpacity
         style={[
           styles.saveBtn,

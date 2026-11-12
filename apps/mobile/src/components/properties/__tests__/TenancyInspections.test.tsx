@@ -151,3 +151,20 @@ it('edits the selected tenancy with optimistic revision', async () => {
     )
   );
 });
+
+it('keeps inspection shortcuts disabled until a tenancy is selected and preserves a draft when changing kind', async () => {
+  const ui = show();
+  await ui.findByText('New tenancy folder');
+  fireEvent.press(ui.getByLabelText('Check-out inspection'));
+  expect(ui.queryByLabelText('Report title')).toBeNull();
+  fireEvent.press(ui.getByLabelText('Tenancy folder: Choose a tenancy'));
+  fireEvent.press(ui.getByText('Tenancy 2026 · 2026-01-01'));
+  await ui.findByText('New inspection');
+  fireEvent.press(ui.getByLabelText('Check-in inspection'));
+  fireEvent.changeText(ui.getByLabelText('Report title'), 'Keep my draft');
+  fireEvent.changeText(ui.getByLabelText('Inspection date (YYYY-MM-DD)'), '2026-11-12');
+  fireEvent.press(ui.getByLabelText('Check-out inspection'));
+  expect(ui.getByLabelText('Report title').props.value).toBe('Keep my draft');
+  fireEvent.press(ui.getByText('Save shared report'));
+  await waitFor(() => expect(mobileApiClient.post).toHaveBeenCalledWith('/api/properties/property/inspections', expect.objectContaining({ folder_id: 'folder', kind: 'check_out', title: 'Keep my draft' })));
+});

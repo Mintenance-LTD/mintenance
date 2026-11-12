@@ -1,6 +1,11 @@
 /**
  * EditPropertyScreen - Edit an existing property's details
  */
+import { PropertyChoice } from '../../components/properties/PropertyChoice';
+import {
+  PropertySegments,
+  workspaceStyles as ws,
+} from './components/PropertyWorkspaceUI';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -65,6 +70,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
   const [bedrooms, setBedrooms] = useState('');
   const [bathrooms, setBathrooms] = useState('');
   const [yearBuilt, setYearBuilt] = useState('');
+  const [areaUnit, setAreaUnit] = React.useState<'sqft' | 'sqm'>('sqft');
   const [squareFootage, setSquareFootage] = useState('');
   // 2026-05-27 audit-74 P1: removed dead notes state — `properties`
   // has no notes column; the create/PUT payloads never sent it; the
@@ -121,6 +127,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
       setYearBuilt(
         property.year_built != null ? String(property.year_built) : ''
       );
+      setAreaUnit('sqft');
       setSquareFootage(
         property.square_footage != null ? String(property.square_footage) : ''
       );
@@ -138,7 +145,11 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
         bedrooms: bedrooms ? parseInt(bedrooms, 10) : null,
         bathrooms: bathrooms ? parseInt(bathrooms, 10) : null,
         yearBuilt: yearBuilt ? parseInt(yearBuilt, 10) : null,
-        squareFeet: squareFootage ? parseInt(squareFootage, 10) : null,
+        squareFeet: squareFootage
+          ? Math.round(
+              Number(squareFootage) * (areaUnit === 'sqm' ? 10.7639104167 : 1)
+            )
+          : null,
       });
     },
     onSuccess: () => {
@@ -160,13 +171,24 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
   const handleSubmit = () => {
     if (updateMutation.isPending) return;
     if (
-      [bedrooms, bathrooms, yearBuilt, squareFootage].some(
+      [bedrooms, bathrooms, yearBuilt].some(
         (value) => value.trim() && !/^\d+$/.test(value.trim())
       )
     ) {
       Alert.alert(
         'Check property details',
         'Enter whole numbers of zero or more for rooms, year and floor area.'
+      );
+      return;
+    }
+    if (
+      squareFootage.trim() &&
+      (!/^\d+(\.\d+)?$/.test(squareFootage.trim()) ||
+        !Number.isFinite(Number(squareFootage)))
+    ) {
+      Alert.alert(
+        'Check floor area',
+        'Enter a positive floor area or leave it blank.'
       );
       return;
     }
@@ -220,11 +242,8 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.screenLabel}>
-        <Text style={styles.screenLabelText}>PROPERTY MANAGEMENT</Text>
-      </View>
       <ScreenHeader
-        title='Refine Details'
+        title='Edit property'
         showBack
         onBack={() => navigation.goBack()}
       />
@@ -237,25 +256,25 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps='handled'
         >
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>PROPERTY NAME</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={(v) => {
-                setName(v);
-                setHasEdits(true);
-              }}
-              placeholder='Property name'
-              placeholderTextColor={me.ink3}
-            />
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ADDRESS</Text>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Address *</Text>
+          <View style={{ gap: 20 }}>
+            <View>
+              <Text style={styles.label}>Name</Text>
               <TextInput
+                accessibilityLabel='Property name'
+                style={styles.input}
+                value={name}
+                onChangeText={(v) => {
+                  setName(v);
+                  setHasEdits(true);
+                }}
+                placeholder='Property name'
+                placeholderTextColor={me.ink3}
+              />
+            </View>
+            <View>
+              <Text style={styles.label}>Address</Text>
+              <TextInput
+                accessibilityLabel='Address'
                 style={styles.input}
                 value={address}
                 onChangeText={(v) => {
@@ -267,9 +286,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
               />
             </View>
             <View style={styles.row}>
-              <View style={[styles.inputGroup, styles.flex]}>
+              <View style={styles.flex}>
                 <Text style={styles.label}>City</Text>
                 <TextInput
+                  accessibilityLabel='City'
                   style={styles.input}
                   value={city}
                   onChangeText={(v) => {
@@ -281,9 +301,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                 />
               </View>
               <View style={styles.rowSpacer} />
-              <View style={[styles.inputGroup, styles.flex]}>
+              <View style={styles.flex}>
                 <Text style={styles.label}>Postcode</Text>
                 <TextInput
+                  accessibilityLabel='Postcode'
                   style={styles.input}
                   value={postcode}
                   onChangeText={(v) => {
@@ -296,94 +317,49 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                 />
               </View>
             </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>PROPERTY TYPE</Text>
-            <View style={styles.typeGrid}>
-              {PROPERTY_TYPES.map((type) => (
-                <TouchableOpacity
-                  key={type.value}
-                  style={[
-                    styles.typeChip,
-                    propertyType === type.value && styles.typeChipSelected,
-                  ]}
-                  onPress={() => {
-                    setPropertyType(type.value);
-                    setHasEdits(true);
-                  }}
-                >
-                  <Ionicons
-                    name={type.icon}
-                    size={18}
-                    color={propertyType === type.value ? me.onBrand : me.ink2}
-                  />
-                  <Text
-                    style={[
-                      styles.typeChipText,
-                      propertyType === type.value &&
-                        styles.typeChipTextSelected,
-                    ]}
-                  >
-                    {type.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View>
+              <Text style={styles.label}>Property type</Text>
+              <PropertyChoice
+                label='Property type'
+                value={propertyType}
+                options={PROPERTY_TYPES}
+                onChange={(v) => {
+                  setPropertyType(v);
+                  setHasEdits(true);
+                }}
+              />
             </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>PROPERTY SPECS</Text>
-            <View style={styles.specGrid}>
-              <View style={styles.specCard}>
-                <View
-                  style={[styles.specIconWrap, { backgroundColor: '#DBEAFE' }]}
-                >
-                  <Ionicons name='bed-outline' size={18} color='#3B82F6' />
-                </View>
-                <Text style={styles.specLabel}>Bedrooms</Text>
-                <TextInput
-                  style={styles.specInput}
+            <View style={styles.row}>
+              <View style={styles.flex}>
+                <Text style={styles.label}>Bedrooms</Text>
+                <RoomStepper
+                  label='Bedrooms'
                   value={bedrooms}
-                  onChangeText={(v) => {
+                  onChange={(v) => {
                     setBedrooms(v);
                     setHasEdits(true);
                   }}
-                  placeholder='0'
-                  placeholderTextColor={me.ink3}
-                  keyboardType='number-pad'
-                  textAlign='center'
                 />
               </View>
-              <View style={styles.specCard}>
-                <View
-                  style={[styles.specIconWrap, { backgroundColor: '#D1FAE5' }]}
-                >
-                  <Ionicons name='water-outline' size={18} color='#10B981' />
-                </View>
-                <Text style={styles.specLabel}>Bathrooms</Text>
-                <TextInput
-                  style={styles.specInput}
+              <View style={styles.rowSpacer} />
+              <View style={styles.flex}>
+                <Text style={styles.label}>Bathrooms</Text>
+                <RoomStepper
+                  label='Bathrooms'
                   value={bathrooms}
-                  onChangeText={(v) => {
+                  onChange={(v) => {
                     setBathrooms(v);
                     setHasEdits(true);
                   }}
-                  placeholder='0'
-                  placeholderTextColor={me.ink3}
-                  keyboardType='number-pad'
-                  textAlign='center'
                 />
               </View>
-              <View style={styles.specCard}>
-                <View
-                  style={[styles.specIconWrap, { backgroundColor: '#FEF3C7' }]}
-                >
-                  <Ionicons name='calendar-outline' size={18} color='#F59E0B' />
-                </View>
-                <Text style={styles.specLabel}>Year Built</Text>
+            </View>
+            <View style={styles.row}>
+              <View style={styles.flex}>
+                <Text style={styles.label}>Year built</Text>
                 <TextInput
-                  style={styles.specInput}
+                  accessibilityLabel='Year built'
+                  style={styles.input}
                   value={yearBuilt}
                   onChangeText={(v) => {
                     setYearBuilt(v);
@@ -392,36 +368,70 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                   placeholder='2005'
                   placeholderTextColor={me.ink3}
                   keyboardType='number-pad'
-                  textAlign='center'
                 />
               </View>
-              <View style={styles.specCard}>
-                <View
-                  style={[styles.specIconWrap, { backgroundColor: '#EDE9FE' }]}
-                >
-                  <Ionicons name='resize-outline' size={18} color='#8B5CF6' />
-                </View>
-                <Text style={styles.specLabel}>Size (sq ft)</Text>
+              <View style={styles.rowSpacer} />
+              <View style={styles.flex}>
+                <Text style={styles.label}>Floor area (optional)</Text>
                 <TextInput
-                  style={styles.specInput}
+                  accessibilityLabel='Floor area'
+                  style={styles.input}
                   value={squareFootage}
                   onChangeText={(v) => {
                     setSquareFootage(v);
                     setHasEdits(true);
                   }}
-                  placeholder='1200'
+                  placeholder={areaUnit === 'sqm' ? 'm²' : 'sq ft'}
                   placeholderTextColor={me.ink3}
-                  keyboardType='number-pad'
-                  textAlign='center'
+                  keyboardType='decimal-pad'
                 />
               </View>
             </View>
+            <PropertySegments
+              value={areaUnit}
+              options={[
+                { value: 'sqm', label: 'm²' },
+                { value: 'sqft', label: 'sq ft' },
+              ]}
+              onChange={(next) => {
+                if (next === areaUnit) return;
+                if (
+                  squareFootage.trim() &&
+                  !/^\d+(\.\d+)?$/.test(squareFootage.trim())
+                ) {
+                  Alert.alert(
+                    'Check floor area',
+                    'Enter a valid area before changing units.'
+                  );
+                  return;
+                }
+                if (squareFootage.trim())
+                  setSquareFootage(
+                    String(
+                      next === 'sqm'
+                        ? Math.round(
+                            (Number(squareFootage) / 10.7639104167) * 100
+                          ) / 100
+                        : Math.round(Number(squareFootage) * 10.7639104167)
+                    )
+                  );
+                setAreaUnit(next);
+              }}
+            />
           </View>
 
           {/* 2026-05-27 audit-74 P1: removed dead Notes section —
               `properties` has no notes column. Access instructions
               are captured on the Access tab. */}
 
+          <TouchableOpacity
+            style={ws.row}
+            accessibilityRole='button'
+            disabled={updateMutation.isPending}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={[ws.rowText, { textAlign: 'center' }]}>Cancel</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.submitButton,
@@ -440,8 +450,68 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
+function RoomStepper({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const number = /^\d+$/.test(value) ? Number(value) : 0;
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: me.line,
+        borderRadius: 12,
+        backgroundColor: me.surface,
+      }}
+    >
+      <TouchableOpacity
+        accessibilityRole='button'
+        accessibilityLabel={'Decrease ' + label.toLowerCase()}
+        disabled={number <= 0}
+        onPress={() => onChange(String(Math.max(0, number - 1)))}
+        style={ws.iconButton}
+      >
+        <Ionicons
+          name='remove'
+          size={20}
+          color={number <= 0 ? me.ink4 : me.brand2}
+        />
+      </TouchableOpacity>
+      <TextInput
+        accessibilityLabel={label}
+        value={value}
+        onChangeText={onChange}
+        keyboardType='number-pad'
+        placeholder='0'
+        style={{
+          flex: 1,
+          minWidth: 24,
+          textAlign: 'center',
+          color: me.ink,
+          fontWeight: '700',
+          fontSize: 18,
+        }}
+      />
+      <TouchableOpacity
+        accessibilityRole='button'
+        accessibilityLabel={'Increase ' + label.toLowerCase()}
+        onPress={() => onChange(String(number + 1))}
+        style={ws.iconButton}
+      >
+        <Ionicons name='add' size={20} color={me.brand2} />
+      </TouchableOpacity>
+    </View>
+  );
+}
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: me.bg2 },
+  container: { flex: 1, backgroundColor: me.bg },
   flex: { flex: 1 },
   content: { padding: 16, paddingBottom: 32 },
   screenLabel: {
@@ -481,10 +551,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   input: {
-    backgroundColor: me.bg2,
-    borderRadius: 16,
+    backgroundColor: me.surface,
+    borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
+    minHeight: 48,
     fontSize: 15,
     color: me.ink,
     borderWidth: 1,
@@ -550,8 +621,8 @@ const styles = StyleSheet.create({
     borderColor: me.line,
   },
   submitButton: {
-    backgroundColor: me.ink,
-    borderRadius: 28,
+    backgroundColor: me.brand2,
+    borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
