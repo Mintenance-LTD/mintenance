@@ -251,6 +251,9 @@ export class ApiProtectionService {
   }
 
   dispose(): void {
+    for (const timer of this.cleanupTimers) clearInterval(timer);
+    this.cleanupTimers = [];
+    this.ddosDetector.dispose();
     this.rateLimitGuard.dispose();
     this.requestHistory.clear();
     this.blockedIPs.clear();

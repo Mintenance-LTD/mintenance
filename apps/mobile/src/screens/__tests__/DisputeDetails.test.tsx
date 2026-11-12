@@ -1,7 +1,8 @@
 import React from 'react';
 import { Alert, Linking } from 'react-native';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { TrackedQueryClient as QueryClient } from '../../__tests__/setup/TrackedQueryClient';
 import { DisputeDetailsScreen } from '../DisputeDetailsScreen';
 import { readDispute, safeEvidenceUrl } from '../../services/DisputeReader';
 import { PaymentCard } from '../payment/components/PaymentHistoryCard';

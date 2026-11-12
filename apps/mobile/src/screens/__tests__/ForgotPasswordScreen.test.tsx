@@ -2,7 +2,8 @@ import React from 'react';
 import { render, waitFor, fireEvent } from '../..//test-utils';
 import ForgotPasswordScreen from '../ForgotPasswordScreen';
 import { NavigationContainer } from '@react-navigation/native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { TrackedQueryClient as QueryClient } from '../../__tests__/setup/TrackedQueryClient';
 
 jest.mock('expo-screen-capture', () => ({
   preventScreenCaptureAsync: jest.fn(() => Promise.resolve()),

@@ -3,7 +3,8 @@ import {
   render as rtlRender,
   RenderOptions,
 } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { TrackedQueryClient as QueryClient } from './setup/TrackedQueryClient';
 
 // Mock providers for testing - avoid importing real providers to prevent circular dependencies
 const MockProviders: React.FC<{ children: React.ReactNode }> = ({

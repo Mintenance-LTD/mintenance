@@ -6,6 +6,7 @@ import { serverSupabase as db } from '@/lib/api/supabaseServer';
 import { createTestUser, createTestJob, createTestBid } from './fixtures';
 import { createAnonClient } from './supabase-test-client';
 import { handleAccountUpdated } from '@/lib/services/stripe-webhook/checkout-handlers';
+import { waitForSandboxAccount } from './sandbox-account-readiness';
 
 /** Actual route-to-provider check. Never run with a hosted DB or live key. */
 export async function verifySandboxAcceptance() {
@@ -58,7 +59,7 @@ export async function verifySandboxAcceptance() {
     tos_acceptance: { date: Math.floor(Date.now() / 1000), ip: '127.0.0.1' },
     metadata: { readiness: 'phase6', contractor_id: contractor.id },
   });
-  const current = await stripe.accounts.retrieve(account.id);
+  const current = await waitForSandboxAccount(account.id, true);
   assert.equal(
     current.payouts_enabled,
     true,

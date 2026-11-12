@@ -3,7 +3,8 @@ import { render, waitFor, fireEvent } from '../..//test-utils';
 // MeetingDetailsScreen is a default export.
 import MeetingDetailsScreen from '../MeetingDetailsScreen';
 import { NavigationContainer } from '@react-navigation/native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { TrackedQueryClient as QueryClient } from '../../__tests__/setup/TrackedQueryClient';
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
