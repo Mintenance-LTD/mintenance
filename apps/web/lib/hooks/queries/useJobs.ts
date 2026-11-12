@@ -13,7 +13,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query-client';
-import type { Job, JobDetail, JobSummary } from '@mintenance/types';
+import type { JobDetail, JobSummary } from '@mintenance/types';
 import { logger } from '@mintenance/shared';
 
 /**

@@ -7,12 +7,7 @@ import {
   isLearnedFeaturesEnabled,
   getLearnedFeatureExtractor,
 } from '../initialization/BuildingSurveyorInitializationService';
-import type {
-  AssessmentContext,
-  Phase1BuildingAssessment,
-  RoboflowDetection,
-  VisionAnalysisSummary,
-} from '../types';
+import type { AssessmentContext, RoboflowDetection, VisionAnalysisSummary } from '../types';
 import type { DamageTypeSegmentation } from '../SAM3Service';
 import type { MemoryQueryResult } from '../../ml-engine/memory/types';
 

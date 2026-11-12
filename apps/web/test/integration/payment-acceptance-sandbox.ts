@@ -9,8 +9,23 @@ import { createAnonClient } from './supabase-test-client';
 import { handleAccountUpdated } from '@/lib/services/stripe-webhook/checkout-handlers';
 import { waitForSandboxAccount } from './sandbox-account-readiness';
 
+export interface SandboxJourney {
+  jobId: string;
+  ownerId: string;
+  contractorId: string;
+  accountId: string;
+  request: (
+    url: string,
+    role: 'owner' | 'contractor',
+    body: unknown,
+    method?: 'GET' | 'POST'
+  ) => NextRequest;
+}
+
 /** Actual route-to-provider check. Never run with a hosted DB or live key. */
-export async function verifySandboxAcceptance() {
+export async function verifySandboxAcceptance(
+  continueJourney?: (journey: SandboxJourney) => Promise<void>
+) {
   assert.equal(process.env.NEXT_PUBLIC_SUPABASE_URL, 'http://127.0.0.1:57321');
   assert.ok(process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_'));
   const owner = await createTestUser({ role: 'homeowner' });
@@ -96,106 +111,124 @@ export async function verifySandboxAcceptance() {
       },
       body: JSON.stringify(body),
     });
-  const { POST: accept } =
-    await import('@/app/api/jobs/[id]/bids/[bidId]/accept/route');
-  const accepted = await accept(
-    request(`/api/jobs/${job.id}/bids/${bid.id}/accept`, 'owner', {}),
-    { params: Promise.resolve({ id: job.id, bidId: bid.id }) }
-  );
-  const acceptedBody = await accepted.json();
-  assert.ok(
-    accepted.ok,
-    `Bid acceptance: ${JSON.stringify(acceptedBody.error)}`
-  );
-  const contract = await db
-    .from('contracts')
-    .select('id')
-    .eq('job_id', job.id)
-    .single();
-  assert.equal(contract.error, null);
-  const { POST: submit, GET: review } = await import('@/app/api/contracts/route');
-  const submitted = await submit(
-    request('/api/contracts', 'contractor', {
-      job_id: job.id,
-      amount: 5,
-      title: 'Synthetic agreed plumbing work',
-      description: 'Synthetic payment readiness agreement',
-      contractor_company_name: 'Readiness Test Plumbing',
-      contractor_license_registration: 'READINESS-TEST',
-      start_date: new Date(Date.now() + 86400000).toISOString(),
-      end_date: new Date(Date.now() + 172800000).toISOString(),
-    }),
-    { params: Promise.resolve({}) }
-  );
-  const submittedBody = await submitted.json();
-  assert.ok(
-    submitted.ok,
-    `Contract submission: ${JSON.stringify(submittedBody.error)}`
-  );
-  const { POST: sign } = await import('@/app/api/contracts/[id]/accept/route');
-  for (const role of ['contractor', 'owner'] as const) {
-    // Read the same current agreement revision shown by the application before
-    // each synthetic signature. Signing changes the revision for the next party.
-    const reviewed = await review(
-      request(`/api/contracts?job_id=${job.id}`, role, undefined, 'GET'),
+  try {
+    const { POST: accept } =
+      await import('@/app/api/jobs/[id]/bids/[bidId]/accept/route');
+    const accepted = await accept(
+      request(`/api/jobs/${job.id}/bids/${bid.id}/accept`, 'owner', {}),
+      { params: Promise.resolve({ id: job.id, bidId: bid.id }) }
+    );
+    const acceptedBody = await accepted.json();
+    assert.ok(
+      accepted.ok,
+      `Bid acceptance: ${JSON.stringify(acceptedBody.error)}`
+    );
+    const contract = await db
+      .from('contracts')
+      .select('id')
+      .eq('job_id', job.id)
+      .single();
+    assert.equal(contract.error, null);
+    const { POST: submit, GET: review } =
+      await import('@/app/api/contracts/route');
+    const submitted = await submit(
+      request('/api/contracts', 'contractor', {
+        job_id: job.id,
+        amount: 5,
+        title: 'Synthetic agreed plumbing work',
+        description: 'Synthetic payment readiness agreement',
+        contractor_company_name: 'Readiness Test Plumbing',
+        contractor_license_registration: 'READINESS-TEST',
+        start_date: new Date(Date.now() + 86400000).toISOString(),
+        end_date: new Date(Date.now() + 172800000).toISOString(),
+      }),
       { params: Promise.resolve({}) }
     );
-    const reviewBody = await reviewed.json();
-    assert.ok(reviewed.ok, `Contract review: ${JSON.stringify(reviewBody.error)}`);
-    const revision = reviewBody.contracts.find(
-      (row: { id: string }) => row.id === contract.data!.id
+    const submittedBody = await submitted.json();
+    assert.ok(
+      submitted.ok,
+      `Contract submission: ${JSON.stringify(submittedBody.error)}`
     );
-    assert.ok(revision?.review_token, 'Current agreement review token required');
-    const signed = await sign(
-      request(`/api/contracts/${contract.data!.id}/accept`, role, {
-        legalConsent: {
-          termsVersion: CUSTOMER_TERMS_VERSION,
-          termsAccepted: true,
-          expectedUpdatedAt: revision.updated_at,
-          expectedReviewToken: revision.review_token,
-          earlyStartRequested: role === 'owner',
-          fullPerformanceAcknowledged: false,
-        },
+    const { POST: sign } =
+      await import('@/app/api/contracts/[id]/accept/route');
+    for (const role of ['contractor', 'owner'] as const) {
+      // Read the same current agreement revision shown by the application before
+      // each synthetic signature. Signing changes the revision for the next party.
+      const reviewed = await review(
+        request(`/api/contracts?job_id=${job.id}`, role, undefined, 'GET'),
+        { params: Promise.resolve({}) }
+      );
+      const reviewBody = await reviewed.json();
+      assert.ok(
+        reviewed.ok,
+        `Contract review: ${JSON.stringify(reviewBody.error)}`
+      );
+      const revision = reviewBody.contracts.find(
+        (row: { id: string }) => row.id === contract.data!.id
+      );
+      assert.ok(
+        revision?.review_token,
+        'Current agreement review token required'
+      );
+      const signed = await sign(
+        request(`/api/contracts/${contract.data!.id}/accept`, role, {
+          legalConsent: {
+            termsVersion: CUSTOMER_TERMS_VERSION,
+            termsAccepted: true,
+            expectedUpdatedAt: revision.updated_at,
+            expectedReviewToken: revision.review_token,
+            earlyStartRequested: role === 'owner',
+            fullPerformanceAcknowledged: false,
+          },
+        }),
+        { params: Promise.resolve({ id: contract.data!.id }) }
+      );
+      const body = await signed.json();
+      assert.ok(signed.ok, `${role} signature: ${JSON.stringify(body.error)}`);
+    }
+    const { POST: pay } =
+      await import('@/app/api/payments/process-job-payment/route');
+    const card = await stripe.paymentMethods.create({
+      type: 'card',
+      card: { token: 'tok_bypassPendingInternational' },
+    });
+    const paid = await pay(
+      request('/api/payments/process-job-payment', 'owner', {
+        jobId: job.id,
+        amount: 5,
+        paymentMethodId: card.id,
       }),
-      { params: Promise.resolve({ id: contract.data!.id }) }
+      { params: Promise.resolve({}) }
     );
-    const body = await signed.json();
-    assert.ok(signed.ok, `${role} signature: ${JSON.stringify(body.error)}`);
-  }
-  const { POST: pay } =
-    await import('@/app/api/payments/process-job-payment/route');
-  const card = await stripe.paymentMethods.create({
-    type: 'card',
-    card: { token: 'tok_bypassPendingInternational' },
-  });
-  const paid = await pay(
-    request('/api/payments/process-job-payment', 'owner', {
+    const payment = await paid.json();
+    assert.ok(
+      paid.ok && payment.success,
+      `Payment: ${JSON.stringify(payment.error)}`
+    );
+    assert.equal(
+      (await db.from('jobs').select('payment_status').eq('id', job.id).single())
+        .data?.payment_status,
+      'paid'
+    );
+    assert.equal(
+      (
+        await db
+          .from('escrow_transactions')
+          .select('status')
+          .eq('job_id', job.id)
+          .single()
+      ).data?.status,
+      'held'
+    );
+    await continueJourney?.({
       jobId: job.id,
-      amount: 5,
-      paymentMethodId: card.id,
-    }),
-    { params: Promise.resolve({}) }
-  );
-  const payment = await paid.json();
-  assert.ok(
-    paid.ok && payment.success,
-    `Payment: ${JSON.stringify(payment.error)}`
-  );
-  assert.equal(
-    (await db.from('jobs').select('payment_status').eq('id', job.id).single())
-      .data?.payment_status,
-    'paid'
-  );
-  assert.equal(
-    (
-      await db
-        .from('escrow_transactions')
-        .select('status')
-        .eq('job_id', job.id)
-        .single()
-    ).data?.status,
-    'held'
-  );
-  await ownerAuth.auth.signOut();
-  await contractorAuth.auth.signOut();
+      ownerId: owner.id,
+      contractorId: contractor.id,
+      accountId: account.id,
+      request,
+    });
+  } finally {
+    await ownerAuth.auth.signOut();
+    await contractorAuth.auth.signOut();
+  }
 }

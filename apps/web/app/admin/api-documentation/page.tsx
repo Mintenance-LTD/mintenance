@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Code, Server, Activity, Globe, Zap } from 'lucide-react';
+import { Server, Activity, Globe, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import {

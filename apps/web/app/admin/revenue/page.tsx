@@ -3,20 +3,9 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import {
-  PoundSterling,
-  TrendingUp,
-  Users,
-  Briefcase,
-  Download,
-  Calendar,
-  Filter,
-  CreditCard,
-  ArrowDownRight,
-  Loader2,
-} from 'lucide-react';
+import { PoundSterling, TrendingUp, Briefcase, Download, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
+import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
 import { RevenueTransactionsTable } from './components/RevenueTransactionsTable';
 // Dynamic imports for Tremor charts - lazy load heavy charting library

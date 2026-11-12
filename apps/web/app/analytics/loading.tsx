@@ -5,7 +5,13 @@
  * Optimized for dashboard layouts with charts and metrics.
  */
 
-import Skeleton, { SkeletonGroup } from '@/components/ui/Skeleton';
+/**
+ * Analytics Dashboard Loading State
+ *
+ * Displays skeleton loaders while analytics data is being fetched.
+ * Optimized for dashboard layouts with charts and metrics.
+ */
+import Skeleton from '@/components/ui/Skeleton';
 
 export default function AnalyticsLoading() {
   return (

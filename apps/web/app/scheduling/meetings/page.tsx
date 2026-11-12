@@ -5,7 +5,7 @@ import { logger } from '@mintenance/shared';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import Link from 'next/link';
 import { User } from '@mintenance/types';
-import { Calendar, Clock, MapPin, Video, Plus, User as UserIcon, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { MeetingScheduler, ContractorMeeting } from './components/MeetingScheduler';
 import { MeetingList } from './components/MeetingList';
 import toast from 'react-hot-toast';

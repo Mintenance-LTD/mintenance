@@ -37,37 +37,7 @@ export class ImageAnalyzer {
 
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      const fileSize = buffer.byteLength;
-
-      // Get metadata (resolution)
-      const image = sharp(buffer);
-      const metadata = await image.metadata();
-      const width = metadata.width || 0;
-      const height = metadata.height || 0;
-
-      // Calculate brightness: mean of grayscale pixel values, normalised to 0-1
-      const { channels } = await image.greyscale().stats();
-      const meanBrightness = channels[0]?.mean ?? 128;
-      const brightness = meanBrightness / 255;
-
-      // Calculate sharpness via Laplacian variance:
-      // Apply a Laplacian-like edge detection kernel, then measure the variance
-      // of the output. Higher variance = sharper image.
-      const laplacianStats = await sharp(buffer)
-        .greyscale()
-        .convolve({
-          width: 3,
-          height: 3,
-          kernel: [0, 1, 0, 1, -4, 1, 0, 1, 0],
-        })
-        .stats();
-
-      // Standard deviation of edge response; normalise to 0-1 range.
-      // Empirically, stdev > 30 is sharp, < 10 is blurry.
-      const edgeStdev = laplacianStats.channels[0]?.stdev ?? 0;
-      const sharpness = Math.min(1, edgeStdev / 50);
-
-      return { brightness, sharpness, resolution: { width, height }, fileSize };
+      return await this.getImageInfoFromBuffer(buffer);
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         logger.warn('Image fetch timeout', {
@@ -88,6 +58,44 @@ export class ImageAnalyzer {
         resolution: { width: 0, height: 0 },
       };
     }
+  }
+
+  /** Analyze validated upload bytes without downloading the same private object. */
+  static async getImageInfoFromBuffer(buffer: Buffer): Promise<ImageInfo> {
+    if (!buffer.length || buffer.length > 10 * 1024 * 1024) {
+      throw new Error('Image must contain between 1 byte and 10 MB');
+    }
+    const fileSize = buffer.byteLength;
+
+    // Get metadata (resolution)
+    const image = sharp(buffer);
+    const metadata = await image.metadata();
+    const width = metadata.width || 0;
+    const height = metadata.height || 0;
+
+    // Calculate brightness: mean of grayscale pixel values, normalised to 0-1
+    const { channels } = await image.greyscale().stats();
+    const meanBrightness = channels[0]?.mean ?? 128;
+    const brightness = meanBrightness / 255;
+
+    // Calculate sharpness via Laplacian variance:
+    // Apply a Laplacian-like edge detection kernel, then measure the variance
+    // of the output. Higher variance = sharper image.
+    const laplacianStats = await sharp(buffer)
+      .greyscale()
+      .convolve({
+        width: 3,
+        height: 3,
+        kernel: [0, 1, 0, 1, -4, 1, 0, 1, 0],
+      })
+      .stats();
+
+    // Standard deviation of edge response; normalise to 0-1 range.
+    // Empirically, stdev > 30 is sharp, < 10 is blurry.
+    const edgeStdev = laplacianStats.channels[0]?.stdev ?? 0;
+    const sharpness = Math.min(1, edgeStdev / 50);
+
+    return { brightness, sharpness, resolution: { width, height }, fileSize };
   }
 
   static async compareWithAI(

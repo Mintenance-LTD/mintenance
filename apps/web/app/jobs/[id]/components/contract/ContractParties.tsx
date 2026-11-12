@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { User, Shield } from 'lucide-react';
-import type { Contract } from './useContractData';
+
 
 interface ContractPartiesProps {
   contractorName: string;

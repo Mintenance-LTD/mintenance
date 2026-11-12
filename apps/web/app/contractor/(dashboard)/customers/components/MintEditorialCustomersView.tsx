@@ -17,7 +17,7 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Star, Users, FileText, Briefcase, PoundSterling } from 'lucide-react';
+import { Star, Users } from 'lucide-react';
 
 export type CustomerStage = 'lead' | 'quoting' | 'active' | 'done';
 

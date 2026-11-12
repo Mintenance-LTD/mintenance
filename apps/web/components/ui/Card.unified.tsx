@@ -7,12 +7,7 @@ import {
   CardContent,
   CardFooter,
 } from '@mintenance/shared-ui';
-import {
-  CardBase,
-  type CardProps,
-  type CardVariant,
-  type CardPadding,
-} from './Card.unified.base';
+import { CardBase } from './Card.unified.base';
 import { MetricCard } from './Card.unified.metric';
 import { ProgressCard } from './Card.unified.progress';
 import { DashboardCard } from './Card.unified.dashboard';

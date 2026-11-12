@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import { NotFoundError } from '@/lib/errors/api-error';
 // 2026-05-27 whole-app review Critical #3: was `new Stripe(env.STRIPE_SECRET_KEY)`
 // with no apiVersion, defaulting to whatever the installed SDK picked.
 // Swap to the shared lazy proxy so the API version stays pinned at

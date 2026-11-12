@@ -18,8 +18,8 @@
 import { logger } from '@mintenance/shared';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import type { DamageTypeSegmentation } from './SAM3Service';
-import type { Phase1BuildingAssessment } from './types';
+
+
 import type { SceneGraphFeatures } from './scene_graph_features';
 import { getActiveDomain } from './config/BuildingSurveyorConfig';
 

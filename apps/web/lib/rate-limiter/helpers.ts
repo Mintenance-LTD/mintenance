@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server';
-import { getUserTier, type RateLimitTier } from '../constants/rate-limits';
+import { type RateLimitTier } from '../constants/rate-limits';
 import { getClientIp } from '../request-ip';
 import type { RateLimitResult } from './index';
 

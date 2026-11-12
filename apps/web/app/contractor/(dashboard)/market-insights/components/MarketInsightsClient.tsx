@@ -20,13 +20,7 @@ import {
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Icon } from '@/components/ui/Icon';
-import type {
-  MarketInsights,
-  PricingTrend,
-  DemandForecast,
-  MarketAnalysis,
-  SeasonalTrend,
-} from '@/lib/services/MarketInsightsService';
+import type { MarketInsights } from '@/lib/services/MarketInsightsService';
 
 interface MarketInsightsClientProps {
   insights: MarketInsights;

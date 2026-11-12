@@ -6,7 +6,7 @@ import {
   PLATFORM_FEE_RATE_BY_TIER,
   formatPlatformFeePercent,
 } from '@mintenance/shared';
-import { Check, X, Shield, HelpCircle, TrendingUp } from 'lucide-react';
+import { Check, X, Shield, HelpCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   MotionButton,
@@ -22,7 +22,7 @@ import {
   getContractorPlans,
   PRICING_FAQS,
 } from './pricing-plans';
-import type { PricingPlan } from './pricing-plans';
+
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },

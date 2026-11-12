@@ -5,7 +5,13 @@
  * Maintains security-conscious UI appearance during loading.
  */
 
-import Skeleton, { SkeletonGroup, SkeletonText  } from '@/components/ui/Skeleton';
+/**
+ * Multi-Factor Authentication Settings Loading State
+ *
+ * Displays skeleton loaders while MFA settings are being fetched.
+ * Maintains security-conscious UI appearance during loading.
+ */
+import Skeleton, { SkeletonGroup } from '@/components/ui/Skeleton';
 
 export default function MFASettingsLoading() {
   return (

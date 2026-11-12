@@ -1,17 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Plus,
-  User,
-  Phone,
-  Mail,
-  Building2,
-  Key,
-  AlertCircle,
-  Users,
-  X,
-} from 'lucide-react';
+import { Plus, User, Phone, Mail, Key, AlertCircle, Users, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 

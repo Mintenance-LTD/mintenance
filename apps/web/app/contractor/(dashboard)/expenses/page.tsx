@@ -2,21 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import {
-  PoundSterling,
-  Plus,
-  Download,
-  Calendar,
-  ReceiptPoundSterling,
-  Tag,
-  TrendingUp,
-  TrendingDown,
-  Edit,
-  Trash2,
-  Search,
-  FileText,
-  Loader2,
-} from 'lucide-react';
+import { Plus, Download, Calendar, ReceiptPoundSterling, Trash2, Search, Loader2 } from 'lucide-react';
 
 // AUDIT_PUNCH_LIST P2 #64 (A2-P2-6) — `@tremor/react` ships ~200KB
 // gzipped (Recharts under the hood). Static-importing it pulled the

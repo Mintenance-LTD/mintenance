@@ -4,7 +4,7 @@ import React, { useCallback } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { AnimatePresence } from 'framer-motion';;
-import { fadeIn, scaleIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
+import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 
 interface DragDropUpload2025Props {

@@ -9,7 +9,7 @@
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
-import type { MemoryLevel } from '../ml-engine/memory/types';
+
 
 /**
  * Adaptive update configuration

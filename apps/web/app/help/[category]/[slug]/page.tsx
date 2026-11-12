@@ -10,11 +10,7 @@ export const metadata: Metadata = {
 };
 import { PublicLayout } from '@/app/components/layouts/PublicLayout';
 import { theme } from '@/lib/theme';
-import {
-  helpCategories,
-  type Article,
-  type Category,
-} from '../../lib/categories/index';
+import { type Article } from '../../lib/categories/index';
 import {
   findArticleBySlug,
   generateSlug,

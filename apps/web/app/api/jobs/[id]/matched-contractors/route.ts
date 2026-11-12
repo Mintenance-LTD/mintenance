@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { geocodeJobLocation } from '@/lib/services/matching/geocode-job-location';
 import { AIMatchingService } from '@/lib/services/AIMatchingService';
 import type { MatchingCriteria } from '@/lib/services/matching/types';
 import { logger } from '@mintenance/shared';
@@ -13,7 +14,7 @@ import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
  */
 export const GET = withApiHandler(
   { roles: ['homeowner'] },
-  async (request, { user, params }) => {
+  async (_request, { user, params }) => {
     const jobId = params.id;
 
     // Fetch job details
@@ -51,18 +52,8 @@ export const GET = withApiHandler(
       jobCoords = { latitude: storedLat, longitude: storedLng };
     } else if (job.location) {
       try {
-        const geocodeResponse = await fetch(
-          `${request.nextUrl.origin}/api/geocode?address=${encodeURIComponent(job.location)}`
-        );
-        if (geocodeResponse.ok) {
-          const geocodeData = await geocodeResponse.json();
-          if (geocodeData.latitude && geocodeData.longitude) {
-            jobCoords = {
-              latitude: geocodeData.latitude,
-              longitude: geocodeData.longitude,
-            };
-          }
-        }
+        const coordinates = await geocodeJobLocation(job.location);
+        if (coordinates) jobCoords = coordinates;
       } catch (err) {
         logger.error('Error geocoding job location', err, {
           service: 'jobs',

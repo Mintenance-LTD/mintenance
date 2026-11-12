@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { logger } from '@mintenance/shared';
 import { JobManagementTable } from './JobManagementTable';
-import type { Job, JobStats, JobsResponse } from './JobManagementTypes';
+import type { JobStats, JobsResponse } from './JobManagementTypes';
 import { STATUS_TABS, PAGE_SIZE } from './JobManagementTypes';
 
 const AUTO_REFRESH_INTERVAL = 30_000;

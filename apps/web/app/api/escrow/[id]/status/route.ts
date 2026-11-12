@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 

@@ -1,5 +1,5 @@
 'use client';
-import { Star, User, Briefcase, Calendar } from 'lucide-react';
+import { Star, User, Briefcase } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { staggerItem } from '@/lib/animations/variants';
 import { formatDistanceToNow } from 'date-fns';

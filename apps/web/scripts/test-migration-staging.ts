@@ -5,7 +5,11 @@
  * Tests all Phase 1 routes in staging environment with comprehensive checks
  */
 
-import axios, { AxiosResponse } from 'axios';
+/**
+ * Staging Environment Testing Script for Migrated Routes
+ * Tests all Phase 1 routes in staging environment with comprehensive checks
+ */
+import axios from 'axios';
 import { createHash } from 'crypto';
 import chalk from 'chalk';
 import Table from 'cli-table3';

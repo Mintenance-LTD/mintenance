@@ -2,7 +2,10 @@
  * Type definitions for SAM3-Enhanced Training Data Collection System
  */
 
-import type { Phase1BuildingAssessment, SAM3SegmentationData } from './types';
+/**
+ * Type definitions for SAM3-Enhanced Training Data Collection System
+ */
+import type { Phase1BuildingAssessment } from './types';
 
 // ============================================================================
 // GPT-4 Training Labels

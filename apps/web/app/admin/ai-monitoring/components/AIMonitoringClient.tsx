@@ -10,19 +10,7 @@ const LineChart = dynamic(() => import('@tremor/react').then(m => ({ default: m.
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { logger } from '@mintenance/shared';
-import {
-  Activity,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Brain,
-  RefreshCw,
-  Download,
-  Filter,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import { Activity, TrendingUp, AlertTriangle, CheckCircle, Brain, RefreshCw, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface OverviewMetrics {
   totalDecisions24h: number;

@@ -1,7 +1,4 @@
-import Skeleton, {
-  SkeletonText,
-  SkeletonButton,
-} from '@/components/ui/Skeleton';
+import Skeleton, { SkeletonText } from '@/components/ui/Skeleton';
 
 export default function ContractorDashboardLoading() {
   return (

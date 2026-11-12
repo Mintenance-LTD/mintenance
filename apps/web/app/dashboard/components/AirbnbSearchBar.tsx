@@ -1,26 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  Search,
-  Calendar,
-  Home,
-  MapPin,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  Wrench,
-  Briefcase,
-  Plus,
-  X,
-  Droplets,
-  Zap,
-  Hammer,
-  Paintbrush,
-  Sprout,
-  Snowflake,
-  Check,
-} from 'lucide-react';
+import { Search, Home, ChevronLeft, ChevronRight, Wrench, Plus, Droplets, Zap, Hammer, Paintbrush, Sprout, Snowflake, Check } from 'lucide-react';
 
 const CATEGORY_ICON_MAP: Record<string, React.ReactNode> = {
   droplets: <Droplets className='w-6 h-6' />,

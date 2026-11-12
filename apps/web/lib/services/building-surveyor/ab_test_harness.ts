@@ -16,12 +16,12 @@ import { SafetyAnalysisService } from './SafetyAnalysisService';
 import { ContextFeatureService } from './ContextFeatureService';
 import { ImageQualityService } from './ImageQualityService';
 // Google Cloud Vision removed — GPT-4o handles visual analysis directly.
-import type { AssessmentContext, RoboflowDetection } from './types';
+
 import type { AITestResult, SafeLUCBResult } from './ab-test/ABTestTypes';
 import { DELTA_SAFETY } from './ab-test/ABTestConfig';
 import { mondrianConformalPrediction } from './ab-test/ABTestConformalPrediction';
 import { runSafeLUCBPolicy } from './ab-test/ABTestSafeLUCB';
-import { getOrCreateAssignment, logDecision, checkSeedSafeSet } from './ab-test/ABTestDatabase';
+import { getOrCreateAssignment, logDecision } from './ab-test/ABTestDatabase';
 import { getCalibrationData, getDomainShiftWeight } from './ab-test/ABTestCalibration';
 import { computeOODScore } from './ab-test/ABTestUtils';
 

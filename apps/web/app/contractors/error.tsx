@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { AlertTriangle, RefreshCw, Home, Users, Search } from 'lucide-react';
+import { RefreshCw, Home, Users, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
 

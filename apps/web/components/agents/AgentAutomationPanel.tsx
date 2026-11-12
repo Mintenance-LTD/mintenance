@@ -7,23 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
-import {
-  Bot,
-  Settings,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Activity,
-  TrendingUp,
-  DollarSign,
-  Calendar,
-  Shield,
-  MessageSquare,
-  FileCheck,
-  RefreshCw,
-  ToggleLeft,
-  ToggleRight
-} from 'lucide-react';
+import { Bot, CheckCircle, Activity, TrendingUp, DollarSign, Calendar, Shield, MessageSquare, RefreshCw } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import toast from 'react-hot-toast';
 

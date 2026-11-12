@@ -7,22 +7,7 @@ import Link from 'next/link';
 import { DashboardOnboarding } from '@/components/onboarding/OnboardingWrapper';
 import { ProfessionalRevenueChart } from './ProfessionalRevenueChart';
 import { ProfessionalJobsTable } from './ProfessionalJobsTable';
-import {
-  TrendingUp,
-  TrendingDown,
-  PoundSterling,
-  CheckCircle,
-  AlertCircle,
-  ArrowRight,
-  Calendar,
-  Zap,
-  FileText,
-  Search,
-  Upload,
-  MessageSquare,
-  BarChart3,
-  Activity,
-} from 'lucide-react';
+import { TrendingUp, TrendingDown, PoundSterling, CheckCircle, AlertCircle, ArrowRight, FileText, Search, Upload, MessageSquare, Activity } from 'lucide-react';
 import Image from 'next/image';
 import { Bot, Settings } from 'lucide-react';
 import { ProtectedPaymentExplainerModal } from './ProtectedPaymentExplainerModal'; // R2 #21

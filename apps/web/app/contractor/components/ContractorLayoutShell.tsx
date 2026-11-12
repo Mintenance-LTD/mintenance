@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
-import { Briefcase, MapPin, Bell, Menu, X, Home, FileText, MessageSquare } from 'lucide-react';
+import { Briefcase, MapPin, Bell, Menu, X, Home, FileText } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { ProfileDropdown } from '@/components/profile/ProfileDropdown';
 import { Input } from '@/components/ui/Input';
