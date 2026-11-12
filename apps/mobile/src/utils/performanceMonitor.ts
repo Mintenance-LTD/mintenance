@@ -281,7 +281,7 @@ class PerformanceMonitor {
 export const performanceMonitor = new PerformanceMonitor();
 
 // Auto-track memory usage every 30 seconds in development
-if (__DEV__) {
+if (__DEV__ && process.env.NODE_ENV !== 'test') {
   const memoryMonitoringInterval = setInterval(() => {
     performanceMonitor.recordMemoryUsage();
   }, 30000);

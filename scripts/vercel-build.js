@@ -45,7 +45,7 @@ console.log('=== Type-checking web app ===');
 run('npx tsc --noEmit', { cwd: 'apps/web' });
 
 console.log('=== Linting web app ===');
-run('npx eslint . --max-warnings 810', {
+run('npx eslint . --max-warnings 804', {
   cwd: 'apps/web',
 });
 

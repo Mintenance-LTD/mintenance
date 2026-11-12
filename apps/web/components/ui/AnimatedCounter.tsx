@@ -45,8 +45,11 @@ export function AnimatedCounter(props: AnimatedCounterProps) {
   const startTimeRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const previousValueRef = useRef(value);
+  const currentValueRef = useRef(0);
 
   useEffect(() => {
+    const startValue = currentValueRef.current;
+    startTimeRef.current = null;
     // Reset animation when value changes
     if (previousValueRef.current !== value) {
       setIsAnimating(true);
@@ -55,21 +58,21 @@ export function AnimatedCounter(props: AnimatedCounterProps) {
     }
 
     const animate = (currentTime: number) => {
-      if (!startTimeRef.current) {
+      if (startTimeRef.current === null) {
         startTimeRef.current = currentTime;
       }
 
       const elapsed = currentTime - startTimeRef.current;
-      const progress = Math.min(elapsed / duration, 1);
+      const progress = duration <= 0 ? 1 : Math.min(elapsed / duration, 1);
 
       // Easing function (ease-out)
       const easeOut = 1 - Math.pow(1 - progress, 3);
 
-      const startValue = displayValue;
       const endValue = value;
       const currentValue = startValue + (endValue - startValue) * easeOut;
 
       setDisplayValue(currentValue);
+      currentValueRef.current = currentValue;
 
       if (progress < 1) {
         animationFrameRef.current = requestAnimationFrame(animate);
