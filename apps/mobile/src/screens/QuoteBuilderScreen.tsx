@@ -1,468 +1,385 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
+  TextInput,
   TouchableOpacity,
   RefreshControl,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
-import { logger } from '../utils/logger';
 import { formatCurrency } from '../utils/formatCurrency';
 import { useAuth } from '../contexts/AuthContext';
 import {
   QuoteBuilderService,
-  ContractorQuote,
-  QuoteSummaryStats,
+  type ContractorQuote,
+  type QuoteSummaryStats,
 } from '../services/QuoteBuilderService';
 import { QuoteCard } from '../components/QuoteCard';
-import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Banner } from '../components/ui/Banner';
 import { useToast } from '../components/ui/Toast';
+import { PropertyChoice } from '../components/properties/PropertyChoice';
 import { me } from '../design-system/mint-editorial';
 import { styles } from './QuoteBuilderStyles';
 
-interface QuoteBuilderScreenProps {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteBuilder'>;
-}
-
-export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
+type Status = 'all' | ContractorQuote['status'];
+const statuses: Status[] = [
+  'all',
+  'draft',
+  'sent',
+  'viewed',
+  'accepted',
+  'rejected',
+  'expired',
+];
+export const QuoteBuilderScreen = ({
   navigation,
+}: {
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteBuilder'>;
 }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const accountId = user?.id;
   const [quotes, setQuotes] = useState<ContractorQuote[]>([]);
   const [stats, setStats] = useState<QuoteSummaryStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<Status>('all');
+  const [search, setSearch] = useState('');
+  const [showStats, setShowStats] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const mutationLock = useRef(false);
+  const requestVersion = useRef(0);
+  const activeAccount = useRef(accountId);
+  activeAccount.current = accountId;
   const toast = useToast();
 
-  useEffect(() => {
-    loadQuotes();
-    loadStats();
-  }, []);
-
-  const loadQuotes = async () => {
-    if (!user) return;
-
-    try {
-      const statusFilter =
-        selectedStatus === 'all'
-          ? undefined
-          : [selectedStatus as ContractorQuote['status']];
-      const data = await QuoteBuilderService.getQuotes(user?.id || '', {
-        status: statusFilter,
-      });
-      setQuotes(data);
-    } catch (error) {
-      logger.error('Error loading quotes', error);
-      setListError('Failed to load quotes. Pull to refresh.');
-    } finally {
+  const load = useCallback(async () => {
+    const version = ++requestVersion.current;
+    if (!accountId) {
+      setQuotes([]);
+      setStats(null);
       setLoading(false);
+      return;
     }
-  };
-
-  const loadStats = async () => {
-    if (!user) return;
-
-    try {
-      const statsData = await QuoteBuilderService.getQuoteSummaryStats(user.id);
-      setStats(statsData);
-    } catch (error) {
-      logger.error('Error loading stats', error);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([loadQuotes(), loadStats()]);
+    const [list, summary] = await Promise.allSettled([
+      QuoteBuilderService.getQuotes(accountId, { status: undefined }),
+      QuoteBuilderService.getQuoteSummaryStats(accountId),
+    ]);
+    if (
+      version !== requestVersion.current ||
+      activeAccount.current !== accountId
+    )
+      return;
+    if (list.status === 'fulfilled') {
+      setQuotes(list.value);
+      setListError(null);
+    } else
+      setListError(
+        'Quotes could not be refreshed. Check your connection and retry.'
+      );
+    setStats(summary.status === 'fulfilled' ? summary.value : null);
+    setLoading(false);
     setRefreshing(false);
-  };
+  }, [accountId]);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      setQuotes([]);
+      setStats(null);
+      setListError(null);
+      void load();
+      return () => {
+        requestVersion.current++;
+      };
+    }, [load])
+  );
 
-  const handleStatusFilter = async (status: string) => {
-    setSelectedStatus(status);
-    setLoading(true);
-
+  const mutate = async (id: string, action: 'duplicate' | 'delete') => {
+    if (!accountId || mutationLock.current) return;
+    mutationLock.current = true;
+    setBusy(true);
     try {
-      const statusFilter =
-        status === 'all' ? undefined : [status as ContractorQuote['status']];
-      const data = await QuoteBuilderService.getQuotes(user?.id || '', {
-        status: statusFilter,
-      });
-      setQuotes(data);
-    } catch (error) {
-      toast.error('Failed to filter quotes');
+      if (action === 'duplicate') await QuoteBuilderService.duplicateQuote(id);
+      else await QuoteBuilderService.deleteQuote(id);
+      if (activeAccount.current !== accountId) return;
+      await load();
+      toast.success(
+        action === 'duplicate' ? 'Draft copy created' : 'Draft deleted'
+      );
+    } catch {
+      if (activeAccount.current === accountId)
+        toast.error(
+          action === 'duplicate'
+            ? 'Could not duplicate this quote. Please retry.'
+            : 'Could not delete this draft. Please retry.'
+        );
     } finally {
-      setLoading(false);
+      mutationLock.current = false;
+      setBusy(false);
     }
   };
-
-  const handleSendQuote = async (quoteId: string) => {
-    try {
-      await QuoteBuilderService.sendQuote(quoteId);
-      await loadQuotes();
-      toast.success('Quote sent successfully');
-    } catch (error) {
-      toast.error('Failed to send quote');
-    }
-  };
-
-  const handleDuplicateQuote = async (quoteId: string) => {
-    try {
-      await QuoteBuilderService.duplicateQuote(quoteId);
-      await loadQuotes();
-      toast.success('Quote duplicated successfully');
-    } catch (error) {
-      toast.error('Failed to duplicate quote');
-    }
-  };
-
-  const handleDeleteQuote = async (quoteId: string) => {
+  const deleteDraft = (quote: ContractorQuote) => {
+    if (quote.status !== 'draft' || busy) return;
     Alert.alert(
-      'Delete Quote',
-      'Are you sure you want to delete this quote? This action cannot be undone.',
+      'Delete draft?',
+      `Delete “${quote.project_title}”? This cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Delete draft',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await QuoteBuilderService.deleteQuote(quoteId);
-              await loadQuotes();
-              toast.success('Quote deleted successfully');
-            } catch (error) {
-              toast.error('Failed to delete quote');
-            }
-          },
+          onPress: () => void mutate(quote.id, 'delete'),
         },
       ]
     );
   };
-
-  const STAT_ITEMS = stats
-    ? [
-        {
-          value: String(stats.total_quotes),
-          label: 'Total',
-          iconColor: '#3B82F6',
-          iconBg: '#DBEAFE',
-          icon: 'document-text-outline' as const,
-        },
-        {
-          value: String(stats.accepted_quotes),
-          label: 'Accepted',
-          iconColor: me.brand,
-          iconBg: me.brandSoft,
-          icon: 'checkmark-circle-outline' as const,
-        },
-        {
-          value: formatCurrency(stats.total_value),
-          label: 'Value',
-          iconColor: me.accent,
-          iconBg: me.warnBg,
-          icon: 'wallet-outline' as const,
-        },
-        {
-          value: `${stats.acceptance_rate.toFixed(0)}%`,
-          label: 'Success',
-          iconColor: '#8B5CF6',
-          iconBg: '#EDE9FE',
-          icon: 'trending-up-outline' as const,
-        },
-      ]
-    : [];
-
-  const QUICK_ACTIONS = [
-    {
-      icon: 'document-text' as const,
-      label: 'Templates',
-      iconColor: '#3B82F6',
-      iconBg: '#DBEAFE',
-      onPress: () =>
-        (navigation.navigate as (...args: unknown[]) => void)('QuoteTemplates'),
-    },
-    {
-      // 2026-05-21 (Mint Editorial · Quick quote): on-site walk-up
-      // estimate. Slimmer than CreateQuote — gloves-on use case.
-      icon: 'flash' as const,
-      label: 'Quick quote',
-      iconColor: me.accent,
-      iconBg: '#FBE9CB',
-      onPress: () =>
-        (navigation.navigate as (...args: unknown[]) => void)('QuickQuote'),
-    },
-    {
-      icon: 'add-circle' as const,
-      label: 'New Quote',
-      iconColor: me.brand,
-      iconBg: me.brandSoft,
-      onPress: () =>
-        (navigation.navigate as (...args: unknown[]) => void)('CreateQuote'),
-    },
-  ];
-
-  if (loading && quotes.length === 0) {
-    return <LoadingSpinner message='Loading quotes...' />;
-  }
+  const query = search.trim().toLocaleLowerCase();
+  const visible = quotes.filter(
+    (quote) =>
+      (selectedStatus === 'all' || quote.status === selectedStatus) &&
+      (!query ||
+        [
+          quote.project_title,
+          quote.client_name,
+          quote.quote_number,
+          quote.id,
+        ].some((value) => value?.toLocaleLowerCase().includes(query)))
+  );
+  const statusOptions = statuses.map((value) => ({
+    value,
+    label: `${value === 'all' ? 'All statuses' : value.charAt(0).toUpperCase() + value.slice(1)} (${value === 'all' ? quotes.length : quotes.filter((quote) => quote.status === value).length})`,
+  }));
+  const open = (quote: ContractorQuote) =>
+    navigation.navigate('QuoteDetail', { quoteId: quote.id });
+  const reset = () => {
+    setSearch('');
+    setSelectedStatus('all');
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            accessibilityRole='button'
-            accessibilityLabel='Go back'
-          >
-            <Ionicons name='arrow-back' size={24} color={me.ink} />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerLabel}>Revenue Growth</Text>
-            <Text style={styles.headerTitle}>Quote Builder</Text>
-          </View>
+        <TouchableOpacity
+          style={styles.backButton}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
+        </TouchableOpacity>
+        <View style={styles.headerCopy}>
+          <Text style={styles.headerTitle}>Quotes</Text>
+          <Text style={styles.subtitle}>Create, track and follow up</Text>
         </View>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() =>
-            (navigation.navigate as (...args: unknown[]) => void)('CreateQuote')
-          }
           accessibilityRole='button'
           accessibilityLabel='Create new quote'
+          onPress={() => navigation.navigate('CreateQuote', {})}
         >
-          <Ionicons name='add-circle' size={18} color={me.onBrand} />
-          <Text style={styles.addButtonText}>New Quote</Text>
+          <Ionicons name='add' size={20} color={me.onBrand} />
+          <Text style={styles.addButtonText}>New quote</Text>
         </TouchableOpacity>
       </View>
-
-      <ScrollView
-        style={styles.content}
+      <FlatList
+        data={visible}
+        keyExtractor={(quote) => quote.id}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps='handled'
+        keyboardDismissMode='on-drag'
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={me.ink}
-            colors={[me.ink]}
+            onRefresh={() => {
+              setRefreshing(true);
+              void load();
+            }}
+            tintColor={me.brand2}
           />
         }
-        showsVerticalScrollIndicator={false}
-      >
-        {listError && (
-          <View style={{ paddingTop: 8 }}>
-            <Banner message={listError} variant='error' />
-          </View>
+        renderItem={({ item }) => (
+          <QuoteCard
+            quote={item}
+            busy={busy}
+            onPress={() => open(item)}
+            onEdit={() => open(item)}
+            onDuplicate={() => void mutate(item.id, 'duplicate')}
+            onDelete={() => deleteDraft(item)}
+          />
         )}
-
-        {/* Statistics */}
-        {stats && (
-          <View style={styles.statsCard}>
-            <Text style={styles.statsTitle}>Performance</Text>
-            <View style={styles.statsGrid}>
-              {STAT_ITEMS.map((item) => (
-                <View key={item.label} style={styles.statItem}>
-                  <View
-                    style={[
-                      styles.statIconWrap,
-                      { backgroundColor: item.iconBg },
-                    ]}
-                  >
-                    <Ionicons
-                      name={item.icon}
-                      size={16}
-                      color={item.iconColor}
-                    />
+        ListHeaderComponent={
+          <>
+            {stats && (
+              <View style={styles.statsCard}>
+                <View style={styles.statsGrid}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{stats.sent_quotes}</Text>
+                    <Text style={styles.statLabel}>Sent quotes</Text>
                   </View>
-                  {/* Long currency values like "£7,817.05" wrap onto two
-                      lines inside the narrow flex-1 stat cell and push
-                      the label below the card. Let the value shrink to
-                      fit on one line instead. */}
-                  <Text
-                    style={styles.statValue}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.6}
-                  >
-                    {item.value}
-                  </Text>
-                  <Text style={styles.statLabel}>{item.label}</Text>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>
+                      {formatCurrency(stats.accepted_value)}
+                    </Text>
+                    <Text style={styles.statLabel}>Accepted quote value</Text>
+                  </View>
                 </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Status Filter - Dark active */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterContainer}
-          contentContainerStyle={styles.filterContent}
-        >
-          {[
-            { key: 'all', label: 'All', count: stats?.total_quotes || 0 },
-            { key: 'draft', label: 'Draft', count: stats?.draft_quotes || 0 },
-            { key: 'sent', label: 'Sent', count: stats?.sent_quotes || 0 },
-            {
-              key: 'accepted',
-              label: 'Accepted',
-              count: stats?.accepted_quotes || 0,
-            },
-            {
-              key: 'rejected',
-              label: 'Rejected',
-              count: stats?.rejected_quotes || 0,
-            },
-          ].map((filter) => (
-            <TouchableOpacity
-              key={filter.key}
-              style={[
-                styles.filterChip,
-                selectedStatus === filter.key && styles.filterChipActive,
-              ]}
-              onPress={() => handleStatusFilter(filter.key)}
-              accessibilityRole='button'
-              accessibilityLabel={`Filter by ${filter.label}, ${filter.count} quotes`}
-              accessibilityState={{ selected: selectedStatus === filter.key }}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  selectedStatus === filter.key && styles.filterTextActive,
-                ]}
-              >
-                {filter.label} ({filter.count})
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Quick Actions */}
-        <View style={styles.actionsContainer}>
-          {QUICK_ACTIONS.map((action) => (
-            <TouchableOpacity
-              key={action.label}
-              style={styles.actionButton}
-              onPress={action.onPress}
-              accessibilityRole='button'
-              accessibilityLabel={action.label}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.actionIconWrap,
-                  { backgroundColor: action.iconBg },
-                ]}
-              >
-                <Ionicons
-                  name={action.icon}
-                  size={20}
-                  color={action.iconColor}
-                />
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  accessibilityState={{ expanded: showStats }}
+                  onPress={() => setShowStats((value) => !value)}
+                  style={styles.summaryToggle}
+                >
+                  <Text style={styles.link}>
+                    {showStats ? 'Hide summary' : 'Quote summary'}
+                  </Text>
+                  <Ionicons
+                    name={showStats ? 'chevron-up' : 'chevron-down'}
+                    size={16}
+                    color={me.brand2}
+                  />
+                </TouchableOpacity>
+                {showStats && (
+                  <View style={styles.summaryDetails}>
+                    <Text style={styles.meta}>
+                      {stats.total_quotes} total · {stats.accepted_quotes}{' '}
+                      accepted
+                    </Text>
+                    <Text style={styles.meta}>
+                      Total quoted: {formatCurrency(stats.total_value)}
+                    </Text>
+                    <Text style={styles.meta}>
+                      Acceptance rate: {stats.acceptance_rate.toFixed(0)}% of
+                      non-draft quotes
+                    </Text>
+                    <Text style={styles.meta}>
+                      Quote values are not payments received.
+                    </Text>
+                  </View>
+                )}
               </View>
-              <Text style={styles.actionButtonText}>{action.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Inline Analytics Panel */}
-        {showAnalytics && stats && (
-          <View style={styles.analyticsPanel}>
-            <Text style={styles.analyticsTitle}>Analytics Overview</Text>
-            <View style={styles.analyticsRow}>
-              <View style={styles.analyticsStat}>
-                <Text style={styles.analyticsValue}>{stats.total_quotes}</Text>
-                <Text style={styles.analyticsLabel}>Total Quotes</Text>
-              </View>
-              <View style={styles.analyticsStat}>
-                <Text style={styles.analyticsValue}>
-                  {stats.acceptance_rate
-                    ? `${Math.round(stats.acceptance_rate)}%`
-                    : '—'}
-                </Text>
-                <Text style={styles.analyticsLabel}>Acceptance Rate</Text>
-              </View>
-              <View style={styles.analyticsStat}>
-                <Text style={styles.analyticsValue}>
-                  {stats.total_value
-                    ? formatCurrency(stats.total_value)
-                    : formatCurrency(0)}
-                </Text>
-                <Text style={styles.analyticsLabel}>Total Value</Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Quotes List */}
-        <View style={styles.quotesContainer}>
-          <Text style={styles.sectionTitle}>
-            {selectedStatus === 'all'
-              ? 'All Quotes'
-              : `${selectedStatus.charAt(0).toUpperCase()}${selectedStatus.slice(1)} Quotes`}
-          </Text>
-
-          {quotes.length === 0 ? (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconWrap}>
-                <Ionicons
-                  name='document-text-outline'
-                  size={32}
-                  color={me.ink3}
-                />
-              </View>
-              <Text style={styles.emptyTitle}>No quotes found</Text>
-              <Text style={styles.emptyText}>
-                {selectedStatus === 'all'
-                  ? 'Create your first quote to get started with professional proposals'
-                  : `No ${selectedStatus} quotes at the moment`}
-              </Text>
+            )}
+            <View style={styles.actionsContainer}>
               <TouchableOpacity
-                style={styles.createButton}
-                onPress={() =>
-                  (navigation.navigate as (...args: unknown[]) => void)(
-                    'CreateQuote'
-                  )
-                }
+                style={styles.secondaryButton}
                 accessibilityRole='button'
-                accessibilityLabel='Create your first quote'
+                onPress={() => navigation.navigate('QuickQuote', {})}
               >
-                <Text style={styles.createButtonText}>Create Quote</Text>
+                <Ionicons name='flash-outline' size={18} color={me.brand2} />
+                <Text style={styles.link}>Quick quote</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                accessibilityRole='button'
+                onPress={() => navigation.navigate('QuoteTemplates')}
+              >
+                <Ionicons
+                  name='documents-outline'
+                  size={18}
+                  color={me.brand2}
+                />
+                <Text style={styles.link}>Templates</Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            quotes.map((quote) => (
-              <QuoteCard
-                key={quote.id}
-                quote={quote}
-                onPress={() =>
-                  (navigation.navigate as (...args: unknown[]) => void)(
-                    'QuoteDetail',
-                    { quoteId: quote.id }
-                  )
-                }
-                onEdit={() =>
-                  (navigation.navigate as (...args: unknown[]) => void)(
-                    'CreateQuote',
-                    { jobId: quote.job_id }
-                  )
-                }
-                onSend={() => handleSendQuote(quote.id)}
-                onDuplicate={() => handleDuplicateQuote(quote.id)}
-                onDelete={() => handleDeleteQuote(quote.id)}
+            <View style={styles.searchBox}>
+              <Ionicons name='search-outline' size={20} color={me.ink3} />
+              <TextInput
+                style={styles.search}
+                accessibilityLabel='Search quotes'
+                placeholder='Search title, client or reference'
+                placeholderTextColor={me.ink3}
+                value={search}
+                onChangeText={setSearch}
+                autoCorrect={false}
               />
-            ))
-          )}
-        </View>
-      </ScrollView>
+              {!!search && (
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  accessibilityLabel='Clear quote search'
+                  onPress={() => setSearch('')}
+                  style={styles.clear}
+                >
+                  <Ionicons name='close-circle' size={20} color={me.ink2} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={styles.filterRow}>
+              <PropertyChoice
+                label='Quote status'
+                value={selectedStatus}
+                options={statusOptions}
+                onChange={(value) => setSelectedStatus(value as Status)}
+              />
+              <Text style={styles.meta}>
+                {visible.length} {visible.length === 1 ? 'quote' : 'quotes'}
+              </Text>
+            </View>
+            {listError && (
+              <View style={styles.error}>
+                <Banner message={listError} variant='error' />
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  onPress={() => {
+                    setLoading(true);
+                    void load();
+                  }}
+                  style={styles.secondaryButton}
+                >
+                  <Text style={styles.link}>Retry quotes</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {busy && (
+              <Text accessibilityRole='alert' style={styles.meta}>
+                Updating quote…
+              </Text>
+            )}
+          </>
+        }
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator
+              accessibilityLabel='Loading quotes'
+              style={styles.emptyState}
+              color={me.brand2}
+            />
+          ) : listError ? null : (
+            <View style={styles.emptyState}>
+              <Ionicons
+                name='document-text-outline'
+                size={32}
+                color={me.ink3}
+              />
+              <Text style={styles.emptyTitle}>
+                {search || selectedStatus !== 'all'
+                  ? 'No matching quotes'
+                  : 'No quotes yet'}
+              </Text>
+              <Text style={styles.emptyText}>
+                {search || selectedStatus !== 'all'
+                  ? 'Try another search or status.'
+                  : 'Create a quote or start with a template.'}
+              </Text>
+              {(!!search || selectedStatus !== 'all') && (
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  style={styles.secondaryButton}
+                  onPress={reset}
+                >
+                  <Text style={styles.link}>Clear filters</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )
+        }
+      />
     </View>
   );
 };

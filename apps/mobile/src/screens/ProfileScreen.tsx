@@ -167,6 +167,13 @@ const ProfileScreen: React.FC = () => {
   const supportMenuItems = useMemo(
     () => [
       {
+        label: 'App guides',
+        icon: 'book-outline',
+        iconColor: me.brand2,
+        iconBg: me.brandSoft,
+        onPress: () => navigation.navigate('GettingStarted'),
+      },
+      {
         label: 'Settings',
         icon: 'settings-outline',
         iconColor: me.ink2,

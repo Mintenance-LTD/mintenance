@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
-import { workspaceStyles as ws } from './PropertyWorkspaceUI';
+import { PropertySheet, workspaceStyles as ws } from './PropertyWorkspaceUI';
 import React, { useState } from 'react';
 import {
   View,
@@ -109,7 +109,14 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
             id: editing.id,
             revision: editing.revision,
           });
-        else await mobileApiClient.post(base + '/tenancies', value);
+        else {
+          const saved = await mobileApiClient.post<{ id: string }>(
+            base + '/tenancies',
+            value
+          );
+          setFolder(saved.id);
+          setReport('');
+        }
       } else
         await mobileApiClient.post(base + '/inspections', {
           folder_id: folder,
@@ -219,18 +226,42 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
           }}
         />
       )}
-      <View style={{ marginVertical: 8 }}>
+      <View style={{ marginVertical: 4 }}>
+        <Text style={s.shortcutHint}>
+          {!folder
+            ? 'Choose or create a tenancy above to start an inspection.'
+            : reports.isLoading
+              ? 'Checking inspection access…'
+              : reports.isError
+                ? 'Retry loading reports to check inspection access.'
+                : !reports.data?.canCreate
+                  ? 'View saved reports below. Creating inspections needs editing access and an eligible owner plan.'
+                  : 'Create an inspection for this tenancy'}
+        </Text>
         {INSPECTION_KINDS.map((option) => {
           const disabled =
-            !folder || !reports.data?.canCreate || reports.isError || busy;
+            !folder ||
+            !reports.data?.canCreate ||
+            reports.isError ||
+            folders.isError ||
+            busy;
           return (
             <TouchableOpacity
               key={option.value}
               accessibilityRole='button'
-              accessibilityLabel={option.value === 'routine' ? option.label : option.label + ' inspection'}
+              accessibilityLabel={
+                option.value === 'routine'
+                  ? option.label
+                  : option.label + ' inspection'
+              }
               accessibilityState={{ disabled }}
+              accessibilityHint={
+                !folder
+                  ? 'Choose a tenancy above first.'
+                  : 'Opens the inspection form.'
+              }
               disabled={disabled}
-              style={ws.row}
+              style={[ws.row, disabled && { opacity: 0.55 }]}
               onPress={() => {
                 if (disabled) return;
                 if (mode !== 'report') begin('report');
@@ -247,14 +278,13 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                 color={disabled ? me.ink3 : me.brand2}
               />
               <Text style={ws.rowText}>{option.label}</Text>
-              <Text style={ws.muted}>
-                {!folder
-                  ? 'Select tenancy first'
-                  : disabled
-                    ? 'View only'
-                    : 'Create'}
-              </Text>
-              <Ionicons name='chevron-forward' size={16} color={me.ink3} />
+              {!disabled && (
+                <Ionicons
+                  name='add-circle-outline'
+                  size={22}
+                  color={me.brand2}
+                />
+              )}
             </TouchableOpacity>
           );
         })}
@@ -272,9 +302,6 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                 onPress={() => void reports.refetch()}
               />
             </>
-          )}
-          {!reports.isError && reports.data?.canCreate && (
-            <Action title='New inspection' onPress={() => begin('report')} />
           )}
           {!reports.isError &&
             reports.data?.items.map((r) => (
@@ -305,128 +332,138 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
         </View>
       )}
       {mode && (
-        <View style={s.form}>
-          <Text style={s.title}>
-            {mode === 'folder'
-              ? 'Create tenancy folder'
-              : 'Create shared inspection'}
-          </Text>
-          <Field
-            label={mode === 'folder' ? 'Folder name' : 'Report title'}
-            value={label}
-            change={setLabel}
-            maxLength={mode === 'folder' ? 120 : 160}
-          />
-          <Field
-            label={
-              mode === 'folder'
-                ? 'Tenancy starts (YYYY-MM-DD)'
-                : 'Inspection date (YYYY-MM-DD)'
-            }
-            value={starts}
-            change={setStarts}
-            maxLength={10}
-          />
-          {mode === 'folder' ? (
-            <>
-              <Field
-                label='Tenancy ends (optional, YYYY-MM-DD)'
-                value={ends}
-                change={setEnds}
-                maxLength={10}
-              />
-              <Text style={s.text}>
-                Creating a folder does not invite tenants or grant access.
-              </Text>
-            </>
-          ) : (
-            <>
-              <PropertyChoice
-                label='Inspection type'
-                value={kind}
-                options={INSPECTION_KINDS}
-                onChange={setKind}
-              />
-              <Field
-                label='Observations'
-                value={notes}
-                change={setNotes}
-                maxLength={10000}
-                multiline
-              />
-              <Text style={s.title}>Room photos ({selected.length}/50)</Text>
-              <Text style={s.text}>
-                Upload dates do not prove when a photo was taken.
-              </Text>
-              {photos.isLoading && <ActivityIndicator />}
-              {photos.isError && (
-                <Action
-                  title='Photos unavailable — retry'
-                  onPress={() => void photos.refetch()}
+        <PropertySheet
+          title={
+            mode === 'folder'
+              ? editing
+                ? 'Edit tenancy folder'
+                : 'Create tenancy folder'
+              : 'Create inspection report'
+          }
+          busy={busy}
+          onClose={() => setMode(null)}
+        >
+          <View style={{ gap: 12 }}>
+            <Field
+              label={mode === 'folder' ? 'Folder name' : 'Report title'}
+              value={label}
+              change={setLabel}
+              maxLength={mode === 'folder' ? 120 : 160}
+            />
+            <Field
+              label={
+                mode === 'folder'
+                  ? 'Tenancy starts (YYYY-MM-DD)'
+                  : 'Inspection date (YYYY-MM-DD)'
+              }
+              value={starts}
+              change={setStarts}
+              maxLength={10}
+            />
+            {mode === 'folder' ? (
+              <>
+                <Field
+                  label='Tenancy ends (optional, YYYY-MM-DD)'
+                  value={ends}
+                  change={setEnds}
+                  maxLength={10}
                 />
-              )}
-              {photos.data?.photos.map((photo) => (
-                <TouchableOpacity
-                  key={photo.id}
-                  accessibilityRole='checkbox'
-                  accessibilityLabel={
-                    photo.room_type.replace(/_/g, ' ') + ' ' + photo.file_name
-                  }
-                  accessibilityState={{ checked: selected.includes(photo.id) }}
-                  style={s.action}
-                  onPress={() =>
-                    setSelected((ids) =>
-                      ids.includes(photo.id)
-                        ? ids.filter((id) => id !== photo.id)
-                        : ids.length < 50
-                          ? [...ids, photo.id]
-                          : ids
-                    )
-                  }
-                >
-                  <Text>
-                    {selected.includes(photo.id) ? '☑' : '☐'}{' '}
-                    {photo.room_type.replace(/_/g, ' ')} · {photo.file_name}
-                  </Text>
-                  <Text style={s.text}>
-                    {uploadedPhotoLabel(photo.created_at)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-              <Text style={s.text}>
-                Saved reports cannot be rewritten. Record corrections in a new
-                report. Photos remain linked to the originals and may become
-                unavailable if deleted.
+                <Text style={s.text}>
+                  Creating a folder does not invite tenants or grant access.
+                </Text>
+              </>
+            ) : (
+              <>
+                <PropertyChoice
+                  label='Inspection type'
+                  value={kind}
+                  options={INSPECTION_KINDS}
+                  onChange={setKind}
+                />
+                <Field
+                  label='Observations'
+                  value={notes}
+                  change={setNotes}
+                  maxLength={10000}
+                  multiline
+                />
+                <Text style={s.title}>Room photos ({selected.length}/50)</Text>
+                <Text style={s.text}>
+                  Upload dates do not prove when a photo was taken.
+                </Text>
+                {photos.isLoading && <ActivityIndicator />}
+                {photos.isError && (
+                  <Action
+                    title='Photos unavailable — retry'
+                    onPress={() => void photos.refetch()}
+                  />
+                )}
+                {photos.data?.photos.map((photo) => (
+                  <TouchableOpacity
+                    key={photo.id}
+                    accessibilityRole='checkbox'
+                    accessibilityLabel={
+                      photo.room_type.replace(/_/g, ' ') + ' ' + photo.file_name
+                    }
+                    accessibilityState={{
+                      checked: selected.includes(photo.id),
+                    }}
+                    style={s.action}
+                    onPress={() =>
+                      setSelected((ids) =>
+                        ids.includes(photo.id)
+                          ? ids.filter((id) => id !== photo.id)
+                          : ids.length < 50
+                            ? [...ids, photo.id]
+                            : ids
+                      )
+                    }
+                  >
+                    <Text>
+                      {selected.includes(photo.id) ? '☑' : '☐'}{' '}
+                      {photo.room_type.replace(/_/g, ' ')} · {photo.file_name}
+                    </Text>
+                    <Text style={s.text}>
+                      {uploadedPhotoLabel(photo.created_at)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <Text style={s.text}>
+                  Saved reports cannot be rewritten. Record corrections in a new
+                  report. Photos remain linked to the originals and may become
+                  unavailable if deleted.
+                </Text>
+              </>
+            )}
+            {error && (
+              <Text accessibilityRole='alert' style={s.error}>
+                {error}
               </Text>
-            </>
-          )}
-          {error && (
-            <Text accessibilityRole='alert' style={s.error}>
-              {error}
-            </Text>
-          )}
-          <Action
-            title={
-              busy
-                ? 'Saving…'
-                : mode === 'folder'
-                  ? editing
-                    ? 'Save folder changes'
-                    : 'Create folder'
-                  : 'Save shared report'
-            }
-            disabled={
-              busy ||
-              (mode === 'report' && (photos.isLoading || photos.isError))
-            }
-            onPress={() => void save()}
-          />
-          <Action
-            title='Cancel'
-            disabled={busy}
-            onPress={() => setMode(null)}
-          />
-        </View>
+            )}
+            <Action
+              primary
+              title={
+                busy
+                  ? 'Saving…'
+                  : mode === 'folder'
+                    ? editing
+                      ? 'Save folder changes'
+                      : 'Create folder'
+                    : 'Save shared report'
+              }
+              disabled={
+                busy ||
+                (mode === 'report' && (photos.isLoading || photos.isError))
+              }
+              onPress={() => void save()}
+            />
+            <Action
+              title='Cancel'
+              disabled={busy}
+              onPress={() => setMode(null)}
+            />
+          </View>
+        </PropertySheet>
       )}
       {report && (
         <View>
@@ -587,10 +624,12 @@ function Action({
   title,
   onPress,
   disabled = false,
+  primary = false,
 }: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
+  primary?: boolean;
 }) {
   return (
     <TouchableOpacity
@@ -598,9 +637,20 @@ function Action({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={[s.action, disabled && { opacity: 0.5 }]}
+      style={[
+        s.action,
+        primary && { backgroundColor: me.brand2, borderColor: me.brand2 },
+        disabled && { opacity: 0.5 },
+      ]}
     >
-      <Text style={s.actionText}>{title}</Text>
+      <Text
+        style={[
+          s.actionText,
+          primary && { color: me.onBrand, textAlign: 'center' },
+        ]}
+      >
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -614,6 +664,12 @@ const s = StyleSheet.create({
   },
   title: { fontSize: 17, fontWeight: '700', color: '#172e29' },
   text: { fontSize: 13, color: '#475569', lineHeight: 20 },
+  shortcutHint: {
+    fontSize: 13,
+    color: me.ink2,
+    lineHeight: 19,
+    marginBottom: 8,
+  },
   form: {
     padding: 12,
     backgroundColor: '#f8fafc',

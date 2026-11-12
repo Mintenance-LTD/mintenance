@@ -86,7 +86,8 @@ it('creates a written report inside the chosen folder', async () => {
   await ui.findByText('New tenancy folder');
   fireEvent.press(ui.getByLabelText('Tenancy folder: Choose a tenancy'));
   fireEvent.press(ui.getByText('Tenancy 2026 · 2026-01-01'));
-  fireEvent.press(await ui.findByText('New inspection'));
+  await ui.findByText('Create an inspection for this tenancy');
+  fireEvent.press(ui.getByLabelText('Check-in inspection'));
   fireEvent.changeText(ui.getByLabelText('Report title'), 'Move-in');
   fireEvent.changeText(
     ui.getByLabelText('Inspection date (YYYY-MM-DD)'),
@@ -159,12 +160,57 @@ it('keeps inspection shortcuts disabled until a tenancy is selected and preserve
   expect(ui.queryByLabelText('Report title')).toBeNull();
   fireEvent.press(ui.getByLabelText('Tenancy folder: Choose a tenancy'));
   fireEvent.press(ui.getByText('Tenancy 2026 · 2026-01-01'));
-  await ui.findByText('New inspection');
+  await ui.findByText('Create an inspection for this tenancy');
   fireEvent.press(ui.getByLabelText('Check-in inspection'));
   fireEvent.changeText(ui.getByLabelText('Report title'), 'Keep my draft');
-  fireEvent.changeText(ui.getByLabelText('Inspection date (YYYY-MM-DD)'), '2026-11-12');
-  fireEvent.press(ui.getByLabelText('Check-out inspection'));
+  fireEvent.changeText(
+    ui.getByLabelText('Inspection date (YYYY-MM-DD)'),
+    '2026-11-12'
+  );
+  fireEvent.press(ui.getByLabelText('Inspection type: Check-in'));
+  fireEvent.press(ui.getAllByText('Check-out').slice(-1)[0]);
   expect(ui.getByLabelText('Report title').props.value).toBe('Keep my draft');
   fireEvent.press(ui.getByText('Save shared report'));
-  await waitFor(() => expect(mobileApiClient.post).toHaveBeenCalledWith('/api/properties/property/inspections', expect.objectContaining({ folder_id: 'folder', kind: 'check_out', title: 'Keep my draft' })));
+  await waitFor(() =>
+    expect(mobileApiClient.post).toHaveBeenCalledWith(
+      '/api/properties/property/inspections',
+      expect.objectContaining({
+        folder_id: 'folder',
+        kind: 'check_out',
+        title: 'Keep my draft',
+      })
+    )
+  );
+});
+it('selects a newly saved folder so inspection shortcuts become available', async () => {
+  const ui = show();
+  fireEvent.press(await ui.findByText('New tenancy folder'));
+  fireEvent.changeText(ui.getByLabelText('Folder name'), 'New tenancy');
+  fireEvent.changeText(
+    ui.getByLabelText('Tenancy starts (YYYY-MM-DD)'),
+    '2026-11-01'
+  );
+  fireEvent.press(ui.getByText('Create folder'));
+  await ui.findByText('Create an inspection for this tenancy');
+  expect(mobileApiClient.get).toHaveBeenCalledWith(
+    '/api/properties/property/inspections?folder=new&offset=0'
+  );
+  expect(
+    ui.getByLabelText('Check-in inspection').props.accessibilityState.disabled
+  ).toBe(false);
+});
+it('keeps shortcuts disabled for a selected read-only tenancy', async () => {
+  jest
+    .mocked(mobileApiClient.get)
+    .mockImplementation(async (url) =>
+      url.includes('/inspections?')
+        ? { items: [], canCreate: false, hasMore: false }
+        : { items: [folder], canCreate: false, hasMore: false }
+    );
+  const ui = show();
+  fireEvent.press(await ui.findByLabelText('Tenancy folder: Choose a tenancy'));
+  fireEvent.press(ui.getByText('Tenancy 2026 · 2026-01-01'));
+  await ui.findByText(/View saved reports below/);
+  fireEvent.press(ui.getByLabelText('Check-out inspection'));
+  expect(ui.queryByLabelText('Report title')).toBeNull();
 });
