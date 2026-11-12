@@ -56,7 +56,7 @@ for (const includeNull of [false, true]) {
 }
 
 test('application and EAS locks require the fixed upstream node-forge release', () => {
-  assert.equal(require('node-forge/package.json').version, '1.4.2');
+  assert.equal(require('node-forge/package.json').version, '1.4.3');
   for (const file of [
     '../package-lock.json',
     '../tools/eas-cli/package-lock.json',
@@ -65,7 +65,7 @@ test('application and EAS locks require the fixed upstream node-forge release', 
       ([location]) => location.endsWith('/node-forge')
     );
     assert.ok(entries.length > 0);
-    for (const [, metadata] of entries) assert.equal(metadata.version, '1.4.2');
+    for (const [, metadata] of entries) assert.equal(metadata.version, '1.4.3');
   }
 });
 

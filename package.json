@@ -134,7 +134,7 @@
     "zod": "4.6.7"
   },
   "overrides": {
-    "node-forge": "1.4.2",
+    "node-forge": "1.4.3",
     "postcss-selector-parser": "7.1.7",
     "@opentelemetry/api": "1.9.1",
     "dompurify": "3.4.17",
