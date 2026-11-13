@@ -1,8 +1,4 @@
-import {
-  ServiceErrorHandler,
-  ServiceErrorContext,
-  ServiceOperationResult,
-} from '../../utils/serviceErrorHandler';
+import { ServiceErrorHandler, ServiceErrorContext } from '../../utils/serviceErrorHandler';
 import { ErrorCategory, ErrorSeverity } from '../../utils/errorHandling';
 
 // Mock dependencies

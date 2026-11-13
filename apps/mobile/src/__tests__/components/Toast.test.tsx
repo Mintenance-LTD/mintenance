@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { render, fireEvent, act , waitFor} from '../test-utils';
+import { render, fireEvent, act } from '../test-utils';
 import { Toast } from '../../components/ui/Toast/Toast';
 
 jest.mock('react-native-safe-area-context', () => ({

@@ -1,14 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { logger } from '@mintenance/shared';
-import {
-  FlatList,
-  FlatListProps,
-  View,
-  StyleSheet,
-  Platform,
-  ListRenderItem,
-  ViewToken,
-} from 'react-native';
+import { FlatList, FlatListProps, StyleSheet, Platform, ListRenderItem, ViewToken } from 'react-native';
 import { theme } from '../../theme';
 
 /**

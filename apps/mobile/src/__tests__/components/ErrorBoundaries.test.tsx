@@ -7,7 +7,7 @@
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '../test-utils';
+import { render, fireEvent, act } from '../test-utils';
 import { Text } from 'react-native';
 import {
   ErrorBoundary,

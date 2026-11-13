@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import ErrorBoundary from '../ErrorBoundary-fallback';
 import { logger } from '../../utils/logger';

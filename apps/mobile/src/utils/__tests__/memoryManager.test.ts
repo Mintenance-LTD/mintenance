@@ -3,14 +3,7 @@
  */
 
 import { AppState } from 'react-native';
-import {
-  MemoryManager,
-  memoryManager,
-  useMemoryCleanup,
-  withMemoryTracking,
-  MemoryUsage,
-  ComponentMemoryTracker,
-} from '../memoryManager';
+import { MemoryManager, memoryManager, useMemoryCleanup, withMemoryTracking } from '../memoryManager';
 
 
 // Mock dependencies

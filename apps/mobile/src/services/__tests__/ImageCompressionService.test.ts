@@ -4,15 +4,7 @@
  * Comprehensive test suite for image compression functionality
  */
 
-import ImageCompressionService, {
-  compressProfilePhoto,
-  compressJobPhoto,
-  compressPropertyAssessmentPhoto,
-  compressJobPhotos,
-  type CompressionResult,
-  type BatchCompressionResult,
-  type ProgressCallback,
-} from '../ImageCompressionService';
+import ImageCompressionService, { compressProfilePhoto, compressJobPhoto, compressPropertyAssessmentPhoto, compressJobPhotos, type CompressionResult } from '../ImageCompressionService';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
 

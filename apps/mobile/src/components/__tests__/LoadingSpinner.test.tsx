@@ -3,7 +3,7 @@ import React from 'react';
  * Tests for LoadingSpinner Component
  */
 
-import { render, waitFor } from '../test-utils';
+import { render } from '../test-utils';
 import { LoadingSpinner, FullScreenLoading } from '../LoadingSpinner';
 
 jest.mock('react-native-safe-area-context', () => ({

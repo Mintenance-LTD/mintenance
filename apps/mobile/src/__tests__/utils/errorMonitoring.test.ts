@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  errorMonitoring,
-  withErrorMonitoring,
-  useErrorReporting,
-  ErrorReport,
-  ErrorContext,
-  ErrorMetrics,
-  DeviceInfo,
-} from '../../utils/errorMonitoring';
+import { errorMonitoring, withErrorMonitoring, useErrorReporting, ErrorContext, ErrorMetrics } from '../../utils/errorMonitoring';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 

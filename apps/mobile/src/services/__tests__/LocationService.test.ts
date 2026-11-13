@@ -2,7 +2,7 @@
  * Tests for LocationService - Location and Geocoding Service
  */
 
-import { LocationService, UserLocation } from '../LocationService';
+import { LocationService } from '../LocationService';
 import * as Location from 'expo-location';
 import { logger } from '../../utils/logger';
 

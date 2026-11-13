@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '../test-utils';
+import { render } from '../test-utils';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { Text } from 'react-native';
 

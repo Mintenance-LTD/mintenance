@@ -13,11 +13,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, FlatList, Alert } from 'react-native';
-import {
-  OfflineManager,
-  DataConflict,
-  ConflictResolutionStrategy,
-} from '../OfflineManager';
+import { OfflineManager, DataConflict } from '../OfflineManager';
 import { logger } from '@mintenance/shared';
 
 // =============================================

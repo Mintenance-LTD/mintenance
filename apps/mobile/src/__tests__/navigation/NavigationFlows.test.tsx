@@ -5,7 +5,7 @@ import React from 'react';
  * Tests navigation between screens, deep linking, and navigation state
  */
 
-import { render, fireEvent, waitFor } from '../test-utils';
+import { render, waitFor } from '../test-utils';
 import { NavigationContainer } from '@react-navigation/native';
 import { AppNavigator } from '../../navigation/AppNavigator';
 import { useAuth } from '../../contexts/AuthContext';

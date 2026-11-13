@@ -19,7 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { JobService } from '../../../services/JobService';
 import { LocationService } from '../../../services/LocationService';
 import { useServiceRequestForm } from '../useServiceRequestForm';
-import { serviceCategories, type ServiceCategory } from '../types';
+import { serviceCategories } from '../types';
 
 // ---------------------------------------------------------------------------
 // Mocks (declared before importing the unit under test)

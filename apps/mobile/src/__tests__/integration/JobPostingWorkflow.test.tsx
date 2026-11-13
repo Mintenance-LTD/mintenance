@@ -3,7 +3,7 @@ import { render, fireEvent, waitFor, act } from '../test-utils';
 import { Text, TouchableOpacity, View, TextInput } from 'react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 
-import { AuthProvider, useAuth } from '../../contexts/AuthContext';
+import { AuthProvider } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/AuthService';
 import { JobService } from '../../services/JobService';
 import { createTestQueryClient } from '../utils/test-utils';

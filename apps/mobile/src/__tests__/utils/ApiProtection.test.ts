@@ -3,11 +3,7 @@
  * Comprehensive tests for API security and protection
  */
 
-import {
-  ApiProtectionService,
-  ApiRequest,
-  SecurityViolation,
-} from '../../utils/ApiProtection';
+import { ApiProtectionService, ApiRequest } from '../../utils/ApiProtection';
 
 describe('ApiProtectionService', () => {
   let apiProtection: ApiProtectionService;

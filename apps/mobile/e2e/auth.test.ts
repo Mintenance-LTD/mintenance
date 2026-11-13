@@ -1,4 +1,4 @@
-import { loginAsHomeowner, loginAsContractor, TEST_HOMEOWNER } from './helpers';
+import { loginAsHomeowner, loginAsContractor } from './helpers';
 
 describe('Authentication', () => {
   beforeAll(async () => {

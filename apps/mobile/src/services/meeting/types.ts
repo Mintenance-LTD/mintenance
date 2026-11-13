@@ -1,4 +1,4 @@
-import { ContractorMeeting, MeetingUpdate } from '@mintenance/types';
+import { ContractorMeeting } from '@mintenance/types';
 import { ContractorLocationContext } from '../JobContextLocationService';
 
 export interface ContractorLocation {

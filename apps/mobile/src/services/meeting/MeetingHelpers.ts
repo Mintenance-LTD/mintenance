@@ -1,5 +1,5 @@
 import { ContractorMeeting } from '@mintenance/types';
-import type { DatabaseMeetingRow, SupabaseError } from './types';
+import type { DatabaseMeetingRow } from './types';
 
 // 2026-05-27 audit-78 P1: shape of an `appointments` row as PostgREST
 // returns it via the /api/contractor/appointments[/[id]] endpoints.

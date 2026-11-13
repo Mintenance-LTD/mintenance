@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { AIPricingWidget } from '../AIPricingWidget';
 import { PricingAnalysis } from '../../services/AIPricingEngine';

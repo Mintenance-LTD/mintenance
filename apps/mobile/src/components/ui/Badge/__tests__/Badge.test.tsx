@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { Badge, Chip, NotificationBadge } from '../Badge';
 import type { BadgeVariant, BadgeSize } from '../Badge';
 

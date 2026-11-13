@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '../../test-utils';
+import { render } from '../../test-utils';
 import { BookingInterface } from '../BookingInterface';
 
 jest.mock('react-native-safe-area-context', () => ({

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '../test-utils';
+import { render } from '../test-utils';
 import { Text, View } from 'react-native';
 import { Card } from '../../components/ui/Card';
 
