@@ -99,7 +99,8 @@ jobs:
         run: node --test scripts/mint-eval/check-field-pilot.test.mjs scripts/vlm-training/export-reuse-hold.test.mjs
 
       - name: TypeScript compilation check
-        run: npm run type-check
+        # Avoid overlapping the large web/mobile compiler heaps on this runner.
+        run: npm run type-check -- --concurrency=1
 
       # 2026-04-30 audit P1 — service-role-fallback scoping check.
       # Fails the build if any `userDb` query in apps/web/app/api/**

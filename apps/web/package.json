@@ -39,7 +39,7 @@
     "analyze:bundle": "node scripts/measure-bundle-size.js",
     "analyze:baseline": "node scripts/measure-bundle-size.js --save bundle-baseline.json",
     "analyze:compare": "node scripts/measure-bundle-size.js --compare bundle-baseline.json",
-    "type-check": "tsc --noEmit",
+    "type-check": "cross-env NODE_OPTIONS=--max-old-space-size=4096 tsc --noEmit",
     "test:load": "k6 run load-tests/k6/critical-endpoints.js",
     "test:load:api": "k6 run load-tests/k6/api-endpoints.js",
     "test:e2e": "playwright test",
