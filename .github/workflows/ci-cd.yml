@@ -372,7 +372,8 @@ jobs:
     name: Build Production Apps
     runs-on: ubuntu-latest
     needs: [quality-checks, native-build-changes]
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push' && needs.native-build-changes.outputs.should-build == 'true'
+    # Disabled by default: use the manual Mobile Build Pipeline for store builds.
+    if: vars.ENABLE_AUTOMATIC_STORE_BUILDS == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push' && needs.native-build-changes.outputs.should-build == 'true'
     env:
       HAS_EXPO: ${{ secrets.EXPO_TOKEN != '' }}
       EAS_BUILD_PROFILE: production
