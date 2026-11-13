@@ -231,7 +231,7 @@ async function logAdminAccess(userId: string, path: string, method: string) {
       },
       created_at: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     // Non-critical - log locally if database logging fails
     logger.info('[AUDIT] Admin access', {
       userId,

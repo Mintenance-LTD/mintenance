@@ -88,7 +88,7 @@ async function testSimpleUpload() {
 try {
   require.resolve('jimp');
   testSimpleUpload();
-} catch (e) {
+} catch {
   console.log('Installing jimp for image generation...');
   const { execSync } = require('child_process');
   execSync('npm install jimp', { stdio: 'inherit' });

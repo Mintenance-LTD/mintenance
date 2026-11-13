@@ -19,8 +19,27 @@
  * }
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@mintenance/shared';
+/**
+ * API Versioning Utilities
+ *
+ * Provides version negotiation and compatibility checks for the API.
+ * Supports header-based and path-based versioning.
+ *
+ * Version Format: v{major}.{minor} (e.g., v1, v1.1, v2)
+ *
+ * @example
+ * // In API route:
+ * import { getAPIVersion, requireVersion, addVersionHeaders } from '@/lib/api-version';
+ *
+ * export async function GET(request: NextRequest) {
+ *   const version = getAPIVersion(request);
+ *   requireVersion(version, { min: 'v1', max: 'v2' });
+ *
+ *   const response = NextResponse.json({ data: 'example' });
+ *   return addVersionHeaders(response, 'v1');
+ * }
+ */
+import { NextResponse } from 'next/server';
 
 // ============================================================================
 // CONSTANTS
@@ -56,12 +75,6 @@ interface APIVersion {
   major: number;
   minor: number;
   raw: string;
-}
-
-interface VersionConstraints {
-  min?: string;
-  max?: string;
-  exact?: string;
 }
 
 interface VersionInfo {
@@ -130,39 +143,6 @@ function compareVersions(a: string, b: string): number {
  * Extract API version from request
  * Priority: Header > Query param > Path > Default
  */
-function getAPIVersion(request: NextRequest): string {
-  // 1. Check header (highest priority)
-  const headerVersion = request.headers.get(VERSION_HEADERS.REQUEST);
-  if (headerVersion) {
-    const parsed = parseVersion(headerVersion);
-    if (parsed) {
-      return parsed.raw;
-    }
-  }
-
-  // 2. Check query parameter
-  const url = new URL(request.url);
-  const queryVersion =
-    url.searchParams.get('api_version') || url.searchParams.get('v');
-  if (queryVersion) {
-    const parsed = parseVersion(queryVersion);
-    if (parsed) {
-      return parsed.raw;
-    }
-  }
-
-  // 3. Check path (e.g., /api/v1/users)
-  const pathMatch = url.pathname.match(/\/api\/v(\d+(?:\.\d+)?)\//);
-  if (pathMatch) {
-    const parsed = parseVersion(pathMatch[1]);
-    if (parsed) {
-      return parsed.raw;
-    }
-  }
-
-  // 4. Default to current version
-  return CURRENT_API_VERSION;
-}
 
 // ============================================================================
 // VERSION VALIDATION
@@ -171,36 +151,6 @@ function getAPIVersion(request: NextRequest): string {
 /**
  * Check if a version is within constraints
  */
-function isVersionValid(
-  version: string,
-  constraints: VersionConstraints
-): boolean {
-  const parsed = parseVersion(version);
-  if (!parsed) {
-    return false;
-  }
-
-  // Check exact match
-  if (constraints.exact) {
-    return compareVersions(version, constraints.exact) === 0;
-  }
-
-  // Check minimum version
-  if (constraints.min) {
-    if (compareVersions(version, constraints.min) < 0) {
-      return false;
-    }
-  }
-
-  // Check maximum version
-  if (constraints.max) {
-    if (compareVersions(version, constraints.max) > 0) {
-      return false;
-    }
-  }
-
-  return true;
-}
 
 /**
  * Get version info for a request

@@ -132,7 +132,7 @@ async function testRLSPolicies() {
 
     if (materials && materials.length > 0) {
       const originalPrice = materials[0].unit_price;
-      const { data, error, count } = await publicClient
+      const { data, error } = await publicClient
         .from('materials')
         .update({ unit_price: 999.99 })
         .eq('id', materials[0].id)
@@ -176,7 +176,7 @@ async function testRLSPolicies() {
       const testId = materials[0].id;
       const testName = materials[0].name;
 
-      const { data, error, count } = await publicClient
+      const { data, error } = await publicClient
         .from('materials')
         .delete()
         .eq('id', testId)

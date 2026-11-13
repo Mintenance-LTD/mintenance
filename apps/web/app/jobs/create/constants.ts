@@ -37,34 +37,8 @@ export const JOB_CATEGORIES = [
 ] as const;
 
 // Urgency Levels
-const URGENCY_OPTIONS = [
-  {
-    value: 'low',
-    label: 'Flexible',
-    description: 'No rush, can wait a few weeks',
-    icon: 'calendar',
-  },
-  {
-    value: 'medium',
-    label: 'Soon',
-    description: 'Within the next week',
-    icon: 'clock',
-  },
-  {
-    value: 'high',
-    label: 'Urgent',
-    description: 'Within 1-2 days',
-    icon: 'alert-triangle',
-  },
-] as const;
 
 // Multi-Step Form Configuration
-const FORM_STEPS = [
-  { id: 1, label: 'Details', shortLabel: 'Details' },
-  { id: 2, label: 'Photos', shortLabel: 'Photos' },
-  { id: 3, label: 'Budget', shortLabel: 'Budget' },
-  { id: 4, label: 'Review', shortLabel: 'Review' },
-] as const;
 
 // Error Messages
 const ERROR_MESSAGES = {
@@ -83,13 +57,5 @@ const ERROR_MESSAGES = {
 } as const;
 
 // API Endpoints
-const API_ENDPOINTS = {
-  JOBS: '/api/jobs',
-  PROPERTIES: '/api/properties',
-  UPLOAD_PHOTOS: '/api/jobs/upload-photos',
-  BUILDING_ASSESSMENT: '/api/building-surveyor/assess',
-  JOB_ANALYSIS: '/api/jobs/analyze',
-  CSRF: '/api/csrf',
-} as const;
 
 // Type Exports

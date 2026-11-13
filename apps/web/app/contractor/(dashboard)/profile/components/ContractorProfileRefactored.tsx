@@ -70,7 +70,6 @@ export function ContractorProfileRefactored({
     setIsEditing,
     updateFormField,
     saveProfile,
-    uploadProfileImage,
     cancelEdit,
   } = useContractorProfile(initialContractor, initialMetrics);
   // Modal states
@@ -240,7 +239,6 @@ function CompletedJobsGallery({
 // Placeholder for PostsSection component
 function PostsSection({
   posts,
-  contractorName,
 }: {
   posts: Array<{ id: string; title: string; content?: string }>;
   contractorName: string;
@@ -271,8 +269,6 @@ interface ProfileEditModalProps {
   isSaving: boolean;
 }
 function ProfileEditModal({
-  formData,
-  onFieldChange,
   onSave,
   onCancel,
   isSaving,

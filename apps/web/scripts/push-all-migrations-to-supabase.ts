@@ -1,7 +1,7 @@
 /**
  * Push All SQL Migrations to Supabase
  * This script ensures exec_sql function exists and applies all pending migrations
- * 
+ *
  * Usage: npx tsx scripts/push-all-migrations-to-supabase.ts
  */
 
@@ -22,11 +22,11 @@ function loadEnvFile() {
     if (existsSync(envPath)) {
       const envContent = readFileSync(envPath, 'utf-8');
       const lines = envContent.split('\n');
-      
+
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith('#')) continue;
-        
+
         const match = trimmed.match(/^([^=]+)=(.*)$/);
         if (match) {
           const key = match[1].trim();
@@ -36,13 +36,15 @@ function loadEnvFile() {
           }
         }
       }
-      
+
       console.log(`📄 Loaded environment variables from: ${envPath}\n`);
       return;
     }
   }
-  
-  console.warn('⚠️  No .env.local file found. Using system environment variables.\n');
+
+  console.warn(
+    '⚠️  No .env.local file found. Using system environment variables.\n'
+  );
 }
 
 // Load environment variables first (will be called before this code runs)
@@ -52,12 +54,15 @@ let serviceRoleKey: string;
 let supabase: ReturnType<typeof createClient>;
 
 function initializeSupabase() {
-  supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
   serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
   if (!supabaseUrl || !serviceRoleKey) {
     console.error('❌ Missing Supabase credentials');
-    console.error('   Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+    console.error(
+      '   Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY'
+    );
     console.error('   Expected in: apps/web/.env.local or .env.local');
     process.exit(1);
   }
@@ -101,25 +106,33 @@ GRANT EXECUTE ON FUNCTION public.exec_sql(TEXT) TO authenticated;
 
   try {
     // Try to use exec_sql to see if it exists
-    const { error: testError } = await supabase.rpc('exec_sql', { 
-      sql: 'SELECT 1;' 
+    const { error: testError } = await supabase.rpc('exec_sql', {
+      sql: 'SELECT 1;',
     });
 
-    if (testError && (
-      testError.message.includes('function exec_sql') || 
-      testError.message.includes('does not exist') ||
-      testError.code === '42883'
-    )) {
+    if (
+      testError &&
+      (testError.message.includes('function exec_sql') ||
+        testError.message.includes('does not exist') ||
+        testError.code === '42883')
+    ) {
       console.log('📝 exec_sql function not found. Creating it...\n');
-      console.log('⚠️  Note: exec_sql function must be created manually in Supabase Dashboard.');
-      console.log('   Please run this SQL in Supabase Dashboard > SQL Editor:\n');
+      console.log(
+        '⚠️  Note: exec_sql function must be created manually in Supabase Dashboard.'
+      );
+      console.log(
+        '   Please run this SQL in Supabase Dashboard > SQL Editor:\n'
+      );
       console.log(execSqlFunctionSQL);
       console.log('\n   Or run: npx tsx scripts/create-exec-sql-function.ts\n');
       console.log('   After creating the function, re-run this script.\n');
       return false;
     } else if (testError) {
       // Some other error, but function might exist
-      console.log('⚠️  Warning: Could not test exec_sql function:', testError.message);
+      console.log(
+        '⚠️  Warning: Could not test exec_sql function:',
+        testError.message
+      );
       console.log('   Proceeding anyway...\n');
     } else {
       console.log('✅ exec_sql function exists!\n');
@@ -139,13 +152,13 @@ GRANT EXECUTE ON FUNCTION public.exec_sql(TEXT) TO authenticated;
  */
 function getAllMigrationFiles(): string[] {
   const migrationsDir = join(process.cwd(), 'supabase', 'migrations');
-  
+
   try {
     const files = readdirSync(migrationsDir)
-      .filter(file => file.endsWith('.sql'))
-      .filter(file => !file.includes('README'))
+      .filter((file) => file.endsWith('.sql'))
+      .filter((file) => !file.includes('README'))
       .sort();
-    
+
     return files;
   } catch (error) {
     console.error('❌ Error reading migrations directory:', error);
@@ -166,13 +179,16 @@ async function getAppliedMigrations(): Promise<string[]> {
 
     if (error) {
       // Table might not exist, return empty array
-      if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+      if (
+        error.code === 'PGRST116' ||
+        error.message.includes('does not exist')
+      ) {
         return [];
       }
       throw error;
     }
 
-    return migrations?.map(m => m.filename) || [];
+    return migrations?.map((m) => m.filename) || [];
   } catch (error) {
     console.warn('⚠️  Could not fetch applied migrations:', error);
     return [];
@@ -211,10 +227,10 @@ CREATE INDEX IF NOT EXISTS idx_migrations_applied_at ON public.migrations(applie
  */
 async function applyMigration(filename: string): Promise<MigrationResult> {
   const startTime = Date.now();
-  
+
   try {
     console.log(`🔄 Applying: ${filename}`);
-    
+
     const migrationsDir = join(process.cwd(), 'supabase', 'migrations');
     const filePath = join(migrationsDir, filename);
     const sql = readFileSync(filePath, 'utf-8');
@@ -231,16 +247,16 @@ async function applyMigration(filename: string): Promise<MigrationResult> {
     }
 
     // Record migration as applied
-    const { error: recordError } = await supabase
-      .from('migrations')
-      .insert({
-        filename,
-        checksum,
-        applied_at: new Date().toISOString(),
-      });
+    const { error: recordError } = await supabase.from('migrations').insert({
+      filename,
+      checksum,
+      applied_at: new Date().toISOString(),
+    });
 
     if (recordError) {
-      console.warn(`⚠️  Migration applied but failed to record: ${recordError.message}`);
+      console.warn(
+        `⚠️  Migration applied but failed to record: ${recordError.message}`
+      );
     }
 
     const duration = Date.now() - startTime;
@@ -251,7 +267,6 @@ async function applyMigration(filename: string): Promise<MigrationResult> {
       success: true,
       duration,
     };
-
   } catch (error) {
     const duration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -261,14 +276,12 @@ async function applyMigration(filename: string): Promise<MigrationResult> {
 
     // Record failed migration
     try {
-      await supabase
-        .from('migrations')
-        .insert({
-          filename,
-          error_message: errorMessage,
-          applied_at: new Date().toISOString(),
-        });
-    } catch (recordError) {
+      await supabase.from('migrations').insert({
+        filename,
+        error_message: errorMessage,
+        applied_at: new Date().toISOString(),
+      });
+    } catch {
       // Ignore recording errors
     }
 
@@ -305,7 +318,9 @@ async function pushAllMigrations() {
   console.log(`📊 Migration Status:`);
   console.log(`   Total migrations: ${allMigrations.length}`);
   console.log(`   Already applied: ${appliedMigrations.length}`);
-  console.log(`   Pending: ${allMigrations.length - appliedMigrations.length}\n`);
+  console.log(
+    `   Pending: ${allMigrations.length - appliedMigrations.length}\n`
+  );
 
   if (allMigrations.length === 0) {
     console.log('✅ No migration files found');
@@ -314,7 +329,7 @@ async function pushAllMigrations() {
 
   // Step 4: Filter pending migrations
   const pendingMigrations = allMigrations.filter(
-    migration => !appliedMigrations.includes(migration)
+    (migration) => !appliedMigrations.includes(migration)
   );
 
   if (pendingMigrations.length === 0) {
@@ -342,7 +357,7 @@ async function pushAllMigrations() {
     }
 
     // Small delay between migrations to avoid overwhelming the database
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   // Step 6: Summary
@@ -356,8 +371,8 @@ async function pushAllMigrations() {
   if (failureCount > 0) {
     console.log('❌ Failed migrations:');
     results
-      .filter(r => !r.success)
-      .forEach(r => {
+      .filter((r) => !r.success)
+      .forEach((r) => {
         console.log(`   - ${r.filename}`);
         console.log(`     Error: ${r.error}\n`);
       });
@@ -366,8 +381,8 @@ async function pushAllMigrations() {
   if (successCount > 0) {
     console.log('✅ Successfully applied migrations:');
     results
-      .filter(r => r.success)
-      .forEach(r => {
+      .filter((r) => r.success)
+      .forEach((r) => {
         console.log(`   - ${r.filename} (${r.duration}ms)`);
       });
     console.log('');
@@ -383,8 +398,7 @@ loadEnvFile();
 initializeSupabase();
 
 // Run the script
-pushAllMigrations().catch(error => {
+pushAllMigrations().catch((error) => {
   console.error('❌ Fatal error:', error);
   process.exit(1);
 });
-

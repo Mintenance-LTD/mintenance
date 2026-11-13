@@ -19,7 +19,6 @@ export function SwipeActionButtons({
   userRole,
   onPass,
   onLike,
-  onSuperLike,
   disabled = false,
 }: SwipeActionButtonsProps) {
   const isContractor = userRole === 'contractor';

@@ -45,7 +45,7 @@ export async function runRetrieveMemoryTool(
         useTitans
       );
       continuumSummary = `Continuum adjustments (5 dims): [${adjustments.map((v) => v.toFixed(4)).join(', ')}].`;
-    } catch (err) {
+    } catch {
       continuumSummary =
         'Continuum query failed or memory system not initialized.';
     }

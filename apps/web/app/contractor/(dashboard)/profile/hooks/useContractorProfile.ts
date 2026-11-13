@@ -51,7 +51,7 @@ export function useContractorProfile(
 ) {
   const queryClient = useQueryClient();
   const [contractor, setContractor] = useState(initialContractor);
-  const [metrics, setMetrics] = useState(initialMetrics);
+  const [metrics] = useState(initialMetrics);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<ProfileFormData>({

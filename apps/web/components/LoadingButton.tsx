@@ -3,14 +3,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-interface LoadingButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  isLoading?: boolean;
-  loadingText?: string;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  children: React.ReactNode;
-}
-
 // Spinner component for inline loading states
 function LoadingSpinner({
   className,

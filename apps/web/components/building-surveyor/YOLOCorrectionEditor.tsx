@@ -303,27 +303,6 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
   };
 
   // Calculate corrections made
-  const calculateCorrectionsMade = () => {
-    const added = detections.filter((d) => d.id.startsWith('new-'));
-    const removed = originalDetections.filter(
-      (orig) => !detections.find((d) => d.id === orig.id)
-    );
-    const adjusted = detections
-      .filter((d) => !d.id.startsWith('new-'))
-      .filter((d) => {
-        const orig = originalDetections.find((o) => o.id === d.id);
-        if (!orig) return false;
-        return (
-          orig.className !== d.class ||
-          orig.boundingBox.x !== d.bbox.x ||
-          orig.boundingBox.y !== d.bbox.y ||
-          orig.boundingBox.width !== d.bbox.width ||
-          orig.boundingBox.height !== d.bbox.height
-        );
-      });
-
-    return { added, removed, adjusted };
-  };
 
   // Submit correction
   const handleSubmit = async () => {

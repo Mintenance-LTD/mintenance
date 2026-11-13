@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { SubscriptionPlanDetails, Subscription } from '@/lib/services/subscription/SubscriptionService';
+import {
+  SubscriptionPlanDetails,
+  Subscription,
+} from '@/lib/services/subscription/SubscriptionService';
 import { TrialStatus } from '@/lib/services/subscription/TrialService';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { TrialStatusBanner } from './TrialStatusBanner';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
-import { Icon } from '@/components/ui/Icon';
+
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -45,7 +48,6 @@ export function SubscriptionClient({
   subscription,
   trialStatus,
   plans,
-  contractorId,
   earlyAccess = false,
 }: SubscriptionClientProps) {
   const [currentSubscription, setCurrentSubscription] = useState(subscription);

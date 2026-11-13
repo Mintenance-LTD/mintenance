@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { theme } from '@/lib/theme';
+
 import Link from 'next/link';
 import { StatusBadge } from '@/components/ui/figma';
 

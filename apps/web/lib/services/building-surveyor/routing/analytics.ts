@@ -8,7 +8,7 @@
 import { logger } from '@mintenance/shared';
 import { supabase } from '@/lib/supabase';
 import type { AssessmentContext, DamageSeverity, UrgencyLevel } from '../types';
-import { CONFIDENCE_THRESHOLDS } from './types';
+
 import type { HybridInferenceResult, InferenceRoute } from './types';
 
 const SERVICE_NAME = 'HybridInferenceService';
@@ -213,35 +213,7 @@ export async function getRoutingStatistics(timeRange?: {
 /**
  * Confidence bucket used in calibration analysis
  */
-interface ConfidenceBucket {
-  /** Lower bound of the confidence range (inclusive) */
-  rangeMin: number;
-  /** Upper bound of the confidence range (exclusive) */
-  rangeMax: number;
-  /** Total predictions in this bucket */
-  total: number;
-  /** Correct predictions in this bucket */
-  correct: number;
-  /** Accuracy rate (0-1) */
-  accuracy: number;
-}
 
 /**
  * Result of calibration analysis, including recommended threshold adjustments
  */
-interface CalibrationAnalysisResult {
-  /** Number of calibration data points analysed */
-  dataPointsAnalysed: number;
-  /** Accuracy broken down by confidence level */
-  buckets: ConfidenceBucket[];
-  /** Overall accuracy across all data points */
-  overallAccuracy: number;
-  /** Current thresholds from CONFIDENCE_THRESHOLDS */
-  currentThresholds: { high: number; medium: number; low: number };
-  /** Recommended new thresholds based on the analysis */
-  recommendedThresholds: { high: number; medium: number; low: number };
-  /** Whether thresholds should be updated (significant drift detected) */
-  shouldUpdate: boolean;
-  /** Human-readable summary of findings */
-  summary: string;
-}

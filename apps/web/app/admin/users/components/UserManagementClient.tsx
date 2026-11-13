@@ -3,10 +3,9 @@
 import { useAdminFetch } from '@/components/admin/AdminVerificationProvider';
 import React, { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { theme } from '@/lib/admin-theme';
+
 import { Icon } from '@/components/ui/Icon';
-import { AdminCard } from '@/components/admin/AdminCard';
-import { Button } from '@/components/ui/Button';
+
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { UserDetailDialog } from './UserDetailDialog';
 import { BulkActionDialog } from './BulkActionDialog';
@@ -50,7 +49,6 @@ async function fetchUsers(params: {
 }
 
 export function UserManagementClient({
-  initialUsers,
   initialPagination,
 }: UserManagementClientProps) {
   const adminFetch = useAdminFetch();
@@ -74,7 +72,7 @@ export function UserManagementClient({
   const [showBulkActionModal, setShowBulkActionModal] = useState<
     'approve' | 'reject' | null
   >(null);
-  const [bulkRejectReason, setBulkRejectReason] = useState('');
+  const [, setBulkRejectReason] = useState('');
 
   // Debounce search input
   const [debounceTimer, setDebounceTimer] = useState<ReturnType<

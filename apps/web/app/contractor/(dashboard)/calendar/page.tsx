@@ -16,7 +16,7 @@ import {
   Save,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { MotionDiv } from '@/components/ui/MotionDiv';
+
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
   AvailabilitySlot,
@@ -90,7 +90,7 @@ export default function ContractorCalendarPage() {
 
       if (!res.ok) throw new Error('Failed to save');
       toast.success('Availability saved');
-    } catch (error) {
+    } catch {
       toast.error('Failed to save availability');
     } finally {
       setSavingAvailability(false);

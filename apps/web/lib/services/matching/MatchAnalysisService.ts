@@ -1,12 +1,14 @@
 import type { ContractorProfile } from '@mintenance/types';
 import type { MatchingCriteria, MatchingScore, ContractorMatch } from './types';
-import { ScoringService } from './ScoringService';
 
 export class MatchAnalysisService {
   /**
    * Generate reasons why a contractor is a good match
    */
-  static generateMatchReasons(score: MatchingScore, contractor: ContractorProfile): string[] {
+  static generateMatchReasons(
+    score: MatchingScore,
+    contractor: ContractorProfile
+  ): string[] {
     const reasons: string[] = [];
 
     if (score.skillMatch >= 80) {
@@ -59,7 +61,10 @@ export class MatchAnalysisService {
     if (criteria.urgency === 'emergency' && score.responsiveness < 70) {
       concerns.push('Response speed may be too slow for urgent requests');
     }
-    if (criteria.projectComplexity === 'complex' && score.experienceScore < 70) {
+    if (
+      criteria.projectComplexity === 'complex' &&
+      score.experienceScore < 70
+    ) {
       concerns.push('Experience may be limited for complex projects');
     }
 
@@ -74,22 +79,32 @@ export class MatchAnalysisService {
     preferences?: Partial<import('./types').MatchingPreferences>
   ): ContractorMatch[] {
     return matches
-      .filter(match => {
-        if (preferences?.blacklistedContractors?.includes(match.contractor.id)) {
+      .filter((match) => {
+        if (
+          preferences?.blacklistedContractors?.includes(match.contractor.id)
+        ) {
           return false;
         }
-        if (preferences?.minRating && match.matchBreakdown.ratingScore < preferences.minRating * 20) {
+        if (
+          preferences?.minRating &&
+          match.matchBreakdown.ratingScore < preferences.minRating * 20
+        ) {
           return false;
         }
-        if (preferences?.maxDistance && match.distance > preferences.maxDistance) {
+        if (
+          preferences?.maxDistance &&
+          match.distance > preferences.maxDistance
+        ) {
           return false;
         }
         return true;
       })
       .sort((a, b) => {
         // Prioritize favorites
-        if (preferences?.favoriteContractors?.includes(a.contractor.id)) return -1;
-        if (preferences?.favoriteContractors?.includes(b.contractor.id)) return 1;
+        if (preferences?.favoriteContractors?.includes(a.contractor.id))
+          return -1;
+        if (preferences?.favoriteContractors?.includes(b.contractor.id))
+          return 1;
 
         // Apply preference weights
         let scoreA = a.matchScore;
@@ -122,13 +137,14 @@ export class MatchAnalysisService {
   ): { suggested: number; reason: string } | undefined {
     if (marketRates.length === 0) return undefined;
 
-    const averageRate = marketRates.reduce((sum, rate) => sum + rate, 0) / marketRates.length;
+    const averageRate =
+      marketRates.reduce((sum, rate) => sum + rate, 0) / marketRates.length;
     const budgetMidpoint = (currentBudget.min + currentBudget.max) / 2;
 
     if (averageRate > budgetMidpoint * 1.2) {
       return {
         suggested: Math.round(averageRate * 1.1),
-        reason: 'Market rates are higher than your budget range'
+        reason: 'Market rates are higher than your budget range',
       };
     }
 

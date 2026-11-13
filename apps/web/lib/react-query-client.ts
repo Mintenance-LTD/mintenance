@@ -4,7 +4,6 @@
  */
 
 import { QueryClient } from '@tanstack/react-query';
-import type { Job } from '@mintenance/types';
 
 /**
  * Configure React Query client with production-ready settings
@@ -149,71 +148,3 @@ export const queryKeys = {
 /**
  * Utility functions for common query operations
  */
-const queryUtils = {
-  /**
-   * Invalidate user-related queries
-   */
-  invalidateUser: (userId: string) => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.user.profile(userId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.user.stats(userId) });
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.user.preferences(userId),
-    });
-  },
-
-  /**
-   * Invalidate job-related queries
-   */
-  invalidateJobs: () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
-    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.lists() });
-  },
-
-  /**
-   * Invalidate contractor-related queries
-   */
-  invalidateContractors: () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.contractors.all });
-    queryClient.invalidateQueries({ queryKey: queryKeys.contractors.lists() });
-  },
-
-  /**
-   * Invalidate payment-related queries
-   */
-  invalidatePayments: (userId: string) => {
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.payments.intents(userId),
-    });
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.payments.methods(userId),
-    });
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.payments.transactions(userId),
-    });
-  },
-
-  /**
-   * Invalidate all queries (use sparingly)
-   */
-  invalidateAll: () => {
-    queryClient.invalidateQueries();
-  },
-
-  /**
-   * Prefetch data for better UX
-   */
-  prefetchUserProfile: async (userId: string) => {
-    await queryClient.prefetchQuery({
-      queryKey: queryKeys.user.profile(userId),
-      queryFn: () => fetch(`/api/users/${userId}`).then((res) => res.json()),
-      staleTime: 5 * 60 * 1000,
-    });
-  },
-
-  /**
-   * Set query data optimistically
-   */
-  setJobData: (jobId: string, data: Job) => {
-    queryClient.setQueryData(queryKeys.jobs.details(jobId), data);
-  },
-};

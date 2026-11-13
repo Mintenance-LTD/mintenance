@@ -3,7 +3,6 @@
  * Centralized data fetching logic for the dashboard
  */
 
-import { serverSupabase } from '@/lib/api/supabaseServer';
 import {
   getCachedUserJobs,
   getCachedUserBids,

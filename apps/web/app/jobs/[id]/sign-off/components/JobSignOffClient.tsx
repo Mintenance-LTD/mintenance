@@ -18,8 +18,6 @@
  */
 'use client';
 
-import React from 'react';
-
 interface JobSignOffClientProps {
   jobId: string;
   jobTitle: string;

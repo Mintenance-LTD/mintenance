@@ -27,7 +27,7 @@ export function useSidebarState({
   const [internalMobileOpen, setInternalMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [keyboardSequence, setKeyboardSequence] = useState<string[]>([]);
+  const [, setKeyboardSequence] = useState<string[]>([]);
 
   const isMobileOpen =
     externalMobileOpen !== undefined ? externalMobileOpen : internalMobileOpen;

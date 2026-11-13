@@ -36,7 +36,7 @@ export function getModelHealthInfo(): ModelHealthInfo {
       valid: validation.valid,
       validationError: validation.error || null,
     };
-  } catch (error) {
+  } catch {
     // Fail gracefully - return unknown status
     return {
       modelId: 'Unknown',

@@ -7,7 +7,7 @@
  * 3. Data flows through to frontend component
  */
 
-import { PricingAgent } from '@/lib/services/agents/PricingAgent';
+
 import { JobAnalysisService } from '@/lib/services/JobAnalysisService';
 
 async function testCostBreakdownIntegration() {

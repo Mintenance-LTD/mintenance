@@ -21,29 +21,36 @@ export function HomeownerLayoutShell({
   currentPath = '/dashboard',
   userName,
   userId,
-  userEmail,
-  userAvatar
+  userAvatar,
 }: HomeownerLayoutShellProps) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className='min-h-screen bg-gray-50'>
       {/* Skip to content link for keyboard users */}
       <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-white focus:text-teal-700 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500"
+        href='#main-content'
+        className='sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-white focus:text-teal-700 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500'
       >
         Skip to content
       </a>
 
-      <div className="flex flex-col w-full bg-gray-50">
+      <div className='flex flex-col w-full bg-gray-50'>
         {/* Mobile Header */}
-        <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200">
-          <div className="flex items-center justify-between px-4 py-3">
-            <div className="text-lg font-semibold text-gray-900">Mintenance</div>
+        <div className='lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200'>
+          <div className='flex items-center justify-between px-4 py-3'>
+            <div className='text-lg font-semibold text-gray-900'>
+              Mintenance
+            </div>
             {userAvatar && (
-              <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
-                <Image src={userAvatar} alt={userName ?? ''} width={32} height={32} className="object-cover" />
+              <div className='w-8 h-8 rounded-full bg-gray-200 overflow-hidden'>
+                <Image
+                  src={userAvatar}
+                  alt={userName ?? ''}
+                  width={32}
+                  height={32}
+                  className='object-cover'
+                />
               </div>
             )}
           </div>
@@ -51,7 +58,7 @@ export function HomeownerLayoutShell({
 
         {/* Desktop Header */}
         {userName && (
-          <div className="hidden lg:block">
+          <div className='hidden lg:block'>
             <DashboardHeader
               userName={userName}
               userId={userId}
@@ -61,67 +68,84 @@ export function HomeownerLayoutShell({
         )}
 
         {/* Page Content — add bottom padding on mobile for tab bar */}
-        <div className="flex-1 flex justify-center">
-          <main id="main-content" className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 lg:py-10 pb-20 lg:pb-10">
+        <div className='flex-1 flex justify-center'>
+          <main
+            id='main-content'
+            className='w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 lg:py-10 pb-20 lg:pb-10'
+          >
             {children}
           </main>
         </div>
       </div>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav aria-label="Mobile navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 flex items-stretch justify-around safe-area-bottom">
+      <nav
+        aria-label='Mobile navigation'
+        className='lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 flex items-stretch justify-around safe-area-bottom'
+      >
         <Link
-          href="/dashboard"
+          href='/dashboard'
           aria-current={pathname === '/dashboard' ? 'page' : undefined}
           className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium transition-colors ${
-            pathname === '/dashboard' ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
+            pathname === '/dashboard'
+              ? 'text-teal-600'
+              : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          <Home className="w-5 h-5" aria-hidden="true" />
+          <Home className='w-5 h-5' aria-hidden='true' />
           <span>Home</span>
         </Link>
         <Link
-          href="/jobs"
-          aria-current={pathname?.startsWith('/jobs') && pathname !== '/jobs/create' ? 'page' : undefined}
+          href='/jobs'
+          aria-current={
+            pathname?.startsWith('/jobs') && pathname !== '/jobs/create'
+              ? 'page'
+              : undefined
+          }
           className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium transition-colors ${
-            pathname?.startsWith('/jobs') && pathname !== '/jobs/create' ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
+            pathname?.startsWith('/jobs') && pathname !== '/jobs/create'
+              ? 'text-teal-600'
+              : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          <Briefcase className="w-5 h-5" aria-hidden="true" />
+          <Briefcase className='w-5 h-5' aria-hidden='true' />
           <span>Jobs</span>
         </Link>
         <Link
-          href="/jobs/create"
-          aria-label="Post a new job"
-          className="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-semibold"
+          href='/jobs/create'
+          aria-label='Post a new job'
+          className='flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-semibold'
         >
-          <div className="w-10 h-10 bg-teal-600 rounded-2xl flex items-center justify-center -mt-4 shadow-lg shadow-teal-500/30">
-            <Plus className="w-5 h-5 text-white" aria-hidden="true" />
+          <div className='w-10 h-10 bg-teal-600 rounded-2xl flex items-center justify-center -mt-4 shadow-lg shadow-teal-500/30'>
+            <Plus className='w-5 h-5 text-white' aria-hidden='true' />
           </div>
-          <span className="text-gray-400 mt-0.5 text-[10px]">Post</span>
+          <span className='text-gray-400 mt-0.5 text-[10px]'>Post</span>
         </Link>
         <Link
-          href="/messages"
+          href='/messages'
           aria-current={pathname?.startsWith('/messages') ? 'page' : undefined}
           className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium transition-colors ${
-            pathname?.startsWith('/messages') ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
+            pathname?.startsWith('/messages')
+              ? 'text-teal-600'
+              : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          <MessageSquare className="w-5 h-5" aria-hidden="true" />
+          <MessageSquare className='w-5 h-5' aria-hidden='true' />
           <span>Messages</span>
         </Link>
         <Link
-          href="/settings"
+          href='/settings'
           aria-current={pathname?.startsWith('/settings') ? 'page' : undefined}
           className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium transition-colors ${
-            pathname?.startsWith('/settings') ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
+            pathname?.startsWith('/settings')
+              ? 'text-teal-600'
+              : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          <Settings className="w-5 h-5" aria-hidden="true" />
+          <Settings className='w-5 h-5' aria-hidden='true' />
           <span>Settings</span>
         </Link>
       </nav>
     </div>
   );
 }
-

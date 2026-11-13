@@ -138,7 +138,7 @@ export default function ReviewSubmissionPage() {
               }
             : undefined,
         });
-      } catch (err) {
+      } catch {
         setError('Failed to load job details');
       } finally {
         setLoading(false);

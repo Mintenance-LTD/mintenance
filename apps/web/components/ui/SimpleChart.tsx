@@ -110,15 +110,3 @@ export function BarChart({
     </div>
   );
 }
-
-interface LineChartProps {
-  data: Array<{ label: string; value: number }>;
-  height?: number;
-  color?: string;
-}
-
-interface DonutChartProps {
-  data: Array<{ label: string; value: number; color: string }>;
-  size?: number;
-  innerText?: string;
-}

@@ -185,33 +185,12 @@ CardHeading.displayName = 'CardHeading';
 // HEADING GROUP COMPONENT
 // ============================================
 
-interface HeadingGroupProps {
-  children: React.ReactNode;
-  className?: string;
-  spacing?: 'sm' | 'md' | 'lg';
-}
-
 /**
  * HeadingGroup
  *
  * Groups a heading with supporting text (e.g., description)
  * Maintains consistent spacing
  */
-const HeadingGroup: React.FC<HeadingGroupProps> = ({
-  children,
-  className,
-  spacing = 'md',
-}) => {
-  const spacingClasses = {
-    sm: 'space-y-1', // 4px
-    md: 'space-y-2', // 8px
-    lg: 'space-y-4', // 16px
-  };
-
-  return (
-    <div className={cn(spacingClasses[spacing], className)}>{children}</div>
-  );
-};
 
 // ============================================
 // SUPPORTING TEXT COMPONENT

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { theme } from '@/lib/theme';
 
 interface AnimatedCounterProps {
   value: number;

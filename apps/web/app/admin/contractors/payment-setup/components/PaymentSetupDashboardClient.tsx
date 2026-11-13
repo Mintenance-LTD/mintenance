@@ -46,7 +46,7 @@ export function PaymentSetupDashboardClient({ contractors }: Props) {
       }
 
       setSent((prev) => new Set(prev).add(contractorId));
-    } catch (error) {
+    } catch {
       toast.error('Failed to send reminder');
     } finally {
       setSending(null);

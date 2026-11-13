@@ -72,11 +72,3 @@ export function useReducedMotion(): boolean {
 /**
  * Motion props interface for conditional motion
  */
-interface MotionProps {
-  variants?: Record<string, unknown>;
-  initial?: string | boolean;
-  animate?: string | boolean;
-  exit?: string | boolean;
-  transition?: Record<string, unknown>;
-  [key: string]: unknown;
-}

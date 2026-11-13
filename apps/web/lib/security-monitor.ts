@@ -405,13 +405,6 @@ class SecurityMonitor {
   async getSecurityMetrics(
     timeframe: '1h' | '24h' | '7d' | '30d' = '24h'
   ): Promise<unknown> {
-    const timeframes = {
-      '1h': '1 hour',
-      '24h': '24 hours',
-      '7d': '7 days',
-      '30d': '30 days',
-    };
-
     const { data, error } = await serverSupabase
       .from('security_events')
       .select('*')

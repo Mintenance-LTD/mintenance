@@ -89,7 +89,7 @@ export const POST = withApiHandler(
   async (request) => {
     const validation = await validateRequest(request, featureFlagMetricsSchema);
     if (validation instanceof NextResponse) return validation;
-    const { flag, metrics, userId, sessionId, reason, automatic } = validation.data;
+    const { flag, metrics, userId, sessionId, reason } = validation.data;
 
     if (flag && reason) {
       return postRollbackResponse(validation.data as Record<string, unknown>);
@@ -187,7 +187,9 @@ async function getStatusResponse(request: NextRequest): Promise<NextResponse> {
 }
 
 /** POST rollback handler */
-async function postRollbackResponse(body: Record<string, unknown>): Promise<NextResponse> {
+async function postRollbackResponse(
+  body: Record<string, unknown>
+): Promise<NextResponse> {
   const { flag, reason, metrics, automatic = false } = body;
 
   if (!flag || !reason) {
@@ -229,7 +231,11 @@ async function postRollbackResponse(body: Record<string, unknown>): Promise<Next
       rollbackResult = await genericRollback(flag as string);
   }
 
-  await sendRollbackNotifications(flag as string, reason as string, rollbackResult);
+  await sendRollbackNotifications(
+    flag as string,
+    reason as string,
+    rollbackResult
+  );
 
   return NextResponse.json({
     success: true,
@@ -276,7 +282,8 @@ async function getOverallMetrics() {
     end: new Date(),
   };
 
-  const routingStats = await HybridInferenceService.getRoutingStatistics(timeRange);
+  const routingStats =
+    await HybridInferenceService.getRoutingStatistics(timeRange);
 
   return {
     routing: routingStats,
@@ -435,19 +442,21 @@ function calculateAggregateMetrics(metricsData: unknown[]) {
   const aggregates: Record<string, number[]> = {};
   const totals: Record<string, number> = {};
 
-  (metricsData as Array<{ metrics: Record<string, unknown> }>).forEach((record) => {
-    const metrics = record.metrics;
-    Object.keys(metrics).forEach((key) => {
-      const value = metrics[key];
-      if (typeof value === 'number') {
-        if (!aggregates[key]) {
-          aggregates[key] = [];
+  (metricsData as Array<{ metrics: Record<string, unknown> }>).forEach(
+    (record) => {
+      const metrics = record.metrics;
+      Object.keys(metrics).forEach((key) => {
+        const value = metrics[key];
+        if (typeof value === 'number') {
+          if (!aggregates[key]) {
+            aggregates[key] = [];
+          }
+          aggregates[key].push(value);
+          totals[key] = (totals[key] || 0) + value;
         }
-        aggregates[key].push(value);
-        totals[key] = (totals[key] || 0) + value;
-      }
-    });
-  });
+      });
+    }
+  );
 
   const averages: Record<string, number> = {};
   Object.keys(aggregates).forEach((key) => {
@@ -462,20 +471,21 @@ function calculateAggregateMetrics(metricsData: unknown[]) {
   };
 }
 
-function calculateFalseNegativeRate(metrics: Record<string, unknown>[]): number {
+function calculateFalseNegativeRate(
+  metrics: Record<string, unknown>[]
+): number {
   if (!metrics || metrics.length === 0) return 0;
 
   let falseNegatives = 0;
   let total = 0;
 
   metrics.forEach((m) => {
-    const presenceDetection = m.presence_detection as Record<string, unknown> | undefined;
+    const presenceDetection = m.presence_detection as
+      | Record<string, unknown>
+      | undefined;
     if (presenceDetection) {
       total++;
-      if (
-        !presenceDetection.damageDetected &&
-        !m.yolo_skipped
-      ) {
+      if (!presenceDetection.damageDetected && !m.yolo_skipped) {
         falseNegatives++;
       }
     }
@@ -491,9 +501,7 @@ function calculateAvgInferenceTime(metrics: Record<string, unknown>[]): number {
     .filter((m) => typeof m.inference_time_ms === 'number')
     .map((m) => m.inference_time_ms as number);
 
-  return times.length > 0
-    ? times.reduce((a, b) => a + b, 0) / times.length
-    : 0;
+  return times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : 0;
 }
 
 function getAllFlagsConfig() {

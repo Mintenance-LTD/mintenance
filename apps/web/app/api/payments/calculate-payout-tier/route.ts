@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PayoutTierService } from '@/lib/services/payment/PayoutTierService';
-import { logger } from '@mintenance/shared';
+
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 export const GET = withApiHandler(

@@ -183,19 +183,7 @@ export function decryptField(
 /**
  * Payment data that may contain sensitive fields
  */
-interface PaymentData {
-  [key: string]: unknown;
-}
 
 /**
  * Fields that should be encrypted in payment data
  */
-const SENSITIVE_PAYMENT_FIELDS = [
-  'card_number',
-  'cvv',
-  'bank_account_number',
-  'routing_number',
-  'ssn',
-  'tax_id',
-  'personal_id',
-];

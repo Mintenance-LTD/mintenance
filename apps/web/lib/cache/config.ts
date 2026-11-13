@@ -1,5 +1,3 @@
-import { unstable_cache } from 'next/cache';
-
 /**
  * Cache configuration for different data types
  */

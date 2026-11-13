@@ -37,7 +37,6 @@ interface SubscriptionCheckoutClientProps {
 }
 
 function CheckoutForm({
-  subscriptionId,
   planType,
   returnUrl,
   successRedirectPath,

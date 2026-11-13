@@ -6,28 +6,6 @@ import { Variants } from 'framer-motion';
 // BUTTON ANIMATIONS
 // ============================================
 
-const buttonHover: Variants = {
-  rest: { scale: 1, y: 0 },
-  hover: {
-    scale: 1.02,
-    y: -1,
-    transition: {
-      duration: 0.2,
-      ease: [0.4, 0, 0.2, 1],
-    },
-  },
-  tap: {
-    scale: 0.98,
-    transition: {
-      duration: 0.1,
-    },
-  },
-};
-
-const buttonPress = {
-  whileTap: { scale: 0.95 },
-};
-
 const buttonPulse: Variants = {
   initial: { scale: 1 },
   animate: {

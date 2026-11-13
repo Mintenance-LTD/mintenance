@@ -153,7 +153,3 @@ export function PageHeader({
  * StatsGrid Component
  * Grid layout for stat cards
  */
-interface StatsGridProps {
-  children: React.ReactNode;
-  columns?: number;
-}

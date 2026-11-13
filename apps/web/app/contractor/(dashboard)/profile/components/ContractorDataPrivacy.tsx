@@ -94,7 +94,7 @@ export function ContractorDataPrivacy({
 
       setMessage({ type: 'success', text: 'Preferences saved successfully.' });
       setTimeout(() => setMessage(null), 3000);
-    } catch (error) {
+    } catch {
       setMessage({
         type: 'error',
         text: 'Failed to save preferences. Please try again.',
@@ -132,7 +132,7 @@ export function ContractorDataPrivacy({
         text: 'Data export downloaded successfully.',
       });
       setTimeout(() => setMessage(null), 3000);
-    } catch (error) {
+    } catch {
       setMessage({
         type: 'error',
         text: 'Failed to export data. Please try again.',

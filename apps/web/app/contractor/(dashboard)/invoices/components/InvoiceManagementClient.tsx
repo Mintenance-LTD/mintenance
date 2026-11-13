@@ -66,7 +66,7 @@ export function InvoiceManagementClient({
   const [selectedFilter, setSelectedFilter] =
     useState<(typeof FILTERS)[number]['id']>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
 
   // 2026-05-13 polish pass: hydration-safe theme detection so the toolbar
   // (search field + Create button) + filter-tab row swap to the canonical

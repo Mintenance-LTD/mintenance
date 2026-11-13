@@ -101,7 +101,7 @@ export function MeetingScheduler(props: MeetingSchedulerProps) {
       query = query.eq('homeowner_id', currentUserId);
     }
 
-    const { data, error } = await query;
+    const { data } = await query;
 
     if (data) {
       setJobs(data);

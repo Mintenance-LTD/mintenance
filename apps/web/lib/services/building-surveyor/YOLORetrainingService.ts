@@ -293,7 +293,7 @@ export class YOLORetrainingService {
       }
 
       return null;
-    } catch (error) {
+    } catch {
       return null;
     }
   }

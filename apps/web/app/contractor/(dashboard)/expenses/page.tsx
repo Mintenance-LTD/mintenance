@@ -2,7 +2,15 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Plus, Download, Calendar, ReceiptPoundSterling, Trash2, Search, Loader2 } from 'lucide-react';
+import {
+  Plus,
+  Download,
+  Calendar,
+  ReceiptPoundSterling,
+  Trash2,
+  Search,
+  Loader2,
+} from 'lucide-react';
 
 // AUDIT_PUNCH_LIST P2 #64 (A2-P2-6) — `@tremor/react` ships ~200KB
 // gzipped (Recharts under the hood). Static-importing it pulled the
@@ -234,7 +242,7 @@ export default function ExpenseTrackingPage() {
       });
       if (!res.ok) throw new Error('Failed to delete');
       toast.success('Expense deleted');
-    } catch (error) {
+    } catch {
       setExpenses(previous);
       toast.error('Failed to delete expense');
     }

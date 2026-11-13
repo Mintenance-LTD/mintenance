@@ -1,6 +1,5 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
-import { getGradient } from '@/lib/theme-enhancements';
 
 interface CircularProgressProps {
   value: number; // 0-100
@@ -30,7 +29,7 @@ export function CircularProgress({
   };
 
   const color = getColor();
-  
+
   // Use gradient for high completion
   const useGradient = value >= 75;
 
@@ -58,7 +57,7 @@ export function CircularProgress({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          fill="none"
+          fill='none'
           stroke={theme.colors.border}
           strokeWidth={strokeWidth}
         />
@@ -66,21 +65,27 @@ export function CircularProgress({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          fill="none"
+          fill='none'
           stroke={useGradient ? `url(#gradient-${size})` : color}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          strokeLinecap="round"
+          strokeLinecap='round'
           style={{
             transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         />
         {useGradient && (
           <defs>
-            <linearGradient id={`gradient-${size}`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={theme.colors.success} />
-              <stop offset="100%" stopColor="#34D399" />
+            <linearGradient
+              id={`gradient-${size}`}
+              x1='0%'
+              y1='0%'
+              x2='100%'
+              y2='100%'
+            >
+              <stop offset='0%' stopColor={theme.colors.success} />
+              <stop offset='100%' stopColor='#34D399' />
             </linearGradient>
           </defs>
         )}

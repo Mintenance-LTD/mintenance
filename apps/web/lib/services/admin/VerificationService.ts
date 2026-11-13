@@ -37,14 +37,22 @@ export class VerificationService {
   /**
    * Validates license number format
    */
-  private static validateLicenseFormat(licenseNumber: string | null | undefined): { valid: boolean; message?: string } {
+  private static validateLicenseFormat(
+    licenseNumber: string | null | undefined
+  ): { valid: boolean; message?: string } {
     if (!licenseNumber || licenseNumber.trim().length < 5) {
-      return { valid: false, message: 'License number must be at least 5 characters' };
+      return {
+        valid: false,
+        message: 'License number must be at least 5 characters',
+      };
     }
 
     const cleanLicense = licenseNumber.trim().toUpperCase();
     if (!/^[A-Z0-9\-\/]+$/.test(cleanLicense)) {
-      return { valid: false, message: 'License number contains invalid characters' };
+      return {
+        valid: false,
+        message: 'License number contains invalid characters',
+      };
     }
 
     if (cleanLicense.length > 50) {
@@ -57,9 +65,15 @@ export class VerificationService {
   /**
    * Validates company name format
    */
-  private static validateCompanyName(companyName: string | null | undefined): { valid: boolean; message?: string } {
+  private static validateCompanyName(companyName: string | null | undefined): {
+    valid: boolean;
+    message?: string;
+  } {
     if (!companyName || companyName.trim().length < 2) {
-      return { valid: false, message: 'Company name is required and must be at least 2 characters' };
+      return {
+        valid: false,
+        message: 'Company name is required and must be at least 2 characters',
+      };
     }
 
     if (companyName.trim().length > 100) {
@@ -69,8 +83,11 @@ export class VerificationService {
     // Check for suspicious patterns
     const suspiciousPatterns = ['test', 'example', 'fake', 'dummy'];
     const lowerName = companyName.toLowerCase();
-    if (suspiciousPatterns.some(pattern => lowerName.includes(pattern))) {
-      return { valid: false, message: 'Company name appears to be a test or placeholder' };
+    if (suspiciousPatterns.some((pattern) => lowerName.includes(pattern))) {
+      return {
+        valid: false,
+        message: 'Company name appears to be a test or placeholder',
+      };
     }
 
     return { valid: true };
@@ -79,7 +96,10 @@ export class VerificationService {
   /**
    * Checks if insurance is valid (not expired)
    */
-  private static validateInsurance(expiryDate: string | null | undefined): { valid: boolean; message?: string } {
+  private static validateInsurance(expiryDate: string | null | undefined): {
+    valid: boolean;
+    message?: string;
+  } {
     if (!expiryDate) {
       return { valid: true }; // Insurance is optional, so no expiry is OK
     }
@@ -87,19 +107,24 @@ export class VerificationService {
     try {
       const expiry = new Date(expiryDate);
       const now = new Date();
-      
+
       if (expiry < now) {
         return { valid: false, message: 'Insurance has expired' };
       }
 
       // Warn if expiring within 30 days
-      const daysUntilExpiry = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const daysUntilExpiry = Math.floor(
+        (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
       if (daysUntilExpiry < 30) {
-        return { valid: true, message: `Insurance expires in ${daysUntilExpiry} days` };
+        return {
+          valid: true,
+          message: `Insurance expires in ${daysUntilExpiry} days`,
+        };
       }
 
       return { valid: true };
-    } catch (error) {
+    } catch {
       return { valid: false, message: 'Invalid insurance expiry date format' };
     }
   }
@@ -107,19 +132,32 @@ export class VerificationService {
   /**
    * Runs automated verification checks on a contractor
    */
-  static async automatedVerificationCheck(userId: string): Promise<AutomatedVerificationResult> {
+  static async automatedVerificationCheck(
+    userId: string
+  ): Promise<AutomatedVerificationResult> {
     try {
       const { data: user, error } = await serverSupabase
         .from('profiles')
-        .select('company_name, business_address, license_number, latitude, longitude, insurance_expiry_date, admin_verified, background_check_status')
+        .select(
+          'company_name, business_address, license_number, latitude, longitude, insurance_expiry_date, admin_verified, background_check_status'
+        )
         .eq('id', userId)
         .single();
 
       if (error || !user) {
-        logger.error('Error fetching user for verification check', { userId, error: error?.message });
+        logger.error('Error fetching user for verification check', {
+          userId,
+          error: error?.message,
+        });
         return {
           passed: false,
-          checks: [{ name: 'User Data Fetch', passed: false, message: 'Failed to fetch user data' }],
+          checks: [
+            {
+              name: 'User Data Fetch',
+              passed: false,
+              message: 'Failed to fetch user data',
+            },
+          ],
           requiresManualReview: true,
           verificationScore: 0,
         };
@@ -127,7 +165,7 @@ export class VerificationService {
 
       const checks: VerificationCheck[] = [];
       let score = 0;
-      const maxScore = 100;
+
       const weights = {
         companyName: 15,
         businessAddress: 15,
@@ -147,7 +185,9 @@ export class VerificationService {
       if (companyCheck.valid) score += weights.companyName;
 
       // Check 2: Business Address
-      const hasAddress = Boolean(user.business_address && user.business_address.trim().length > 5);
+      const hasAddress = Boolean(
+        user.business_address && user.business_address.trim().length > 5
+      );
       checks.push({
         name: 'Business Address',
         passed: hasAddress,
@@ -189,13 +229,20 @@ export class VerificationService {
       checks.push({
         name: 'Background Check',
         passed: backgroundCheckPassed,
-        message: backgroundCheckPassed ? undefined : 'Background check required',
+        message: backgroundCheckPassed
+          ? undefined
+          : 'Background check required',
       });
       if (backgroundCheckPassed) {
         score += weights.backgroundCheck;
       }
 
-      const allCriticalChecksPassed = companyCheck.valid && hasAddress && licenseCheck.valid && hasGeolocation && backgroundCheckPassed;
+      const allCriticalChecksPassed =
+        companyCheck.valid &&
+        hasAddress &&
+        licenseCheck.valid &&
+        hasGeolocation &&
+        backgroundCheckPassed;
       const requiresManualReview = !allCriticalChecksPassed || score < 80;
 
       return {
@@ -205,10 +252,19 @@ export class VerificationService {
         verificationScore: score,
       };
     } catch (error) {
-      logger.error('Error in automated verification check', { userId, error: error instanceof Error ? error.message : String(error) });
+      logger.error('Error in automated verification check', {
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         passed: false,
-        checks: [{ name: 'System Error', passed: false, message: 'An error occurred during verification' }],
+        checks: [
+          {
+            name: 'System Error',
+            passed: false,
+            message: 'An error occurred during verification',
+          },
+        ],
         requiresManualReview: true,
         verificationScore: 0,
       };
@@ -226,7 +282,9 @@ export class VerificationService {
   /**
    * Fetches verification history for a user
    */
-  static async getVerificationHistory(userId: string): Promise<VerificationHistoryEntry[]> {
+  static async getVerificationHistory(
+    userId: string
+  ): Promise<VerificationHistoryEntry[]> {
     try {
       const { data, error } = await serverSupabase
         .from('verification_history')
@@ -236,13 +294,19 @@ export class VerificationService {
         .limit(50);
 
       if (error) {
-        logger.error('Error fetching verification history', { userId, error: error.message });
+        logger.error('Error fetching verification history', {
+          userId,
+          error: error.message,
+        });
         return [];
       }
 
       return data || [];
     } catch (error) {
-      logger.error('Error in getVerificationHistory', { userId, error: error instanceof Error ? error.message : String(error) });
+      logger.error('Error in getVerificationHistory', {
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }
@@ -275,11 +339,20 @@ export class VerificationService {
         });
 
       if (error) {
-        logger.error('Error logging verification action', { userId, adminId, action, error: error.message });
+        logger.error('Error logging verification action', {
+          userId,
+          adminId,
+          action,
+          error: error.message,
+        });
       }
     } catch (error) {
-      logger.error('Error in logVerificationAction', { userId, adminId, action, error: error instanceof Error ? error.message : String(error) });
+      logger.error('Error in logVerificationAction', {
+        userId,
+        adminId,
+        action,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }
-

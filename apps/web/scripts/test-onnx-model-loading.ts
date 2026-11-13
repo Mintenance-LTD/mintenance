@@ -116,7 +116,7 @@ async function testModelLoading() {
                 console.log('⚠️  Model metadata table not found or empty');
                 console.log('   Run the migration to create the yolo_models table');
             }
-        } catch (err) {
+        } catch {
             console.log('⚠️  Model metadata table not found');
         }
 

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Icon } from '@/components/ui/Icon';
+
 import { theme } from '@/lib/theme';
 
 interface InvoiceLinkProps {
@@ -30,10 +30,12 @@ export function InvoiceLink(props: InvoiceLinkProps) {
           transition: 'all 0.2s',
           textDecoration: 'none',
           cursor: 'pointer',
-          ...(isCard ? {} : {
-            textAlign: 'center',
-            color: theme.colors.textSecondary,
-          }),
+          ...(isCard
+            ? {}
+            : {
+                textAlign: 'center',
+                color: theme.colors.textSecondary,
+              }),
         }}
         className={isCard ? 'invoice-card-link' : 'invoice-empty-state-link'}
       >

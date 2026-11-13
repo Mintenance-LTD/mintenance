@@ -44,13 +44,6 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   backoffMultiplier: 2,
 };
 
-const BATCH_PROCESSING_RETRY_CONFIG: RetryConfig = {
-  maxAttempts: 10, // More retries for batch jobs
-  baseDelayMs: 20000, // 20 seconds - longer for batch
-  maxDelayMs: 300000, // 5 minutes - longer for batch
-  backoffMultiplier: 2,
-};
-
 // Global metrics tracker
 const retryMetrics: RetryMetrics = {
   totalRequests: 0,

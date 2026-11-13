@@ -17,8 +17,7 @@ export function applyMemoryAdjustments(
   assessment: Phase1BuildingAssessment,
   adjustments: number[]
 ): Phase1BuildingAssessment {
-  const [damageTypeAdj, severityAdj, costAdj, urgencyAdj, confidenceCal] =
-    adjustments;
+  const [, severityAdj, costAdj, urgencyAdj, confidenceCal] = adjustments;
 
   // Apply confidence calibration
   const calibratedConfidence = calibrateConfidence(

@@ -9,7 +9,7 @@ import {
   formatDistance,
   cleanAddress,
 } from '@/lib/utils/location';
-import { formatMoney } from '@/lib/utils/currency';
+
 import { Icon } from '@/components/ui/Icon';
 import type { Job } from '@mintenance/types';
 

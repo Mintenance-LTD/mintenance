@@ -94,7 +94,6 @@ function KPICardSkeleton() {
  * Chart Card Skeleton
  */
 function ChartCardSkeleton({
-  title,
   height = 'h-64',
   fullWidth = false,
 }: {
@@ -162,13 +161,7 @@ function ChartCardSkeleton({
 /**
  * List Card Skeleton
  */
-function ListCardSkeleton({
-  title,
-  items = 5,
-}: {
-  title?: string;
-  items?: number;
-}) {
+function ListCardSkeleton({ items = 5 }: { title?: string; items?: number }) {
   return (
     <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
       <Skeleton className='h-6 w-40 mb-4' />
@@ -194,13 +187,7 @@ function ListCardSkeleton({
 /**
  * Table Card Skeleton
  */
-function TableCardSkeleton({
-  title,
-  rows = 5,
-}: {
-  title?: string;
-  rows?: number;
-}) {
+function TableCardSkeleton({ rows = 5 }: { title?: string; rows?: number }) {
   return (
     <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
       <div className='flex items-center justify-between mb-4'>

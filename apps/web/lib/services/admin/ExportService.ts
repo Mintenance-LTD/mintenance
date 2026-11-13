@@ -1,5 +1,3 @@
-import { logger } from '@mintenance/shared';
-
 interface ExportFile {
   content: string | Buffer;
   contentType: string;

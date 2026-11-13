@@ -83,7 +83,7 @@ export default function ContractorVerificationPage() {
   const [steps, setSteps] = useState<VerificationStep[]>(
     STEPS_CONFIG.map((s) => ({ ...s, status: 'not_started' }))
   );
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   // Hydration-safe theme detection — Phase-4 contractor port pattern.
   const [isMintEditorial, setIsMintEditorial] = useState(false);
   useEffect(() => {

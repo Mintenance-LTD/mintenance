@@ -28,7 +28,6 @@ import type {
   SubscriptionTier,
   UserRole,
   FeatureLimit,
-  FeatureDefinition,
 } from './feature-access-types';
 
 // Import feature definitions from dedicated files
@@ -44,31 +43,6 @@ export const FEATURES = {
   ...HOMEOWNER_FEATURES,
   ...CONTRACTOR_FEATURES,
 };
-
-const FEATURE_CATEGORIES = [
-  'Job Management',
-  'Bidding',
-  'Discovery',
-  'Social',
-  'Portfolio',
-  'Branding',
-  'Analytics',
-  'Business Tools',
-  'Support',
-  'Marketing',
-  'Communication',
-  'Resources',
-  'Content',
-  'Payments',
-  'Reviews',
-  'Properties',
-  'Compliance',
-  'Tenant Management',
-  'Maintenance',
-  'Team',
-] as const;
-
-type FeatureCategory = (typeof FEATURE_CATEGORIES)[number];
 
 // =====================================================
 // UTILITY FUNCTIONS

@@ -4,15 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { logger } from '@mintenance/shared';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/lib/theme';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/Card.unified';
-import { Badge } from '@/components/ui/Badge.unified';
-import { Button } from '@/components/ui/Button';
+
 import { MapPin, Clock, Calendar, User as UserIcon } from 'lucide-react';
 import type { User } from '@mintenance/types';
 import { ContractorMeeting } from './MeetingScheduler';
@@ -35,21 +27,24 @@ export function MeetingList(props: MeetingListProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) return; // Guard against empty userId
-    fetchMeetings();
-    const cleanup = subscribeToMeetings();
-    return cleanup;
-  }, [userId]);
+    let active = true;
+    let requestId = 0;
+    setMeetings([]);
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const fetchMeetings = async () => {
+      const currentRequest = ++requestId;
+      try {
+        const roleColumn =
+          userRole === 'homeowner' ? 'homeowner_id' : 'contractor_id';
 
-  const fetchMeetings = async () => {
-    try {
-      const roleColumn =
-        userRole === 'homeowner' ? 'homeowner_id' : 'contractor_id';
-
-      const { data, error } = await supabase
-        .from('contractor_meetings')
-        .select(
-          `
+        const { data, error } = await supabase
+          .from('contractor_meetings')
+          .select(
+            `
           *,
           homeowner:homeowner_id (
             id, first_name, last_name, email
@@ -61,132 +56,125 @@ export function MeetingList(props: MeetingListProps) {
             id, title, location
           )
         `
-        )
-        .eq(roleColumn, userId)
-        .order('scheduled_datetime', { ascending: true });
+          )
+          .eq(roleColumn, userId)
+          .order('scheduled_datetime', { ascending: true });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      interface MeetingDbResponse {
-        id: string;
-        job_id: string;
-        homeowner_id: string;
-        contractor_id: string;
-        scheduled_datetime: string;
-        status: string;
-        meeting_type: string;
-        latitude?: number;
-        longitude?: number;
-        address?: string;
-        duration: number;
-        notes?: string;
-        created_at: string;
-        updated_at: string;
-        homeowner?:
-          | { id: string; first_name: string; last_name: string; email: string }
-          | Array<{
-              id: string;
-              first_name: string;
-              last_name: string;
-              email: string;
-            }>;
-        contractor?:
-          | { id: string; first_name: string; last_name: string; email: string }
-          | Array<{
-              id: string;
-              first_name: string;
-              last_name: string;
-              email: string;
-            }>;
-        job?:
-          | { id: string; title: string; location: string }
-          | Array<{ id: string; title: string; location: string }>;
-      }
-
-      if (data) {
-        // Map DB response to frontend type
-        const mappedMeetings: ContractorMeeting[] = data.map(
-          (m: MeetingDbResponse) => ({
-            id: m.id,
-            jobId: m.job_id,
-            homeownerId: m.homeowner_id,
-            contractorId: m.contractor_id,
-            scheduledDateTime: m.scheduled_datetime,
-            status: m.status,
-            meetingType: m.meeting_type,
-            location: {
-              latitude: m.latitude,
-              longitude: m.longitude,
-              address: m.address,
-            },
-            duration: m.duration,
-            notes: m.notes,
-            createdAt: m.created_at,
-            updatedAt: m.updated_at,
-            homeowner: (Array.isArray(m.homeowner)
-              ? m.homeowner[0]
-              : m.homeowner) as User | undefined,
-            contractor: (Array.isArray(m.contractor)
-              ? m.contractor[0]
-              : m.contractor) as User | undefined,
-            job: Array.isArray(m.job) ? m.job[0] : m.job,
-          })
-        );
-        setMeetings(mappedMeetings);
-      }
-    } catch (error) {
-      logger.error('Error fetching meetings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const subscribeToMeetings = () => {
-    const roleColumn =
-      userRole === 'homeowner' ? 'homeowner_id' : 'contractor_id';
-
-    const subscription = supabase
-      .channel('meetings_list_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'contractor_meetings',
-          filter: `${roleColumn}=eq.${userId}`,
-        },
-        () => {
-          fetchMeetings();
+        interface MeetingDbResponse {
+          id: string;
+          job_id: string;
+          homeowner_id: string;
+          contractor_id: string;
+          scheduled_datetime: string;
+          status: string;
+          meeting_type: string;
+          latitude?: number;
+          longitude?: number;
+          address?: string;
+          duration: number;
+          notes?: string;
+          created_at: string;
+          updated_at: string;
+          homeowner?:
+            | {
+                id: string;
+                first_name: string;
+                last_name: string;
+                email: string;
+              }
+            | Array<{
+                id: string;
+                first_name: string;
+                last_name: string;
+                email: string;
+              }>;
+          contractor?:
+            | {
+                id: string;
+                first_name: string;
+                last_name: string;
+                email: string;
+              }
+            | Array<{
+                id: string;
+                first_name: string;
+                last_name: string;
+                email: string;
+              }>;
+          job?:
+            | { id: string; title: string; location: string }
+            | Array<{ id: string; title: string; location: string }>;
         }
-      )
-      .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
+        if (active && currentRequest === requestId && data) {
+          // Map DB response to frontend type
+          const mappedMeetings: ContractorMeeting[] = data.map(
+            (m: MeetingDbResponse) => ({
+              id: m.id,
+              jobId: m.job_id,
+              homeownerId: m.homeowner_id,
+              contractorId: m.contractor_id,
+              scheduledDateTime: m.scheduled_datetime,
+              status: m.status,
+              meetingType: m.meeting_type,
+              location: {
+                latitude: m.latitude,
+                longitude: m.longitude,
+                address: m.address,
+              },
+              duration: m.duration,
+              notes: m.notes,
+              createdAt: m.created_at,
+              updatedAt: m.updated_at,
+              homeowner: (Array.isArray(m.homeowner)
+                ? m.homeowner[0]
+                : m.homeowner) as User | undefined,
+              contractor: (Array.isArray(m.contractor)
+                ? m.contractor[0]
+                : m.contractor) as User | undefined,
+              job: Array.isArray(m.job) ? m.job[0] : m.job,
+            })
+          );
+          setMeetings(mappedMeetings);
+        }
+      } catch (error) {
+        logger.error('Error fetching meetings:', error);
+      } finally {
+        if (active && currentRequest === requestId) setLoading(false);
+      }
     };
-  };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled':
-        return 'primary';
-      case 'completed':
-        return 'success';
-      case 'cancelled':
-        return 'error';
-      case 'rescheduled':
-        return 'warning';
-      default:
-        return 'neutral';
-    }
-  };
+    const subscribeToMeetings = () => {
+      const roleColumn =
+        userRole === 'homeowner' ? 'homeowner_id' : 'contractor_id';
 
-  const formatMeetingType = (type: string) => {
-    return type
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
+      const subscription = supabase
+        .channel('meetings_list_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'contractor_meetings',
+            filter: `${roleColumn}=eq.${userId}`,
+          },
+          () => {
+            fetchMeetings();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        active = false;
+        subscription.unsubscribe();
+      };
+    };
+
+    void fetchMeetings();
+    return subscribeToMeetings();
+  }, [userId, userRole]);
 
   if (loading) {
     return (

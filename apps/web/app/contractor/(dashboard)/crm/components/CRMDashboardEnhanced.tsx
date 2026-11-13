@@ -4,14 +4,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+
 import { useRouter } from 'next/navigation';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { MetricCard } from '@/components/ui/figma';
-import {
-  getGradientCardStyle,
-  getIconContainerStyle,
-} from '@/lib/theme-enhancements';
 
 interface Client {
   id: string;

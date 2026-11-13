@@ -81,7 +81,7 @@ export function CardEditorClient({
         message: 'Discovery card updated successfully.',
       });
       setTimeout(() => router.push('/contractor/profile'), 600);
-    } catch (error) {
+    } catch {
       setFeedback({
         tone: 'error',
         message: 'Failed to save changes. Please try again.',

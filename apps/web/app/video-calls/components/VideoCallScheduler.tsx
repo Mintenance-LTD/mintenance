@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+
 import {
   Card,
   CardHeader,
@@ -66,7 +66,7 @@ export function VideoCallScheduler(props: VideoCallSchedulerProps) {
   }, [isVisible]);
 
   const fetchJobs = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('jobs')
       .select('id, title, contractor_id, homeowner_id')
       .in('status', ['posted', 'assigned', 'in_progress'])

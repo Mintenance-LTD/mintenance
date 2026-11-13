@@ -24,7 +24,7 @@ export async function quickEvaluate(
   return {
     detections: 0,
     avgConfidence: 0,
-    processingTimeMs: Date.now() - startTime
+    processingTimeMs: Date.now() - startTime,
   };
 }
 
@@ -48,18 +48,20 @@ export function validateModelFile(modelPath: string): {
 
   try {
     const stats = require('fs').statSync(modelPath);
-    if (stats.size > 500 * 1024 * 1024) {  // 500MB limit
+    if (stats.size > 500 * 1024 * 1024) {
+      // 500MB limit
       errors.push('Model file exceeds maximum size limit (500MB)');
     }
-    if (stats.size < 1024) {  // 1KB minimum
+    if (stats.size < 1024) {
+      // 1KB minimum
       errors.push('Model file is suspiciously small');
     }
-  } catch (error) {
+  } catch {
     errors.push('Cannot read model file stats');
   }
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }

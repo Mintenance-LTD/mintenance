@@ -1,16 +1,16 @@
 #!/usr/bin/env tsx
 /**
  * Create GCP Cloud Storage Buckets for ML Training
- * 
+ *
  * Creates the required buckets for training data and model artifacts
  * Uses @google-cloud/storage client library with retry logic
- * 
+ *
  * Required GCP Permissions:
  * - storage.buckets.create
  * - storage.buckets.get
  * - storage.buckets.update
  * - storage.buckets.setIamPolicy
- * 
+ *
  * See docs/GCP_BUCKET_SETUP.md for detailed permission requirements
  */
 
@@ -160,8 +160,10 @@ async function createBucket(
     );
 
     if (exists) {
-      console.log(`   ⚠️  Bucket ${bucket.name} already exists, updating configuration...`);
-      
+      console.log(
+        `   ⚠️  Bucket ${bucket.name} already exists, updating configuration...`
+      );
+
       // Update existing bucket configuration
       await updateBucketConfiguration(bucket, storage);
       return true;
@@ -194,15 +196,17 @@ async function createBucket(
   } catch (error) {
     const errorMessage = error?.message || String(error);
     console.error(`   ❌ Failed to create bucket: ${errorMessage}`);
-    
+
     // Provide helpful error messages
     if (errorMessage.includes('permission') || errorMessage.includes('403')) {
-      console.error(`   💡 Check that you have 'storage.buckets.create' permission`);
+      console.error(
+        `   💡 Check that you have 'storage.buckets.create' permission`
+      );
     } else if (errorMessage.includes('already exists')) {
       console.log(`   ℹ️  Bucket already exists (this is OK)`);
       return true;
     }
-    
+
     return false;
   }
 }
@@ -301,31 +305,34 @@ async function verifyBuckets(storage: Storage): Promise<void> {
     for (const bucketName of bucketNames) {
       const isRequired = buckets.some((b) => b.name === bucketName);
       const marker = isRequired ? '✅' : '  ';
-      console.log(`   ${marker} ${bucketName}${isRequired ? ' (required)' : ''}`);
+      console.log(
+        `   ${marker} ${bucketName}${isRequired ? ' (required)' : ''}`
+      );
 
       // Show configuration for required buckets
       if (isRequired) {
         try {
           const bucketHandle = storage.bucket(bucketName);
           const [metadata] = await bucketHandle.getMetadata();
-          
-          const versioning = metadata.versioning?.enabled ? 'enabled' : 'disabled';
-          const lifecycle = metadata.lifecycle?.rule?.length > 0 
-            ? `${metadata.lifecycle.rule[0].condition.age} days` 
-            : 'none';
-          
+
+          const versioning = metadata.versioning?.enabled
+            ? 'enabled'
+            : 'disabled';
+          const lifecycle =
+            metadata.lifecycle?.rule?.length > 0
+              ? `${metadata.lifecycle.rule[0].condition.age} days`
+              : 'none';
+
           console.log(`      Versioning: ${versioning}`);
           console.log(`      Lifecycle: ${lifecycle}`);
-        } catch (error) {
+        } catch {
           // Ignore metadata fetch errors
         }
       }
     }
 
     // Check if all required buckets exist
-    const missingBuckets = buckets.filter(
-      (b) => !bucketNames.includes(b.name)
-    );
+    const missingBuckets = buckets.filter((b) => !bucketNames.includes(b.name));
 
     if (missingBuckets.length > 0) {
       console.log('\n⚠️  Missing buckets:');

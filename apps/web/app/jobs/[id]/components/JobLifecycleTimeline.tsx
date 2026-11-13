@@ -208,7 +208,6 @@ export function NextActionCard({
   jobStatus,
   contractStatus,
   escrowStatus,
-  bidCount,
   pendingBidCount,
   completionConfirmed,
 }: NextActionCardProps) {

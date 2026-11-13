@@ -121,11 +121,7 @@ export function useContractorSettingsData() {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (user && activeSection === 'payments') loadPaymentMethods();
-  }, [user, activeSection]);
-
-  const loadPaymentMethods = async () => {
+  const loadPaymentMethods = React.useCallback(async () => {
     try {
       setLoadingPaymentMethods(true);
       const response = await fetch('/api/payments/methods');
@@ -139,7 +135,11 @@ export function useContractorSettingsData() {
     } finally {
       setLoadingPaymentMethods(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user && activeSection === 'payments') loadPaymentMethods();
+  }, [user, activeSection, loadPaymentMethods]);
 
   const handleRemoveMethod = async (methodId: string) => {
     const ok = await confirm({

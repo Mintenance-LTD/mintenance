@@ -45,7 +45,15 @@ import {
 
 // Extracted sub-components
 // Extracted sub-components
-import { StatusBadge, PriorityBadge, InfoItem, ContentCard, UserCard, formatDate, formatCategory } from './JobDetailHelpers';
+import {
+  StatusBadge,
+  PriorityBadge,
+  InfoItem,
+  ContentCard,
+  UserCard,
+  formatDate,
+  formatCategory,
+} from './JobDetailHelpers';
 import { BidCard } from './BidCard';
 import { ImageLightbox } from './ImageLightbox';
 import { JobLifecycleTimeline, NextActionCard } from './JobLifecycleTimeline';
@@ -109,7 +117,6 @@ export function JobDetailsProfessional({
   contractor,
   bids = [],
   photos = [],
-  currentUserId,
   userRole,
   buildingAssessment,
   lifecycleData,

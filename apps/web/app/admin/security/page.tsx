@@ -60,7 +60,8 @@ const staggerItem = {
   visible: { opacity: 1, y: 0 },
 };
 
-export default function AdminSecurityDashboard2025() { const adminFetch = useAdminFetch();
+export default function AdminSecurityDashboard2025() {
+  const adminFetch = useAdminFetch();
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,7 +70,8 @@ export default function AdminSecurityDashboard2025() { const adminFetch = useAdm
 
   const {
     data,
-    isLoading, refetch,
+    isLoading,
+    refetch,
     error: queryError,
   } = useQuery({
     queryKey: ['admin', 'security-dashboard'],
@@ -87,7 +89,8 @@ export default function AdminSecurityDashboard2025() { const adminFetch = useAdm
         : null;
 
   const actionMutation = useMutation({
-    mutationFn: (payload: Parameters<typeof postSecurityAction>[0]) => postSecurityAction(payload, adminFetch),
+    mutationFn: (payload: Parameters<typeof postSecurityAction>[0]) =>
+      postSecurityAction(payload, adminFetch),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['admin', 'security-dashboard'],
@@ -107,7 +110,10 @@ export default function AdminSecurityDashboard2025() { const adminFetch = useAdm
 
   const eventsByDay = data?.eventsByDay ?? [];
   const threatsByType = data?.threatsByType ?? [];
-  const securityEvents: SecurityEvent[] = data?.recentEvents ?? [];
+  const securityEvents: SecurityEvent[] = useMemo(
+    () => data?.recentEvents ?? [],
+    [data?.recentEvents]
+  );
 
   const filteredEvents = useMemo(() => {
     return securityEvents.filter((event) => {
@@ -182,14 +188,23 @@ export default function AdminSecurityDashboard2025() { const adminFetch = useAdm
   }
 
   if (error) {
-    return <div className='p-6 md:p-8'>
-      <Card className='mx-auto max-w-xl text-center' padding='lg'>
-        <Shield className='mx-auto mb-4 h-8 w-8 text-[#2f6f5f]' aria-hidden='true' />
-        <h1 className='text-xl font-semibold'>Security data is unavailable</h1>
-        <p role='alert' className='my-4 text-sm text-[#4a5751]'>{error}</p>
-        <Button onClick={() => void refetch()}>Try again</Button>
-      </Card>
-    </div>;
+    return (
+      <div className='p-6 md:p-8'>
+        <Card className='mx-auto max-w-xl text-center' padding='lg'>
+          <Shield
+            className='mx-auto mb-4 h-8 w-8 text-[#2f6f5f]'
+            aria-hidden='true'
+          />
+          <h1 className='text-xl font-semibold'>
+            Security data is unavailable
+          </h1>
+          <p role='alert' className='my-4 text-sm text-[#4a5751]'>
+            {error}
+          </p>
+          <Button onClick={() => void refetch()}>Try again</Button>
+        </Card>
+      </div>
+    );
   }
   return (
     <div className='min-h-screen bg-slate-50'>

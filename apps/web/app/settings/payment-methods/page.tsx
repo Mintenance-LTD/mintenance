@@ -54,13 +54,7 @@ export default function PaymentMethodsPage() {
     null
   );
 
-  React.useEffect(() => {
-    if (user) {
-      loadPaymentMethods();
-    }
-  }, [user]);
-
-  const loadPaymentMethods = async () => {
+  const loadPaymentMethods = React.useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -79,7 +73,13 @@ export default function PaymentMethodsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  React.useEffect(() => {
+    if (user) {
+      loadPaymentMethods();
+    }
+  }, [user, loadPaymentMethods]);
 
   const handleRemoveMethod = async (methodId: string) => {
     const ok = await confirm({

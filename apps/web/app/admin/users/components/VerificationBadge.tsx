@@ -24,7 +24,7 @@ export function VerificationBadge({
     lg: { badge: 24, icon: 18 },
   };
 
-  const { badge: badgeSize, icon: iconSize } = sizeMap[size];
+  const { icon: iconSize } = sizeMap[size];
 
   const statusConfig = {
     verified: {

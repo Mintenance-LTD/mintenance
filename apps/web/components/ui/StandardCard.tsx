@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
+
 import { cn } from '@/lib/utils';
 
 interface StandardCardProps {

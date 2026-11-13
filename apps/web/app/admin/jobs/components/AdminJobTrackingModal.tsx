@@ -121,15 +121,15 @@ export function AdminJobTrackingModal({
 
   const tracking = data?.tracking ?? null;
   const destination = data?.destination ?? null;
-  const mapCenter =
-    destination ??
-    (tracking ? { lat: tracking.latitude, lng: tracking.longitude } : null);
 
   // Lock in the first usable center so the map mounts once and never
   // re-centers on the prop (movement is handled imperatively below).
   useEffect(() => {
+    const mapCenter =
+      destination ??
+      (tracking ? { lat: tracking.latitude, lng: tracking.longitude } : null);
     if (!initialCenter && mapCenter) setInitialCenter(mapCenter);
-  }, [initialCenter, mapCenter]);
+  }, [initialCenter, destination, tracking]);
 
   const drawMarkers = useCallback(() => {
     const map = mapRef.current;
