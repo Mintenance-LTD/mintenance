@@ -525,7 +525,7 @@ describe('logger-enhanced AppState listener wiring', () => {
 
     // Flush several microtasks for the dynamic-import .then() chain.
     for (let i = 0; i < 5; i++) {
-      // eslint-disable-next-line no-await-in-loop
+
       await Promise.resolve();
     }
     await new Promise((r) => setTimeout(r, 20));
@@ -557,7 +557,7 @@ describe('logger-enhanced AppState listener wiring', () => {
     });
 
     for (let i = 0; i < 5; i++) {
-      // eslint-disable-next-line no-await-in-loop
+
       await Promise.resolve();
     }
     await new Promise((r) => setTimeout(r, 20));

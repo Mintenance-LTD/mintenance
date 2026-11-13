@@ -101,7 +101,7 @@ export function HomeownerSection({
 
 interface SafetySectionProps {
   safetyScore: number;
-  hazards: Array<{ type: string; description: string }>;
+  hazards: { type: string; description: string }[];
 }
 
 export function SafetySection({ safetyScore, hazards }: SafetySectionProps) {
@@ -134,7 +134,7 @@ interface CostSectionProps {
   recommended: number;
   max: number;
   estimatedTime?: string;
-  materials?: Array<{ name: string; quantity: string; estimatedCost: number }>;
+  materials?: { name: string; quantity: string; estimatedCost: number }[];
 }
 
 export function CostSection({

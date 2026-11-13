@@ -141,7 +141,7 @@ function legacyToCanonicalPatch(
       'jobUpdates',
       'paymentUpdates',
       'weeklyDigest',
-    ] as Array<keyof NotificationPreferences>
+    ] as (keyof NotificationPreferences)[]
   ).forEach(applyFlag);
 
   const out: Partial<CanonicalPrefs> = {

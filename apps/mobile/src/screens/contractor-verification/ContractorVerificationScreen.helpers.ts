@@ -48,10 +48,10 @@ export const INITIAL_FORM: VerificationData = {
   licenseExpiry: null,
 };
 
-export const LICENSE_TYPE_OPTIONS: ReadonlyArray<{
+export const LICENSE_TYPE_OPTIONS: readonly {
   value: LicenseType;
   label: string;
-}> = [
+}[] = [
   { value: 'trade', label: 'Trade License' },
   { value: 'gas_safe', label: 'Gas Safe' },
   { value: 'electrical', label: 'Electrical License' },

@@ -30,13 +30,13 @@ interface SentryLike {
 
 interface SentryEvent {
   exception?: {
-    values?: Array<{
+    values?: {
       type?: string;
       value?: string;
       stacktrace?: {
-        frames?: Array<{ filename?: string }>;
+        frames?: { filename?: string }[];
       };
-    }>;
+    }[];
   };
   tags?: Record<string, string>;
   level?: string;

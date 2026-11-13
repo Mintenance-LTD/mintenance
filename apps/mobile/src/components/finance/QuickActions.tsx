@@ -24,7 +24,7 @@ type FinanceQuickActionScreen =
   | 'Payouts'
   | 'Reporting';
 
-const ACTIONS: ReadonlyArray<{
+const ACTIONS: readonly {
   icon:
     | 'receipt-outline'
     | 'card-outline'
@@ -34,7 +34,7 @@ const ACTIONS: ReadonlyArray<{
   color: string;
   bg: string;
   screen: FinanceQuickActionScreen;
-}> = [
+}[] = [
   {
     icon: 'receipt-outline' as const,
     label: 'Invoices',

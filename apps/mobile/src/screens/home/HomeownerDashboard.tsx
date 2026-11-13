@@ -49,7 +49,7 @@ import { FinishSetupCard } from './components/FinishSetupCard';
 import { PushPermissionRecoveryBanner } from '../../components/onboarding/PushPermissionRecoveryBanner';
 
 // Metro resolves bundled image assets through a static require.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+
 const appIcon = require('../../../assets/icon.png');
 
 export const HomeownerDashboard: React.FC = () => {

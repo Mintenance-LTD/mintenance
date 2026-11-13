@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { logger } from '@mintenance/shared';
 import { getPerformanceData, storePerformanceData, type PerformanceData } from '@/lib/performance-monitor';
 import { Button } from '@/components/ui/Button';
@@ -12,11 +12,7 @@ export default function PerformancePage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'violations'>('all');
 
-  useEffect(() => {
-    loadPerformanceData();
-  }, []);
-
-  const loadPerformanceData = async () => {
+  const loadPerformanceData = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getPerformanceData();
@@ -27,7 +23,11 @@ export default function PerformancePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadPerformanceData();
+  }, [loadPerformanceData]);
 
   const getMetricColor = (rating: string) => {
     switch (rating) {

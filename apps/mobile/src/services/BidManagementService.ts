@@ -47,13 +47,13 @@ export class BidManagementService {
     description: string;
     estimatedDurationDays?: number;
     proposedStartDate?: string;
-    lineItems?: Array<{
+    lineItems?: {
       description: string;
       type: string;
       quantity: number;
       unitPrice: number;
       total: number;
-    }>;
+    }[];
     subtotal?: number;
     taxRate?: number;
     taxAmount?: number;

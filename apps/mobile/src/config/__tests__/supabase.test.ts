@@ -112,8 +112,9 @@ afterAll(() => {
 });
 
 const VALID_URL = 'https://abcdefgh.supabase.co';
-const VALID_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIn0.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+// Only the local shape check is exercised; createClient is mocked.
+// This deliberately unsigned fixture cannot authenticate with Supabase.
+const VALID_KEY = ['unit-test-only', 'not-a-real-jwt', 'signature-not-valid'].join('.');
 
 const validEnv = {
   EXPO_PUBLIC_SUPABASE_URL: VALID_URL,
@@ -381,7 +382,7 @@ describe('module init — production hard fail', () => {
 
   it('non-Error throw is stringified in the DEV warn fallback', () => {
     createClientMock.mockImplementationOnce(() => {
-      // eslint-disable-next-line no-throw-literal
+
       throw 'string-failure';
     });
     const { mod, threw } = loadModule({ env: { ...validEnv }, dev: true });

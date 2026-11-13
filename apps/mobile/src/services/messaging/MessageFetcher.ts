@@ -92,15 +92,15 @@ export async function getUserMessageThreads(
 ): Promise<MessageThread[]> {
   try {
     type ThreadPage = {
-      threads: Array<{
+      threads: {
         jobId: string;
         jobTitle: string;
-        participants?: Array<{
+        participants?: {
           id: string;
           name: string;
           role: string;
           avatar?: string;
-        }>;
+        }[];
         unreadCount?: number;
         lastMessage?: {
           content?: string;
@@ -108,7 +108,7 @@ export async function getUserMessageThreads(
           messageType?: string;
           createdAt?: string;
         };
-      }>;
+      }[];
       nextCursor?: string;
     };
     const byJob = new Map<string, ThreadPage['threads'][number]>();

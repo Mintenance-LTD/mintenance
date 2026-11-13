@@ -86,16 +86,15 @@ export function ContractorMetricCard2025({
     for (let i = 0; i < title.length; i++) {
       seed = (seed * 31 + title.charCodeAt(i)) >>> 0;
     }
-    const rand = () => {
+    const points: { value: number }[] = [];
+    for (let i = 0; i < 12; i++) {
       seed = (seed + 0x6d2b79f5) | 0;
       let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-
-    return Array.from({ length: 12 }, (_, i) => ({
-      value: baseValue + trendValue * i * 2 + rand() * 10,
-    }));
+      const noise = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      points.push({ value: baseValue + trendValue * i * 2 + noise * 10 });
+    }
+    return points;
   }, [title, trend?.direction]);
 
   return (

@@ -32,7 +32,7 @@ interface IdentitySetupPromptModalProps {
   onAfterNavigate?: () => void | Promise<unknown>;
 }
 
-const BENEFITS: Array<{ icon: keyof typeof Ionicons.glyphMap; text: string }> =
+const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; text: string }[] =
   [
     {
       icon: 'shield-checkmark-outline',

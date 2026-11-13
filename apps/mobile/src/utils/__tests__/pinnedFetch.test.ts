@@ -39,7 +39,7 @@ const ENABLED_API = {
   supabaseCurrent: 'hashS',
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 let pinnedFetch: (input: any, init?: any) => Promise<Response>;
 let fetchMock: jest.Mock;
 

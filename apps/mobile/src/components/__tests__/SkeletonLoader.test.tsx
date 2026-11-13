@@ -156,7 +156,7 @@ describe('SkeletonLoader', () => {
       const [node] = root.findAllByType(ANIMATED_VIEW as never);
       const flat = ([] as unknown[])
         .concat(node.props.style)
-        .filter(Boolean) as Array<Record<string, unknown>>;
+        .filter(Boolean) as Record<string, unknown>[];
       const merged = Object.assign({}, ...flat);
       expect(merged.width).toBe('100%');
       expect(merged.height).toBe(20);
@@ -170,9 +170,7 @@ describe('SkeletonLoader', () => {
       const [node] = root.findAllByType(ANIMATED_VIEW as never);
       const merged = Object.assign(
         {},
-        ...(([] as unknown[]).concat(node.props.style).filter(Boolean) as Array<
-          Record<string, unknown>
-        >)
+        ...(([] as unknown[]).concat(node.props.style).filter(Boolean) as Record<string, unknown>[])
       );
       expect(merged.width).toBe(120);
       expect(merged.height).toBe(40);
@@ -195,9 +193,7 @@ describe('SkeletonLoader', () => {
       const [node] = root.findAllByType(ANIMATED_VIEW as never);
       const merged = Object.assign(
         {},
-        ...(([] as unknown[]).concat(node.props.style).filter(Boolean) as Array<
-          Record<string, unknown>
-        >)
+        ...(([] as unknown[]).concat(node.props.style).filter(Boolean) as Record<string, unknown>[])
       );
       // size defaults to 50 -> width/height 50, borderRadius 25.
       expect(merged.width).toBe(50);
@@ -210,9 +206,7 @@ describe('SkeletonLoader', () => {
       const [node] = root.findAllByType(ANIMATED_VIEW as never);
       const merged = Object.assign(
         {},
-        ...(([] as unknown[]).concat(node.props.style).filter(Boolean) as Array<
-          Record<string, unknown>
-        >)
+        ...(([] as unknown[]).concat(node.props.style).filter(Boolean) as Record<string, unknown>[])
       );
       expect(merged.width).toBe(30);
       expect(merged.borderRadius).toBe(15);

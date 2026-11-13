@@ -26,7 +26,7 @@ function makeDb(): FakeDb {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const asDb = (db: FakeDb): any => db;
 
 function fullRow(overrides: Partial<DatabaseUserRow> = {}): DatabaseUserRow {
@@ -158,7 +158,7 @@ describe('UserStore', () => {
 
     it('saves with all fields present, markDirty=false', async () => {
       const db = makeDb();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveUser(asDb(db), baseUser() as any, false);
 
       const [, params] = db.runAsync.mock.calls[0];
@@ -190,7 +190,7 @@ describe('UserStore', () => {
 
     it('defaults markDirty to false when omitted', async () => {
       const db = makeDb();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveUser(asDb(db), baseUser() as any);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[16]).toBe('2026-03-03T03:03:03.000Z');
@@ -199,7 +199,7 @@ describe('UserStore', () => {
 
     it('saves with markDirty=true (synced_at null, is_dirty=1)', async () => {
       const db = makeDb();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveUser(asDb(db), baseUser() as any, true);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[16]).toBeNull();
@@ -227,7 +227,7 @@ describe('UserStore', () => {
         created_at: 'c',
         updated_at: 'u',
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveUser(asDb(db), user as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[5]).toBeNull(); // phone
@@ -243,7 +243,7 @@ describe('UserStore', () => {
       const user = baseUser();
       user.rating = 0;
       user.jobs_count = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveUser(asDb(db), user as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[8]).toBe(0);

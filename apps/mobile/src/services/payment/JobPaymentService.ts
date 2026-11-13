@@ -96,7 +96,7 @@ export class JobPaymentService {
   ): Promise<{ success: boolean; refundId?: string; error?: string }> {
     try {
       const history = await JobPaymentService.getPaymentHistory(50, 0) as {
-        payments?: Array<{ id: string; jobId: string }>;
+        payments?: { id: string; jobId: string }[];
       };
 
       const payment = history.payments?.find((entry) => entry.id === paymentId);

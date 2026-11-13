@@ -250,7 +250,7 @@ describe('reportError - failure path', () => {
 });
 
 describe('determineSeverity (via reportError message classification)', () => {
-  const cases: Array<[string, ErrorReport['severity']]> = [
+  const cases: [string, ErrorReport['severity']][] = [
     ['Network request failed', 'medium'],
     ['Request timeout occurred', 'medium'],
     ['error in fetch handler', 'medium'], // stack/message fetch -> medium
@@ -442,7 +442,7 @@ describe('global console.error handler (installed in constructor)', () => {
     const err = new Error('console captured failure');
 
     // The constructor patched console.error to forward Errors into the system.
-    // eslint-disable-next-line no-console
+
     console.error(err);
     // allow the async reportError to settle
     await new Promise((r) => setImmediate(r));
@@ -460,7 +460,7 @@ describe('global console.error handler (installed in constructor)', () => {
 
   it('ignores non-Error arguments passed to console.error', async () => {
     const reportSpy = jest.spyOn(errorMonitoring, 'reportError');
-    // eslint-disable-next-line no-console
+
     console.error('just a string, not an Error');
     await new Promise((r) => setImmediate(r));
     expect(reportSpy).not.toHaveBeenCalled();

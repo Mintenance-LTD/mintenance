@@ -366,7 +366,7 @@ describe('PerformanceBudgetManager', () => {
   });
 
   describe('generateViolationMessage (via recordMetrics) — display names + units', () => {
-    const cases: Array<[string, string]> = [
+    const cases: [string, string][] = [
       ['responseTime', 'response time exceeded budget: 800.00ms'],
       ['memoryUsage', 'memory usage exceeded budget: 800.00MB'],
       ['cpuUsage', 'CPU usage exceeded budget: 800.00%'],

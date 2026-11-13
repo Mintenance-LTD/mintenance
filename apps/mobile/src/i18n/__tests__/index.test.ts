@@ -35,7 +35,7 @@ interface FakeI18n {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+
   var __fakeI18n: FakeI18n;
 }
 

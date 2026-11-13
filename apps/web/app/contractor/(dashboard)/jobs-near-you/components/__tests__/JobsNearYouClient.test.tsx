@@ -1,6 +1,7 @@
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
-import { render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { JobsNearYouClient } from '../JobsNearYouClient';
+import { updateMarkers } from '../JobsMapController';
 
 // Mock dependencies
 vi.mock('next/navigation', () => ({
@@ -8,7 +9,15 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/components/maps', () => ({
-  DynamicGoogleMap: () => <div data-testid='map'>Map</div>,
+  DynamicGoogleMap: ({ onMapLoad }: { onMapLoad: (map: google.maps.Map) => void }) =>
+    <button onClick={() => onMapLoad({} as google.maps.Map)}>Load map</button>,
+}));
+
+vi.mock('../JobsMapController', () => ({
+  updateMarkers: vi.fn(),
+  handleMapLoad: (map: google.maps.Map, refs: { mapRef: { current: google.maps.Map | null } }) => {
+    refs.mapRef.current = map;
+  },
 }));
 
 vi.mock('@/components/ui/Icon', () => ({
@@ -38,19 +47,19 @@ vi.mock('@/components/ui/Badge.unified', () => ({
 }));
 
 vi.mock('@/components/ui/select', () => ({
-  Select: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
+  Select: ({ children, value, onValueChange }: {
+    children: React.ReactNode; value: string; onValueChange: (value: string) => void;
+  }) => (
+    <select value={value} onChange={event => onValueChange(event.target.value)}>{children}</select>
   ),
   SelectContent: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
+    <>{children}</>
   ),
-  SelectItem: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
+  SelectItem: ({ children, value }: { children: React.ReactNode; value: string }) => (
+    <option value={value}>{children}</option>
   ),
-  SelectTrigger: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectValue: () => <div />,
+  SelectTrigger: () => null,
+  SelectValue: () => null,
 }));
 
 vi.mock('@/components/ui/label', () => ({
@@ -117,6 +126,30 @@ const mockJobs = [
 describe('JobsNearYouClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('clears the map job markers when filters exclude all jobs', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => ({
+      ok: true,
+      json: async () => String(url).includes('/geocode')
+        ? { latitude: 51.51, longitude: -0.12 }
+        : { jobIds: [] },
+    } as Response));
+    const screen = render(<JobsNearYouClient contractorLocation={mockContractorLocation}
+      contractorSkills={['Plumbing']} jobs={mockJobs} />);
+    fireEvent.click(await screen.findByText('Load map'));
+    // First include one matching skill, then require more skills than any job has.
+    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: '1' } });
+    await waitFor(() => expect(updateMarkers).toHaveBeenLastCalledWith(
+      expect.any(Object), expect.any(Object), mockContractorLocation,
+      expect.arrayContaining([expect.objectContaining({ id: 'job-1' })]),
+    ));
+    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: '5' } });
+    await waitFor(() => expect(updateMarkers).toHaveBeenLastCalledWith(
+      expect.any(Object), expect.any(Object), mockContractorLocation, [],
+    ));
   });
 
   it('should initialize with default values', () => {

@@ -53,6 +53,11 @@ interface StepUpRequest {
 export default function AdminReviewModerationPage() {
   const [rows, setRows] = useState<PendingReply[]>([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [stepUpRequest, setStepUpRequest] = useState<StepUpRequest | null>(
     null
@@ -175,7 +180,6 @@ export default function AdminReviewModerationPage() {
           <ul className='space-y-4'>
             {rows.map((r) => {
               const publishes = new Date(r.publishesAt);
-              const now = Date.now();
               const hoursLeft = Math.max(
                 0,
                 Math.round((publishes.getTime() - now) / (1000 * 60 * 60))

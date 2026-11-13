@@ -38,12 +38,12 @@ interface MarketingStatsResponse {
     totalMessages: number;
     totalPosts: number;
   };
-  recentReviews: Array<{
+  recentReviews: {
     id: string;
     rating: number;
     comment: string | null;
     createdAt: string;
-  }>;
+  }[];
 }
 
 interface MarketingTip {

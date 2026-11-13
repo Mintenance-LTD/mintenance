@@ -175,13 +175,13 @@ export async function updateInvoice(
     clientAddress?: string;
     title?: string;
     description?: string;
-    lineItems?: Array<{
+    lineItems?: {
       description: string;
       quantity: number;
       unit_price?: number;
       rate?: number;
       amount?: number;
-    }>;
+    }[];
     taxRate?: number;
     paymentTerms?: string;
     notes?: string;

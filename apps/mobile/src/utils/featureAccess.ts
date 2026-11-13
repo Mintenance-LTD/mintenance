@@ -23,12 +23,12 @@ interface FeatureAccessApiResponse {
   status: string;
   currentPeriodEnd: string | null;
   earlyAccess: boolean;
-  usage: Array<{
+  usage: {
     featureId: string;
     used: number;
     limit: number;
     resetDate: string;
-  }>;
+  }[];
 }
 
 export type SubscriptionTier =

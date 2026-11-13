@@ -149,7 +149,7 @@ describe('ContractorService - Simple Tests', () => {
 
       const result = (await ContractorService.searchContractors(
         'plumbing'
-      )) as Array<{ skills?: string[] }>;
+      )) as { skills?: string[] }[];
 
       // Legacy contractor-profiles side table retired 2026-07: keyword search reads profiles.
       expect(supabase.from).toHaveBeenCalledWith('profile_directory');

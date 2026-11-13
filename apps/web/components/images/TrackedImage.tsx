@@ -82,7 +82,7 @@ export function TrackedImage({
     [errored, source, alt, onLoadError]
   );
 
-  // eslint-disable-next-line @next/next/no-img-element
+
   return (
     <img
       src={errored && fallbackSrc ? fallbackSrc : src}

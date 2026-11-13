@@ -166,7 +166,7 @@ export class PaymentIntentService {
       // contract's `homeowner_id`; a direct client query can therefore be
       // filtered by contracts RLS before the payment request is reached.
       const { contracts } = await apiRequest<{
-        contracts?: Array<{ status?: string }>;
+        contracts?: { status?: string }[];
       }>(`/api/contracts?job_id=${encodeURIComponent(jobId)}`, {
         method: 'GET',
       });

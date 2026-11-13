@@ -470,7 +470,7 @@ describe('SecurityAuditService', () => {
     it('caps audit history at the last 10 reports', async () => {
       const service = new SecurityAuditService();
       for (let i = 0; i < 12; i += 1) {
-        // eslint-disable-next-line no-await-in-loop
+
         await service.runSecurityAudit();
       }
       expect(service.getAuditHistory()).toHaveLength(10);

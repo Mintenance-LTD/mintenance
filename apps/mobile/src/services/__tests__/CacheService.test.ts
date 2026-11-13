@@ -17,7 +17,7 @@ jest.mock('../../utils/performance', () => ({
 }));
 
 // Import after the mock is registered.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 import { CacheService } from '../CacheService';
 
 const CACHE_PREFIX = '@mintenance_cache:';

@@ -5,8 +5,8 @@
  * and manages the overall state and navigation.
  */
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Alert, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -25,8 +25,6 @@ import { me } from '../../design-system/mint-editorial';
 interface BookingStatusParams {
   jobId?: string;
 }
-
-
 
 export type BookingStatus = 'upcoming' | 'completed' | 'cancelled';
 
@@ -53,6 +51,12 @@ export const BookingStatusScreen: React.FC<{
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'BookingStatus'>;
 }> = ({ navigation }) => {
   const { user } = useAuth();
+  const accountId = user?.id;
+  const accountRole = user?.role;
+  const currentAccount = useRef(accountId);
+  currentAccount.current = accountId;
+  const requestVersion = useRef(0);
+  const cancelling = useRef(false);
 
   const [activeTab, setActiveTab] = useState<BookingStatus>('upcoming');
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -61,12 +65,11 @@ export const BookingStatusScreen: React.FC<{
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  useEffect(() => {
-    loadBookings();
-  }, [user]);
-
-  const loadBookings = async () => {
-    if (!user?.id) {
+  const loadBookings = useCallback(async () => {
+    const version = ++requestVersion.current;
+    if (!accountId || !accountRole) {
+      setBookings([]);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -76,28 +79,40 @@ export const BookingStatusScreen: React.FC<{
 
     try {
       const bookingService = new BookingService();
-      const allBookings = await bookingService.loadUserBookings(user);
-      setBookings(allBookings);
+      const allBookings = await bookingService.loadUserBookings({ id: accountId, role: accountRole });
+      if (version === requestVersion.current && currentAccount.current === accountId) setBookings(allBookings);
     } catch {
-      setError('Failed to load bookings');
+      if (version === requestVersion.current && currentAccount.current === accountId) setError('Failed to load bookings');
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current && currentAccount.current === accountId) setLoading(false);
     }
-  };
+  }, [accountId, accountRole]);
+
+  useEffect(() => {
+    cancelling.current = false;
+    setBookings([]);
+    setSelectedBooking(null);
+    setShowCancelModal(false);
+    void loadBookings();
+    return () => { requestVersion.current++; };
+  }, [loadBookings]);
 
   const handleCancelBooking = (booking: Booking) => {
+    if (cancelling.current) return;
     setSelectedBooking(booking);
     setShowCancelModal(true);
   };
 
   const handleCancelConfirm = async (reason: string) => {
-    if (!selectedBooking) return;
+    if (!selectedBooking || !accountId || cancelling.current) return;
+    cancelling.current = true;
+    const originalBooking = selectedBooking;
+    const version = requestVersion.current;
 
     try {
       const bookingService = new BookingService();
-      const prev = bookings;
       // optimistic update
-      setBookings(
+      setBookings((prev) =>
         prev.map((b) =>
           b.id === selectedBooking.id
             ? ({ ...b, status: 'cancelled' } as Booking)
@@ -105,12 +120,17 @@ export const BookingStatusScreen: React.FC<{
         )
       );
       await bookingService.cancelBooking(selectedBooking.id, reason);
+      if (version !== requestVersion.current || currentAccount.current !== accountId) return;
       setShowCancelModal(false);
       setSelectedBooking(null);
     } catch {
+      if (version !== requestVersion.current || currentAccount.current !== accountId) return;
       // rollback on failure
-      setBookings((prev) => prev);
+      setBookings((prev) => prev.map((booking) => booking.id === originalBooking.id ? originalBooking : booking));
       setShowCancelModal(true);
+      Alert.alert('Unable to cancel booking', 'We could not confirm the cancellation. Please try again.');
+    } finally {
+      if (version === requestVersion.current) cancelling.current = false;
     }
   };
 

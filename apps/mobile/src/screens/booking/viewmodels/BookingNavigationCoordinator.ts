@@ -14,7 +14,7 @@ import { useHaptics } from '../../../utils/haptics';
 import { logger } from '../../../utils/logger';
 import type { Booking } from './BookingViewModel';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 type AnyNavigation = NavigationProp<Record<string, object | undefined>>;
 
 interface BookingNavigationActions {

@@ -38,7 +38,7 @@ import { buildCreateIntentBody } from '../payment/PaymentIntentService';
  * and db-rows.generated.ts is regenerated, this list stops compiling — the
  * drift is caught at typecheck, not by a runtime audit.
  */
-const ESCROW_COLUMNS_READ_BY_MOBILE: ReadonlyArray<keyof EscrowTransactionRow> =
+const ESCROW_COLUMNS_READ_BY_MOBILE: readonly (keyof EscrowTransactionRow)[] =
   [
     'id',
     'status',

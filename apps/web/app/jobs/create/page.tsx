@@ -209,7 +209,7 @@ export default function CreateJobPage2025() {
   // image count changes (i.e. user uploaded or removed an image),
   // and read the latest snapshot of the other fields at fire-time.
   // Keep the deps narrow; do not "fix" by adding more.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const runAssessment = async () => {
       if (

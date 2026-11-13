@@ -120,12 +120,12 @@ export class PaymentMethodService {
   }> {
     try {
       const data = await mobileApiClient.get<{
-        paymentMethods?: Array<Record<string, unknown>>;
+        paymentMethods?: Record<string, unknown>[];
         defaultPaymentMethodId?: string | null;
       }>('/api/payments/methods');
 
       const methods = (
-        (data.paymentMethods ?? []) as Array<{
+        (data.paymentMethods ?? []) as {
           id: string;
           type: string;
           isDefault?: boolean;
@@ -136,7 +136,7 @@ export class PaymentMethodService {
             expMonth: number;
             expYear: number;
           } | null;
-        }>
+        }[]
       ).map((method) => ({
         id: method.id,
         type: method.type,

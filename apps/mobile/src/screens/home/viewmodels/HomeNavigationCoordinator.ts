@@ -12,7 +12,7 @@ import { NavigationProp } from '@react-navigation/native';
 import { useHaptics } from '../../../utils/haptics';
 import { me } from '../../../design-system/mint-editorial';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 type AnyNavigation = NavigationProp<Record<string, object | undefined>>;
 
 interface HomeNavigationActions {

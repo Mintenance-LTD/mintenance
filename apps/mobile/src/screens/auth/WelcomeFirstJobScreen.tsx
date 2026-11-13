@@ -44,7 +44,7 @@ interface ActionRow {
   hint: string;
 }
 
-const ACTIONS: ReadonlyArray<ActionRow> = [
+const ACTIONS: readonly ActionRow[] = [
   {
     icon: 'camera-outline',
     title: 'Post your first job',

@@ -34,7 +34,7 @@ export async function getUserNotifications(
         // any not-yet-redeployed instance, then fall back to deriving
         // an actionUrl wrapper for very old payloads.
         const response = await mobileApiClient.get<{
-          notifications?: Array<{
+          notifications?: {
             id: string;
             title?: string;
             message?: string;
@@ -48,7 +48,7 @@ export async function getUserNotifications(
             data?: unknown;
             link?: string;
             action_url?: string;
-          }>;
+          }[];
         }>(`/api/notifications?history=1&limit=${limit}&offset=${offset}`);
 
         if (response.notifications) {

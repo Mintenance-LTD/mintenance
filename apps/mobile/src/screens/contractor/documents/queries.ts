@@ -66,7 +66,7 @@ export function useDocumentsQuery(args: {
         // it for the same contractor's uploaded docs only and dedupe
         // by id when contract virtual rows would overlap.
         const docsRes = await mobileApiClient.get<{
-          documents: Array<Record<string, unknown>>;
+          documents: Record<string, unknown>[];
         }>('/api/contractor/documents');
         (docsRes.documents || [])
           .filter(

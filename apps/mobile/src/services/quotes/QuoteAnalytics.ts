@@ -45,7 +45,7 @@ export async function getQuoteSummaryStats(
         declined: number;
         totalRevenue: number;
       };
-      quotes?: Array<{ amount: number }>;
+      quotes?: { amount: number }[];
     }>('/api/contractor/quotes');
 
     const s = response.stats;

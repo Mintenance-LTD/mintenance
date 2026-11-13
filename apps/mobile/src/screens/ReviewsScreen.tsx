@@ -25,7 +25,7 @@ import { me } from '../design-system/mint-editorial';
 import { ReviewCard, StarRating, type Review } from './reviews/ReviewCard';
 
 interface ReviewsResponse {
-  reviews: Array<{
+  reviews: {
     id: string;
     jobId?: string;
     jobTitle?: string;
@@ -37,7 +37,7 @@ interface ReviewsResponse {
     responseAt?: string | null;
     responsePublishedAt?: string | null;
     responseBlockedByAdmin?: boolean;
-  }>;
+  }[];
 }
 
 interface Props {

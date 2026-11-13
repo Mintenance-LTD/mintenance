@@ -325,10 +325,10 @@ describe('NotificationScreen — mark all as read', () => {
     expect(alertSpy).toHaveBeenCalled();
 
     // Invoke the "Mark All" alert button onPress
-    const buttons = alertSpy.mock.calls[0][2] as Array<{
+    const buttons = alertSpy.mock.calls[0][2] as {
       text: string;
       onPress?: () => Promise<void> | void;
-    }>;
+    }[];
     const markAll = buttons.find((b) => b.text === 'Mark All');
     await act(async () => {
       await markAll?.onPress?.();

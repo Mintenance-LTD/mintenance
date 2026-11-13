@@ -266,7 +266,7 @@ describe('SecurityManagerService', () => {
   // validateFileUpload (instance) — drives the mocked expo-file-system
   // ---------------------------------------------------------------------------
   describe('validateFileUpload', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+
     const FileSystem = require('expo-file-system');
 
     it('accepts a valid image file', async () => {

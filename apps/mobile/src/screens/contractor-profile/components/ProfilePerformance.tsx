@@ -57,14 +57,14 @@ export const ProfilePerformance: React.FC<ProfilePerformanceProps> = ({
         ? `${yearsExperience}y`
         : 'New';
 
-  const items: Array<{
+  const items: {
     key: string;
     icon: keyof typeof Ionicons.glyphMap;
     tint: string;
     bg: string;
     value: string;
     label: string;
-  }> = [
+  }[] = [
     {
       key: 'response',
       icon: 'time-outline',

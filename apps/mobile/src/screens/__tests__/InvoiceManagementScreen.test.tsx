@@ -190,7 +190,7 @@ const renderScreen = (nav = makeNav()) => {
   });
   const utils = render(
     <QueryClientProvider client={qc}>
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      { }
       <InvoiceManagementScreen navigation={nav as any} />
     </QueryClientProvider>
   );

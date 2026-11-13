@@ -4,7 +4,7 @@ import type { ExifData } from './types';
 /** Extract EXIF data from image. Uses expo-media-library when available. */
 export async function extractExifData(imageUri: string): Promise<ExifData | undefined> {
   try {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
     // @ts-expect-error expo-media-library types not declared in this project
     const MediaLibrary = await import('expo-media-library');
     const { status } = await MediaLibrary.default.getPermissionsAsync();
