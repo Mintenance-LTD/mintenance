@@ -1,5 +1,6 @@
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { JobPhotoUpload } from '../JobPhotoUpload';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 
@@ -8,11 +9,33 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
 vi.mock('@/lib/csrf-client', () => ({ fetchWithCsrf: vi.fn() }));
 
 function selectPhotos(count: number) {
-  const files = Array.from({ length: count }, (_, index) => new File(['synthetic'], `photo-${index}.png`, { type: 'image/png' }));
-  fireEvent.change(screen.getByLabelText(/Tap to take a photo/), { target: { files } });
+  const files = Array.from(
+    { length: count },
+    (_, index) =>
+      new File(['synthetic'], `photo-${index}.png`, { type: 'image/png' })
+  );
+  fireEvent.change(screen.getByLabelText(/Tap to take a photo/), {
+    target: { files },
+  });
 }
 
 describe('JobPhotoUpload', () => {
+  it('keeps file selection disabled until its client handlers are ready', () => {
+    const props = { jobId: 'job-1', jobStatus: 'in_progress' };
+    const serverDocument = new DOMParser().parseFromString(
+      renderToString(<JobPhotoUpload {...props} />),
+      'text/html'
+    );
+    expect(
+      serverDocument
+        .querySelector('input[type="file"]')
+        ?.hasAttribute('disabled')
+    ).toBe(true);
+    render(<JobPhotoUpload {...props} />);
+    expect(screen.getByLabelText(/Tap to take a photo/)).toBeEnabled();
+    selectPhotos(3);
+    expect(screen.getByLabelText('Photo 2 angle')).toBeVisible();
+  });
   const mockProps = {
     jobId: 'job-1',
     jobStatus: 'assigned',
@@ -24,18 +47,39 @@ describe('JobPhotoUpload', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     let nextPreview = 0;
-    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:photo-${nextPreview++}`);
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(
+      () => `blob:photo-${nextPreview++}`
+    );
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-    Object.defineProperty(navigator, 'geolocation', { value: undefined, configurable: true });
+    Object.defineProperty(navigator, 'geolocation', {
+      value: undefined,
+      configurable: true,
+    });
   });
   afterEach(() => vi.restoreAllMocks());
 
   it('submits selected angles and refreshes after confirmed completion', async () => {
     const onJobCompleted = vi.fn();
-    vi.mocked(fetchWithCsrf).mockResolvedValue({ ok: true, json: async () => ({ photos: [], count: 3, jobCompleted: true, validation: { passed: true, errors: [] } }) } as Response);
-    render(<JobPhotoUpload jobId='job-1' jobStatus='in_progress' onJobCompleted={onJobCompleted} />);
+    vi.mocked(fetchWithCsrf).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        photos: [],
+        count: 3,
+        jobCompleted: true,
+        validation: { passed: true, errors: [] },
+      }),
+    } as Response);
+    render(
+      <JobPhotoUpload
+        jobId='job-1'
+        jobStatus='in_progress'
+        onJobCompleted={onJobCompleted}
+      />
+    );
     selectPhotos(3);
-    fireEvent.change(screen.getByLabelText('Photo 2 angle'), { target: { value: 'close-up' } });
+    fireEvent.change(screen.getByLabelText('Photo 2 angle'), {
+      target: { value: 'close-up' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Upload 3 Photos' }));
     await waitFor(() => expect(onJobCompleted).toHaveBeenCalledOnce());
     const [url, options] = vi.mocked(fetchWithCsrf).mock.calls[0];
@@ -49,10 +93,26 @@ describe('JobPhotoUpload', () => {
 
   it('keeps angles aligned after removal and shows missing evidence', async () => {
     const onJobCompleted = vi.fn();
-    vi.mocked(fetchWithCsrf).mockResolvedValue({ ok: true, json: async () => ({ photos: [], count: 2, jobCompleted: false, validation: { passed: false, errors: ['Minimum 3 photos required'] } }) } as Response);
-    render(<JobPhotoUpload jobId='job-1' jobStatus='in_progress' onJobCompleted={onJobCompleted} />);
+    vi.mocked(fetchWithCsrf).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        photos: [],
+        count: 2,
+        jobCompleted: false,
+        validation: { passed: false, errors: ['Minimum 3 photos required'] },
+      }),
+    } as Response);
+    render(
+      <JobPhotoUpload
+        jobId='job-1'
+        jobStatus='in_progress'
+        onJobCompleted={onJobCompleted}
+      />
+    );
     selectPhotos(3);
-    fireEvent.change(screen.getByLabelText('Photo 3 angle'), { target: { value: 'close-up' } });
+    fireEvent.change(screen.getByLabelText('Photo 3 angle'), {
+      target: { value: 'close-up' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Remove photo 1' }));
     fireEvent.click(screen.getByRole('button', { name: 'Upload 2 Photos' }));
     expect(await screen.findByText('Minimum 3 photos required')).toBeVisible();

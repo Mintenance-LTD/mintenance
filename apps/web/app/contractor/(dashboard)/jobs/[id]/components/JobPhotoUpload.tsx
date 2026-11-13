@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { StandardCard } from '@/components/ui/StandardCard';
@@ -47,6 +47,9 @@ export function JobPhotoUpload({
   onJobCompleted,
 }: JobPhotoUploadProps) {
   const router = useRouter();
+  // Server-rendered inputs must not accept files before onChange is attached.
+  const [isReady, setIsReady] = useState(false);
+  useEffect(() => setIsReady(true), []);
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [pendingAngles, setPendingAngles] = useState<
@@ -257,7 +260,7 @@ export function JobPhotoUpload({
                 capture='environment'
                 onChange={handleFileSelect}
                 className='hidden'
-                disabled={isUploading}
+                disabled={!isReady || isUploading}
                 id='photo-upload-input'
               />
               <Upload className='h-8 w-8 mx-auto text-gray-400 mb-2' />
@@ -366,7 +369,7 @@ export function JobPhotoUpload({
             {isBeforeMode && (
               <Button
                 onClick={handleStartJob}
-                disabled={!canStartJob || isStarting}
+                disabled={!isReady || !canStartJob || isStarting}
                 variant='primary'
                 className='w-full'
                 size='lg'
