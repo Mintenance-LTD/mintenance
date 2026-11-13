@@ -14,5 +14,3 @@ export interface LocationData {
   longitude: number;
   address?: string;
 }
-
-

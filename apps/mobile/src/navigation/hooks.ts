@@ -356,4 +356,3 @@ const useEnhancedNavigation = () => {
 /**
  * Navigation flow helper for common user journeys
  */
-

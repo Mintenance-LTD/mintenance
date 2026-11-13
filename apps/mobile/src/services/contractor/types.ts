@@ -104,5 +104,3 @@ export interface DatabaseReviewRow {
     last_name?: string;
   };
 }
-
-

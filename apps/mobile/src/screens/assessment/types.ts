@@ -7,9 +7,3 @@ export interface AssessmentStep {
   status: 'pending' | 'in_progress' | 'completed';
   required: boolean;
 }
-
-
-
-
-
-

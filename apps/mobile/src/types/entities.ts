@@ -28,7 +28,3 @@ export interface Message {
   created_at: string;
   [key: string]: unknown;
 }
-
-
-
-

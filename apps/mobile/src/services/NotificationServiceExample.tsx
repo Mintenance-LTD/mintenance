@@ -223,4 +223,3 @@ export function HomeScreenWithBadgeUpdate() {
 /**
  * Test local notification (doesn't require backend)
  */
-

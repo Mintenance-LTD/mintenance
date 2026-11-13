@@ -148,4 +148,3 @@ export const Body2: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
 export const Caption: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
   <Typography {...props} variant='caption' />
 );
-

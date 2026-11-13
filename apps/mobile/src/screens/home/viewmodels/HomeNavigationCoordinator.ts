@@ -153,4 +153,3 @@ interface QuickAction {
 /**
  * Generate quick actions based on user role
  */
-

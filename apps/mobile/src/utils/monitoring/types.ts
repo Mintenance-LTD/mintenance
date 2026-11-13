@@ -46,5 +46,3 @@ export interface Alert {
   resolved: boolean;
   details?: Record<string, unknown>;
 }
-
-

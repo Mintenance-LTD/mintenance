@@ -71,8 +71,3 @@ const UpdateUserSchema = UserSchema.partial().omit({
 });
 
 // Type exports
-
-
-
-
-

@@ -23,7 +23,3 @@ type ContractorPostType =
 // =============================================
 
 type ConnectionStatus = 'pending' | 'accepted' | 'blocked';
-
-
-
-

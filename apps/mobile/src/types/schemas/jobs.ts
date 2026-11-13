@@ -219,9 +219,3 @@ const CreateBidSchema = z.object({
 
 
 export type JobCategory = z.infer<typeof JobCategorySchema>;
-
-
-
-
-
-

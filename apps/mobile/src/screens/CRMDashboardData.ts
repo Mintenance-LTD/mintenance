@@ -63,5 +63,3 @@ export const STATUS_DOT: Record<string, string> = {
 };
 
 const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
-
-

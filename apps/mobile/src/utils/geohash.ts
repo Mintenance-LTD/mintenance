@@ -77,4 +77,3 @@ export function encodeGeohash(
  * @param geohash - Geohash string
  * @returns Bounding box coordinates
  */
-
