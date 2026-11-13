@@ -64,4 +64,3 @@ export function scrubValue(value: unknown, depth = 0): unknown {
   }
   return value;
 }
-
