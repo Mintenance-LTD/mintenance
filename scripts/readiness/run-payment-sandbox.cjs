@@ -136,6 +136,7 @@ async function run() {
       [
         path.join(root, 'apps/web/scripts/run-integration-tests.js'),
         '__tests__/integration-real/payment-sandbox.integration.test.ts',
+        ...(env.PAYMENT_BROWSER_TESTS === '1' ? ['--bail', '1'] : []),
         ...process.argv.slice(4),
       ],
       { cwd: root, env, stdio: 'inherit' }

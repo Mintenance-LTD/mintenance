@@ -39,7 +39,18 @@ async function signIn(
   );
 }
 
-async function dismissTour(page: Page) {
+async function dismissTour(page: Page, firstVisit = false) {
+  if (firstVisit) {
+    const consent = page.getByRole('dialog', {
+      name: 'Cookie consent',
+      exact: true,
+    });
+    await consent.waitFor({ state: 'visible' });
+    await consent
+      .getByRole('button', { name: 'Reject Non-Essential', exact: true })
+      .click();
+    await consent.waitFor({ state: 'hidden' });
+  }
   const skip = page.getByRole('button', { name: 'Skip tour', exact: true });
   try {
     await skip.waitFor({ state: 'visible', timeout: 7000 });
@@ -79,7 +90,7 @@ export async function verifySandboxBrowserJourney() {
       async (journey) => {
         await signIn(contractor, journey.contractor);
         await workPage.goto(`/contractor/jobs/${journey.jobId}`);
-        await dismissTour(workPage);
+        await dismissTour(workPage, true);
         const photo = await syntheticWorkPhoto();
         const file = (name: string) => ({
           name,
@@ -186,19 +197,15 @@ export async function verifySandboxBrowserJourney() {
             r.request().method() === 'POST'
         );
         await ownerPage.goto(`/jobs/${journey.jobId}/payment`);
-        await dismissTour(ownerPage);
+        await dismissTour(ownerPage, true);
         const intentId = (await successful(await setup, 'Checkout setup'))
           .paymentIntentId;
         assert.ok(typeof intentId === 'string' && intentId.startsWith('pi_'));
         const payment = ownerPage.frameLocator(
           'iframe[title="Secure payment input frame"]'
         );
-        await payment
-          .getByLabel(/^Card number/)
-          .fill('4000003720000278');
-        await payment
-          .getByLabel(/^Expiration/)
-          .fill('1234');
+        await payment.getByLabel(/^Card number/).fill('4000003720000278');
+        await payment.getByLabel(/^Expiration/).fill('1234');
         await payment.getByLabel(/^Security code/).fill('123');
         const country = payment.getByLabel('Country', { exact: true });
         if (await country.count()) await country.selectOption('GB');
