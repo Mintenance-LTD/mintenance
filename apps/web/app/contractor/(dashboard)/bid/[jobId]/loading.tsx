@@ -1,8 +1,4 @@
-import {
-  Skeleton,
-  SkeletonText,
-  SkeletonBadge,
-} from '@/components/ui/Skeleton';
+import { Skeleton, SkeletonBadge } from '@/components/ui/Skeleton';
 
 export default function SubmitBidLoading() {
   return (

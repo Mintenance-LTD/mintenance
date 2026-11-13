@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
-import { BadRequestError, NotFoundError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
+import { NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const locationSchema = z.object({

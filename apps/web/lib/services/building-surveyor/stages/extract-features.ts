@@ -7,24 +7,11 @@ import {
   isLearnedFeaturesEnabled,
   getLearnedFeatureExtractor,
 } from '../initialization/BuildingSurveyorInitializationService';
-import type {
-  AssessmentContext,
-  Phase1BuildingAssessment,
-  RoboflowDetection,
-  VisionAnalysisSummary,
-} from '../types';
+import type { AssessmentContext, RoboflowDetection, VisionAnalysisSummary } from '../types';
 import type { DamageTypeSegmentation } from '../SAM3Service';
 import type { MemoryQueryResult } from '../../ml-engine/memory/types';
 
 const AGENT_NAME = 'building-surveyor';
-
-interface FeatureExtractionResult {
-  finalFeatures: number[];
-  sceneGraphFeatures: unknown;
-  sceneGraph: unknown;
-  memoryAdjustments: number[];
-  imageQuality: { lightingQuality: number; imageClarity: number };
-}
 
 /**
  * Extracts features from evidence: scene graph, detection vectors, memory adjustments,

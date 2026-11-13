@@ -8,22 +8,7 @@ import { JobViewTracker } from '@/app/jobs/[id]/components/JobViewTracker';
 import { logger } from '@mintenance/shared';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import Image from 'next/image';
-import {
-  ArrowLeft,
-  MapPin,
-  Calendar,
-  PoundSterling,
-  Briefcase,
-  User,
-  Phone,
-  Mail,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  Star,
-  Camera,
-  Heart,
-} from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, PoundSterling, Phone, Mail, Clock, AlertCircle, CheckCircle, Heart } from 'lucide-react';
 
 interface Job {
   id: string;

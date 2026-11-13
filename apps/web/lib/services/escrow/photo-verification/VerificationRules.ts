@@ -54,11 +54,13 @@ export class VerificationRules {
   static readonly CATEGORY_REQUIREMENTS = CATEGORY_REQUIREMENTS;
 
   static async validatePhotoQuality(
-    photoUrl: string
+    photoUrl: string | Buffer
   ): Promise<PhotoQualityResult> {
     try {
       // Fetch image metadata
-      const imageInfo = await ImageAnalyzer.getImageInfo(photoUrl);
+      const imageInfo = Buffer.isBuffer(photoUrl)
+        ? await ImageAnalyzer.getImageInfoFromBuffer(photoUrl)
+        : await ImageAnalyzer.getImageInfo(photoUrl);
 
       const issues: string[] = [];
       let qualityScore = 1.0;
@@ -110,7 +112,7 @@ export class VerificationRules {
     } catch (error) {
       logger.error('Error validating photo quality', error, {
         service: 'PhotoVerificationService',
-        photoUrl,
+        photoUrl: typeof photoUrl === 'string' ? photoUrl : undefined,
       });
       return {
         passed: false,

@@ -37,62 +37,6 @@ const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
 const DEFAULT_CURRENCY: CurrencyCode = 'GBP';
 
 /**
- * Detect currency based on user's location/locale
- */
-function detectCurrencyFromLocation(): CurrencyCode {
-  if (typeof window === 'undefined') return DEFAULT_CURRENCY;
-
-  // Try to detect from browser locale
-  const locale = navigator.language || navigator.languages?.[0] || 'en-GB';
-
-  // Check locale for currency hints
-  if (locale.includes('GB') || locale.includes('UK')) {
-    return 'GBP';
-  }
-  if (locale.includes('US') || locale.includes('en-US')) {
-    return 'USD';
-  }
-  if (
-    locale.includes('EU') ||
-    locale.includes('FR') ||
-    locale.includes('DE') ||
-    locale.includes('IT') ||
-    locale.includes('ES')
-  ) {
-    return 'EUR';
-  }
-
-  // Try to detect from timezone
-  try {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    // UK timezones
-    if (timezone.includes('London') || timezone.includes('Europe/London')) {
-      return 'GBP';
-    }
-
-    // US timezones
-    if (timezone.includes('America/') || timezone.includes('US/')) {
-      return 'USD';
-    }
-
-    // European timezones
-    if (timezone.includes('Europe/')) {
-      // Most European countries use EUR, but UK uses GBP
-      if (timezone.includes('London')) {
-        return 'GBP';
-      }
-      return 'EUR';
-    }
-  } catch (e) {
-    // Fallback to default
-  }
-
-  // Default to GBP (British app)
-  return DEFAULT_CURRENCY;
-}
-
-/**
  * Get current currency from user settings or default to GBP
  * Always defaults to GBP for British app (no auto-detection)
  */
@@ -106,14 +50,6 @@ function getCurrentCurrency(): CurrencyCode {
 
   // Always default to GBP for British app (no auto-detection)
   return DEFAULT_CURRENCY;
-}
-
-/**
- * Set user's preferred currency
- */
-function setPreferredCurrency(currency: CurrencyCode): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('preferredCurrency', currency);
 }
 
 /**
@@ -162,32 +98,4 @@ export function formatMoney(amount: number, currency?: CurrencyCode): string {
   // Always default to GBP if no currency specified (British app)
   const currencyToUse = currency || 'GBP';
   return formatCurrency(amount, currencyToUse, { showSymbol: true });
-}
-
-/**
- * Parse currency string to number
- */
-function parseCurrency(value: string): number {
-  const cleaned = value.replace(/[£$€,\s]/g, '');
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : parsed;
-}
-
-/**
- * Format currency without trailing zeros
- */
-function formatCurrencyCompact(
-  amount: number,
-  currency?: CurrencyCode
-): string {
-  const formatted = formatCurrency(amount, currency);
-  return formatted.replace(/\.00$/, '');
-}
-
-/**
- * Get currency symbol only
- */
-function getCurrencySymbol(currency?: CurrencyCode): string {
-  const code = currency || getCurrentCurrency();
-  return CURRENCIES[code].symbol;
 }

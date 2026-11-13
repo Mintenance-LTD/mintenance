@@ -49,11 +49,15 @@ export function JobPhotoUpload({
   const router = useRouter();
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingAngles, setPendingAngles] = useState<
+    Array<'wide' | 'close-up'>
+  >([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [missingEvidence, setMissingEvidence] = useState<string[]>([]);
 
   const isBeforeMode = jobStatus === 'assigned';
   const isAfterMode = jobStatus === 'in_progress';
@@ -78,6 +82,10 @@ export function JobPhotoUpload({
 
       const newFiles = Array.from(files);
       setPendingFiles((prev) => [...prev, ...newFiles]);
+      setPendingAngles((prev) => [
+        ...prev,
+        ...newFiles.map(() => 'wide' as const),
+      ]);
 
       const newUrls = newFiles.map((f) => URL.createObjectURL(f));
       setPreviewUrls((prev) => [...prev, ...newUrls]);
@@ -91,6 +99,7 @@ export function JobPhotoUpload({
       const url = previewUrls[index];
       if (url) URL.revokeObjectURL(url);
       setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+      setPendingAngles((prev) => prev.filter((_, i) => i !== index));
       setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
     },
     [previewUrls]
@@ -125,6 +134,9 @@ export function JobPhotoUpload({
       const geo = await getGeolocation();
       const formData = new FormData();
       pendingFiles.forEach((f) => formData.append('photos', f));
+      if (isAfterMode) {
+        pendingAngles.forEach((angle) => formData.append('angleTypes', angle));
+      }
       if (geo) formData.append('geolocation', JSON.stringify(geo));
 
       const res = await fetchWithCsrf(`/api/jobs/${jobId}/photos/${mode}`, {
@@ -138,7 +150,18 @@ export function JobPhotoUpload({
       // Clear previews and add uploaded photos
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
       setPendingFiles([]);
+      setPendingAngles([]);
       setPreviewUrls([]);
+      setMissingEvidence(
+        isAfterMode &&
+          data.validation?.passed === false &&
+          Array.isArray(data.validation.errors)
+          ? data.validation.errors.filter(
+              (message: unknown): message is string =>
+                typeof message === 'string'
+            )
+          : []
+      );
 
       const newPhotos: UploadedPhoto[] = (data.photos || []).map(
         (p: { url: string; qualityScore: number }) => ({
@@ -249,21 +272,55 @@ export function JobPhotoUpload({
                 <p className='text-sm font-medium text-gray-700 mb-2'>
                   Ready to upload ({previewUrls.length})
                 </p>
+                {isAfterMode && (
+                  <p className='text-sm text-gray-600 mb-2'>
+                    Select the view shown in each photo. Include wide views of
+                    the work and close-ups of the finished details.
+                  </p>
+                )}
                 <div className='grid grid-cols-3 gap-3'>
                   {previewUrls.map((url, i) => (
-                    <div key={i} className='relative group h-24'>
-                      <Image
-                        src={url}
-                        alt={`Preview ${i + 1}`}
-                        fill
-                        className='object-cover rounded-lg'
-                      />
-                      <button
-                        onClick={() => removePending(i)}
-                        className='absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity'
-                      >
-                        <X className='h-3 w-3' />
-                      </button>
+                    <div key={url}>
+                      <div className='relative group h-24'>
+                        <Image
+                          src={url}
+                          alt={`Preview ${i + 1}`}
+                          fill
+                          className='object-cover rounded-lg'
+                        />
+                        <button
+                          onClick={() => removePending(i)}
+                          aria-label={`Remove photo ${i + 1}`}
+                          disabled={isUploading}
+                          className='absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity'
+                        >
+                          <X className='h-3 w-3' />
+                        </button>
+                      </div>
+                      {isAfterMode && (
+                        <label className='block mt-2 text-sm text-gray-700'>
+                          Photo {i + 1} angle
+                          <select
+                            aria-label={`Photo ${i + 1} angle`}
+                            value={pendingAngles[i]}
+                            disabled={isUploading}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              if (value === 'wide' || value === 'close-up') {
+                                setPendingAngles((angles) =>
+                                  angles.map((angle, index) =>
+                                    index === i ? value : angle
+                                  )
+                                );
+                              }
+                            }}
+                            className='mt-1 block w-full rounded border border-gray-300 p-2'
+                          >
+                            <option value='wide'>Wide view</option>
+                            <option value='close-up'>Close-up</option>
+                          </select>
+                        </label>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -323,12 +380,34 @@ export function JobPhotoUpload({
 
         {/* Status messages */}
         {error && (
-          <div className='p-3 bg-red-50 text-red-700 text-sm rounded-lg'>
+          <div
+            role='alert'
+            className='p-3 bg-red-50 text-red-700 text-sm rounded-lg'
+          >
             {error}
           </div>
         )}
+        {missingEvidence.length > 0 && (
+          <div
+            role='status'
+            className='p-3 bg-amber-50 text-amber-900 text-sm rounded-lg'
+          >
+            <p>
+              Photos saved. More evidence is needed before this job can be
+              completed:
+            </p>
+            <ul className='list-disc pl-5'>
+              {missingEvidence.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         {successMessage && (
-          <div className='p-3 bg-green-50 text-green-700 text-sm rounded-lg'>
+          <div
+            role='status'
+            className='p-3 bg-green-50 text-green-700 text-sm rounded-lg'
+          >
             {successMessage}
           </div>
         )}

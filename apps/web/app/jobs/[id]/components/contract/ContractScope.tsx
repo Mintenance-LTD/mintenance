@@ -9,11 +9,7 @@ import {
   FileText,
   Ruler,
 } from 'lucide-react';
-import {
-  formatDate,
-  formatCurrency,
-  TERMS_HIDDEN_KEYS,
-} from './contractHelpers';
+import { formatDate, formatCurrency } from './contractHelpers';
 import type { Contract } from './useContractData';
 
 interface ContractScopeProps {

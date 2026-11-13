@@ -48,6 +48,3 @@ export const gradients = {
     radial-gradient(at 50% 50%, rgba(245, 158, 11, 0.08) 0px, transparent 50%)
   `,
 } as const;
-
-type Shadows = typeof shadows;
-type Gradients = typeof gradients;

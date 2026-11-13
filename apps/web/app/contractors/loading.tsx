@@ -5,7 +5,13 @@
  * Matches the actual layout to prevent layout shift.
  */
 
-import Skeleton, { SkeletonGroup } from '@/components/ui/Skeleton';
+/**
+ * Contractors List Loading State
+ *
+ * Displays skeleton loaders while contractor data is being fetched.
+ * Matches the actual layout to prevent layout shift.
+ */
+import Skeleton from '@/components/ui/Skeleton';
 
 export default function ContractorsLoading() {
   return (

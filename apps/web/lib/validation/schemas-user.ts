@@ -2,7 +2,7 @@
  * User Profile, Admin, Contract, Message, Property & Settings Validation Schemas
  */
 import { z } from 'zod';
-import { sanitizeText, sanitizeEmail } from '@/lib/sanitizer';
+import { sanitizeText } from '@/lib/sanitizer';
 
 // User Profile Schemas.
 // SECURITY: `.strict()` rejects unknown keys with a 400 instead of

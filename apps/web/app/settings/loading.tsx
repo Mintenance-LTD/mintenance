@@ -5,7 +5,13 @@
  * Maintains consistent layout to prevent content jumping.
  */
 
-import Skeleton, { SkeletonGroup  } from '@/components/ui/Skeleton';
+/**
+ * Settings Page Loading State
+ *
+ * Displays skeleton loaders while settings data is being fetched.
+ * Maintains consistent layout to prevent content jumping.
+ */
+import Skeleton from '@/components/ui/Skeleton';
 
 export default function SettingsLoading() {
   return (

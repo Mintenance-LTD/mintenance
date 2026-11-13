@@ -31,10 +31,30 @@ import { waitForSandboxAccount } from '../../test/integration/sandbox-account-re
 describe.skipIf(process.env.PAYMENT_SANDBOX_TESTS !== '1')(
   'Payment sandbox readiness',
   () => {
-    it('accepts a bid, signs both parties and funds escrow through authenticated handlers', async () => {
+    it.skipIf(process.env.PAYMENT_BROWSER_TESTS !== '1')(
+      'pays through Stripe Elements, uploads evidence, reloads, completes and approves release in Chromium',
+      async () => {
+        const { verifySandboxBrowserJourney } =
+          await import('../../test/integration/payment-browser-sandbox');
+        await verifySandboxBrowserJourney();
+      },
+      600000
+    );
+
+    it('accepts, signs, pays, uploads evidence, completes and releases exactly once through authenticated handlers', async () => {
       const { verifySandboxAcceptance } =
         await import('../../test/integration/payment-acceptance-sandbox');
-      await verifySandboxAcceptance();
+      const { verifySandboxCompletion } =
+        await import('../../test/integration/payment-completion-sandbox');
+      await verifySandboxAcceptance(verifySandboxCompletion);
+    }, 420000);
+
+    it('holds disputed payment and refunds once after administrator MFA verification', async () => {
+      const { verifySandboxAcceptance } =
+        await import('../../test/integration/payment-acceptance-sandbox');
+      const { verifySandboxDispute } =
+        await import('../../test/integration/payment-completion-sandbox');
+      await verifySandboxAcceptance(verifySandboxDispute);
     }, 420000);
 
     beforeAll(async () => {

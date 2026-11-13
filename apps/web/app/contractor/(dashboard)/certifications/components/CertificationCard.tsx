@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  Shield,
-  CheckCircle,
-  AlertTriangle,
-  X,
-  Download,
-  Edit,
-  Trash2,
-} from 'lucide-react';
+import { Shield, CheckCircle, Download, Edit, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { safeNavigationUrl } from '@/lib/security/navigation-url';
 

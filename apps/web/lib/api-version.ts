@@ -221,51 +221,6 @@ function getVersionInfo(requestedVersion: string): VersionInfo {
   };
 }
 
-/**
- * Require a specific version range (throws error if not met)
- */
-function requireVersion(
-  version: string,
-  constraints: VersionConstraints
-): void {
-  const info = getVersionInfo(version);
-
-  // Check if version is sunset
-  if (info.isSunset) {
-    logger.warn('API version sunset', { version });
-    throw new APIVersionError(
-      `API version ${version} is no longer supported. Please upgrade to ${CURRENT_API_VERSION}.`,
-      'VERSION_SUNSET',
-      410
-    );
-  }
-
-  // Check if version is supported
-  if (!info.isSupported) {
-    logger.warn('API version not supported', { version });
-    throw new APIVersionError(
-      `API version ${version} is not supported. Minimum version: ${MIN_API_VERSION}.`,
-      'VERSION_NOT_SUPPORTED',
-      400
-    );
-  }
-
-  // Check constraints
-  if (!isVersionValid(version, constraints)) {
-    logger.warn('API version constraint not met', { version, constraints });
-    throw new APIVersionError(
-      `API version ${version} does not meet endpoint requirements.`,
-      'VERSION_CONSTRAINT_NOT_MET',
-      400
-    );
-  }
-
-  // Log deprecation warning
-  if (info.isDeprecated) {
-    logger.warn('API version deprecated', { version });
-  }
-}
-
 // ============================================================================
 // RESPONSE HELPERS
 // ============================================================================
@@ -302,18 +257,6 @@ export function addVersionHeaders(
   return response;
 }
 
-/**
- * Create a versioned JSON response
- */
-function versionedResponse<T>(
-  data: T,
-  version?: string,
-  status = 200
-): NextResponse {
-  const response = NextResponse.json(data, { status });
-  return addVersionHeaders(response, version);
-}
-
 // ============================================================================
 // ERROR CLASS
 // ============================================================================
@@ -334,64 +277,6 @@ class APIVersionError extends Error {
 // MIDDLEWARE
 // ============================================================================
 
-/**
- * API version middleware for use in Next.js middleware
- */
-function apiVersionMiddleware(request: NextRequest): NextResponse | null {
-  // Only apply to API routes
-  if (!request.nextUrl.pathname.startsWith('/api')) {
-    return null;
-  }
-
-  const version = getAPIVersion(request);
-  const info = getVersionInfo(version);
-
-  // Block sunset versions
-  if (info.isSunset) {
-    return NextResponse.json(
-      {
-        error: 'VERSION_SUNSET',
-        message: `API version ${version} is no longer supported. Please upgrade to ${CURRENT_API_VERSION}.`,
-        latestVersion: CURRENT_API_VERSION,
-      },
-      {
-        status: 410,
-        headers: {
-          [VERSION_HEADERS.RESPONSE]: version,
-          [VERSION_HEADERS.LATEST]: CURRENT_API_VERSION,
-          [VERSION_HEADERS.SUNSET]: info.sunsetDate || '',
-        },
-      }
-    );
-  }
-
-  // Continue to API handler
-  return null;
-}
-
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
-
-/**
- * Check if request is for a specific API version
- */
-function isVersion(request: NextRequest, version: string): boolean {
-  const requestVersion = getAPIVersion(request);
-  return compareVersions(requestVersion, version) === 0;
-}
-
-/**
- * Check if request is for API version >= specified
- */
-function isVersionAtLeast(request: NextRequest, minVersion: string): boolean {
-  const requestVersion = getAPIVersion(request);
-  return compareVersions(requestVersion, minVersion) >= 0;
-}
-
-/**
- * Get API version documentation URL
- */
-function getVersionDocsUrl(version: string): string {
-  return `https://docs.mintenance.com/api/${version}`;
-}

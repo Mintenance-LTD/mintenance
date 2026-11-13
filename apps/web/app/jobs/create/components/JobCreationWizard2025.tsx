@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { AnimatePresence } from 'framer-motion';;
 import { fadeIn, slideInFromRight } from '@/lib/animations/variants';
 import { ProgressBar } from '@tremor/react';

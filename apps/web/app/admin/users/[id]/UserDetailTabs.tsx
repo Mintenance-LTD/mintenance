@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
-import type { UserDetail, Job, Review, Tab } from './UserDetailTypes';
+import type { UserDetail, Job, Review } from './UserDetailTypes';
 import {
   formatCurrency,
   formatDate,

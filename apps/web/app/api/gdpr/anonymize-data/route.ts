@@ -4,7 +4,7 @@ import { sanitizeEmail } from '@/lib/sanitizer';
 import { validateRequest } from '@/lib/validation/validator';
 import { gdprAnonymizeSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 export const POST = withApiHandler(

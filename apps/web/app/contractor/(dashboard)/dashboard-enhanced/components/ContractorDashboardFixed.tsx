@@ -3,19 +3,7 @@
 import React from 'react';
 import { ContractorPageWrapper } from '../../../components/ContractorPageWrapper';
 import { JobCard } from '@/components/cards/JobCard';
-import {
-  PoundSterling,
-  Briefcase,
-  MessageSquare,
-  Calendar as CalendarIcon,
-  Clock,
-  TrendingUp,
-  Star,
-  AlertCircle,
-  Heart,
-  Search,
-  MapPin,
-} from 'lucide-react';
+import { PoundSterling, Briefcase, MessageSquare, Calendar as CalendarIcon, Clock, TrendingUp, Star, AlertCircle, Search, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 

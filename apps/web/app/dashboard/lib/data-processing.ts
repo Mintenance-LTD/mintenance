@@ -6,19 +6,7 @@
 import { formatMoney } from '@/lib/utils/currency';
 import { theme } from '@/lib/theme';
 import { DashboardMetric } from '../components/dashboard-metrics.types';
-import type {
-  BidWithRelations,
-  QuoteWithRelations,
-  JobWithContractor,
-  MessageWithContent,
-  DashboardActivity,
-  UpcomingItem,
-  KpiData,
-  Job,
-  Property,
-  Subscription,
-  Payment
-} from './types';
+import type { BidWithRelations, QuoteWithRelations, MessageWithContent, DashboardActivity, UpcomingItem, KpiData, Job, Property, Subscription, Payment } from './types';
 
 export interface ProcessedDashboardData {
   allBids: Array<{

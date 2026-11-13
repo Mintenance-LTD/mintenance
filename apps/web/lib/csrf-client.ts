@@ -57,15 +57,6 @@ export async function getCsrfToken(): Promise<string> {
 }
 
 /**
- * Clear cached CSRF token
- * Useful when handling authentication state changes
- */
-function clearCsrfToken(): void {
-  cachedToken = null;
-  tokenExpiry = null;
-}
-
-/**
  * Get CSRF headers for API requests
  * Convenience function that returns headers with CSRF token
  */

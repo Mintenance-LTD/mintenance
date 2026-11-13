@@ -93,6 +93,3 @@ const API_ENDPOINTS = {
 } as const;
 
 // Type Exports
-type JobCategory = (typeof JOB_CATEGORIES)[number]['value'];
-type UrgencyLevel = (typeof URGENCY_OPTIONS)[number]['value'];
-type FormStep = (typeof FORM_STEPS)[number]['id'];

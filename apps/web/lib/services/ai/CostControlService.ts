@@ -16,18 +16,6 @@ interface CostEstimate {
   estimatedCost: number;
 }
 
-interface UsageRecord {
-  id: string;
-  service: string;
-  model: string;
-  tokens: number;
-  cost: number;
-  timestamp: Date;
-  user_id?: string;
-  job_id?: string;
-  success: boolean;
-}
-
 export class CostControlService {
   // Budget configuration from environment with sensible defaults
   private static readonly DAILY_BUDGET = parseFloat(

@@ -353,22 +353,6 @@ function logPaymentError(error: unknown, context: PaymentErrorContext): void {
 }
 
 /**
- * Check if an error is retryable
- */
-function isRetryablePaymentError(error: unknown): boolean {
-  const sanitized = sanitizePaymentError(error);
-  return sanitized.retryable;
-}
-
-/**
- * Get user-friendly error message
- */
-function getPaymentErrorMessage(error: unknown): string {
-  const sanitized = sanitizePaymentError(error);
-  return sanitized.message;
-}
-
-/**
  * Create a standardized error response for API routes
  */
 export function createPaymentErrorResponse(

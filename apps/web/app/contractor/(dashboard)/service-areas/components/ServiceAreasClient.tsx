@@ -10,11 +10,7 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/Badge.unified';
 import { Card } from '@/components/ui/Card.unified';
 import { ServiceAreasMap } from './ServiceAreasMap';
-import {
-  findOverlappingAreas,
-  getOverlapWarningMessage,
-  type ServiceArea as OverlapServiceArea,
-} from '@/lib/maps';
+import { findOverlappingAreas, getOverlapWarningMessage } from '@/lib/maps';
 
 interface ServiceArea {
   id: string;

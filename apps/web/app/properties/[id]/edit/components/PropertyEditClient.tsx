@@ -2,16 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  ArrowLeft,
-  Save,
-  Upload,
-  X,
-  Plus,
-  Home,
-  Building2,
-  Warehouse,
-} from 'lucide-react';
+import { ArrowLeft, Save, Upload, X, Home, Building2, Warehouse } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { logger } from '@mintenance/shared';

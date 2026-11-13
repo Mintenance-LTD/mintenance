@@ -165,24 +165,6 @@ export async function isFeatureEnabled(
 }
 
 /**
- * Get all enabled feature flags for a user
- */
-async function getEnabledFeatures(
-  userId?: string,
-  userRole?: string
-): Promise<FeatureFlagName[]> {
-  const enabled: FeatureFlagName[] = [];
-
-  for (const flagName of Object.keys(FEATURE_FLAGS) as FeatureFlagName[]) {
-    if (await isFeatureEnabled(flagName, userId, userRole)) {
-      enabled.push(flagName);
-    }
-  }
-
-  return enabled;
-}
-
-/**
  * Hash user ID to a consistent number (1-100)
  * Ensures same user always gets same result for rollout percentage
  */
@@ -194,22 +176,6 @@ function hashUserId(userId: string): number {
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash);
-}
-
-/**
- * Get feature flag configuration (for admin/debugging)
- */
-function getFeatureFlagConfig(
-  flagName: FeatureFlagName
-): FeatureFlagConfig | undefined {
-  return FEATURE_FLAGS[flagName];
-}
-
-/**
- * Get all feature flag configurations
- */
-function getAllFeatureFlags(): Record<FeatureFlagName, FeatureFlagConfig> {
-  return FEATURE_FLAGS;
 }
 
 // ==========================================================

@@ -1,12 +1,5 @@
 'use client';
-import {
-  TrendingUp,
-  Star,
-  Briefcase,
-  PoundSterling,
-  Award,
-  Clock,
-} from 'lucide-react';
+import { TrendingUp, Star, Briefcase, PoundSterling, Award } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { staggerItem } from '@/lib/animations/variants';
 import { formatMoney } from '@/lib/utils/currency';

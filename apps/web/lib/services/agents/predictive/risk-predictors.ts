@@ -7,7 +7,7 @@ import {
 } from './ruleBasedRisk';
 import { extractRiskKeys } from './riskKeys';
 import type { JobForRisk } from './types';
-import type { AgentResult } from '../types';
+
 
 /**
  * Risk-prediction helpers extracted from PredictiveAgent.ts on 2026-05-09.

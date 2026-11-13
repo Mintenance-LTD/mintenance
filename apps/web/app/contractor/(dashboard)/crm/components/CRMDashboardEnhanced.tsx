@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useRouter } from 'next/navigation';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
-import { MetricCard, StatusBadge } from '@/components/ui/figma';
+import { MetricCard } from '@/components/ui/figma';
 import {
   getGradientCardStyle,
   getIconContainerStyle,

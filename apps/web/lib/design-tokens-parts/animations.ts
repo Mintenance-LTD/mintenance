@@ -31,5 +31,3 @@ export const transitions = {
   transform: 'transform 200ms cubic-bezier(0.4, 0, 0.2, 1)',
   opacity: 'opacity 200ms cubic-bezier(0.4, 0, 0.2, 1)',
 } as const;
-
-type Transitions = typeof transitions;

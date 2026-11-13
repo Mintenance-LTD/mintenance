@@ -2,7 +2,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import { AutomationPreferencesService } from './AutomationPreferencesService';
-import { WeatherService, WeatherForecast } from '../weather/WeatherService';
+import { WeatherService } from '../weather/WeatherService';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import type { AgentResult, AgentContext } from './types';
 

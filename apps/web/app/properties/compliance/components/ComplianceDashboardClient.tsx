@@ -3,19 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { exportToPDFAdvanced } from '@/lib/utils/exportUtils';
-import {
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldX,
-  Clock,
-  Upload,
-  ChevronDown,
-  ChevronUp,
-  HelpCircle,
-  Building2,
-  FileText,
-} from 'lucide-react';
+import { Shield, ShieldAlert, ShieldCheck, ShieldX, Upload, ChevronDown, ChevronUp, HelpCircle, Building2, FileText } from 'lucide-react';
 import {
   CERT_LABELS,
   CERT_DESCRIPTIONS,
@@ -26,11 +14,8 @@ import {
 } from './complianceHelpers';
 
 // Types live in `./compliance-types.ts` (Slice 4 added room link).
-import type {
-  ComplianceCert,
-  PropertyWithCompliance,
-  ComplianceSummary,
-} from './compliance-types';
+// Types live in `./compliance-types.ts` (Slice 4 added room link).
+import type { PropertyWithCompliance, ComplianceSummary } from './compliance-types';
 import { CertificateFormModal } from './CertificateFormModal';
 import { RenewalButton } from './RenewalButton';
 

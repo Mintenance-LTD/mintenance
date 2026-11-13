@@ -157,29 +157,3 @@ export function calculatePropertyHealthScore(
     recommendations,
   };
 }
-
-/**
- * Get display text for health grade
- */
-function getHealthGradeLabel(grade: PropertyHealthScore['grade']): string {
-  const labels = {
-    excellent: 'Excellent',
-    good: 'Good',
-    needs_attention: 'Needs Attention',
-    critical: 'Critical',
-  };
-  return labels[grade];
-}
-
-/**
- * Get icon name for health grade (for lucide-react icons)
- */
-function getHealthGradeIcon(grade: PropertyHealthScore['grade']): string {
-  const icons = {
-    excellent: 'CheckCircle2',
-    good: 'ThumbsUp',
-    needs_attention: 'AlertTriangle',
-    critical: 'AlertOctagon',
-  };
-  return icons[grade];
-}

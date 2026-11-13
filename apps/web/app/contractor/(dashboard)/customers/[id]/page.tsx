@@ -4,15 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import {
-  ArrowLeft,
-  Briefcase,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  PoundSterling,
-} from 'lucide-react';
+import { ArrowLeft, Briefcase, Mail, Phone, MapPin } from 'lucide-react';
 
 export const metadata = {
   title: 'Customer Details | Mintenance',

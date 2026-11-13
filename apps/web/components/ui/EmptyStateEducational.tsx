@@ -10,24 +10,7 @@
  */
 
 import React from 'react';
-import {
-  BriefcaseIcon,
-  MapPinIcon,
-  UserGroupIcon,
-  ChartBarIcon,
-  DocumentTextIcon,
-  CameraIcon,
-  HomeIcon,
-  WrenchScrewdriverIcon,
-  ClockIcon,
-  ChatBubbleLeftRightIcon,
-  CurrencyPoundIcon,
-  CalendarIcon,
-  DocumentCheckIcon,
-  BellAlertIcon,
-  StarIcon,
-  PuzzlePieceIcon,
-} from '@heroicons/react/24/outline';
+import { BriefcaseIcon, MapPinIcon, UserGroupIcon, ChartBarIcon, DocumentTextIcon, CameraIcon, HomeIcon, WrenchScrewdriverIcon, ChatBubbleLeftRightIcon, CalendarIcon, DocumentCheckIcon, BellAlertIcon, StarIcon, PuzzlePieceIcon } from '@heroicons/react/24/outline';
 import { ArrowRightIcon } from '@heroicons/react/20/solid';
 import Link from 'next/link';
 import { unifiedTokens } from '@mintenance/design-tokens/src/unified-tokens';

@@ -52,7 +52,7 @@ const BATCH_PROCESSING_RETRY_CONFIG: RetryConfig = {
 };
 
 // Global metrics tracker
-let retryMetrics: RetryMetrics = {
+const retryMetrics: RetryMetrics = {
   totalRequests: 0,
   totalRetries: 0,
   requestsWithRetries: 0,
@@ -64,38 +64,6 @@ let retryMetrics: RetryMetrics = {
   averageRetryDelayMs: 0,
   totalDelayTimeMs: 0,
 };
-
-/**
- * Get current retry metrics
- */
-function getRetryMetrics(): RetryMetrics {
-  return { ...retryMetrics };
-}
-
-/**
- * Reset retry metrics (useful for testing or batch processing)
- */
-function resetRetryMetrics(): void {
-  retryMetrics = {
-    totalRequests: 0,
-    totalRetries: 0,
-    requestsWithRetries: 0,
-    rateLimitErrors: 0,
-    successfulAfterRetry: 0,
-    failedAfterRetry: 0,
-    averageRetriesPerRequest: 0,
-    retryRate: 0,
-    averageRetryDelayMs: 0,
-    totalDelayTimeMs: 0,
-  };
-}
-
-/**
- * Check if base delay should be increased based on retry metrics
- */
-function shouldIncreaseBaseDelay(metrics: RetryMetrics): boolean {
-  return metrics.retryRate > 50;
-}
 
 /**
  * Parse OpenAI rate limit headers from response

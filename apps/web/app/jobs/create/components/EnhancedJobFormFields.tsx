@@ -6,7 +6,7 @@ import {
   ValidatedInput,
   ValidatedTextarea,
 } from '@/components/ui/FormField';
-import { validateField, type JobFormData } from '../utils/validation';
+import { type JobFormData } from '../utils/validation';
 
 interface JobFormFieldsProps {
   formData: JobFormData;

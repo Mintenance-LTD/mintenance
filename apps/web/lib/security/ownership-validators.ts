@@ -53,36 +53,3 @@ export async function requireJobOwnership(
 
   return job;
 }
-
-/**
- * Verifies that the user is either the homeowner or contractor on the job.
- * Returns the job and the user's role on it.
- */
-async function requireJobParticipant(
-  jobId: string,
-  userId: string
-): Promise<{
-  job: JobOwnershipResult;
-  participantRole: 'homeowner' | 'contractor';
-}> {
-  const { data, error } = await serverSupabase
-    .from('jobs')
-    .select('id, homeowner_id, contractor_id, status, title')
-    .eq('id', jobId)
-    .single();
-
-  if (error || !data) {
-    throw new NotFoundError('Job not found');
-  }
-
-  const job = data as unknown as JobOwnershipResult;
-
-  if (job.homeowner_id === userId) {
-    return { job, participantRole: 'homeowner' };
-  }
-  if (job.contractor_id === userId) {
-    return { job, participantRole: 'contractor' };
-  }
-
-  throw new ForbiddenError('You are not a participant in this job');
-}

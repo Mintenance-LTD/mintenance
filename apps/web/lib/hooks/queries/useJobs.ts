@@ -13,7 +13,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query-client';
-import type { Job, JobDetail, JobSummary } from '@mintenance/types';
+import type { JobDetail, JobSummary } from '@mintenance/types';
 import { logger } from '@mintenance/shared';
 
 /**
@@ -303,31 +303,4 @@ export function useUpdateJob(jobId: string) {
       });
     },
   });
-}
-
-/**
- * Hook to prefetch a job (useful for hovering over links)
- *
- * @example
- * ```tsx
- * const prefetchJob = usePrefetchJob();
- *
- * <Link
- *   href={`/jobs/${jobId}`}
- *   onMouseEnter={() => prefetchJob(jobId)}
- * >
- *   View Job
- * </Link>
- * ```
- */
-function usePrefetchJob() {
-  const queryClient = useQueryClient();
-
-  return (jobId: string) => {
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.jobs.details(jobId),
-      queryFn: () => fetchJob(jobId),
-      staleTime: 5 * 60 * 1000,
-    });
-  };
 }

@@ -232,7 +232,9 @@ export const POST = withApiHandler(
 
           // Validate photo quality (brightness, sharpness, resolution)
           const qualityResult =
-            await PhotoVerificationService.validatePhotoQuality(photoUrl);
+            await PhotoVerificationService.validatePhotoQuality(
+              Buffer.from(await file.arrayBuffer())
+            );
 
           // ENFORCEMENT: reject photos that fail quality check.
           // Delete the uploaded file from storage so we don't accumulate garbage.

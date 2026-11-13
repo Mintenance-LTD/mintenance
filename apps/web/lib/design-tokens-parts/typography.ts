@@ -79,5 +79,3 @@ export const typography = {
     widest: '0.05em',
   },
 } as const;
-
-type Typography = typeof typography;

@@ -5,7 +5,13 @@
  * Ensures secure-looking UI during sensitive data operations.
  */
 
-import Skeleton, { SkeletonGroup  } from '@/components/ui/Skeleton';
+/**
+ * Payment Methods Loading State
+ *
+ * Displays skeleton loaders while payment method data is being fetched.
+ * Ensures secure-looking UI during sensitive data operations.
+ */
+import Skeleton from '@/components/ui/Skeleton';
 
 export default function PaymentMethodsLoading() {
   return (

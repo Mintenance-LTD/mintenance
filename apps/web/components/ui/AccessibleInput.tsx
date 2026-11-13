@@ -6,7 +6,7 @@ import React, {
   TextareaHTMLAttributes,
 } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export interface AccessibleInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;

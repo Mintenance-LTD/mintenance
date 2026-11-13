@@ -9,14 +9,7 @@
 
 import { logger } from '@mintenance/shared';
 import { ContinuumMemorySystem } from './ContinuumMemorySystem';
-import type {
-  ContinuumMemoryConfig,
-  MemoryLevel,
-  ContextFlow,
-  MemoryUpdateResult,
-  MemoryQueryResult,
-  MemoryPerformanceMetrics,
-} from './types';
+import type { ContinuumMemoryConfig, MemoryLevel, MemoryUpdateResult, MemoryQueryResult, MemoryPerformanceMetrics } from './types';
 
 /**
  * Memory Manager

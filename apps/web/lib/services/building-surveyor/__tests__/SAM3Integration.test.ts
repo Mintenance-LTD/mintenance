@@ -10,6 +10,17 @@
  */
 
 import { SAM3Service } from '../SAM3Service';
+
+// Image transport is isolated here; the safety boundary has its own regressions.
+vi.mock('@/lib/security/safe-fetch', () => ({
+  safeFetch: vi.fn(async (url: string) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Synthetic image transport failed');
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return { buffer, contentType: 'image/jpeg', size: buffer.length };
+  }),
+}));
+
 import { BayesianFusionService } from '../BayesianFusionService';
 import { formatSAM3EvidenceForFusion } from '../evidence-formatter';
 

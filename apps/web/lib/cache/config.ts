@@ -25,19 +25,3 @@ export const CACHE_DURATIONS = {
   LONG: 3600, // 1 hour
   VERY_LONG: 86400, // 24 hours
 } as const;
-
-/**
- * Generic cache query wrapper for easy caching of any function
- */
-function cacheQuery<T>(
-  key: string | string[],
-  queryFn: () => Promise<T>,
-  revalidate: number = CACHE_DURATIONS.SHORT,
-  tags?: string[]
-): Promise<T> {
-  const cacheKey = Array.isArray(key) ? key : [key];
-  return unstable_cache(queryFn, cacheKey, {
-    revalidate,
-    tags: tags || [],
-  })();
-}

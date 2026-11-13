@@ -89,17 +89,6 @@ export interface ContextFlow {
 }
 
 /**
- * Context flow batch for memory updates
- */
-interface ContextFlowBatch {
-  memoryStateId: string;
-  level: number;
-  flows: ContextFlow[];
-  accumulatedError?: number[];
-  readyForUpdate: boolean;
-}
-
-/**
  * Memory update result
  */
 export interface MemoryUpdateResult {
@@ -126,18 +115,6 @@ export interface MemoryQueryResult {
 }
 
 /**
- * Associative memory mapping
- * M: K → V where K is keys and V is values
- */
-interface AssociativeMemory {
-  keys: number[][];
-  values: number[][];
-  compressedParameters?: MemoryParameters;
-  compressionRatio: number;
-  lastCompression: Date;
-}
-
-/**
  * Memory performance metrics
  */
 export interface MemoryPerformanceMetrics {
@@ -149,21 +126,4 @@ export interface MemoryPerformanceMetrics {
   updateLatency: number; // Average update time in ms
   errorReduction: number; // Average error reduction per update
   lastCalculated: Date;
-}
-
-/**
- * Self-modification event
- */
-interface SelfModificationEvent {
-  agentName: string;
-  modificationType:
-    | 'frequency_adjustment'
-    | 'chunk_size_adjustment'
-    | 'learning_rate_adjustment'
-    | 'architecture_change';
-  before: Record<string, unknown>;
-  after: Record<string, unknown>;
-  reason: string;
-  performanceImpact: number;
-  timestamp: Date;
 }

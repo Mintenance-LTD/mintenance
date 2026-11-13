@@ -9,7 +9,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
-import type { AgentResult, AgentContext } from './types';
+import type { AgentResult } from './types';
 import type { ContinuumMemoryConfig } from '../ml-engine/memory/types';
 import type {
   BidWithJob,

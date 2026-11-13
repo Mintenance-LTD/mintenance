@@ -1,7 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { unstable_cache } from 'next/cache';
-import { CACHE_TAGS, CACHE_DURATIONS } from '@/lib/cache';
+import { CACHE_TAGS } from '@/lib/cache';
 
 export interface MaintenanceRecommendation {
   id: string;

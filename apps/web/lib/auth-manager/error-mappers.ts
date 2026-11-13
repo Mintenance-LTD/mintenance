@@ -110,26 +110,3 @@ export function mapRegistrationThrownError(error: Error): string | null {
 
   return null;
 }
-
-/**
- * Return a user-safe error message (no internal details exposed).
- * Only allows through messages that match known-safe strings.
- */
-function getSafeErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    const safeMessages = [
-      'User not found',
-      'Invalid email or password',
-      'Email already exists',
-      'Password requirements not met',
-    ];
-
-    for (const safeMessage of safeMessages) {
-      if (error.message.includes(safeMessage)) {
-        return error.message;
-      }
-    }
-  }
-
-  return 'An unexpected error occurred';
-}

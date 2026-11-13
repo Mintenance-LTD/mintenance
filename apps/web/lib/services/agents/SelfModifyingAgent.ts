@@ -10,7 +10,7 @@
 
 import { logger } from '@mintenance/shared';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
-import type { ContextFlow, MemoryQueryResult } from '../ml-engine/memory/types';
+import type { MemoryQueryResult } from '../ml-engine/memory/types';
 
 /**
  * Self-modification configuration

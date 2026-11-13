@@ -300,25 +300,6 @@ async function validateFile(
 }
 
 /**
- * Sanitize filename
- * Removes dangerous characters and ensures safe storage
- */
-function sanitizeFilename(filename: string): string {
-  // Remove path components
-  const basename = filename.split('/').pop()?.split('\\').pop() || 'file';
-
-  // Replace dangerous characters
-  const sanitized = basename
-    .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace special chars with underscore
-    .replace(/_{2,}/g, '_') // Collapse multiple underscores
-    .replace(/^\.+/, '') // Remove leading dots
-    .substring(0, 200); // Limit length
-
-  // Ensure filename isn't empty
-  return sanitized || `file_${Date.now()}`;
-}
-
-/**
  * Generate secure filename
  * Creates unique, secure filename with original extension preserved
  */
@@ -331,32 +312,6 @@ export function generateSecureFilename(originalFilename: string): string {
 }
 
 /**
- * Validate multiple files
- */
-async function validateFiles(
-  files: Array<{ file: File | Buffer; originalName: string; mimeType: string }>,
-  category: keyof typeof FILE_SIZE_LIMITS
-): Promise<{
-  valid: boolean;
-  results: FileValidationResult[];
-  totalSize: number;
-}> {
-  const results = await Promise.all(
-    files.map(({ file, originalName, mimeType }) =>
-      validateFile(file, { category, originalName, mimeType })
-    )
-  );
-
-  const totalSize = results.reduce((sum, r) => sum + r.metadata.size, 0);
-
-  return {
-    valid: results.every((r) => r.valid),
-    results,
-    totalSize,
-  };
-}
-
-/**
  * Helper to validate image uploads
  */
 export async function validateImageUpload(
@@ -364,30 +319,6 @@ export async function validateImageUpload(
 ): Promise<FileValidationResult> {
   return validateFile(file, {
     category: 'image',
-    originalName: file.name,
-    mimeType: file.type,
-  });
-}
-
-/**
- * Helper to validate video uploads
- */
-async function validateVideoUpload(file: File): Promise<FileValidationResult> {
-  return validateFile(file, {
-    category: 'video',
-    originalName: file.name,
-    mimeType: file.type,
-  });
-}
-
-/**
- * Helper to validate document uploads
- */
-async function validateDocumentUpload(
-  file: File
-): Promise<FileValidationResult> {
-  return validateFile(file, {
-    category: 'document',
     originalName: file.name,
     mimeType: file.type,
   });

@@ -346,6 +346,7 @@ export default async function ContractorJobDetailPage({
               : undefined
           }
           jobPhotoUrls={jobPhotoUrls}
+          existingBeforePhotosCount={existingBeforePhotosCount ?? 0}
           buildingAssessment={buildingAssessment}
           userId={user.id}
           messageHref={messageHref}

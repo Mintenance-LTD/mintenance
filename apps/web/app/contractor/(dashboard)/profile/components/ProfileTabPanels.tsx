@@ -4,23 +4,7 @@ import React from 'react';
 import NextImage from 'next/image';
 import { formatMoney } from '@/lib/utils/currency';
 import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
-import {
-  Star,
-  Shield,
-  Briefcase,
-  Award,
-  TrendingUp,
-  Plus,
-  Trash2,
-  X,
-  Upload,
-  Edit3,
-  Image as ImageIcon,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-} from 'lucide-react';
+import { Star, Shield, Briefcase, Award, TrendingUp, Plus, X, Upload, Image as ImageIcon, Mail, Phone, MapPin, Calendar } from 'lucide-react';
 import type {
   ContractorProfileData,
   ContractorReview,

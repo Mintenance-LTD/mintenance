@@ -2,13 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { logger } from '@mintenance/shared';
-import {
-  getPerformanceData,
-  storePerformanceData,
-  getPerformanceHistory,
-  type PerformanceData,
-  type PerformanceMetric,
-} from '@/lib/performance-monitor';
+import { getPerformanceData, storePerformanceData, type PerformanceData } from '@/lib/performance-monitor';
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RefreshCw, AlertTriangle } from 'lucide-react';

@@ -28,7 +28,7 @@ import {
   enforceSessionTimeouts,
 } from './middleware/auth';
 
-import type { JWTPayload } from '@mintenance/types';
+
 
 // Mint Editorial is the default platform theme. When a visitor has no
 // `mintenance-theme` cookie we (a) inject it into the *forwarded* request

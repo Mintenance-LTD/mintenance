@@ -157,17 +157,3 @@ interface StatsGridProps {
   children: React.ReactNode;
   columns?: number;
 }
-
-function StatsGrid({ children, columns = 3 }: StatsGridProps) {
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(auto-fit, minmax(180px, 1fr))`,
-        gap: theme.spacing[4],
-      }}
-    >
-      {children}
-    </div>
-  );
-}

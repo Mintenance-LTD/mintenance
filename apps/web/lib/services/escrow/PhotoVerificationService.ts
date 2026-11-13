@@ -19,7 +19,7 @@ import { GeoVerification } from './photo-verification/GeoVerification';
  */
 export class PhotoVerificationService {
   static async validatePhotoQuality(
-    photoUrl: string
+    photoUrl: string | Buffer
   ): Promise<PhotoQualityResult> {
     return VerificationRules.validatePhotoQuality(photoUrl);
   }

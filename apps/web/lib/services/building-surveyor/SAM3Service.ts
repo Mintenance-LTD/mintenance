@@ -4,12 +4,7 @@
  */
 
 import { logger } from '@mintenance/shared';
-
-interface SAM3SegmentationRequest {
-  image_base64: string;
-  text_prompt: string;
-  threshold?: number;
-}
+import { safeFetch } from '@/lib/security/safe-fetch';
 
 export interface SAM3SegmentationResponse {
   success: boolean;
@@ -351,12 +346,11 @@ export class SAM3Service {
    */
   private static async imageUrlToBase64(imageUrl: string): Promise<string> {
     try {
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const { buffer } = await safeFetch(imageUrl, {
+        maxBytes: 10 * 1024 * 1024,
+        timeoutMs: 10_000,
+        allowedContentTypes: ['image/'],
+      });
       return buffer.toString('base64');
     } catch (error) {
       logger.error('SAM3Service failed to convert image to base64', {

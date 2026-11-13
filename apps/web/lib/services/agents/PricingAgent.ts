@@ -2,14 +2,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import type { AgentResult } from './types';
-import {
-  extractRegion,
-  calculateMarketStatistics,
-  calculateCompetitivenessScore,
-  calculateConfidence,
-  generateReasoning,
-  generateBudgetBasedRecommendation,
-} from './PricingCalculations';
+import { calculateMarketStatistics, calculateCompetitivenessScore, calculateConfidence, generateReasoning, generateBudgetBasedRecommendation } from './PricingCalculations';
 import type {
   PricingRecommendation,
   MarketAnalysis,

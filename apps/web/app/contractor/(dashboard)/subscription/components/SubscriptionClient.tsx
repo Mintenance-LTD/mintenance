@@ -1,15 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import {
-  SubscriptionService,
-  SubscriptionPlanDetails,
-  Subscription,
-} from '@/lib/services/subscription/SubscriptionService';
-import {
-  TrialService,
-  TrialStatus,
-} from '@/lib/services/subscription/TrialService';
+import { SubscriptionPlanDetails, Subscription } from '@/lib/services/subscription/SubscriptionService';
+import { TrialStatus } from '@/lib/services/subscription/TrialService';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { TrialStatusBanner } from './TrialStatusBanner';
 import { theme } from '@/lib/theme';
@@ -28,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { FoundingMemberCard } from './FoundingMemberCard';
 
 interface SubscriptionClientProps {

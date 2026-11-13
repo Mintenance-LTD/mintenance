@@ -13,49 +13,6 @@ interface ExportData {
 }
 
 /**
- * Export data as CSV file
- */
-function exportToCSV(data: ExportData, filename: string = 'report.csv'): void {
-  const { headers, rows, title, metadata } = data;
-
-  let csvContent = '';
-
-  // Add title if provided
-  if (title) {
-    csvContent += `${title}\n\n`;
-  }
-
-  // Add metadata if provided
-  if (metadata) {
-    Object.entries(metadata).forEach(([key, value]) => {
-      csvContent += `${key},${value}\n`;
-    });
-    csvContent += '\n';
-  }
-
-  // Add headers
-  csvContent += headers.map(escapeCSV).join(',') + '\n';
-
-  // Add rows
-  rows.forEach((row) => {
-    csvContent += row.map((cell) => escapeCSV(String(cell))).join(',') + '\n';
-  });
-
-  // Create blob and download
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  downloadFile(blob, filename);
-}
-
-/**
- * Export data as JSON file
- */
-function exportToJSON(data: unknown, filename: string = 'report.json'): void {
-  const jsonString = JSON.stringify(data, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  downloadFile(blob, filename);
-}
-
-/**
  * Generate PDF from HTML content using browser's print functionality
  * SECURITY: Sanitizes HTML content to prevent XSS attacks
  */
@@ -264,23 +221,4 @@ function addPrintStyles(): void {
     }
   `;
   document.head.appendChild(style);
-}
-
-/**
- * Format date for export
- */
-function formatDateForExport(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('en-GB', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-}
-
-/**
- * Format currency for export
- */
-function formatCurrencyForExport(amount: number): string {
-  return `£${amount.toFixed(2)}`;
 }

@@ -199,16 +199,6 @@ export function markFeatureSeen(featureId: string): OnboardingState {
 }
 
 /**
- * Dismiss a tooltip/tip
- */
-function dismissTip(featureId: string): OnboardingState {
-  const state = getOnboardingState();
-  state.dismissedTips.push(featureId);
-  saveOnboardingState(state);
-  return state;
-}
-
-/**
  * Skip entire onboarding
  */
 export function skipOnboarding(): OnboardingState {

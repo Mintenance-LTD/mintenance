@@ -14,14 +14,8 @@ import { mkdtempSync, writeFileSync, unlinkSync, existsSync, rmdirSync } from 'f
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { createHash } from 'crypto';
-import {
-  preprocessImageForYOLO,
-  type PreprocessedImage,
-} from './yolo-preprocessing';
-import {
-  postprocessYOLOOutput,
-  type YOLODetection,
-} from './yolo-postprocessing';
+import { preprocessImageForYOLO } from './yolo-preprocessing';
+import { postprocessYOLOOutput } from './yolo-postprocessing';
 import { loadClassNames } from './yolo-class-names';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import type { RoboflowDetection } from './types';

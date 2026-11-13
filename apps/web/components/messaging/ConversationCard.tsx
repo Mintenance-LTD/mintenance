@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image as ImageIcon, Paperclip, Phone, Video } from 'lucide-react';
+import { Image as ImageIcon, Paperclip, Phone } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import type { MessageThread } from '@mintenance/types';
 

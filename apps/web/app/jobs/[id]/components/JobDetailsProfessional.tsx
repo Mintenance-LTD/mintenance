@@ -44,17 +44,8 @@ import {
 } from 'lucide-react';
 
 // Extracted sub-components
-import {
-  StatusBadge,
-  PriorityBadge,
-  InfoItem,
-  ContentCard,
-  StatItem,
-  UserCard,
-  formatDate,
-  formatRelativeDate,
-  formatCategory,
-} from './JobDetailHelpers';
+// Extracted sub-components
+import { StatusBadge, PriorityBadge, InfoItem, ContentCard, UserCard, formatDate, formatCategory } from './JobDetailHelpers';
 import { BidCard } from './BidCard';
 import { ImageLightbox } from './ImageLightbox';
 import { JobLifecycleTimeline, NextActionCard } from './JobLifecycleTimeline';

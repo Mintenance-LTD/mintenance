@@ -282,22 +282,6 @@ export async function checkAdminRateLimit(userId: string): Promise<boolean> {
 }
 
 /**
- * Helper function for consistent admin response format
- */
-function adminErrorResponse(
-  message: string,
-  status: number = 403
-): NextResponse {
-  return NextResponse.json(
-    {
-      error: message,
-      timestamp: new Date().toISOString(),
-    },
-    { status }
-  );
-}
-
-/**
  * Type guard to check if response is an error
  */
 export function isAdminError(
