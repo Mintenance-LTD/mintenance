@@ -43,10 +43,11 @@ on:
         required: true
         type: choice
         options:
+          - internal
           - development
           - staging
           - production
-        default: 'development'
+        default: 'internal'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.platform || 'auto' }}
@@ -70,6 +71,7 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -95,7 +97,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             PROFILE="$REQUESTED_PROFILE"
           elif [ "$GITHUB_REF" = "refs/heads/Main" ] || [ "$GITHUB_REF" = "refs/heads/main" ]; then
-            PROFILE=production
+            PROFILE=internal
           elif [ "$GITHUB_REF" = "refs/heads/develop" ]; then
             PROFILE=staging
           else
@@ -103,7 +105,7 @@ jobs:
           fi
 
           case "$PROFILE" in
-            development|staging|production) ;;
+            internal|development|staging|production) ;;
             *) echo "::error::Invalid build profile" >&2; exit 1 ;;
           esac
           printf 'profile=%s\n' "$PROFILE" >> "$GITHUB_OUTPUT"
@@ -149,14 +151,14 @@ jobs:
   # ============================================================
   # ANDROID BUILD (EAS)
   # ============================================================
-  # PRs validate locally above; EAS submissions belong to branch pushes or manual dispatch.
+  # Pushes and PRs validate; paid native builds require an explicit manual request.
   build-android:
     name: Build Android (${{ needs.pre-build-checks.outputs.build-profile }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: pre-build-checks
     if: |
-      github.event_name != 'pull_request' &&
+      github.event_name == 'workflow_dispatch' &&
       needs.pre-build-checks.outputs.should-build == 'true' &&
       (github.event.inputs.platform == 'android' ||
        github.event.inputs.platform == 'all' ||
@@ -165,6 +167,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -200,7 +204,7 @@ jobs:
         working-directory: apps/mobile
         run: |
           case "$PROFILE" in
-            development|staging|production) ;;
+            internal|development|staging|production) ;;
             *) echo "::error::Invalid build profile" >&2; exit 1 ;;
           esac
           eas build --platform android --profile "$PROFILE" --non-interactive --no-wait
@@ -248,7 +252,7 @@ jobs:
     timeout-minutes: 45
     needs: pre-build-checks
     if: |
-      github.event_name != 'pull_request' &&
+      github.event_name == 'workflow_dispatch' &&
       needs.pre-build-checks.outputs.should-build == 'true' &&
       (github.event.inputs.platform == 'ios' ||
        github.event.inputs.platform == 'all' ||
@@ -258,6 +262,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -287,7 +293,7 @@ jobs:
         working-directory: apps/mobile
         run: |
           case "$PROFILE" in
-            development|staging|production) ;;
+            internal|development|staging|production) ;;
             *) echo "::error::Invalid build profile" >&2; exit 1 ;;
           esac
           eas build --platform ios --profile "$PROFILE" --non-interactive --no-wait

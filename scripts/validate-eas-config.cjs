@@ -9,9 +9,9 @@ const {
 const profiles = require('../apps/mobile/eas.json').build;
 
 function resolveBuildEnvironment(profile, env = process.env) {
-  if (!['production', 'staging', 'beta-login-test'].includes(profile)) {
+  if (!['production', 'staging', 'beta-login-test', 'internal'].includes(profile)) {
     throw new Error(
-      'Choose a production, staging or beta-login-test config preflight.'
+      'Choose a production, staging, beta-login-test or internal config preflight.'
     );
   }
   // Match EAS profile precedence. Do not fetch credentials, load local dotenv

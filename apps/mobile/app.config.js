@@ -42,7 +42,8 @@ require('./validate-release-env').validateReleaseEnvironment();
 // This opt-in binary uses its embedded bundle only. It cannot consume updates
 // intended for the older preview APK whose dirty build source is unavailable.
 const betaLoginBuild = process.env.MINTENANCE_BETA_LOGIN_BUILD === '1';
-if (betaLoginBuild) {
+const internalBuild = process.env.MINTENANCE_INTERNAL_BUILD === '1';
+if (betaLoginBuild || internalBuild) {
   const projectUrl = 'https://ukrjudtlvapiajkjbcrd.supabase.co';
   if (
     process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') !== projectUrl ||
@@ -50,7 +51,7 @@ if (betaLoginBuild) {
       `${projectUrl}/functions/v1/mobile-api-relay`
   ) {
     throw new Error(
-      'Beta login build requires the reviewed Supabase project and relay.'
+      'Internal testing requires the reviewed Supabase project and relay.'
     );
   }
 }
@@ -76,7 +77,7 @@ const resolveGoogleServicesFile = (envVar, localPath) => {
 
 module.exports = {
   expo: {
-    name: betaLoginBuild ? 'Mintenance Beta' : 'Mintenance',
+    name: internalBuild ? 'Mintenance Internal' : betaLoginBuild ? 'Mintenance Beta' : 'Mintenance',
     slug: 'mintenance',
     owner: 'mintenance-ltd',
     version: '1.2.4',
@@ -164,7 +165,8 @@ module.exports = {
       // Bumped 2026-08-06: 22 and 23 are both already consumed on Play (22
       // rejected build 148c5786; 23 uploaded from chore/mobile-versioncode-23).
       // 24 carries the mobile Delete Job feature to the store.
-      versionCode: betaLoginBuild ? 45 : 40,
+      // Internal 48 updates the existing test APKs (latest issued code: 47).
+      versionCode: internalBuild ? 48 : betaLoginBuild ? 45 : 40,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',
@@ -213,11 +215,11 @@ module.exports = {
     scheme: 'mintenance',
     updates: {
       url: 'https://u.expo.dev/1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
-      ...(betaLoginBuild ? { enabled: false } : {}),
+      ...(betaLoginBuild || internalBuild ? { enabled: false } : {}),
     },
     // SQLCipher and expo-crypto require a rebuilt native binary. Keep these
     // updates off older 1.2.4 runtimes that lack the required native code.
-    runtimeVersion: betaLoginBuild ? '1.2.4-beta-login1' : '1.2.4-sqlcipher1',
+    runtimeVersion: internalBuild ? '1.2.4-internal48' : betaLoginBuild ? '1.2.4-beta-login1' : '1.2.4-sqlcipher1',
     plugins: [
       ['expo-sqlite', { useSQLCipher: true }],
       // Android security hardening: allowBackup=false, usesCleartextTraffic=false,

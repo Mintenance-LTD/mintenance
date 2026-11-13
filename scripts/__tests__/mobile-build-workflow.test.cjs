@@ -11,7 +11,7 @@ const YAML = require('yaml');
 const root = path.resolve(__dirname, '../..');
 const workflow = YAML.parse(fs.readFileSync(path.join(root, '.github/workflows/mobile-build.yml'), 'utf8'), { uniqueKeys: true });
 const easConfig = JSON.parse(fs.readFileSync(path.join(root, 'apps/mobile/eas.json'), 'utf8'));
-const profiles = ['development', 'staging', 'production'];
+const profiles = ['internal', 'development', 'staging', 'production'];
 const select = workflow.jobs['pre-build-checks'].steps.find(step => step.id === 'determine-profile');
 const consumers = ['android', 'ios'].map(platform => {
   const steps = workflow.jobs[`build-${platform}`].steps;
@@ -75,8 +75,8 @@ test('profile values enter scripts through env, and match EAS build profiles', (
 });
 
 for (const [event, ref, expected] of [
-  ['push', 'refs/heads/Main', 'production'],
-  ['push', 'refs/heads/main', 'production'],
+  ['push', 'refs/heads/Main', 'internal'],
+  ['push', 'refs/heads/main', 'internal'],
   ['push', 'refs/heads/develop', 'staging'],
   ['pull_request', 'refs/pull/42/merge', 'development'],
   ['push', 'refs/heads/feature', 'development'],

@@ -213,6 +213,40 @@ test('ordinary production config retains its runtime, version and update behavio
   assert.notEqual(config.updates.enabled, false);
 });
 
+test('internal APK upgrades existing test builds and always runs its embedded bundle', () => {
+  const config = validateExpoConfig('internal', {
+    ...workflowEnvironment('production'),
+    EXPO_PUBLIC_SUPABASE_URL: 'https://ukrjudtlvapiajkjbcrd.supabase.co',
+  });
+  const internal = require('../apps/mobile/eas.json').build.internal;
+  assert.equal(internal.distribution, 'internal');
+  assert.equal(internal.android.buildType, 'apk');
+  assert.equal(internal.android.gradleCommand, ':app:assembleRelease');
+  assert.equal(internal.credentialsSource, 'remote');
+  assert.equal(config.android.package, 'com.mintenance.app');
+  assert.equal(config.android.versionCode, 48);
+  assert.equal(config.name, 'Mintenance Internal');
+  assert.equal(config.runtimeVersion, '1.2.4-internal48');
+  assert.equal(config.updates.enabled, false);
+});
+
+test('internal APK rejects an unreviewed backend', () => {
+  assert.throws(
+    () => validateExpoConfig('internal', workflowEnvironment('production')),
+    /Expo config evaluation failed/
+  );
+});
+
+test('native build workflow defaults to a manually requested internal APK', () => {
+  const native = yaml.load(fs.readFileSync(path.join(__dirname, '../.github/workflows/mobile-build.yml'), 'utf8'));
+  assert.equal(native.on.workflow_dispatch.inputs.profile.default, 'internal');
+  assert.ok(native.on.workflow_dispatch.inputs.profile.options.includes('internal'));
+  for (const name of ['build-android', 'build-ios']) {
+    assert.match(native.jobs[name].if, /github\.event_name == 'workflow_dispatch'/);
+  }
+  assert.match(workflow.jobs['build-production'].if, /vars\.ENABLE_AUTOMATIC_STORE_BUILDS == 'true'/);
+});
+
 test('beta APK rejects a different Supabase project before a build is submitted', () => {
   assert.throws(
     () =>
