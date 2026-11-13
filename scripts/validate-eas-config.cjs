@@ -9,9 +9,9 @@ const {
 const profiles = require('../apps/mobile/eas.json').build;
 
 function resolveBuildEnvironment(profile, env = process.env) {
-  if (!['production', 'staging', 'beta-login-test', 'internal'].includes(profile)) {
+  if (!['production', 'staging', 'beta-login-test', 'internal', 'ios-simulator'].includes(profile)) {
     throw new Error(
-      'Choose a production, staging, beta-login-test or internal config preflight.'
+      'Choose a production, staging, beta-login-test, internal or ios-simulator config preflight.'
     );
   }
   // Match EAS profile precedence. Do not fetch credentials, load local dotenv
@@ -20,6 +20,7 @@ function resolveBuildEnvironment(profile, env = process.env) {
     ...env,
     // The isolated beta profile inherits preview's public build defaults.
     ...(profile === 'beta-login-test' ? profiles.preview.env : {}),
+    ...(profile === 'ios-simulator' ? profiles.internal.env : {}),
     ...profiles[profile].env,
     EAS_BUILD_PROFILE: profile,
     EXPO_NO_DOTENV: '1',

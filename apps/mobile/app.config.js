@@ -165,8 +165,8 @@ module.exports = {
       // Bumped 2026-08-06: 22 and 23 are both already consumed on Play (22
       // rejected build 148c5786; 23 uploaded from chore/mobile-versioncode-23).
       // 24 carries the mobile Delete Job feature to the store.
-      // Internal 48 updates the existing test APKs (latest issued code: 47).
-      versionCode: internalBuild ? 48 : betaLoginBuild ? 45 : 40,
+      // Internal 49 includes the property workspace and upgrades APK 48.
+      versionCode: internalBuild ? 49 : betaLoginBuild ? 47 : 40,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',
@@ -219,7 +219,7 @@ module.exports = {
     },
     // SQLCipher and expo-crypto require a rebuilt native binary. Keep these
     // updates off older 1.2.4 runtimes that lack the required native code.
-    runtimeVersion: internalBuild ? '1.2.4-internal48' : betaLoginBuild ? '1.2.4-beta-login1' : '1.2.4-sqlcipher1',
+    runtimeVersion: internalBuild ? '1.2.4-internal49' : betaLoginBuild ? '1.2.4-beta-login1' : '1.2.4-sqlcipher1',
     plugins: [
       ['expo-sqlite', { useSQLCipher: true }],
       // Android security hardening: allowBackup=false, usesCleartextTraffic=false,

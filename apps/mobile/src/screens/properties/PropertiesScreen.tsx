@@ -1,6 +1,7 @@
 /**
  * PropertiesScreen - List homeowner's properties with CRUD support
  */
+import { PropertyChoice } from '../../components/properties/PropertyChoice';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -83,7 +84,18 @@ const PropertyCard: React.FC<{
           </Text>
         </View>
         <TouchableOpacity
-          onPress={onToggleFavorite}
+          onPress={(event) => {
+            event.stopPropagation();
+            onToggleFavorite();
+          }}
+          accessibilityRole='button'
+          accessibilityLabel={`${isFavorite ? 'Remove' : 'Add'} ${property.property_name || 'property'} ${isFavorite ? 'from' : 'to'} favourites`}
+          style={{
+            minWidth: 44,
+            minHeight: 44,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons
@@ -300,6 +312,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name='add' size={22} color={me.onBrand} />
+          <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
 
@@ -316,46 +329,48 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
           returnKeyType='search'
         />
       )}
-      {properties && properties.length > 1 && (
+      {!!properties?.length && (
         <View style={styles.sortRow}>
-          {[
-            { key: 'name' as SortOption, label: 'Name' },
-            { key: 'date' as SortOption, label: 'Date Added' },
-            { key: 'type' as SortOption, label: 'Type' },
-          ].map((opt) => (
-            <TouchableOpacity
-              key={opt.key}
-              style={[
-                styles.sortChip,
-                sortBy === opt.key && styles.sortChipActive,
-              ]}
-              onPress={() => setSortBy(opt.key)}
-              accessibilityRole='button'
-              accessibilityState={{ selected: sortBy === opt.key }}
-            >
-              <Text
-                style={[
-                  styles.sortChipText,
-                  sortBy === opt.key && styles.sortChipTextActive,
-                ]}
-              >
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
           <TouchableOpacity
-            style={[styles.sortChip, showFavoritesOnly && styles.favChipActive]}
-            onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
             accessibilityRole='button'
-            accessibilityState={{ selected: showFavoritesOnly }}
-            accessibilityLabel='Show favourite properties only'
+            accessibilityState={{ selected: !showFavoritesOnly }}
+            onPress={() => setShowFavoritesOnly(false)}
+            style={[
+              styles.sortChip,
+              !showFavoritesOnly && styles.sortChipActive,
+            ]}
           >
-            <Ionicons
-              name={showFavoritesOnly ? 'heart' : 'heart-outline'}
-              size={14}
-              color={showFavoritesOnly ? me.accent : me.ink2}
-            />
+            <Text
+              style={[
+                styles.sortChipText,
+                !showFavoritesOnly && styles.sortChipTextActive,
+              ]}
+            >
+              All
+            </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole='button'
+            accessibilityLabel='Show favourite properties only'
+            accessibilityState={{ selected: showFavoritesOnly }}
+            onPress={() => setShowFavoritesOnly(true)}
+            style={[styles.sortChip, showFavoritesOnly && styles.favChipActive]}
+          >
+            <Ionicons name='heart-outline' size={18} color={me.brand2} />
+            <Text style={styles.sortChipText}>Favourites</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <PropertyChoice
+              label='Sort properties'
+              value={sortBy}
+              options={[
+                { value: 'name', label: 'Name' },
+                { value: 'date', label: 'Newest' },
+                { value: 'type', label: 'Type' },
+              ]}
+              onChange={(value) => setSortBy(value as SortOption)}
+            />
+          </View>
         </View>
       )}
 
@@ -386,7 +401,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
               <PropertyInvitations />
               <PortfolioActionQueue
                 key={user?.id}
-                initiallyExpanded
+                initiallyExpanded={false}
                 onOpenProperty={(propertyId) =>
                   navigation.navigate('PropertyDetail', { propertyId })
                 }

@@ -228,3 +228,6 @@ apps/web/assets/
 # ============================================================================
 monitoring/
 tools/
+
+# Local verification fixtures and screenshots must never ship in app builds.
+.preview/

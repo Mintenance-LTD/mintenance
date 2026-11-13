@@ -185,7 +185,7 @@ test('isolated beta APK resolves the verified relay with OTA disabled and existi
   assert.equal(resolved.EXPO_PUBLIC_USE_MOCK, 'false');
   assert.equal(resolved.NODE_ENV, 'production');
   assert.equal(config.android.package, 'com.mintenance.app');
-  assert.equal(config.android.versionCode, 45);
+  assert.equal(config.android.versionCode, 47);
   assert.equal(config.name, 'Mintenance Beta');
   assert.equal(config.runtimeVersion, '1.2.4-beta-login1');
   assert.equal(config.updates.enabled, false);
@@ -224,9 +224,9 @@ test('internal APK upgrades existing test builds and always runs its embedded bu
   assert.equal(internal.android.gradleCommand, ':app:assembleRelease');
   assert.equal(internal.credentialsSource, 'remote');
   assert.equal(config.android.package, 'com.mintenance.app');
-  assert.equal(config.android.versionCode, 48);
+  assert.equal(config.android.versionCode, 49);
   assert.equal(config.name, 'Mintenance Internal');
-  assert.equal(config.runtimeVersion, '1.2.4-internal48');
+  assert.equal(config.runtimeVersion, '1.2.4-internal49');
   assert.equal(config.updates.enabled, false);
 });
 
@@ -235,6 +235,20 @@ test('internal APK rejects an unreviewed backend', () => {
     () => validateExpoConfig('internal', workflowEnvironment('production')),
     /Expo config evaluation failed/
   );
+});
+
+test('iOS simulator embeds the same reviewed release bundle without device signing', () => {
+  const config = validateExpoConfig('ios-simulator', {
+    ...workflowEnvironment('production'),
+    EXPO_PUBLIC_SUPABASE_URL: 'https://ukrjudtlvapiajkjbcrd.supabase.co',
+  });
+  const profile = require('../apps/mobile/eas.json').build['ios-simulator'];
+  assert.equal(profile.extends, 'internal');
+  assert.equal(profile.ios.simulator, true);
+  assert.equal(profile.ios.buildConfiguration, 'Release');
+  assert.equal(config.ios.bundleIdentifier, 'com.mintenance.app');
+  assert.equal(config.runtimeVersion, '1.2.4-internal49');
+  assert.equal(config.updates.enabled, false);
 });
 
 test('native build workflow defaults to a manually requested internal APK', () => {

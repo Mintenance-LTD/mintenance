@@ -52,10 +52,13 @@ export const styles = StyleSheet.create({
     letterSpacing: me.displayTracking,
   },
   addButtonTop: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: me.brand,
+    minWidth: 80,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    gap: 6,
+    borderRadius: 24,
+    backgroundColor: me.brand2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -107,10 +110,9 @@ export const styles = StyleSheet.create({
   },
   propertyMeta: {
     flexDirection: 'row',
-    marginTop: 8,
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: me.line,
+    marginLeft: 52,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   metaItem: {
     flexDirection: 'row',
@@ -173,6 +175,11 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   sortChip: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -184,7 +191,7 @@ export const styles = StyleSheet.create({
     backgroundColor: me.brand,
   },
   favChipActive: {
-    backgroundColor: me.errBg,
+    backgroundColor: me.brandSoft,
   },
   sortChipText: {
     fontSize: 13,

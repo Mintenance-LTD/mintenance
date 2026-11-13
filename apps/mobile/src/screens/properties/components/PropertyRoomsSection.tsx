@@ -25,8 +25,10 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { workspaceStyles as ws } from './PropertyWorkspaceUI';
 import { me } from '../../../design-system/mint-editorial';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { logger } from '../../../utils/logger';
@@ -77,11 +79,13 @@ const ROOM_TYPE_LABELS: Record<RoomType, string> = {
 interface PropertyRoomsSectionProps {
   propertyId: string;
   editable?: boolean;
+  onViewPhotos?: () => void;
 }
 
 export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
   propertyId,
   editable = false,
+  onViewPhotos,
 }) => {
   const [rooms, setRooms] = useState<PropertyRoom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,7 +184,18 @@ export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
     );
   };
 
-  const sortedRooms = useMemo(() => rooms, [rooms]);
+  const [search, setSearch] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedRoom = rooms.find((room) => room.id === selectedId);
+  const sortedRooms = useMemo(
+    () =>
+      rooms.filter((room) =>
+        (room.name + ' ' + ROOM_TYPE_LABELS[room.room_type])
+          .toLowerCase()
+          .includes(search.trim().toLowerCase())
+      ),
+    [rooms, search]
+  );
 
   return (
     <View style={styles.section}>
@@ -201,6 +216,14 @@ export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
         ) : null}
       </View>
 
+      <TextInput
+        style={ws.search}
+        value={search}
+        onChangeText={setSearch}
+        placeholder='Search rooms'
+        accessibilityLabel='Search rooms'
+        placeholderTextColor={me.ink3}
+      />
       {error ? (
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
@@ -220,7 +243,9 @@ export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
             color={me.ink4}
             style={{ marginBottom: 6 }}
           />
-          <Text style={styles.emptyTitle}>No rooms added yet</Text>
+          <Text style={styles.emptyTitle}>
+            {search ? 'No matching rooms' : 'No rooms added yet'}
+          </Text>
           <Text style={styles.emptySub}>
             {editable
               ? 'Add rooms so jobs can target a specific area and contractors can quote per-sqm.'
@@ -230,7 +255,47 @@ export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
       ) : (
         <View style={styles.list}>
           {sortedRooms.map((room) => (
-            <View key={room.id} style={styles.row}>
+            <TouchableOpacity
+              key={room.id}
+              accessibilityRole='button'
+              accessibilityLabel={`Select ${room.name}`}
+              accessibilityState={{ selected: selectedId === room.id }}
+              onPress={() => setSelectedId(room.id)}
+              style={[
+                styles.row,
+                {
+                  padding: 12,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: me.line,
+                  backgroundColor:
+                    selectedId === room.id ? me.brandSoft : me.surface,
+                  marginBottom: 8,
+                },
+              ]}
+            >
+              <View
+                style={{
+                  backgroundColor: me.bg2,
+                  padding: 12,
+                  borderRadius: 12,
+                  marginRight: 12,
+                }}
+              >
+                <Ionicons
+                  name={
+                    room.room_type === 'bedroom'
+                      ? 'bed-outline'
+                      : room.room_type === 'kitchen'
+                        ? 'restaurant-outline'
+                        : room.room_type === 'bathroom'
+                          ? 'water-outline'
+                          : 'home-outline'
+                  }
+                  size={26}
+                  color={me.brand2}
+                />
+              </View>
               <View style={styles.rowMain}>
                 <Text style={styles.rowType}>
                   {ROOM_TYPE_LABELS[room.room_type]}
@@ -273,11 +338,44 @@ export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
                   </TouchableOpacity>
                 </View>
               ) : null}
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
 
+      {selectedRoom && (
+        <View style={ws.card}>
+          <Text style={ws.heading}>{selectedRoom.name}</Text>
+          <Text style={ws.muted}>
+            {selectedRoom.size_sqm != null
+              ? `${selectedRoom.size_sqm} m²`
+              : 'Area not recorded'}
+          </Text>
+          {onViewPhotos && (
+            <TouchableOpacity
+              accessibilityRole='button'
+              style={ws.row}
+              onPress={onViewPhotos}
+            >
+              <Ionicons name='images-outline' size={22} color={me.brand2} />
+              <Text style={ws.rowText}>View property photos</Text>
+            </TouchableOpacity>
+          )}
+          {editable && (
+            <TouchableOpacity
+              accessibilityRole='button'
+              style={ws.primary}
+              onPress={() => {
+                setEditingRoom(selectedRoom);
+                setModalVisible(true);
+              }}
+            >
+              <Ionicons name='create-outline' size={20} color={me.onBrand} />
+              <Text style={ws.primaryText}>Edit room</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
       {modalVisible ? (
         <RoomFormModal
           visible={modalVisible}

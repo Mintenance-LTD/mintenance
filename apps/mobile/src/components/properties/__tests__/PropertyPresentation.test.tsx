@@ -102,7 +102,7 @@ it('groups upload dates and filters an older album', async () => {
   fireEvent.press(ui.getByText('Uploaded 1 September 2026'));
   expect(ui.queryByText('Uploaded 30 October 2026 · 1 photo')).toBeNull();
   expect(ui.getByText('Uploaded 1 September 2026 · 1 photo')).toBeTruthy();
-  fireEvent.press(ui.getByLabelText('Room: Kitchen'));
+  fireEvent.press(ui.getByLabelText('Room: All rooms'));
   fireEvent.press(ui.getByText('Bathroom'));
   expect(ui.getByText('No photos in this room yet.')).toBeTruthy();
 });
@@ -136,6 +136,8 @@ it('requests camera permission only on tap and does not upload when denied', asy
   const ui = albums();
   await ui.findByText('Take photo');
   expect(ImagePicker.requestCameraPermissionsAsync).not.toHaveBeenCalled();
+  fireEvent.press(ui.getByLabelText('Room: All rooms'));
+  fireEvent.press(ui.getByText('Kitchen'));
   fireEvent.press(ui.getByText('Take photo'));
   await waitFor(() =>
     expect(Alert.alert).toHaveBeenCalledWith(
@@ -162,8 +164,10 @@ it('uploads one selected photo through the authenticated API without an invented
   });
   jest.mocked(mobileApiClient.postFormData).mockResolvedValue({ uploaded: 1 });
   const ui = albums();
-  await ui.findByText('Choose photo');
-  fireEvent.press(ui.getByText('Choose photo'));
+  await ui.findByText('Upload photo');
+  fireEvent.press(ui.getByLabelText('Room: All rooms'));
+  fireEvent.press(ui.getByText('Kitchen'));
+  fireEvent.press(ui.getByText('Upload photo'));
   await waitFor(() =>
     expect(mobileApiClient.postFormData).toHaveBeenCalledWith(
       '/api/properties/property-one/room-photos',
@@ -177,4 +181,14 @@ it('uploads one selected photo through the authenticated API without an invented
       expect.stringContaining('capture date is not recorded')
     )
   );
+});
+
+it('requires a room choice before opening a photo picker', async () => {
+  const ui = albums();
+  await ui.findByText('Take photo');
+  fireEvent.press(ui.getByText('Take photo'));
+  fireEvent.press(ui.getByText('Upload photo'));
+  expect(ImagePicker.requestCameraPermissionsAsync).not.toHaveBeenCalled();
+  expect(ImagePicker.launchImageLibraryAsync).not.toHaveBeenCalled();
+  expect(mobileApiClient.postFormData).not.toHaveBeenCalled();
 });

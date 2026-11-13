@@ -1,3 +1,8 @@
+import {
+  PropertySegments,
+  PropertyPanel,
+  workspaceStyles as ws,
+} from './components/PropertyWorkspaceUI';
 import { TenancyInspections } from './components/TenancyInspections';
 import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSwitcher';
 import { usePropertyView } from '../../hooks/usePropertyView';
@@ -15,6 +20,7 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -135,6 +141,14 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const [accessDenied, setAccessDenied] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [maintenanceSection, setMaintenanceSection] = useState<
+    'tasks' | 'certificates' | 'files'
+  >('tasks');
+  const [manageSection, setManageSection] = useState<
+    'people' | 'records' | 'settings'
+  >('records');
+  const [roomsOpen, setRoomsOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [jobFilter, setJobFilter] = useState<'open' | 'all'>('open');
 
@@ -482,16 +496,21 @@ export const PropertyDetailScreen: React.FC<Props> = ({
       <>
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
+            <Ionicons name='briefcase-outline' size={22} color={me.brand2} />
+            <Text style={styles.statNumber}>{activeJobs.length}</Text>
+            <Text style={styles.statLabel}>Open jobs</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons
+              name='checkmark-circle-outline'
+              size={22}
+              color={me.brand2}
+            />
             <Text style={styles.statNumber}>{completedJobs.length}</Text>
             <Text style={styles.statLabel}>Completed</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { color: '#3B82F6' }]}>
-              {activeJobs.length}
-            </Text>
-            <Text style={styles.statLabel}>Open jobs</Text>
-          </View>
-          <View style={styles.statCard}>
+            <Ionicons name='cash-outline' size={22} color={me.accent} />
             <Text style={[styles.statNumber, { color: me.brand }]}>
               {'\u00A3'}
               {totalSpent >= 1000
@@ -502,88 +521,37 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           </View>
         </View>
 
-        <Text style={styles.statLabel}>
-          Job records describe maintenance activity. They do not establish the
-          physical condition or safety of this property.
-        </Text>
-
-        <SpendingAnalytics jobs={propertyJobs} />
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PROPERTY INFORMATION</Text>
-          <View style={styles.specGrid}>
-            <View style={styles.specTile}>
-              <View
-                style={[styles.specTileIcon, { backgroundColor: '#DBEAFE' }]}
-              >
-                <Ionicons name='business-outline' size={16} color='#3B82F6' />
-              </View>
-              <Text style={styles.specTileValue}>
-                {formatType(property.property_type ?? 'N/A')}
-              </Text>
-              <Text style={styles.specTileLabel}>Type</Text>
-            </View>
-            <View style={styles.specTile}>
-              <View
-                style={[styles.specTileIcon, { backgroundColor: '#EDE9FE' }]}
-              >
-                <Ionicons name='bed-outline' size={16} color='#8B5CF6' />
-              </View>
-              <Text style={styles.specTileValue}>
-                {property.bedrooms ?? '-'}
-              </Text>
-              <Text style={styles.specTileLabel}>Bedrooms</Text>
-            </View>
-            <View style={styles.specTile}>
-              <View
-                style={[styles.specTileIcon, { backgroundColor: '#D1FAE5' }]}
-              >
-                <Ionicons name='water-outline' size={16} color='#10B981' />
-              </View>
-              <Text style={styles.specTileValue}>
-                {property.bathrooms ?? '-'}
-              </Text>
-              <Text style={styles.specTileLabel}>Bathrooms</Text>
-            </View>
-            <View style={styles.specTile}>
-              <View
-                style={[styles.specTileIcon, { backgroundColor: '#FEF3C7' }]}
-              >
-                <Ionicons name='calendar-outline' size={16} color='#F59E0B' />
-              </View>
-              <Text style={styles.specTileValue}>
-                {property.year_built ?? '-'}
-              </Text>
-              <Text style={styles.specTileLabel}>Year Built</Text>
-            </View>
-          </View>
-          {property.square_footage != null && (
-            <View style={styles.sizeRow}>
-              <Ionicons name='resize-outline' size={16} color={me.ink2} />
-              <Text style={styles.sizeText}>
-                {property.square_footage} sq ft
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* 2026-06-08 audit: removed the dead "NOTES" block. `Property.notes`
-          is flagged "Not in DB but kept for backward compat" in
-          @mintenance/types and live `public.properties` has no `notes`
-          column (only `access_notes`, which the PropertyAccessSection below
-          already renders + edits). The GET route does `select('*')`, so
-          `property.notes` was always undefined and this block never
-          rendered. Matches audit-74's removal of the dead notes field from
-          AddProperty/EditProperty. */}
-
-        <PropertyRoomsSection
-          propertyId={propertyId}
-          editable={property.owner_id === user?.id}
-        />
+        {showHistory && <SpendingAnalytics jobs={propertyJobs} />}
+        <TouchableOpacity
+          accessibilityRole='button'
+          style={[
+            ws.row,
+            {
+              backgroundColor: me.brandSoft,
+              borderRadius: 12,
+              paddingHorizontal: 14,
+              marginVertical: 14,
+            },
+          ]}
+          onPress={() => {
+            setShowHistory(!showHistory);
+            setJobFilter('open');
+          }}
+        >
+          <Ionicons name='construct-outline' size={22} color={me.brand2} />
+          <Text style={ws.rowText}>
+            {showHistory
+              ? 'Show property summary'
+              : `Review ${activeJobs.length} open jobs`}
+          </Text>
+          <Ionicons name='chevron-forward' size={20} color={me.brand2} />
+        </TouchableOpacity>
 
         <View style={styles.section}>
           <View style={styles.jobHistoryHeader}>
-            <Text style={styles.sectionTitle}>JOB HISTORY</Text>
+            <Text style={styles.sectionTitle}>
+              {showHistory ? 'Job history' : 'Open jobs'}
+            </Text>
             {totalSpent > 0 && (
               <View style={styles.totalSpentBadge}>
                 <Text style={styles.totalSpentText}>
@@ -593,18 +561,20 @@ export const PropertyDetailScreen: React.FC<Props> = ({
               </View>
             )}
           </View>
-          <View style={styles.statsRow}>
-            {(['open', 'all'] as const).map((filter) => (
-              <TouchableOpacity
-                key={filter}
-                accessibilityRole='button'
-                accessibilityState={{ selected: jobFilter === filter }}
-                onPress={() => setJobFilter(filter)}
-              >
-                <Text>{filter === 'open' ? 'Open jobs' : 'All jobs'}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {showHistory && (
+            <View style={styles.statsRow}>
+              {(['open', 'all'] as const).map((filter) => (
+                <TouchableOpacity
+                  key={filter}
+                  accessibilityRole='button'
+                  accessibilityState={{ selected: jobFilter === filter }}
+                  onPress={() => setJobFilter(filter)}
+                >
+                  <Text>{filter === 'open' ? 'Open jobs' : 'All jobs'}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
           {jobsError ? (
             // 2026-05-26 audit-57 P2: render a real failure state so a
             // permissions mismatch / backend error doesn't read as "no
@@ -630,7 +600,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
                 Could not load jobs for this property. Tap to retry.
               </Text>
             </TouchableOpacity>
-          ) : visibleJobs.length === 0 ? (
+          ) : (showHistory ? visibleJobs : activeJobs).length === 0 ? (
             <View style={styles.emptyJobsWrap}>
               <View style={styles.emptyJobsIcon}>
                 <Ionicons name='briefcase-outline' size={20} color={me.ink3} />
@@ -642,7 +612,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
               </Text>
             </View>
           ) : (
-            visibleJobs.map((job) => {
+            (showHistory ? visibleJobs : activeJobs.slice(0, 2)).map((job) => {
               const cat =
                 CATEGORY_ICONS[(job.category ?? '').toLowerCase()] ??
                 CATEGORY_ICONS.general;
@@ -713,6 +683,126 @@ export const PropertyDetailScreen: React.FC<Props> = ({
             })
           )}
         </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Property facts</Text>
+          <View style={styles.specGrid}>
+            <View style={styles.specTile}>
+              <View
+                style={[styles.specTileIcon, { backgroundColor: '#DBEAFE' }]}
+              >
+                <Ionicons name='business-outline' size={16} color='#3B82F6' />
+              </View>
+              <Text style={styles.specTileValue}>
+                {formatType(property.property_type ?? 'N/A')}
+              </Text>
+              <Text style={styles.specTileLabel}>Type</Text>
+            </View>
+            <View style={styles.specTile}>
+              <View
+                style={[styles.specTileIcon, { backgroundColor: '#EDE9FE' }]}
+              >
+                <Ionicons name='bed-outline' size={16} color='#8B5CF6' />
+              </View>
+              <Text style={styles.specTileValue}>
+                {property.bedrooms ?? '-'}
+              </Text>
+              <Text style={styles.specTileLabel}>Bedrooms</Text>
+            </View>
+            <View style={styles.specTile}>
+              <View
+                style={[styles.specTileIcon, { backgroundColor: '#D1FAE5' }]}
+              >
+                <Ionicons name='water-outline' size={16} color='#10B981' />
+              </View>
+              <Text style={styles.specTileValue}>
+                {property.bathrooms ?? '-'}
+              </Text>
+              <Text style={styles.specTileLabel}>Bathrooms</Text>
+            </View>
+            <View style={styles.specTile}>
+              <View
+                style={[styles.specTileIcon, { backgroundColor: '#FEF3C7' }]}
+              >
+                <Ionicons name='calendar-outline' size={16} color='#F59E0B' />
+              </View>
+              <Text style={styles.specTileValue}>
+                {property.year_built ?? '-'}
+              </Text>
+              <Text style={styles.specTileLabel}>Year Built</Text>
+            </View>
+          </View>
+          {property.square_footage != null && (
+            <View style={styles.sizeRow}>
+              <Ionicons name='resize-outline' size={16} color={me.ink2} />
+              <Text style={styles.sizeText}>
+                {property.square_footage} sq ft
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* 2026-06-08 audit: removed the dead "NOTES" block. `Property.notes`
+          is flagged "Not in DB but kept for backward compat" in
+          @mintenance/types and live `public.properties` has no `notes`
+          column (only `access_notes`, which the PropertyAccessSection below
+          already renders + edits). The GET route does `select('*')`, so
+          `property.notes` was always undefined and this block never
+          rendered. Matches audit-74's removal of the dead notes field from
+          AddProperty/EditProperty. */}
+
+        <View style={ws.card}>
+          <TouchableOpacity
+            style={ws.row}
+            accessibilityRole='button'
+            onPress={() => setRoomsOpen(true)}
+          >
+            <Ionicons name='bed-outline' size={22} color={me.ink2} />
+            <Text style={ws.rowText}>Rooms</Text>
+            <Ionicons name='chevron-forward' size={18} color={me.ink2} />
+          </TouchableOpacity>
+          {caps.canRunAssessment && (
+            <TouchableOpacity
+              style={ws.row}
+              accessibilityRole='button'
+              onPress={() =>
+                navigation.navigate('AssessmentHistory', { propertyId })
+              }
+            >
+              <Ionicons name='clipboard-outline' size={22} color={me.ink2} />
+              <Text style={ws.rowText}>Survey history</Text>
+              <Ionicons name='chevron-forward' size={18} color={me.ink2} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={ws.row}
+            accessibilityRole='button'
+            onPress={() => {
+              setShowHistory(!showHistory);
+              setJobFilter('all');
+            }}
+          >
+            <Ionicons name='time-outline' size={22} color={me.ink2} />
+            <Text style={ws.rowText}>Job history</Text>
+            <Ionicons name='chevron-forward' size={18} color={me.ink2} />
+          </TouchableOpacity>
+        </View>
+        {caps.canManageMaintenance && (
+          <TouchableOpacity
+            accessibilityRole='button'
+            style={ws.primary}
+            onPress={() =>
+              (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
+                screen: 'JobPosting',
+              })
+            }
+          >
+            <Ionicons name='add' size={22} color={me.onBrand} />
+            <Text style={ws.primaryText}>Post a job</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={styles.statLabel}>
+          Completed budgets are job budgets, not confirmed payments.
+        </Text>
       </>
     );
 
@@ -759,61 +849,109 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   const renderMaintenanceTab = () => (
     <>
-      <RecurringMaintenance
-        key={`${user?.id}:${propertyId}`}
-        propertyId={propertyId}
-        editable={caps.canManageMaintenance}
-        onAccessDenied={() => setAccessDenied(true)}
+      <PropertySegments
+        value={maintenanceSection}
+        onChange={setMaintenanceSection}
+        options={[
+          { value: 'tasks', label: 'Tasks' },
+          { value: 'certificates', label: 'Certificates' },
+          ...(caps.canManageMaintenance
+            ? [{ value: 'files' as const, label: 'Files' }]
+            : []),
+        ]}
       />
-      <ComplianceCertificates
-        key={`${user?.id}:${propertyId}`}
-        propertyId={propertyId}
-      />
-      {caps.canManageMaintenance && <PropertyFiles propertyId={propertyId} />}
+      <PropertyPanel active={maintenanceSection === 'tasks'}>
+          <RecurringMaintenance
+            key={user?.id + ':' + propertyId}
+            propertyId={propertyId}
+            editable={caps.canManageMaintenance}
+            onAccessDenied={() => setAccessDenied(true)}
+          />
+          <TouchableOpacity
+            style={ws.row}
+            accessibilityRole='button'
+            onPress={() => {
+              setActiveTab('overview');
+              setShowHistory(true);
+              setJobFilter('open');
+            }}
+          >
+            <Text style={ws.rowText}>Open jobs ({activeJobs.length})</Text>
+            <Ionicons name='chevron-forward' size={20} color={me.brand2} />
+          </TouchableOpacity>
+      </PropertyPanel>
+      <PropertyPanel active={maintenanceSection === 'certificates'}>
+        <ComplianceCertificates
+          key={user?.id + ':' + propertyId}
+          propertyId={propertyId}
+        />
+      </PropertyPanel>
+      {caps.canManageMaintenance && <PropertyPanel active={maintenanceSection === 'files'}><PropertyFiles propertyId={propertyId} /></PropertyPanel>}
     </>
   );
 
   const renderManageTab = () => (
     <>
-      <TenancyInspections
-        key={`tenancies:${user?.id}:${propertyId}`}
-        propertyId={propertyId}
+      <PropertySegments
+        value={manageSection}
+        onChange={setManageSection}
+        options={[
+          { value: 'people', label: 'People' },
+          { value: 'records', label: 'Records' },
+          { value: 'settings', label: 'Settings' },
+        ]}
       />
-      {propertyId && (
-        <RoomPhotoAlbums
-          key={`${user?.id}:${propertyId}`}
-          propertyId={propertyId}
-          editable={caps.canEdit}
-        />
-      )}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>MANAGE THIS PROPERTY</Text>
-        <TouchableOpacity
-          accessibilityRole='button'
-          onPress={() => setActiveTab('overview')}
-        >
-          <Text style={styles.actionText}>Review property jobs</Text>
-        </TouchableOpacity>
-        <Text>
-          Use Maintenance for due work and certificates, Access for arrival
-          instructions, and the tools below for people and reporting.
-        </Text>
-        {caps.canManageMaintenance && (
-          <TouchableOpacity
-            accessibilityRole='button'
-            onPress={() => setActiveTab('maintenance')}
-          >
-            <Text style={styles.actionText}>
-              Open maintenance and compliance
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      {showPropertyTool(view, 'rental') && caps.canManageReporting && (
-        <TenantReportingLinks propertyId={propertyId} />
-      )}
-      <Text style={styles.sectionTitle}>PEOPLE AND ACCESS</Text>
-      {/* 2026-05-24 audit-30 P1: PropertyContacts surfaces the 4-role
+      <PropertyPanel active={manageSection === 'records'}>
+          <TenancyInspections
+            key={`tenancies:${user?.id}:${propertyId}`}
+            propertyId={propertyId}
+          />
+          {propertyId && (
+            <RoomPhotoAlbums
+              key={`${user?.id}:${propertyId}`}
+              propertyId={propertyId}
+              editable={caps.canEdit}
+            />
+          )}
+          <View style={ws.card}>
+            {caps.canManageMaintenance && (
+              <TouchableOpacity
+                accessibilityRole='button'
+                style={ws.row}
+                onPress={() => {
+                  setActiveTab('maintenance');
+                  setMaintenanceSection('files');
+                }}
+              >
+                <Ionicons
+                  name='document-text-outline'
+                  size={22}
+                  color={me.brand2}
+                />
+                <Text style={ws.rowText}>Documents</Text>
+                <Ionicons name='chevron-forward' size={18} color={me.ink2} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              accessibilityRole='button'
+              style={ws.row}
+              onPress={() => {
+                setActiveTab('maintenance');
+                setMaintenanceSection('certificates');
+              }}
+            >
+              <Ionicons name='ribbon-outline' size={22} color={me.brand2} />
+              <Text style={ws.rowText}>Certificates</Text>
+              <Ionicons name='chevron-forward' size={18} color={me.ink2} />
+            </TouchableOpacity>
+          </View>
+      </PropertyPanel>
+      <PropertyPanel active={manageSection === 'people'}>
+          {showPropertyTool(view, 'rental') && caps.canManageReporting && (
+            <TenantReportingLinks propertyId={propertyId} />
+          )}
+          <Text style={styles.sectionTitle}>PEOPLE AND ACCESS</Text>
+          {/* 2026-05-24 audit-30 P1: PropertyContacts surfaces the 4-role
           (tenant / keyholder / emergency / managing agent) collection
           that the web /landlord/contacts page writes to, so the
           mobile-managed property carries the same "who do I call
@@ -822,82 +960,133 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           2026-05-26 audit-57 P2: gated on canManageContacts so a
           viewer-role team member doesn't see an editor whose actions
           all 403 server-side. */}
-      {caps.canManageContacts && <PropertyContacts propertyId={propertyId} />}
-      {showPropertyTool(view, 'rental') && caps.canManageContacts && (
-        <TenantContacts propertyId={propertyId} />
-      )}
-      {showPropertyTool(view, 'team') && caps.canManageTeam && (
-        <TeamAccess propertyId={propertyId} />
-      )}
-
-      {(caps.canEdit || caps.canRunAssessment || caps.canDelete) && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ACTIONS</Text>
-          {caps.canEdit && (
-            <TouchableOpacity
-              style={styles.actionRow}
-              onPress={() =>
-                navigation.navigate('EditProperty', { propertyId })
-              }
-            >
-              <View
-                style={[styles.actionIcon, { backgroundColor: me.brandSoft }]}
+          {caps.canManageContacts && (
+            <PropertyContacts propertyId={propertyId} />
+          )}
+          {showPropertyTool(view, 'rental') && caps.canManageContacts && (
+            <TenantContacts propertyId={propertyId} />
+          )}
+          {showPropertyTool(view, 'team') && caps.canManageTeam && (
+            <TeamAccess propertyId={propertyId} />
+          )}
+      </PropertyPanel>
+      {manageSection === 'settings' &&
+        (caps.canEdit || caps.canRunAssessment || caps.canDelete) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>ACTIONS</Text>
+            {caps.canEdit && (
+              <TouchableOpacity
+                style={styles.actionRow}
+                onPress={() =>
+                  navigation.navigate('EditProperty', { propertyId })
+                }
               >
-                <Ionicons name='create-outline' size={18} color={me.brand} />
-              </View>
-              <Text style={styles.actionText}>Edit Property</Text>
-              <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-            </TouchableOpacity>
-          )}
-          {caps.canRunAssessment && (
-            <TouchableOpacity
-              style={styles.actionRow}
-              onPress={() =>
-                navigation.navigate('PropertyAssessment', {
-                  propertyId,
-                  propertyAddress: property.address,
-                })
-              }
-            >
-              <View style={[styles.actionIcon, { backgroundColor: me.warnBg }]}>
-                <Ionicons name='videocam-outline' size={18} color={me.accent} />
-              </View>
-              <Text style={styles.actionText}>Property Assessment</Text>
-              <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-            </TouchableOpacity>
-          )}
-          {caps.canRunAssessment && (
-            <TouchableOpacity
-              style={styles.actionRow}
-              onPress={() =>
-                navigation.navigate('AssessmentHistory', { propertyId })
-              }
-            >
-              <View style={[styles.actionIcon, { backgroundColor: me.infoBg }]}>
-                <Ionicons name='time-outline' size={18} color={me.infoFg} />
-              </View>
-              <Text style={styles.actionText}>Past Surveys</Text>
-              <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-            </TouchableOpacity>
-          )}
-          {caps.canDelete && (
-            <TouchableOpacity style={styles.actionRow} onPress={handleDelete}>
-              <View style={[styles.actionIcon, { backgroundColor: me.errBg }]}>
-                <Ionicons name='trash-outline' size={18} color={me.errFg} />
-              </View>
-              <Text style={[styles.actionText, { color: me.errFg }]}>
-                Delete Property
-              </Text>
-              <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+                <View
+                  style={[styles.actionIcon, { backgroundColor: me.brandSoft }]}
+                >
+                  <Ionicons name='create-outline' size={18} color={me.brand} />
+                </View>
+                <Text style={styles.actionText}>Edit Property</Text>
+                <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+              </TouchableOpacity>
+            )}
+            {caps.canRunAssessment && (
+              <TouchableOpacity
+                style={styles.actionRow}
+                onPress={() =>
+                  navigation.navigate('PropertyAssessment', {
+                    propertyId,
+                    propertyAddress: property.address,
+                  })
+                }
+              >
+                <View
+                  style={[styles.actionIcon, { backgroundColor: me.warnBg }]}
+                >
+                  <Ionicons
+                    name='videocam-outline'
+                    size={18}
+                    color={me.accent}
+                  />
+                </View>
+                <Text style={styles.actionText}>Property Assessment</Text>
+                <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+              </TouchableOpacity>
+            )}
+            {caps.canRunAssessment && (
+              <TouchableOpacity
+                style={styles.actionRow}
+                onPress={() =>
+                  navigation.navigate('AssessmentHistory', { propertyId })
+                }
+              >
+                <View
+                  style={[styles.actionIcon, { backgroundColor: me.infoBg }]}
+                >
+                  <Ionicons name='time-outline' size={18} color={me.infoFg} />
+                </View>
+                <Text style={styles.actionText}>Past Surveys</Text>
+                <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+              </TouchableOpacity>
+            )}
+            {caps.canDelete && (
+              <TouchableOpacity style={styles.actionRow} onPress={handleDelete}>
+                <View
+                  style={[styles.actionIcon, { backgroundColor: me.errBg }]}
+                >
+                  <Ionicons name='trash-outline' size={18} color={me.errFg} />
+                </View>
+                <Text style={[styles.actionText, { color: me.errFg }]}>
+                  Delete Property
+                </Text>
+                <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
     </>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <Modal
+        visible={roomsOpen}
+        animationType='slide'
+        onRequestClose={() => setRoomsOpen(false)}
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.topBar}>
+            <TouchableOpacity
+              accessibilityRole='button'
+              accessibilityLabel='Back to property'
+              style={ws.iconButton}
+              onPress={() => setRoomsOpen(false)}
+            >
+              <Ionicons name='arrow-back' size={24} color={me.ink} />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.eyebrow}>Rooms</Text>
+              <Text style={ws.heading}>
+                {property.property_name || property.address}
+              </Text>
+            </View>
+          </View>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps='handled'
+          >
+            <PropertyRoomsSection
+              propertyId={propertyId}
+              editable={property.owner_id === user?.id}
+              onViewPhotos={() => {
+                setRoomsOpen(false);
+                setActiveTab('manage');
+                setManageSection('records');
+              }}
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
       <StatusBar barStyle='dark-content' backgroundColor={me.bg} />
       {/* 2026-05-22 Mint Editorial v2: inline editorial header
           (slim back row with right-aligned favourite + edit icons,
@@ -915,6 +1104,17 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         >
           <Ionicons name='arrow-back' size={20} color={me.ink} />
         </TouchableOpacity>
+        <View style={styles.screenHeader}>
+          <Text style={styles.eyebrow}>Property</Text>
+          <Text style={styles.headline} accessibilityRole='header'>
+            {property.property_name || 'Property Details'}
+          </Text>
+          {property?.address ? (
+            <Text style={styles.headerSub} numberOfLines={1}>
+              {property.address}
+            </Text>
+          ) : null}
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             onPress={() => favoriteMutation.mutate()}
@@ -942,23 +1142,17 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           )}
         </View>
       </View>
-      <View style={styles.screenHeader}>
-        <Text style={styles.eyebrow}>Property</Text>
-        <Text style={styles.headline} accessibilityRole='header'>
-          {property.property_name || 'Property Details'}
-        </Text>
-        {property?.address ? (
-          <Text style={styles.headerSub} numberOfLines={1}>
-            {property.address}
-          </Text>
-        ) : null}
-      </View>
 
       {/* 2026-05-26 audit-57 P2: filter tabs by capability. Viewer
           team members can't edit the Access fields (server gates
           PATCH on PropertyAccessSection) and have nothing to do on
           the Manage tab — hide both rather than render a noop UI. */}
-      <View style={styles.tabRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={styles.tabRow}
+      >
         {TABS.filter((t) => {
           if (t.key === 'access') return caps.canEditAccess;
           if (t.key === 'manage') {
@@ -975,6 +1169,8 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         }).map((tab) => (
           <TouchableOpacity
             key={tab.key}
+            accessibilityRole='tab'
+            accessibilityState={{ selected: activeTab === tab.key }}
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             onPress={() => {
               Keyboard.dismiss();
@@ -997,7 +1193,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}

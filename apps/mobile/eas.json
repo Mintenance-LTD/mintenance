@@ -217,6 +217,13 @@
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "production"
+    },
+    "ios-simulator": {
+      "extends": "internal",
+      "ios": {
+        "simulator": true,
+        "buildConfiguration": "Release"
+      }
     }
   },
   "submit": {
