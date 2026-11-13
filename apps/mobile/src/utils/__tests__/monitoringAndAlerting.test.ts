@@ -694,7 +694,7 @@ describe('monitoringAndAlerting facade — module load', () => {
   const clearSingleton = () => {
     delete (globalThis as Record<string, unknown>)[GLOBAL_KEY];
     const ctor =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+
       (
         require('../monitoring/MonitoringAndAlerting') as {
           MonitoringAndAlerting: { instance?: unknown };

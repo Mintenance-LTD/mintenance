@@ -59,7 +59,7 @@ export interface ContractorBadgeDef {
 /**
  * Canonical badge registry. Order here is the display order.
  */
-export const BADGE_DEFS: ReadonlyArray<ContractorBadgeDef> = [
+export const BADGE_DEFS: readonly ContractorBadgeDef[] = [
   {
     id: 'verified',
     label: 'Verified',

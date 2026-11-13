@@ -85,7 +85,7 @@ function loadNativePinningModule(): NativePinningModule | null {
     // don't blow up on import. When the native PR lands and adds the
     // dependency, the require() will resolve and pinnedFetch becomes
     // the enforced path automatically.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('react-native-ssl-pinning') as NativePinningModule;
     nativeModuleCache = mod;
     return mod;

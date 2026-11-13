@@ -23,7 +23,7 @@ import type { ContractorBadgeDef } from '../../utils/contractorBadges';
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
 interface ContractorBadgeStackProps {
-  badges: ReadonlyArray<ContractorBadgeDef>;
+  badges: readonly ContractorBadgeDef[];
   /**
    * 'compact' = pill-shaped icon + label chips (default)
    * 'icons' = just the icons in a row, no labels

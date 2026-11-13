@@ -86,7 +86,7 @@ jest.mock('../../utils/sentryUtils', () => ({
 // ---------------------------------------------------------------------------
 // Import the REAL provider (bypasses moduleNameMapper via the .tsx specifier)
 // ---------------------------------------------------------------------------
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const { AuthProvider, useAuth } = require('../AuthContext.tsx');
 
 const actions = jest.requireMock('../auth-actions');

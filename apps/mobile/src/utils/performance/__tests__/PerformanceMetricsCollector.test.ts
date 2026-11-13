@@ -171,7 +171,7 @@ describe('PerformanceMetricsCollector', () => {
     setPerformance(undefined);
     const collector = new PerformanceMetricsCollector();
     collector.registerCollector('weird', async () => {
-      // eslint-disable-next-line no-throw-literal
+
       throw 'string-error';
     });
     await collector.collectMetrics('svc');
@@ -510,7 +510,7 @@ describe('PerformanceMetricsCollector', () => {
   it('handles a non-Error thrown by a listener', () => {
     const collector = new PerformanceMetricsCollector();
     collector.addEventListener('bad', () => {
-      // eslint-disable-next-line no-throw-literal
+
       throw 'plain';
     });
     collector.emitPerformanceEvent({

@@ -99,7 +99,7 @@ jest.mock('react-native', () => ({
 
 // Import AFTER mocks are registered.
 import { useI18n } from '../useI18n';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const { I18nManager } = require('react-native');
 
 // Default t implementation: echoes key, honours defaultValue.

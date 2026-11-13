@@ -506,7 +506,7 @@ describe('SwipeableCardWrapper', () => {
         act(() => {
           ref.current?.swipeLeft();
         });
-        // eslint-disable-next-line no-await-in-loop
+
         await waitFor(() => {
           expect(mockOnSwipedLeft).toHaveBeenCalledWith(i);
         });
@@ -549,7 +549,7 @@ describe('SwipeableCardWrapper', () => {
         act(() => {
           ref.current?.swipeRight();
         });
-        // eslint-disable-next-line no-await-in-loop
+
         await waitFor(() => {
           expect(mockOnSwipedRight).toHaveBeenCalledWith(i);
         });

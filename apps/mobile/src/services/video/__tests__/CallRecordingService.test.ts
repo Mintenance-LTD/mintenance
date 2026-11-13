@@ -93,7 +93,7 @@ const mockedFrom = supabase.from as jest.Mock;
  */
 function makeChain(opts: {
   terminalResult?: { data: unknown; error: unknown };
-  singleResults?: Array<{ data: unknown; error: unknown }>;
+  singleResults?: { data: unknown; error: unknown }[];
 }) {
   const singleQueue = [...(opts.singleResults ?? [])];
   const terminal = opts.terminalResult ?? { data: null, error: null };

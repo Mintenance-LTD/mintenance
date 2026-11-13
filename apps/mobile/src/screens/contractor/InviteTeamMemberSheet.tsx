@@ -37,7 +37,7 @@ interface Props {
   onInvited: () => void;
 }
 
-const ROLE_OPTIONS: Array<{ value: OrgRole; label: string; help: string }> = [
+const ROLE_OPTIONS: { value: OrgRole; label: string; help: string }[] = [
   { value: 'owner', label: 'Owner', help: 'Full control, including billing' },
   { value: 'manager', label: 'Manager', help: 'Manage team and operations' },
   { value: 'dispatcher', label: 'Dispatcher', help: 'Assign and triage jobs' },

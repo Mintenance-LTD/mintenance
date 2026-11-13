@@ -31,7 +31,7 @@ import { mobileApiClient } from '../utils/mobileApiClient';
 import { JobCRUDService } from './JobCRUDService';
 
 interface JobsListResponse {
-  jobs: Array<Record<string, unknown>>;
+  jobs: Record<string, unknown>[];
   nextCursor?: string | null;
 }
 
@@ -184,7 +184,7 @@ export class JobSearchService {
     let limit = 20;
     let offset: number | undefined;
 
-    const validStatuses: Array<Job['status']> = [
+    const validStatuses: Job['status'][] = [
       'posted',
       'assigned',
       'in_progress',

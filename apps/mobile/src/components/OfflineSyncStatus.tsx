@@ -30,8 +30,8 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
   const [pendingCount, setPendingCount] = useState(0);
   const [visible, setVisible] = useState(false);
 
-  const slideAnim = new Animated.Value(position === 'top' ? -100 : 100);
-  const pulseAnim = new Animated.Value(1);
+  const [slideAnim] = useState(() => new Animated.Value(position === 'top' ? -100 : 100));
+  const [pulseAnim] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
     // Subscribe to sync status changes
@@ -62,7 +62,7 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [isOnline, showWhenOnline, pendingCount, syncStatus, visible, position]);
+  }, [isOnline, showWhenOnline, pendingCount, syncStatus, visible, position, slideAnim]);
 
   useEffect(() => {
     // Pulse animation for syncing status
@@ -86,7 +86,7 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
     } else {
       pulseAnim.setValue(1);
     }
-  }, [syncStatus]);
+  }, [syncStatus, pulseAnim]);
 
   const handleSyncNow = async () => {
     try {

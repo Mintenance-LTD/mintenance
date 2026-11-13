@@ -108,7 +108,7 @@ async function doRequest<T>(
 
   let attempt = 0;
   // Retry loop only triggers for transient failures.
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     let response: Response;
     try {

@@ -15,7 +15,7 @@ import {
 jest.mock('../../utils/mobileApiClient', () => ({
   mobileApiClient: { post: jest.fn() },
 }));
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 const mockPost = mobileApiClient.post as jest.Mock;

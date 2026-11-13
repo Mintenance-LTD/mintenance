@@ -40,12 +40,12 @@ interface DBSStatus {
   };
 }
 
-const DBS_TYPES: Array<{
+const DBS_TYPES: {
   value: DBSType;
   label: string;
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
-}> = [
+}[] = [
   {
     value: 'basic',
     label: 'Basic',

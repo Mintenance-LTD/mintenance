@@ -238,7 +238,7 @@ describe('ContractorService', () => {
       const result = (await ContractorService.searchContractors({
         query: 'John',
         location: mockHomeownerLocation,
-      })) as Array<{ firstName?: string }>;
+      })) as { firstName?: string }[];
 
       expect(result).toHaveLength(1);
       expect(result[0].firstName).toBe('John');

@@ -135,7 +135,7 @@ async function resetSingleton() {
  */
 async function drainSync(): Promise<void> {
   for (let i = 0; i < 25; i += 1) {
-    // eslint-disable-next-line no-await-in-loop
+
     await Promise.resolve();
   }
 }

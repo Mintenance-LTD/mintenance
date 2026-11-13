@@ -25,7 +25,7 @@ jest.mock('../../logger', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const { logger } = require('../../logger');
 
 // ---------------------------------------------------------------------------

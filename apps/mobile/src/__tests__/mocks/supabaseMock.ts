@@ -67,9 +67,9 @@ export class SupabaseMockFactory {
     });
 
     // Terminal methods return promises
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     (chain.single as any).mockResolvedValue({ data: null, error: null } as MockSupabaseResponse);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     (chain.maybeSingle as any).mockResolvedValue({ data: null, error: null } as MockSupabaseResponse);
 
     return chain;

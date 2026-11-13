@@ -28,7 +28,7 @@ export interface RoomFormValues {
   notes: string;
 }
 
-const ROOM_TYPE_OPTIONS: Array<{ value: RoomType; label: string }> = [
+const ROOM_TYPE_OPTIONS: { value: RoomType; label: string }[] = [
   { value: 'kitchen', label: 'Kitchen' },
   { value: 'bathroom', label: 'Bathroom' },
   { value: 'bedroom', label: 'Bedroom' },

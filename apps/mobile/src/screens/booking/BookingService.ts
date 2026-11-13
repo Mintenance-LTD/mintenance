@@ -22,7 +22,7 @@ export class BookingService {
   /**
    * Load all bookings for a user (both as homeowner and contractor)
    */
-  async loadUserBookings(user: User): Promise<Booking[]> {
+  async loadUserBookings(user: Pick<User, 'id' | 'role'>): Promise<Booking[]> {
     try {
       // getUserJobs returns jobs for any role (queries both homeowner_id and contractor_id)
       const allJobs = await JobService.getUserJobs(user.id);

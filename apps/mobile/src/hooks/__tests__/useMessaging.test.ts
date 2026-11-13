@@ -256,7 +256,7 @@ describe('useSendMessage', () => {
 
     // After success, the temp_ optimistic entry is replaced by the real message;
     // the pre-existing message survives.
-    const cached = queryClient.getQueryData(key) as Array<{ id: string }>;
+    const cached = queryClient.getQueryData(key) as { id: string }[];
     expect(cached.some((m) => m.id === 'existing')).toBe(true);
     expect(cached.some((m) => m.id === 'real-3')).toBe(true);
     expect(cached.some((m) => m.id.startsWith('temp_'))).toBe(false);
@@ -279,19 +279,19 @@ describe('useSendMessage', () => {
     });
 
     await waitFor(() => {
-      const cached = queryClient.getQueryData(key) as Array<{
+      const cached = queryClient.getQueryData(key) as {
         id: string;
         deliveryStatus?: string;
         senderName?: string;
-      }>;
+      }[];
       expect(cached?.[0]?.id).toMatch(/^temp_message_/);
     });
     const optimistic = (
-      queryClient.getQueryData(key) as Array<{
+      queryClient.getQueryData(key) as {
         deliveryStatus?: string;
         senderName?: string;
         messageType?: string;
-      }>
+      }[]
     )[0];
     expect(optimistic.deliveryStatus).toBe('sending');
     expect(optimistic.senderName).toBe('You');
@@ -347,7 +347,7 @@ describe('useSendMessage', () => {
     });
 
     // Rolled back to previous cache value via onError.
-    const cached = queryClient.getQueryData(key) as Array<{ id: string }>;
+    const cached = queryClient.getQueryData(key) as { id: string }[];
     expect(cached).toEqual([existing]);
     expect(logger.error).toHaveBeenCalled();
   });

@@ -30,7 +30,7 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // Mock Ionicons - render the icon name as text so it can be queried
 jest.mock('@expo/vector-icons', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   Ionicons: ({ name, testID }: any) => {
     const { Text } = require('react-native');
     return <Text testID={testID || `icon-${name}`}>{name}</Text>;
@@ -274,7 +274,7 @@ describe('NavigationHeader', () => {
         const { getByText } = render(
           <NavigationHeader
             title='Test'
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             rightIcon={{ name: iconName as any, onPress: jest.fn() }}
           />
         );
@@ -554,7 +554,7 @@ describe('NavigationHeader', () => {
 
     it('handles null in style prop', () => {
       const { getByText } = render(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         <NavigationHeader title='Home' style={null as any} />
       );
       expect(getByText('Home')).toBeTruthy();
@@ -562,7 +562,7 @@ describe('NavigationHeader', () => {
 
     it('handles null in titleStyle prop', () => {
       const { getByText } = render(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         <NavigationHeader title='Home' titleStyle={null as any} />
       );
       expect(getByText('Home')).toBeTruthy();
@@ -584,7 +584,7 @@ describe('NavigationHeader', () => {
         const { getByText } = render(
           <NavigationHeader
             title='Test'
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             rightIcon={{ name: iconName as any, onPress: jest.fn() }}
           />
         );

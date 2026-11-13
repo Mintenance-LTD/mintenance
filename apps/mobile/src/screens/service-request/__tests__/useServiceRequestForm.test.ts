@@ -331,7 +331,7 @@ describe('useServiceRequestForm — image picker (iOS ActionSheet)', () => {
       status: 'granted',
     });
     // ActionSheetIOS is not in the RN mock; attach a controllable stub.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+
     const RN = require('react-native');
     showActionSheet = jest.fn();
     RN.ActionSheetIOS = { showActionSheetWithOptions: showActionSheet };

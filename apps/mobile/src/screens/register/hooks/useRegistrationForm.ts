@@ -44,7 +44,7 @@ const PHONE_REGEX = /^[+0-9][0-9 ]{6,14}$/;
 export type WizardStep = 1 | 2 | 3;
 const TOTAL_STEPS: WizardStep = 3;
 
-const STEP_FIELDS: Record<WizardStep, Array<keyof RegistrationFormState>> = {
+const STEP_FIELDS: Record<WizardStep, (keyof RegistrationFormState)[]> = {
   1: ['email', 'password', 'confirmPassword'],
   2: ['firstName', 'lastName'],
   3: ['phoneNumber'],

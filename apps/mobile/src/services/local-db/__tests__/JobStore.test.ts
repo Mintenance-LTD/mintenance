@@ -31,7 +31,7 @@ function makeDb(): FakeDb {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const asDb = (db: FakeDb): any => db;
 
 /** A fully-populated DB row (no null/optional fields). */
@@ -163,7 +163,7 @@ describe('JobStore', () => {
 
     it('saves with all fields present, markDirty=false (synced_at stamped, is_dirty=0)', async () => {
       const db = makeDb();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveJob(asDb(db), baseJob() as any, false);
 
       const [, params] = db.runAsync.mock.calls[0];
@@ -194,7 +194,7 @@ describe('JobStore', () => {
 
     it('defaults markDirty to false when omitted', async () => {
       const db = makeDb();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveJob(asDb(db), baseJob() as any);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[15]).toBe('2026-03-03T03:03:03.000Z');
@@ -203,7 +203,7 @@ describe('JobStore', () => {
 
     it('saves with markDirty=true (synced_at null, is_dirty=1)', async () => {
       const db = makeDb();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveJob(asDb(db), baseJob() as any, true);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[15]).toBeNull(); // synced_at
@@ -218,7 +218,7 @@ describe('JobStore', () => {
       const db = makeDb();
       const job = baseJob();
       job.location = { lat: 1, lng: 2 };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[3]).toBe(JSON.stringify({ lat: 1, lng: 2 }));
@@ -228,7 +228,7 @@ describe('JobStore', () => {
       const db = makeDb();
       const job = baseJob();
       job.location = undefined;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[3]).toBe('');
@@ -241,7 +241,7 @@ describe('JobStore', () => {
       delete job.contractor_id;
       job.homeownerId = 'ho-camel';
       job.contractorId = 'co-camel';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[4]).toBe('ho-camel'); // homeownerId
@@ -253,7 +253,7 @@ describe('JobStore', () => {
       const job = baseJob();
       delete job.homeowner_id;
       delete job.contractor_id;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[4]).toBeNull();
@@ -264,7 +264,7 @@ describe('JobStore', () => {
       const db = makeDb();
       const job = baseJob();
       job.contractor_id = null;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[6]).toBeNull();
@@ -288,7 +288,7 @@ describe('JobStore', () => {
         created_at: 'c',
         updated_at: 'u',
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[1]).toBe(''); // title || ''
@@ -304,7 +304,7 @@ describe('JobStore', () => {
       const db = makeDb();
       const job = baseJob();
       job.budget = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[8]).toBe(0);

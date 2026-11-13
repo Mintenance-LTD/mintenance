@@ -39,11 +39,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MOBILE_STORAGE_KEYS } from './storageKeys';
 import { logger } from '../utils/logger';
 
-const MIGRATIONS: ReadonlyArray<{
+const MIGRATIONS: readonly {
   version: number;
   description: string;
   run: () => Promise<void>;
-}> = [
+}[] = [
   // Bootstrap stamp — no-op for fresh installs that already have
   // current-format data, plus a guard for installs upgrading from a
   // pre-versioning build.

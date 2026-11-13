@@ -323,7 +323,7 @@ export function JobsNearYouClient({
   }, [filteredAndSortedJobs]);
 
   // Map refs bundle for the controller
-  const mapRefs = { mapRef, markersRef, infoWindowsRef };
+  const mapRefs = useMemo(() => ({ mapRef, markersRef, infoWindowsRef }), []);
 
   const onMapLoad = useCallback(
     (map: google.maps.Map) => {
@@ -335,13 +335,12 @@ export function JobsNearYouClient({
         filteredAndSortedJobs
       );
     },
-    [contractorCoords, contractorLocation, filteredAndSortedJobs]
+    [mapRefs, contractorCoords, contractorLocation, filteredAndSortedJobs]
   );
 
   useEffect(() => {
     if (
       mapRef.current &&
-      filteredAndSortedJobs.length > 0 &&
       viewMode === 'map'
     ) {
       updateMarkers(
@@ -351,7 +350,7 @@ export function JobsNearYouClient({
         filteredAndSortedJobs
       );
     }
-  }, [filteredAndSortedJobs, contractorCoords, viewMode]);
+  }, [mapRefs, filteredAndSortedJobs, contractorCoords, contractorLocation, viewMode]);
 
   const center = contractorCoords || { lat: 51.5074, lng: -0.1278 };
 

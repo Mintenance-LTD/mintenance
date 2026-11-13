@@ -488,7 +488,7 @@ describe('generateErrorTrends', () => {
   });
 
   it('produces correct bucket counts for each supported period', () => {
-    const cases: Array<[ErrorTrendPeriod, number]> = [
+    const cases: [ErrorTrendPeriod, number][] = [
       ['1h', 12], // 1h / 5min
       ['6h', 12], // 6h / 30min
       ['24h', 24], // 24h / 1h

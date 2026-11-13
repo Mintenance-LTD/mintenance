@@ -43,11 +43,11 @@ const mockedLogger = logger as jest.Mocked<typeof logger>;
 
 interface FakeChannel {
   name: string;
-  handlers: Array<{
+  handlers: {
     event: string;
     config: { event: string; table: string; filter: string };
     handler: (payload: unknown) => void;
-  }>;
+  }[];
   subscribeCallback: ((status: unknown) => void) | null;
   on: jest.Mock;
   subscribe: jest.Mock;

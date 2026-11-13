@@ -21,7 +21,7 @@
     "test": "npx jest",
     "test:parallel": "npx jest --maxWorkers=4",
     "test:coverage": "npx jest --coverage",
-    "lint": "eslint . --max-warnings 1364",
+    "lint": "eslint . --max-warnings 1230",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
     "clean": "rimraf .expo node_modules",

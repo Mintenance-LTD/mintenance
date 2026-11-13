@@ -39,7 +39,7 @@ interface SampleJob {
   urgency: 'high' | 'medium' | 'low';
 }
 
-const SAMPLE_JOBS: ReadonlyArray<SampleJob> = [
+const SAMPLE_JOBS: readonly SampleJob[] = [
   {
     id: 'sample-1',
     title: 'Leaking kitchen tap — urgent',

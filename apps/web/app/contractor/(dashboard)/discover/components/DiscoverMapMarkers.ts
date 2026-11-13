@@ -6,6 +6,7 @@
  */
 
 import { calculateDistance, formatLocation } from './discoverUtils';
+import { createMapElement } from '@/components/maps/info-window-content';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -181,16 +182,24 @@ export function updateMapMarkers(
       zIndex: 1000,
     });
 
-    const contractorInfoWindow = new google.maps.InfoWindow({
-      content: `
-        <div style="padding: 8px;">
-          <h4 style="font-weight: bold; margin: 0 0 4px 0;">Your Location</h4>
-          <p style="margin: 0; color: #666; font-size: 12px;">
-            ${contractorLocation.address || contractorLocation.postcode || 'Current location'}
-          </p>
-        </div>
-      `,
-    });
+    const content = createMapElement('div', 'padding: 8px;');
+    content.append(
+      createMapElement(
+        'h4',
+        'font-weight: bold; margin: 0 0 4px 0;',
+        'Your Location'
+      )
+    );
+    content.append(
+      createMapElement(
+        'p',
+        'margin: 0; color: #666; font-size: 12px;',
+        contractorLocation.address ||
+          contractorLocation.postcode ||
+          'Current location'
+      )
+    );
+    const contractorInfoWindow = new google.maps.InfoWindow({ content });
 
     contractorMarker.addListener('click', () => {
       contractorInfoWindow.open(map, contractorMarker);
@@ -228,12 +237,9 @@ export function updateMapMarkers(
   });
 
   // ── Create one marker per location group ────────────────────────────────
-  let markersCreated = 0;
-
   locationGroups.forEach((jobsAtLocation, locationKey) => {
     const [lat, lng] = locationKey.split(',').map(Number);
     const primaryJob = jobsAtLocation[0];
-    const carouselId = `carousel-${markersCreated}`;
 
     const marker = new google.maps.Marker({
       position: { lat, lng },
@@ -258,44 +264,13 @@ export function updateMapMarkers(
           : undefined,
     });
 
-    markersCreated++;
-
-    // Build carousel HTML
-    const carouselHTML = buildCarouselHTML(jobsAtLocation, carouselId);
-
-    const infoWindow = new google.maps.InfoWindow({ content: carouselHTML });
-
-    // Carousel navigation
-    let currentIndex = 0;
-    const windowWithCarousel = window as unknown as Record<string, unknown>;
-
-    windowWithCarousel[`${carouselId}_next`] = () => {
-      document
-        .querySelector(`.${carouselId}-job-card-${currentIndex}`)
-        ?.setAttribute('style', 'display: none');
-      currentIndex = (currentIndex + 1) % jobsAtLocation.length;
-      document
-        .querySelector(`.${carouselId}-job-card-${currentIndex}`)
-        ?.setAttribute('style', 'display: block; animation: fadeIn 0.3s');
-      const indexEl = document.getElementById(`${carouselId}-index`);
-      if (indexEl) indexEl.textContent = String(currentIndex + 1);
-    };
-
-    windowWithCarousel[`${carouselId}_prev`] = () => {
-      document
-        .querySelector(`.${carouselId}-job-card-${currentIndex}`)
-        ?.setAttribute('style', 'display: none');
-      currentIndex =
-        (currentIndex - 1 + jobsAtLocation.length) % jobsAtLocation.length;
-      document
-        .querySelector(`.${carouselId}-job-card-${currentIndex}`)
-        ?.setAttribute('style', 'display: block; animation: fadeIn 0.3s');
-      const indexEl = document.getElementById(`${carouselId}-index`);
-      if (indexEl) indexEl.textContent = String(currentIndex + 1);
-    };
+    const carousel = buildCarouselContent(jobsAtLocation);
+    const infoWindow = new google.maps.InfoWindow({
+      content: carousel.content,
+    });
 
     marker.addListener('click', () => {
-      currentIndex = 0;
+      carousel.select(0);
       infoWindow.open(map, marker);
     });
 
@@ -320,54 +295,54 @@ export function updateMapMarkers(
 
 // ── Private helpers ─────────────────────────────────────────────────────────
 
-function buildCarouselHTML(
-  jobsAtLocation: MapJob[],
-  carouselId: string
-): string {
-  const cards = jobsAtLocation
-    .map((job, i) => buildJobCardHTML(job, i, carouselId))
-    .join('');
-
-  const navigation =
-    jobsAtLocation.length > 1
-      ? `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #f9fafb; padding: 8px 12px; border-radius: 8px;">
-      <span style="font-size: 13px; font-weight: 600; color: #374151;">
-        <span id="${carouselId}-index">1</span> of ${jobsAtLocation.length} jobs here
-      </span>
-      <div style="display: flex; gap: 6px;">
-        <button
-          onclick="window.${carouselId}_prev()"
-          style="background: white; border: 1px solid #d1d5db; color: #374151; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: all 0.2s;"
-          onmouseover="this.style.background='#f3f4f6'"
-          onmouseout="this.style.background='white'"
-        >&#8249;</button>
-        <button
-          onclick="window.${carouselId}_next()"
-          style="background: white; border: 1px solid #d1d5db; color: #374151; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: all 0.2s;"
-          onmouseover="this.style.background='#f3f4f6'"
-          onmouseout="this.style.background='white'"
-        >&#8250;</button>
-      </div>
-    </div>
-  `
-      : '';
-
-  return `
-    <div style="padding: 12px; max-width: 300px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-      ${navigation}
-      <div id="${carouselId}-container">
-        ${cards}
-      </div>
-    </div>
-  `;
+function buildCarouselContent(jobs: MapJob[]) {
+  const content = createMapElement(
+    'div',
+    'padding: 12px; max-width: 300px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;'
+  );
+  const cards = jobs.map(buildJobCardContent);
+  const counter = createMapElement(
+    'span',
+    'font-size: 13px; font-weight: 600; color: #374151;'
+  );
+  let currentIndex = 0;
+  const select = (index: number) => {
+    currentIndex = (index + cards.length) % cards.length;
+    cards.forEach((card, cardIndex) => {
+      card.hidden = cardIndex !== currentIndex;
+    });
+    counter.textContent = `${currentIndex + 1} of ${cards.length} jobs here`;
+  };
+  if (cards.length > 1) {
+    const navigation = createMapElement(
+      'div',
+      'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #f9fafb; padding: 8px 12px; border-radius: 8px;'
+    );
+    navigation.append(counter);
+    const controls = createMapElement('div', 'display: flex; gap: 6px;');
+    for (const direction of [-1, 1]) {
+      const button = createMapElement(
+        'button',
+        'background: white; border: 1px solid #d1d5db; color: #374151; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-weight: bold;',
+        direction === -1 ? '‹' : '›'
+      );
+      button.type = 'button';
+      button.setAttribute(
+        'aria-label',
+        direction === -1 ? 'Previous job' : 'Next job'
+      );
+      button.addEventListener('click', () => select(currentIndex + direction));
+      controls.append(button);
+    }
+    navigation.append(controls);
+    content.append(navigation);
+  }
+  content.append(...cards);
+  select(0);
+  return { content, select };
 }
 
-function buildJobCardHTML(
-  job: MapJob,
-  index: number,
-  carouselId: string
-): string {
+function buildJobCardContent(job: MapJob): HTMLDivElement {
   const categoryDisplay = job.category
     ? job.category.charAt(0).toUpperCase() + job.category.slice(1)
     : '';
@@ -397,38 +372,107 @@ function buildJobCardHTML(
       )[aiAssessment.severity] ?? null)
     : null;
 
-  return `
-    <div class="${carouselId}-job-card-${index}" style="display: ${index === 0 ? 'block' : 'none'}; animation: fadeIn 0.3s;">
-      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-        ${job.priority ? `<span style="background: ${priorityColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${job.priority.toUpperCase()}</span>` : ''}
-        ${categoryDisplay ? `<span style="background: #F3F4F6; color: #374151; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${categoryDisplay}</span>` : ''}
-        ${aiAssessment ? `<span style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">AI</span>` : ''}
-        ${severityBadge ? `<span style="background: ${severityBadge.color}20; color: ${severityBadge.color}; border: 1px solid ${severityBadge.color}40; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${severityBadge.label}</span>` : ''}
-      </div>
-      <h3 style="font-weight: bold; margin: 0 0 8px 0; color: #111827; font-size: 16px;">${job.title}</h3>
-      <p style="color: #6B7280; margin: 0 0 12px 0; font-size: 14px; line-height: 1.4;">${job.description.substring(0, 120)}...</p>
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-        <p style="font-weight: bold; color: #14b8a6; margin: 0; font-size: 18px;">\u00A3${Number(job.budget).toLocaleString()}</p>
-        <p style="color: #9CA3AF; margin: 0; font-size: 12px;">${formatLocation(job.property)}</p>
-      </div>
-      ${
-        aiAssessment?.assessment_data?.contractorAdvice?.estimatedCost
-          ? `
-        <div style="background: linear-gradient(135deg, #ede9fe, #fae8ff); border: 1px solid #ddd6fe; padding: 6px 8px; border-radius: 6px; margin-bottom: 12px;">
-          <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">AI Repair Estimate</div>
-          <div style="font-size: 13px; font-weight: 600; color: #1f2937;">\u00A3${aiAssessment.assessment_data.contractorAdvice.estimatedCost.min.toLocaleString()}-${aiAssessment.assessment_data.contractorAdvice.estimatedCost.max.toLocaleString()}</div>
-        </div>
-      `
-          : ''
-      }
-      <button
-        onclick="window.open('/contractor/bid/${job.id}/details', '_self')"
-        style="width: 100%; background: #14b8a6; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s;"
-        onmouseover="this.style.background='#0D9488'"
-        onmouseout="this.style.background='#14b8a6'"
-      >
-        View Details
-      </button>
-    </div>
-  `;
+  const card = createMapElement('div', 'animation: fadeIn 0.3s;');
+  card.className = 'map-job-card';
+  const badges = createMapElement(
+    'div',
+    'display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;'
+  );
+  if (job.priority)
+    badges.append(
+      createMapElement(
+        'span',
+        `background: ${priorityColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;`,
+        job.priority.toUpperCase()
+      )
+    );
+  if (categoryDisplay)
+    badges.append(
+      createMapElement(
+        'span',
+        'background: #F3F4F6; color: #374151; padding: 2px 8px; border-radius: 4px; font-size: 11px;',
+        categoryDisplay
+      )
+    );
+  if (aiAssessment)
+    badges.append(
+      createMapElement(
+        'span',
+        'background: linear-gradient(135deg, #6366f1, #a855f7); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;',
+        'AI'
+      )
+    );
+  if (severityBadge)
+    badges.append(
+      createMapElement(
+        'span',
+        `background: ${severityBadge.color}20; color: ${severityBadge.color}; border: 1px solid ${severityBadge.color}40; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;`,
+        severityBadge.label
+      )
+    );
+  card.append(badges);
+  card.append(
+    createMapElement(
+      'h3',
+      'font-weight: bold; margin: 0 0 8px 0; color: #111827; font-size: 16px;',
+      job.title
+    )
+  );
+  card.append(
+    createMapElement(
+      'p',
+      'color: #6B7280; margin: 0 0 12px 0; font-size: 14px; line-height: 1.4;',
+      `${job.description.substring(0, 120)}...`
+    )
+  );
+  const details = createMapElement(
+    'div',
+    'display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;'
+  );
+  details.append(
+    createMapElement(
+      'p',
+      'font-weight: bold; color: #14b8a6; margin: 0; font-size: 18px;',
+      `£${Number(job.budget).toLocaleString()}`
+    )
+  );
+  details.append(
+    createMapElement(
+      'p',
+      'color: #9CA3AF; margin: 0; font-size: 12px;',
+      formatLocation(job.property)
+    )
+  );
+  card.append(details);
+  const estimate =
+    aiAssessment?.assessment_data?.contractorAdvice?.estimatedCost;
+  if (estimate) {
+    const estimateElement = createMapElement(
+      'div',
+      'background: linear-gradient(135deg, #ede9fe, #fae8ff); border: 1px solid #ddd6fe; padding: 6px 8px; border-radius: 6px; margin-bottom: 12px;'
+    );
+    estimateElement.append(
+      createMapElement(
+        'div',
+        'font-size: 10px; color: #6b7280; margin-bottom: 2px;',
+        'AI Repair Estimate'
+      )
+    );
+    estimateElement.append(
+      createMapElement(
+        'div',
+        'font-size: 13px; font-weight: 600; color: #1f2937;',
+        `£${estimate.min.toLocaleString()}-${estimate.max.toLocaleString()}`
+      )
+    );
+    card.append(estimateElement);
+  }
+  const link = createMapElement(
+    'a',
+    'display: block; text-align: center; text-decoration: none; background: #14b8a6; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 14px;',
+    'View Details'
+  );
+  link.href = `/contractor/bid/${encodeURIComponent(job.id)}/details`;
+  card.append(link);
+  return card;
 }

@@ -31,7 +31,7 @@ jest.mock('../../logger', () => ({
 }));
 
 import { PerformanceBudgetRepository } from '../PerformanceBudgetRepository';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const loggerMock = require('../../logger').logger as {
   debug: jest.Mock;
   info: jest.Mock;

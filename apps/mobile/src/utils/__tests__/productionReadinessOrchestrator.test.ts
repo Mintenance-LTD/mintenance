@@ -44,13 +44,13 @@ const mockPerfState = {
     string,
     number
   >,
-  budgetStatus: [] as Array<Record<string, unknown>>,
+  budgetStatus: [] as Record<string, unknown>[],
   report: { summary: 'baseline-report' } as Record<string, unknown>,
 };
 
 const mockErrorState = {
   analytics: { errorRate: 0 } as Record<string, unknown>,
-  patterns: [] as Array<Record<string, unknown>>,
+  patterns: [] as Record<string, unknown>[],
   trends: { isIncreasing: false, changeRate: 0 } as Record<string, unknown>,
 };
 

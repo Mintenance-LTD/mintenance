@@ -26,7 +26,7 @@ import {
 export class MaterialsService {
   private supabase = serverSupabase;
 
-  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+
   constructor() {}
 
   /**

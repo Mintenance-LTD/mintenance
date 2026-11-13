@@ -58,7 +58,7 @@ let windowListeners: Record<string, ((...a: unknown[]) => void)[]>;
 let documentListeners: Record<string, ((...a: unknown[]) => void)[]>;
 let gtagCalls: unknown[][];
 let createElementShouldThrow: boolean;
-let appendedScripts: Array<Record<string, unknown>>;
+let appendedScripts: Record<string, unknown>[];
 let supportPerformanceObserver: boolean;
 
 const fixedNow = 1_700_000_000_000;
@@ -334,7 +334,7 @@ describe('PerformanceTracker', () => {
     it('coerces a non-Error throw to String in the error log', async () => {
       // Throw a non-Error value to exercise the String(error) branch.
       (global.performance.mark as jest.Mock).mockImplementation(() => {
-        throw 'string failure'; // eslint-disable-line no-throw-literal
+        throw 'string failure';
       });
       const tracker = new PerformanceTracker(baseConfig);
       await tracker.initialize();
@@ -384,7 +384,7 @@ describe('PerformanceTracker', () => {
 
     it('coerces a non-Error GA throw to String', async () => {
       (global.document.createElement as jest.Mock).mockImplementation(() => {
-        throw 42; // eslint-disable-line no-throw-literal
+        throw 42;
       });
       const tracker = new PerformanceTracker(baseConfig);
       await tracker.initialize();
@@ -558,7 +558,7 @@ describe('PerformanceTracker', () => {
       // Deferred rAF so the source's `ticking = true` runs BEFORE the callback
       // sets it back to false (matching real browser ordering). We flush the
       // queued callback manually after each scroll fire.
-      const rafQueue: Array<() => void> = [];
+      const rafQueue: (() => void)[] = [];
       (
         global as unknown as {
           requestAnimationFrame: (cb: () => void) => number;

@@ -15,7 +15,7 @@ function setup(parent?: { navigate: jest.Mock }) {
   const navigate = jest.fn();
   const getParent = jest.fn(() => parent);
   const haptics = { light: jest.fn(), selection: jest.fn() };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const coordinator = new HomeNavigationCoordinator(
     { navigate, getParent } as any,
     haptics as any

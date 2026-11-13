@@ -71,7 +71,7 @@ jest.mock('../../../config/supabase', () => {
     },
   };
 });
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const { supabase } = require('../../../config/supabase');
 const subscribeResult = mockSupabaseState.subscribeResult;
 const captured = mockSupabaseState;

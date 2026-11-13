@@ -15,7 +15,7 @@ jest.mock('@mintenance/shared', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const { logger } = require('@mintenance/shared') as {
   logger: { info: jest.Mock };
 };
@@ -25,7 +25,7 @@ const { logger } = require('@mintenance/shared') as {
 // relying on it to actually render rows. We grab a mutable reference to the
 // Platform object so individual tests can flip OS / Version to exercise the
 // platform-specific optimisation branches.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const RN = require('react-native');
 const Platform = RN.Platform as { OS: string; Version: number };
 
