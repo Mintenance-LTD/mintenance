@@ -7,7 +7,7 @@ const workflow = (name) =>
   yaml.load(
     readFileSync(path.join(__dirname, '../.github/workflows', name), 'utf8')
   );
-function runs(expression, event, draft = false, ref = 'refs/pull/1/merge') {
+function runs(expression, event, draft = false, ref = 'refs/pull/1/merge', vars = {}) {
   const github = {
     event_name: event,
     ref,
@@ -23,7 +23,7 @@ function runs(expression, event, draft = false, ref = 'refs/pull/1/merge') {
     /\.(e2e-secrets-gate|has-staging|pre-build-checks|should-build|native-build-changes)/g,
     '["$1"]'
   );
-  return Function('github', 'needs', `return (${expression});`)(github, needs);
+  return Function('github', 'needs', 'vars', `return (${expression});`)(github, needs, vars);
 }
 test('draft PR skips every native build job, even with staging credentials and native changes', () => {
   for (const [file, jobs] of [
@@ -58,15 +58,16 @@ test('ready PR retains Detox coverage; EAS remains excluded on all PRs', () => {
       false
     );
 });
-test('main native builds remain eligible; feature branch push cannot trigger native workflows', () => {
-  for (const [file, name] of [
-    ['mobile-tests.yml', 'e2e-android'],
-    ['mobile-build.yml', 'build-android'],
-    ['ci-cd.yml', 'build-production'],
+test('main retains native tests but no longer automatically creates store builds', () => {
+  for (const [file, name, expected] of [
+    ['mobile-tests.yml', 'e2e-android', true],
+    ['mobile-build.yml', 'build-android', false],
+    ['mobile-build.yml', 'build-ios', false],
+    ['ci-cd.yml', 'build-production', false],
   ]) {
     assert.equal(
       runs(workflow(file).jobs[name].if, 'push', false, 'refs/heads/main'),
-      true
+      expected
     );
     assert.ok(
       !workflow(file).on.push.branches.includes(
@@ -74,6 +75,17 @@ test('main native builds remain eligible; feature branch push cannot trigger nat
       )
     );
   }
+});
+
+test('manual native builds remain available and legacy automatic store builds require explicit opt-in', () => {
+  for (const name of ['build-android', 'build-ios']) {
+    assert.equal(runs(workflow('mobile-build.yml').jobs[name].if, 'workflow_dispatch'), true);
+  }
+  const gate = workflow('ci-cd.yml').jobs['build-production'].if;
+  const enabled = { ENABLE_AUTOMATIC_STORE_BUILDS: 'true' };
+  assert.equal(runs(gate, 'push', false, 'refs/heads/main', enabled), true);
+  assert.equal(runs(gate, 'pull_request', true, 'refs/pull/1/merge', enabled), false);
+  assert.equal(runs(gate, 'push', false, 'refs/heads/feature', enabled), false);
 });
 
 test('aggregate gates still execute when draft native jobs are skipped', () => {
