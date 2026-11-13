@@ -4,6 +4,7 @@ import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
+import { createMessageAttachmentPath } from '@/lib/utils/message-attachment-path';
 
 interface MessageInputProps {
   onSendMessage: (
@@ -78,9 +79,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'bin';
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const storagePath = `message-attachments/${fileName}`;
+      const storagePath = createMessageAttachmentPath(file.name);
 
       const { error: uploadError } = await supabase.storage
         .from('attachments')
