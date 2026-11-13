@@ -38,9 +38,7 @@ export function MessagesSidebar({
   currentUserId,
   messagesAvailable = true,
 }: MessagesSidebarProps) {
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
-    null
-  );
+  const [, setSelectedCustomerId] = useState<string | null>(null);
 
   // 2026-05-13 polish pass: editorial branching to swap StandardCard +
   // legacy heading typography for canonical .card.card-pad + .t-h3.

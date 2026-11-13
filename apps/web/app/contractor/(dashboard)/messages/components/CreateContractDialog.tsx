@@ -131,17 +131,16 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
         setLoadingCompanyName(true);
 
         // Load contractor info, existing contract, and accepted bid in parallel
-        const [verificationRes, profileRes, contractRes, bidsRes] =
-          await Promise.all([
-            fetch('/api/contractor/verification'),
-            fetch('/api/contractor/profile-data'),
-            jobId
-              ? fetch(`/api/contracts?job_id=${jobId}`)
-              : Promise.resolve(null),
-            jobId
-              ? fetch(`/api/contractor/bids?status=accepted`)
-              : Promise.resolve(null),
-          ]);
+        const [verificationRes, , contractRes, bidsRes] = await Promise.all([
+          fetch('/api/contractor/verification'),
+          fetch('/api/contractor/profile-data'),
+          jobId
+            ? fetch(`/api/contracts?job_id=${jobId}`)
+            : Promise.resolve(null),
+          jobId
+            ? fetch(`/api/contractor/bids?status=accepted`)
+            : Promise.resolve(null),
+        ]);
 
         if (verificationRes.ok) {
           const verificationData = await verificationRes.json();

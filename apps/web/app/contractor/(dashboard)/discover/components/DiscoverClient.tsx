@@ -75,7 +75,6 @@ interface DiscoverClientProps {
 }
 
 export function DiscoverClient({
-  user,
   jobs,
   contractorLocation,
   contractorSkills,
@@ -85,7 +84,7 @@ export function DiscoverClient({
   const [error, setError] = useState<string | null>(null);
   const [swipeHistory, setSwipeHistory] = useState<SwipeHistory[]>([]);
   const [showUndo, setShowUndo] = useState(false);
-  const [matchCount, setMatchCount] = useState(0);
+  const [, setMatchCount] = useState(0);
   const [showMatchModal, setShowMatchModal] = useState(false);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 

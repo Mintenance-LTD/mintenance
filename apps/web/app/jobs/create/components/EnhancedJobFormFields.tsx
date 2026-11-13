@@ -33,7 +33,6 @@ export function EnhancedJobFormFields({
   onFieldBlur,
   errors,
   touchedFields,
-  uploadedImages,
 }: JobFormFieldsProps) {
   const isFieldValid = (fieldName: keyof JobFormData): boolean => {
     return (

@@ -186,7 +186,7 @@ export class DriftMonitorService {
         query = query.eq('property_type', params.propertyType);
       }
 
-      const { data, count } = await query;
+      const { count } = await query;
 
       return {
         startDate: startDate.toISOString(),
@@ -230,7 +230,7 @@ export class DriftMonitorService {
         query = query.eq('property_type', params.propertyType);
       }
 
-      const { data, count } = await query;
+      const { count } = await query;
 
       return {
         startDate: startDate.toISOString(),

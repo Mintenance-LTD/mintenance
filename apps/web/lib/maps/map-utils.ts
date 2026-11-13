@@ -5,18 +5,6 @@
  * Including marker creation, circle rendering, and bounds calculations
  */
 
-interface ContractorMarkerData {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  rating: number;
-  city?: string;
-  profileImage?: string;
-  skills?: Array<{ skill_name: string; skill_icon?: string | null }>;
-  primarySkillIcon?: string; // Icon for the primary skill
-}
-
 interface ServiceAreaData {
   id: string;
   latitude: number;

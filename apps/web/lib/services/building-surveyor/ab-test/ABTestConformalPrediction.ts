@@ -3,7 +3,6 @@
  * Enhanced with industrial scaling (rail, construction)
  */
 
-import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContextFeatureService } from '../ContextFeatureService';
 import type { AssessmentContext } from '../types';
 import type { CalibrationDataPoint } from './ABTestTypes';
@@ -30,17 +29,18 @@ export async function mondrianConformalPrediction(
   quantile: number;
   predictionSet: string[];
 }> {
-  const { fusionMean, context, getCalibrationData, getDomainShiftWeight } = params;
+  const { fusionMean, context, getCalibrationData, getDomainShiftWeight } =
+    params;
 
   // 1. Determine Mondrian stratum with enhanced stratification
   // Includes: property_type, age_bin, region, damage_category
   // Supports: residential, commercial, rail, construction
   const ageBin = ContextFeatureService.getPropertyAgeBin(context.propertyAge);
   const damageCategory = normalizeDamageCategory(context.damageCategory);
-  
+
   // Normalize property type (handle industrial types)
   const normalizedPropertyType = normalizePropertyType(context.propertyType);
-  
+
   // Start with most specific stratum (4 dimensions)
   let stratum = `${normalizedPropertyType}_${ageBin}_${context.region}_${damageCategory}`;
 
@@ -74,7 +74,7 @@ export async function mondrianConformalPrediction(
   const n_cal = calibrationData.length;
 
   // 3. Small Sample Beta Correction (SSBC)
-  const alpha = 0.10; // Target 90% coverage
+  const alpha = 0.1; // Target 90% coverage
   let alpha_prime = alpha;
 
   if (n_cal < 100) {
@@ -86,13 +86,17 @@ export async function mondrianConformalPrediction(
   // Cast propertyType to match AssessmentContext type
   const assessmentContext: AssessmentContext = {
     ...context,
-    propertyType: context.propertyType as 'residential' | 'commercial' | 'industrial' | undefined,
+    propertyType: context.propertyType as
+      | 'residential'
+      | 'commercial'
+      | 'industrial'
+      | undefined,
   };
   const domainShiftWeight = await getDomainShiftWeight(assessmentContext);
 
   // 5. Compute conformal quantile (with weighting)
-  const nonconformityScores = calibrationData.map(cal => 
-    1 - cal.trueProbability
+  const nonconformityScores = calibrationData.map(
+    (cal) => 1 - cal.trueProbability
   );
 
   const quantile = weightedQuantile(
@@ -112,7 +116,7 @@ export async function mondrianConformalPrediction(
     'pest',
   ];
 
-  const predictionSet = allClasses.filter(cls => {
+  const predictionSet = allClasses.filter((cls) => {
     const score = 1 - fusionMean; // Simplified nonconformity
     return score <= quantile;
   });
@@ -128,4 +132,3 @@ export async function mondrianConformalPrediction(
     predictionSet,
   };
 }
-

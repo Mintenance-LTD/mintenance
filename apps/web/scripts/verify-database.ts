@@ -29,7 +29,9 @@ if (!SUPABASE_URL) {
 
 if (!SUPABASE_SERVICE_ROLE_KEY) {
   console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY in .env');
-  console.error('   Get it from: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/settings/api');
+  console.error(
+    '   Get it from: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/settings/api'
+  );
   process.exit(1);
 }
 
@@ -40,10 +42,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
  * Check if a table exists
  */
 async function checkTableExists(tableName: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*')
-    .limit(1);
+  const { error } = await supabase.from(tableName).select('*').limit(1);
 
   if (error) {
     if (error.message.includes('does not exist')) {
@@ -95,13 +94,17 @@ async function testCoreTables() {
         allExist = false;
       }
     } catch (error) {
-      console.log(`❌ ${table.padEnd(25)} ERROR: ${error instanceof Error ? error.message : error}`);
+      console.log(
+        `❌ ${table.padEnd(25)} ERROR: ${error instanceof Error ? error.message : error}`
+      );
       allExist = false;
     }
   }
 
   if (!allExist) {
-    console.log('\n⚠️  Some core tables are missing. Run database setup script.');
+    console.log(
+      '\n⚠️  Some core tables are missing. Run database setup script.'
+    );
   }
 
   return allExist;
@@ -125,7 +128,7 @@ async function testEscrowTransactionsStructure() {
 
   try {
     // Try to query specific columns
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('escrow_transactions')
       .select(requiredColumns.join(','))
       .limit(1);
@@ -137,7 +140,7 @@ async function testEscrowTransactionsStructure() {
     }
 
     console.log('✅ All required columns exist:');
-    requiredColumns.forEach(col => {
+    requiredColumns.forEach((col) => {
       console.log(`   - ${col}`);
     });
 
@@ -155,7 +158,7 @@ async function testStripeCustomerIdColumn() {
   console.log('\n3️⃣ Testing users.stripe_customer_id Column\n');
 
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('profiles')
       .select('id, stripe_customer_id')
       .limit(1);
@@ -200,10 +203,13 @@ async function testEscrowStatuses() {
 
     if (error) throw error;
 
-    const statuses = transactions?.reduce((acc: Record<string, number>, tx: any) => {
-      acc[tx.status] = (acc[tx.status] || 0) + 1;
-      return acc;
-    }, {});
+    const statuses = transactions?.reduce(
+      (acc: Record<string, number>, tx: any) => {
+        acc[tx.status] = (acc[tx.status] || 0) + 1;
+        return acc;
+      },
+      {}
+    );
 
     console.log('✅ Escrow transaction statuses:');
     if (statuses && Object.keys(statuses).length > 0) {
@@ -229,21 +235,26 @@ async function testRLSPolicies() {
 
   try {
     // Query pg_policies to check RLS
-    const { data, error } = await supabase
-      .rpc('get_rls_status' as any);
+    const { data, error } = await supabase.rpc('get_rls_status' as any);
 
     // This might fail if function doesn't exist, which is fine
     // We'll just note that RLS needs manual verification
-    console.log('⚠️  RLS policies require manual verification in Supabase dashboard');
-    console.log('   Go to: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/database/policies');
+    console.log(
+      '⚠️  RLS policies require manual verification in Supabase dashboard'
+    );
+    console.log(
+      '   Go to: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/database/policies'
+    );
     console.log('\n   Required policies:');
     console.log('   - escrow_transactions: SELECT (homeowner or contractor)');
     console.log('   - escrow_transactions: INSERT (homeowner only)');
     console.log('   - escrow_transactions: UPDATE (homeowner or contractor)');
 
     return true;
-  } catch (error) {
-    console.log('⚠️  Cannot programmatically check RLS - manual verification needed');
+  } catch {
+    console.log(
+      '⚠️  Cannot programmatically check RLS - manual verification needed'
+    );
     return true; // Non-fatal
   }
 }
@@ -257,10 +268,7 @@ async function testConnectivity() {
   try {
     const start = Date.now();
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .limit(1);
+    const { error } = await supabase.from('profiles').select('id').limit(1);
 
     const duration = Date.now() - start;
 
@@ -328,7 +336,9 @@ async function runVerification() {
     if (passed === total) {
       console.log('\n✅ All Verification Tests Passed!');
       console.log('==================================\n');
-      console.log('Your database is correctly configured for payment processing.');
+      console.log(
+        'Your database is correctly configured for payment processing.'
+      );
       console.log('\nNext steps:');
       console.log('1. Add Stripe secret key to .env');
       console.log('2. Run: npm run test:payment');

@@ -3,7 +3,13 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { PoundSterling, TrendingUp, Briefcase, Download, CreditCard } from 'lucide-react';
+import {
+  PoundSterling,
+  TrendingUp,
+  Briefcase,
+  Download,
+  CreditCard,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
@@ -34,23 +40,6 @@ const DonutChart = dynamic(
 );
 
 // Animation variants
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
 
 interface Transaction {
   id: string;
@@ -156,7 +145,10 @@ export default function AdminRevenueDashboard2025() {
   const revenueByMonth = data?.monthlyRevenue || [];
   const revenueByCategory = data?.revenueByCategory || [];
   const revenueByContractorType = data?.revenueByContractorType || [];
-  const transactions = data?.recentTransactions || [];
+  const transactions = useMemo(
+    () => data?.recentTransactions ?? [],
+    [data?.recentTransactions]
+  );
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((txn) => {
@@ -173,34 +165,6 @@ export default function AdminRevenueDashboard2025() {
 
   const handleExport = () => {
     toast.success('Revenue report exported successfully!');
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'job_payment':
-        return 'bg-emerald-100 text-emerald-700';
-      case 'subscription':
-        return 'bg-indigo-100 text-indigo-700';
-      case 'platform_fee':
-        return 'bg-blue-100 text-blue-700';
-      case 'refund':
-        return 'bg-red-100 text-red-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-700';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'failed':
-        return 'bg-red-100 text-red-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
   };
 
   if (loading) {

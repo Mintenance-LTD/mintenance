@@ -13,7 +13,7 @@
     "build:analyze": "npm run clean && ANALYZE=true next build --webpack",
     "build:turbo": "npm run clean && next build",
     "start": "next start -p 3000",
-    "lint": "eslint . --max-warnings 544",
+    "lint": "eslint . --max-warnings 245",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",

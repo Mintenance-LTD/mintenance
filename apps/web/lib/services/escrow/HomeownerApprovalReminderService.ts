@@ -11,7 +11,6 @@ import { logger } from '@mintenance/shared';
 import { HomeownerApprovalService } from './HomeownerApprovalService';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
-const AUTO_APPROVAL_DAYS = 7;
 const REMINDER_THRESHOLD_DAYS = 3;
 
 interface ReminderResults {
@@ -26,12 +25,17 @@ interface EscrowForReminder {
   job_id: string;
   auto_approval_date: string | null;
   homeowner_approval: boolean;
-  jobs: { id: string; homeowner_id: string; title: string } | { id: string; homeowner_id: string; title: string }[];
+  jobs:
+    | { id: string; homeowner_id: string; title: string }
+    | { id: string; homeowner_id: string; title: string }[];
 }
 
 // Helper to normalize Supabase join (can return object or array)
 const getJob = (
-  jobs: { id: string; homeowner_id: string; title: string } | { id: string; homeowner_id: string; title: string }[] | undefined
+  jobs:
+    | { id: string; homeowner_id: string; title: string }
+    | { id: string; homeowner_id: string; title: string }[]
+    | undefined
 ) => {
   if (!jobs) return undefined;
   return Array.isArray(jobs) ? jobs[0] : jobs;
@@ -56,7 +60,8 @@ export class HomeownerApprovalReminderService {
     // Fetch escrows awaiting homeowner approval
     const { data: escrows, error } = await serverSupabase
       .from('escrow_transactions')
-      .select(`
+      .select(
+        `
         id,
         job_id,
         auto_approval_date,
@@ -66,7 +71,8 @@ export class HomeownerApprovalReminderService {
           homeowner_id,
           title
         )
-      `)
+      `
+      )
       .eq('status', 'awaiting_homeowner_approval')
       .eq('homeowner_approval', false)
       .not('auto_approval_date', 'is', null)

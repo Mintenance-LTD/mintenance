@@ -3,7 +3,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { GuaranteeService } from '@/lib/services/payment/GuaranteeService';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+
 import {
   ForbiddenError,
   NotFoundError,

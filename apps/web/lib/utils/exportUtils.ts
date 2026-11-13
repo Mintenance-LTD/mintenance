@@ -5,13 +5,6 @@
 import { sanitizeHtml } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 
-interface ExportData {
-  headers: string[];
-  rows: (string | number)[][];
-  title?: string;
-  metadata?: Record<string, string>;
-}
-
 /**
  * Generate PDF from HTML content using browser's print functionality
  * SECURITY: Sanitizes HTML content to prevent XSS attacks
@@ -147,26 +140,10 @@ export async function exportToPDFAdvanced(
 /**
  * Helper function to escape CSV values
  */
-function escapeCSV(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
 
 /**
  * Helper function to download a blob as a file
  */
-function downloadFile(blob: Blob, filename: string): void {
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-}
 
 /**
  * Add print-specific styles

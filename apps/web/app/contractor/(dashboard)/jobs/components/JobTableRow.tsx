@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { StatusBadge } from '@/components/ui/figma';
 import { Button } from '@/components/ui/Button';
 import { Eye } from 'lucide-react';
-import { formatMoney } from '@/lib/utils/currency';
 
 interface Job {
   id: string;

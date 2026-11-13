@@ -1,5 +1,5 @@
 import { JobAnalysisService } from '@/lib/services/JobAnalysisService';
-import { PricingAgent } from '@/lib/services/agents/PricingAgent';
+
 
 /**
  * Test Materials Integration End-to-End

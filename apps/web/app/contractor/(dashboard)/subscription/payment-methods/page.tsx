@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation';
 import { PaymentMethodForm } from './components/PaymentMethodForm';
 import { PaymentMethodsList } from './components/PaymentMethodsList';
 import { MintEditorialPaymentMethodsView } from './components/MintEditorialPaymentMethodsView';
-import { StandardCard } from '@/components/ui/StandardCard';
 
 export const metadata = {
   title: 'Payment Methods | Mintenance',

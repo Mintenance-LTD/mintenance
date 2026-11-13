@@ -151,7 +151,6 @@ function relativeDate(iso: string): string {
 // ── Component ──────────────────────────────────────────────────────
 
 export function ContractorLibraryView({
-  documents,
   filteredDocuments,
   categories,
   selectedCategory,

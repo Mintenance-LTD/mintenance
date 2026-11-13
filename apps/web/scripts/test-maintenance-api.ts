@@ -173,7 +173,7 @@ async function testMaintenanceAPI() {
 try {
   require.resolve('canvas');
   testMaintenanceAPI().catch(console.error);
-} catch (e) {
+} catch {
   console.log('📦 Installing canvas package for image generation...');
   const { execSync } = require('child_process');
   execSync('npm install canvas', { stdio: 'inherit', cwd: __dirname });

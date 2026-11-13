@@ -26,7 +26,6 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import tokens from '@/lib/design-tokens';
 
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   /**

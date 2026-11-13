@@ -10,7 +10,7 @@
  * Tests all Phase 1 routes in staging environment with comprehensive checks
  */
 import axios from 'axios';
-import { createHash } from 'crypto';
+
 import chalk from 'chalk';
 import Table from 'cli-table3';
 
@@ -191,7 +191,7 @@ class MigrationTester {
       if (response.status === 200) {
         console.log(chalk.green('✓ Staging environment is reachable\n'));
       }
-    } catch (error) {
+    } catch {
       console.log(chalk.red('✗ Could not reach staging environment'));
       console.log(chalk.gray('Continuing with tests...\n'));
     }
@@ -405,7 +405,7 @@ class MigrationTester {
 
         console.log(table.toString());
       }
-    } catch (error) {
+    } catch {
       console.log(chalk.yellow('Could not fetch feature flag metrics'));
     }
   }

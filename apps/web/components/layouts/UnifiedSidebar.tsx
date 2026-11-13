@@ -43,7 +43,6 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
     isCollapsed,
     expandedItems,
     collapsedSections,
-    searchFocused,
     setSearchFocused,
     handleMobileClose,
     toggleExpand,

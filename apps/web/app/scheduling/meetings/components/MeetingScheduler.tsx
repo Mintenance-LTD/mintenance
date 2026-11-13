@@ -82,35 +82,51 @@ export function MeetingScheduler(props: MeetingSchedulerProps) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isVisible) {
-      fetchJobs();
-    }
-  }, [isVisible]);
+    let active = true;
+    setJobs([]);
+    setSelectedJobId('');
+    setAddress('');
+    if (!isVisible || !currentUserId) return;
+    const fetchJobs = async () => {
+      try {
+        // Fetch active jobs where the user is involved
+        let query = supabase
+          .from('jobs')
+          .select('id, title, location, contractor_id, homeowner_id')
+          .eq('status', 'in_progress')
+          .limit(10);
 
-  const fetchJobs = async () => {
-    // Fetch active jobs where the user is involved
-    let query = supabase
-      .from('jobs')
-      .select('id, title, location, contractor_id, homeowner_id')
-      .eq('status', 'in_progress')
-      .limit(10);
+        if (userRole === 'contractor') {
+          query = query.eq('contractor_id', currentUserId);
+        } else {
+          query = query.eq('homeowner_id', currentUserId);
+        }
 
-    if (userRole === 'contractor') {
-      query = query.eq('contractor_id', currentUserId);
-    } else {
-      query = query.eq('homeowner_id', currentUserId);
-    }
+        const { data, error } = await query;
+        if (!active) return;
+        if (error) throw error;
 
-    const { data, error } = await query;
-
-    if (data) {
-      setJobs(data);
-      if (data.length > 0) {
-        setSelectedJobId(data[0].id);
-        setAddress(data[0].location || '');
+        if (data) {
+          setJobs(data);
+          if (data.length > 0) {
+            setSelectedJobId(data[0].id);
+            setAddress(data[0].location || '');
+          }
+        }
+      } catch (error) {
+        if (active) {
+          logger.error('Failed to load meeting jobs:', error);
+          toast.error(
+            'Unable to load jobs. Please reopen the scheduler to retry.'
+          );
+        }
       }
-    }
-  };
+    };
+    void fetchJobs();
+    return () => {
+      active = false;
+    };
+  }, [isVisible, currentUserId, userRole]);
 
   const handleJobChange = (jobId: string) => {
     setSelectedJobId(jobId);

@@ -24,6 +24,9 @@ for (const section of [
   'studio',
   'analytics',
   'edge_runtime',
+  // Payment fixtures create confirmed users directly; no SMTP inbox is used.
+  // Keep it for other readiness uses, but avoid its host-port collision in CI.
+  ...(process.argv.includes('--payment') ? ['inbucket', 'local_smtp'] : []),
 ]) {
   const escaped = section.replaceAll('.', '\\.');
   config = config.replace(

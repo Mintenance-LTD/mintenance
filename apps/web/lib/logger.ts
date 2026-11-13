@@ -21,7 +21,7 @@ interface JsonObject {
 }
 type JsonArray = JsonValue[];
 
-interface LogContext extends JsonObject {}
+type LogContext = JsonObject;
 
 // Sentry integration placeholder - can be initialized later
 interface SentryFunctions {
@@ -42,15 +42,10 @@ interface SentryFunctions {
   }) => void;
 }
 
-let sentryFunctions: SentryFunctions = {
+const sentryFunctions: SentryFunctions = {
   captureMessage: () => {},
   captureException: () => {},
   addBreadcrumb: () => {},
-};
-
-// Function to set Sentry functions after initialization
-const setSentryFunctions = (functions: SentryFunctions) => {
-  sentryFunctions = functions;
 };
 
 class Logger {
@@ -83,7 +78,7 @@ class Logger {
         }
         return value;
       });
-    } catch (error) {
+    } catch {
       return '[Unable to stringify]';
     }
   }
@@ -125,7 +120,7 @@ class Logger {
     }
     try {
       return { value: String(input) } as LogContext;
-    } catch (_) {
+    } catch {
       return { value: '[Unserializable]' } as LogContext;
     }
   }
@@ -225,7 +220,7 @@ class Logger {
         return undefined;
       }
       return sanitized as LogContext;
-    } catch (error) {
+    } catch {
       return { error: 'Failed to sanitize context' } as LogContext;
     }
   }
@@ -407,43 +402,3 @@ class Logger {
 export const logger = new Logger();
 
 // Convenience methods for backward compatibility
-const log = {
-  debug: (
-    messageOrTag: string,
-    contextOrMessage?: LogContext | unknown | string,
-    maybeContext?: LogContext | unknown
-  ) => logger.debug(messageOrTag, contextOrMessage, maybeContext),
-  info: (
-    messageOrTag: string,
-    contextOrMessage?: LogContext | unknown | string,
-    maybeContext?: LogContext | unknown
-  ) => logger.info(messageOrTag, contextOrMessage, maybeContext),
-  warn: (
-    messageOrTag: string,
-    contextOrMessage?: LogContext | unknown | string,
-    maybeContext?: LogContext | unknown
-  ) => logger.warn(messageOrTag, contextOrMessage, maybeContext),
-  error: (
-    messageOrTag: string,
-    errorOrContextOrMessage?: unknown | string | LogContext,
-    maybeContext?: LogContext | unknown
-  ) => logger.error(messageOrTag, errorOrContextOrMessage, maybeContext),
-  performance: (
-    operation: string,
-    duration: number,
-    context?: LogContext | unknown
-  ) => logger.performance(operation, duration, context),
-  network: (
-    method: string,
-    url: string,
-    status: number,
-    duration: number,
-    context?: LogContext | unknown
-  ) => logger.network(method, url, status, duration, context),
-  userAction: (action: string, context?: LogContext | unknown) =>
-    logger.userAction(action, context),
-  navigation: (from: string, to: string, context?: LogContext | unknown) =>
-    logger.navigation(from, to, context),
-  auth: (action: string, success: boolean, context?: LogContext | unknown) =>
-    logger.auth(action, success, context),
-};

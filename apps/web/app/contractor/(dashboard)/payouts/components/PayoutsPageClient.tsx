@@ -50,14 +50,9 @@ interface PayoutsPageClientProps {
 }
 
 export function PayoutsPageClient({
-  contractor,
   initialPayoutAccounts,
-  userId,
-  userEmail,
 }: PayoutsPageClientProps) {
-  const [payoutAccounts, setPayoutAccounts] = useState<PayoutAccount[]>(
-    initialPayoutAccounts
-  );
+  const [payoutAccounts] = useState<PayoutAccount[]>(initialPayoutAccounts);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');

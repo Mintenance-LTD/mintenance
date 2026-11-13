@@ -8,7 +8,18 @@ import { JobViewTracker } from '@/app/jobs/[id]/components/JobViewTracker';
 import { logger } from '@mintenance/shared';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import Image from 'next/image';
-import { ArrowLeft, MapPin, Calendar, PoundSterling, Phone, Mail, Clock, AlertCircle, CheckCircle, Heart } from 'lucide-react';
+import {
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  PoundSterling,
+  Phone,
+  Mail,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  Heart,
+} from 'lucide-react';
 
 interface Job {
   id: string;
@@ -87,13 +98,19 @@ export function JobDetailsClient({
     setIsSaved(false);
     async function checkIfSaved() {
       try {
-        const response = await fetch('/api/contractor/saved-jobs', { signal: controller.signal });
+        const response = await fetch('/api/contractor/saved-jobs', {
+          signal: controller.signal,
+        });
         if (response.ok) {
           const data = await response.json();
-          if (!controller.signal.aborted) setIsSaved(data.jobIds?.includes(job.id) || false);
+          if (!controller.signal.aborted)
+            setIsSaved(data.jobIds?.includes(job.id) || false);
         }
       } catch (error) {
-        if (!controller.signal.aborted) logger.error('Error checking saved status:', error, { service: 'ui' });
+        if (!controller.signal.aborted)
+          logger.error('Error checking saved status:', error, {
+            service: 'ui',
+          });
       }
     }
     void checkIfSaved();
@@ -491,7 +508,7 @@ export function JobDetailsClient({
                             // Fallback if split somehow doesn't exist
                             return [reqString];
                           }
-                        } catch (splitError) {
+                        } catch {
                           // Fallback: treat as single requirement
                           return [String(requirements)];
                         }

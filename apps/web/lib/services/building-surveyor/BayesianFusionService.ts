@@ -19,7 +19,6 @@ import { logger } from '@mintenance/shared';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-
 import type { SceneGraphFeatures } from './scene_graph_features';
 import { getActiveDomain } from './config/BuildingSurveyorConfig';
 
@@ -270,7 +269,7 @@ export class BayesianFusionService {
     let totalConfidence = 0;
     let totalWeight = 0;
 
-    for (const [damageType, data] of Object.entries(sam3Evidence.damageTypes)) {
+    for (const [, data] of Object.entries(sam3Evidence.damageTypes)) {
       const weight = data.numInstances;
       totalConfidence += data.confidence * weight;
       totalWeight += weight;

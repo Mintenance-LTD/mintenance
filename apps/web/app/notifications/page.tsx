@@ -3,23 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
 import { useRouter } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
+
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { LoadingSpinner } from '@/components/ui';
-import {
-  fadeIn,
-  staggerContainer,
-  staggerItem,
-} from '@/lib/animations/variants';
+
 import toast from 'react-hot-toast';
-import { MotionDiv } from '@/components/ui/MotionDiv';
-import { ArrowLeft } from 'lucide-react';
+
 import { useNotificationsRealtime } from './useNotificationsRealtime';
-import {
-  getNotificationIcon,
-  getNotificationColor,
-} from './notification-icons';
+
 import { safeActionUrl } from '@/lib/notifications/safe-action-url';
 import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
 import {
@@ -298,7 +290,7 @@ export default function NotificationsPage2025() {
 
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
       toast.success('Notification deleted');
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete notification');
     }
   };
@@ -358,21 +350,6 @@ export default function NotificationsPage2025() {
   const paymentsCount = notifications.filter(
     (n) => normalizeNotificationType(n.type) === 'payment'
   ).length;
-
-  const formatTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
-  };
 
   // Mint Editorial branch — uses the canonical role-agnostic
   // NotificationsInboxView so the homeowner + contractor inboxes can't

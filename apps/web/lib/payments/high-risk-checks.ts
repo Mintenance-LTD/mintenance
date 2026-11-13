@@ -15,7 +15,10 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import * as OTPAuth from 'otpauth';
-import { decryptField, type EncryptedField } from '@/lib/encryption/field-encryption';
+import {
+  decryptField,
+  type EncryptedField,
+} from '@/lib/encryption/field-encryption';
 
 /**
  * High-risk operation types
@@ -141,7 +144,11 @@ export async function requiresMFA(
 
     // Rule 6: First-time large transaction
     const isFirstTimeUser = await isFirstTimeTransaction(userId);
-    if (isFirstTimeUser && amount !== null && amount > MFA_THRESHOLDS.FIRST_TIME_TRANSACTION_AMOUNT) {
+    if (
+      isFirstTimeUser &&
+      amount !== null &&
+      amount > MFA_THRESHOLDS.FIRST_TIME_TRANSACTION_AMOUNT
+    ) {
       required = true;
       riskScore += RISK_WEIGHTS.FIRST_TIME_USER;
       reason = reason
@@ -151,7 +158,11 @@ export async function requiresMFA(
     }
 
     // Rule 7: Check for unusual patterns
-    const isUnusualPattern = await detectUnusualPattern(userId, operation, amount);
+    const isUnusualPattern = await detectUnusualPattern(
+      userId,
+      operation,
+      amount
+    );
     if (isUnusualPattern) {
       required = true;
       riskScore += RISK_WEIGHTS.UNUSUAL_PATTERN;
@@ -240,12 +251,17 @@ export async function validateMFAForPayment(
       });
       return {
         valid: false,
-        reason: 'MFA is required for this operation but not enabled on your account. Please enable MFA in settings.',
+        reason:
+          'MFA is required for this operation but not enabled on your account. Please enable MFA in settings.',
       };
     }
 
     // Validate the MFA token (decrypt secret first; handles both encrypted and legacy plaintext)
-    const isValid = await validateTOTPToken(tryDecryptTOTPSecret(user.totp_secret), mfaToken, userId);
+    const isValid = await validateTOTPToken(
+      tryDecryptTOTPSecret(user.totp_secret),
+      mfaToken,
+      userId
+    );
 
     if (!isValid) {
       // Record failed MFA attempt
@@ -293,7 +309,9 @@ export async function validateMFAForPayment(
 async function getRecentPaymentFailures(userId: string): Promise<number> {
   try {
     // Check last 24 hours
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const twentyFourHoursAgo = new Date(
+      Date.now() - 24 * 60 * 60 * 1000
+    ).toISOString();
 
     const { count, error } = await serverSupabase
       .from('payment_failures')
@@ -451,7 +469,10 @@ async function validateTOTPToken(
     // Replay protection: reject token if it was already used within the TOTP window
     const replayKey = `totp_used:${userId}:${token}`;
     try {
-      if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      if (
+        process.env.UPSTASH_REDIS_REST_URL &&
+        process.env.UPSTASH_REDIS_REST_TOKEN
+      ) {
         const { Redis } = await import('@upstash/redis');
         const redis = new Redis({
           url: process.env.UPSTASH_REDIS_REST_URL,
@@ -460,13 +481,19 @@ async function validateTOTPToken(
         // SET NX EX 90 — atomically set only if the key does not exist
         const wasSet = await redis.set(replayKey, '1', { ex: 90, nx: true });
         if (wasSet === null) {
-          logger.warn('TOTP replay attack detected', { service: 'payments', userId });
+          logger.warn('TOTP replay attack detected', {
+            service: 'payments',
+            userId,
+          });
           return false;
         }
       }
-    } catch (redisError) {
+    } catch {
       // Redis unavailable: log but allow (fail open for Redis errors only)
-      logger.warn('Redis unavailable for TOTP replay check, proceeding', { service: 'payments', userId });
+      logger.warn('Redis unavailable for TOTP replay check, proceeding', {
+        service: 'payments',
+        userId,
+      });
     }
 
     return true;

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { logger } from '@mintenance/shared';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { theme } from '@/lib/theme';
+
 import { Icon } from '@/components/ui/Icon';
 import { ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -17,11 +17,7 @@ interface HomeownerProfileDropdownProps {
 
 export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
   // Defensive prop destructuring with defaults to prevent test crashes
-  const {
-    userName = '',
-    profileImageUrl,
-    initials = '',
-  } = props || {};
+  const { userName = '', profileImageUrl, initials = '' } = props || {};
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -35,14 +31,18 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isOpen]);
 
@@ -89,7 +89,7 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
       {/* Profile Button */}
       <button
         onClick={toggleDropdown}
-        type="button"
+        type='button'
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -104,9 +104,9 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
           position: 'relative',
           zIndex: 51,
         }}
-        aria-label="Profile menu"
+        aria-label='Profile menu'
         aria-expanded={isOpen}
-        aria-haspopup="true"
+        aria-haspopup='true'
         onMouseEnter={(e) => {
           if (!isOpen) {
             e.currentTarget.style.backgroundColor = '#334155';
@@ -154,7 +154,13 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
             </span>
           </div>
         )}
-        <ChevronDown className="shrink-0" size={16} color="#94A3B8" strokeWidth={2} aria-hidden />
+        <ChevronDown
+          className='shrink-0'
+          size={16}
+          color='#94A3B8'
+          strokeWidth={2}
+          aria-hidden
+        />
       </button>
 
       {/* Dropdown Menu - Only render when mounted to prevent hydration issues */}
@@ -212,7 +218,7 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
 
           {/* Menu Items */}
           <button
-            type="button"
+            type='button'
             onClick={() => handleMenuItemClick('/settings')}
             style={{
               width: '100%',
@@ -246,7 +252,7 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
                 flexShrink: 0,
               }}
             >
-              <Icon name="settings" size={18} color="#1f2937" />
+              <Icon name='settings' size={18} color='#1f2937' />
             </div>
             <div style={{ flex: 1 }}>
               <div
@@ -281,14 +287,34 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
 
           {/* Quick Actions */}
           {[
-            { label: 'My Jobs', href: '/jobs', icon: 'briefcase', description: 'View posted jobs' },
-            { label: 'Properties', href: '/properties', icon: 'home', description: 'Manage properties' },
-            { label: 'Messages', href: '/messages', icon: 'messageSquare', description: 'View conversations' },
-            { label: 'Payments', href: '/payments', icon: 'creditCard', description: 'Payment history' },
+            {
+              label: 'My Jobs',
+              href: '/jobs',
+              icon: 'briefcase',
+              description: 'View posted jobs',
+            },
+            {
+              label: 'Properties',
+              href: '/properties',
+              icon: 'home',
+              description: 'Manage properties',
+            },
+            {
+              label: 'Messages',
+              href: '/messages',
+              icon: 'messageSquare',
+              description: 'View conversations',
+            },
+            {
+              label: 'Payments',
+              href: '/payments',
+              icon: 'creditCard',
+              description: 'Payment history',
+            },
           ].map((action) => (
             <button
               key={action.href}
-              type="button"
+              type='button'
               onClick={() => handleMenuItemClick(action.href)}
               style={{
                 width: '100%',
@@ -322,7 +348,7 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
                   flexShrink: 0,
                 }}
               >
-                <Icon name={action.icon} size={18} color="#1f2937" />
+                <Icon name={action.icon} size={18} color='#1f2937' />
               </div>
               <div style={{ flex: 1 }}>
                 <div
@@ -357,7 +383,7 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
           />
 
           <button
-            type="button"
+            type='button'
             onClick={() => handleMenuItemClick('/faq')}
             style={{
               width: '100%',
@@ -391,7 +417,7 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
                 flexShrink: 0,
               }}
             >
-              <Icon name="helpCircle" size={18} color="#1f2937" />
+              <Icon name='helpCircle' size={18} color='#1f2937' />
             </div>
             <div style={{ flex: 1 }}>
               <div
@@ -426,7 +452,7 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
 
           {/* Logout Button */}
           <button
-            type="button"
+            type='button'
             onClick={handleLogout}
             style={{
               width: '100%',
@@ -460,7 +486,7 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
                 flexShrink: 0,
               }}
             >
-              <Icon name="logOut" size={18} color="#dc2626" />
+              <Icon name='logOut' size={18} color='#dc2626' />
             </div>
             <div
               style={{

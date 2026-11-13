@@ -60,7 +60,10 @@ export default function AdminTaxDashboardPage() {
     totalNetPaid: 0,
   };
 
-  const contractors: ContractorTaxRow[] = data?.summaries ?? [];
+  const contractors: ContractorTaxRow[] = useMemo(
+    () => data?.summaries ?? [],
+    [data?.summaries]
+  );
 
   const incompleteRows: IncompleteTaxDetailsRow[] = contractors
     .filter((c) => !c.taxDetailsComplete)

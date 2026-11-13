@@ -21,7 +21,7 @@ import {
 import { safeActionUrl } from '@/lib/notifications/safe-action-url';
 import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
 import { logger } from '@mintenance/shared';
-import { MintEditorialNotificationsView } from './components/MintEditorialNotificationsView';
+
 import type { Notification, FilterType } from './notification-types';
 import {
   NotificationsInboxView,

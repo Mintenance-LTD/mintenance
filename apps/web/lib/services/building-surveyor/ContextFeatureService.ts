@@ -1,9 +1,9 @@
 /**
  * Context Feature Service
- * 
+ *
  * Centralizes context vector construction for the Safe-LUCB critic.
  * Ensures consistent 12-dimensional feature ordering across all services.
- * 
+ *
  * Context vector features (d_eff = 12):
  * 0. fusion_confidence (0-1)
  * 1. fusion_variance (0-1)
@@ -18,8 +18,6 @@
  * 10. region_encoded (0-1, hash-based encoding)
  * 11. property_age_bin_encoded (0-1, categorical encoding)
  */
-
-import { logger } from '@mintenance/shared';
 
 export interface ContextFeatures {
   fusion_confidence: number;
@@ -41,7 +39,7 @@ export class ContextFeatureService {
 
   /**
    * Construct 12-dimensional context vector from features
-   * 
+   *
    * This is the canonical method for creating context vectors.
    * All services must use this to ensure consistency.
    */
@@ -82,11 +80,15 @@ export class ContextFeatureService {
     vector[10] = this.encodeRegion(features.region ?? 'unknown');
 
     // Feature 11: property_age_bin (categorical encoding)
-    vector[11] = this.encodePropertyAgeBin(features.property_age_bin ?? '50-100');
+    vector[11] = this.encodePropertyAgeBin(
+      features.property_age_bin ?? '50-100'
+    );
 
     // Validate dimension
     if (vector.length !== this.D_EFF) {
-      throw new Error(`Context vector dimension mismatch: expected ${this.D_EFF}, got ${vector.length}`);
+      throw new Error(
+        `Context vector dimension mismatch: expected ${this.D_EFF}, got ${vector.length}`
+      );
     }
 
     return vector;
@@ -94,10 +96,12 @@ export class ContextFeatureService {
 
   /**
    * Extract context vector from stored context features (from database)
-   * 
+   *
    * Used when reconstructing context from ab_decisions.context_features JSONB
    */
-  static extractContextVector(contextFeatures: Partial<ContextFeatures> | Record<string, unknown>): number[] {
+  static extractContextVector(
+    contextFeatures: Partial<ContextFeatures> | Record<string, unknown>
+  ): number[] {
     const typedFeatures = contextFeatures as Partial<ContextFeatures>;
     return this.constructContextVector({
       fusion_confidence: typedFeatures.fusion_confidence,
@@ -119,7 +123,11 @@ export class ContextFeatureService {
    * Validate context vector dimension and range
    * Also normalizes out-of-range values to [0, 1]
    */
-  static validateContextVector(context: number[]): { valid: boolean; error?: string; normalized?: number[] } {
+  static validateContextVector(context: number[]): {
+    valid: boolean;
+    error?: string;
+    normalized?: number[];
+  } {
     if (context.length !== this.D_EFF) {
       return {
         valid: false,
@@ -131,7 +139,7 @@ export class ContextFeatureService {
     const normalized: number[] = [];
     for (let i = 0; i < context.length; i++) {
       const value = context[i];
-      
+
       if (!Number.isFinite(value)) {
         return {
           valid: false,
@@ -153,7 +161,7 @@ export class ContextFeatureService {
   static encodeRegion(region: string): number {
     let hash = 0;
     for (let i = 0; i < region.length; i++) {
-      hash = ((hash << 5) - hash) + region.charCodeAt(i);
+      hash = (hash << 5) - hash + region.charCodeAt(i);
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash % 1000) / 1000;
@@ -191,13 +199,13 @@ export class ContextFeatureService {
 
   /**
    * Get property type context features for industrial scaling
-   * 
+   *
    * @param propertyType - Property type (residential, commercial, rail, construction)
    * @returns Property-specific feature vector (can be integrated into context)
    */
   static getPropertyTypeContext(propertyType: string): number[] {
     const normalized = propertyType.toLowerCase().trim();
-    
+
     // Rail-specific features
     if (normalized.includes('rail')) {
       return [
@@ -213,7 +221,7 @@ export class ContextFeatureService {
         0.0, // worker_safety
       ];
     }
-    
+
     // Construction-specific features
     if (normalized.includes('construction') || normalized.includes('site')) {
       return [
@@ -229,7 +237,7 @@ export class ContextFeatureService {
         0.9, // worker_safety (high priority)
       ];
     }
-    
+
     // Residential features
     if (normalized.includes('residential') || normalized.includes('home')) {
       return [
@@ -245,7 +253,7 @@ export class ContextFeatureService {
         0.0, // worker_safety
       ];
     }
-    
+
     // Commercial features
     if (normalized.includes('commercial') || normalized.includes('business')) {
       return [
@@ -261,40 +269,40 @@ export class ContextFeatureService {
         0.0, // worker_safety
       ];
     }
-    
+
     // Default (residential)
-    return [
-      0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-    ];
+    return [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
   }
 
   /**
    * Get industrial risk factor based on property type and region
-   * 
+   *
    * @param propertyType - Property type
    * @param region - Geographic region
    * @returns Risk factor (0-1), higher for rail/construction
    */
-  static getIndustrialRiskFactor(propertyType: string, region?: string): number {
+  static getIndustrialRiskFactor(
+    propertyType: string,
+    region?: string
+  ): number {
     const normalized = propertyType.toLowerCase().trim();
-    
+
     // Rail infrastructure has highest risk
     if (normalized.includes('rail')) {
       return 0.9;
     }
-    
+
     // Construction sites have high risk
     if (normalized.includes('construction') || normalized.includes('site')) {
       return 0.8;
     }
-    
+
     // Commercial has moderate risk
     if (normalized.includes('commercial')) {
       return 0.5;
     }
-    
+
     // Residential has lower risk
     return 0.3;
   }
 }
-

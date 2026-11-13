@@ -7,7 +7,6 @@
 
 export * from './variants/page';
 export * from './variants/item';
-export * from './variants/overlay';
 export * from './variants/ui';
 
 // ============================================

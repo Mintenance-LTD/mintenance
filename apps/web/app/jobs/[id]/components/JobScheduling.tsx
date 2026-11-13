@@ -21,7 +21,12 @@ interface JobSchedulingProps {
   contractStatus?: 'none' | 'pending' | 'accepted';
 }
 
-export function JobScheduling({ jobId, userRole, userId, currentSchedule, contractStatus = 'none' }: JobSchedulingProps) {
+export function JobScheduling({
+  jobId,
+  userRole,
+  currentSchedule,
+  contractStatus = 'none',
+}: JobSchedulingProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +34,9 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
 
   const [startDate, setStartDate] = useState(
     currentSchedule?.scheduled_start_date
-      ? new Date(currentSchedule.scheduled_start_date).toISOString().slice(0, 16)
+      ? new Date(currentSchedule.scheduled_start_date)
+          .toISOString()
+          .slice(0, 16)
       : ''
   );
   const [endDate, setEndDate] = useState(
@@ -84,7 +91,9 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
 
       const data = await response.json();
       setIsEditing(false);
-      setSuccessMessage('Job scheduled successfully! Both parties will be notified.');
+      setSuccessMessage(
+        'Job scheduled successfully! Both parties will be notified.'
+      );
       setError(null);
 
       // Refresh the page to show updated schedule after a short delay
@@ -108,8 +117,29 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
 
       // Format consistently to avoid hydration mismatches
       // Use manual formatting to ensure server and client produce identical output
-      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const weekdays = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ];
+      const months = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ];
 
       const weekday = weekdays[date.getDay()];
       const day = date.getDate();
@@ -130,53 +160,65 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
   // Block scheduling if contract is not fully signed
   if (contractStatus !== 'accepted') {
     return (
-      <div style={{
-        backgroundColor: theme.colors.surface,
-        border: `1px solid ${theme.colors.border}`,
-        borderRadius: theme.borderRadius.lg,
-        padding: theme.spacing[6],
-        textAlign: 'center',
-      }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: theme.spacing[4],
-        }}>
-          <Icon name="lock" size={48} color={theme.colors.textTertiary} />
+      <div
+        style={{
+          backgroundColor: theme.colors.surface,
+          border: `1px solid ${theme.colors.border}`,
+          borderRadius: theme.borderRadius.lg,
+          padding: theme.spacing[6],
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: theme.spacing[4],
+          }}
+        >
+          <Icon name='lock' size={48} color={theme.colors.textTertiary} />
           <div>
-            <h3 style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[2],
-            }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+                marginBottom: theme.spacing[2],
+              }}
+            >
               Scheduling Locked
             </h3>
-            <p style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.textSecondary,
-              marginBottom: contractStatus === 'none' ? theme.spacing[1] : 0,
-            }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.base,
+                color: theme.colors.textSecondary,
+                marginBottom: contractStatus === 'none' ? theme.spacing[1] : 0,
+              }}
+            >
               Contract must be signed by both parties before scheduling
             </p>
             {contractStatus === 'none' && (
-              <p style={{
-                margin: theme.spacing[2],
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textTertiary,
-              }}>
+              <p
+                style={{
+                  margin: theme.spacing[2],
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textTertiary,
+                }}
+              >
                 Please create a contract first
               </p>
             )}
             {contractStatus === 'pending' && (
-              <p style={{
-                margin: theme.spacing[2],
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textTertiary,
-              }}>
+              <p
+                style={{
+                  margin: theme.spacing[2],
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textTertiary,
+                }}
+              >
                 Waiting for signatures...
               </p>
             )}
@@ -187,99 +229,129 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
   }
 
   return (
-    <div style={{
-      backgroundColor: theme.colors.surface,
-      border: `1px solid ${theme.colors.border}`,
-      borderRadius: theme.borderRadius.lg,
-      padding: theme.spacing[6],
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: theme.spacing[4],
-      }}>
-        <h3 style={{
-          margin: 0,
-          fontSize: theme.typography.fontSize.xl,
-          fontWeight: theme.typography.fontWeight.semibold,
-          color: theme.colors.textPrimary,
+    <div
+      style={{
+        backgroundColor: theme.colors.surface,
+        border: `1px solid ${theme.colors.border}`,
+        borderRadius: theme.borderRadius.lg,
+        padding: theme.spacing[6],
+      }}
+    >
+      <div
+        style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-        }}>
-          <Icon name="calendar" size={24} color={theme.colors.primary} />
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: theme.spacing[4],
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.semibold,
+            color: theme.colors.textPrimary,
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[2],
+          }}
+        >
+          <Icon name='calendar' size={24} color={theme.colors.primary} />
           Schedule
         </h3>
         {!isEditing && hasSchedule && (
           <Button
-            variant="outline"
-            size="sm"
+            variant='outline'
+            size='sm'
             onClick={() => setIsEditing(true)}
           >
-            <Icon name="edit" size={16} color={theme.colors.primary} />
+            <Icon name='edit' size={16} color={theme.colors.primary} />
             Edit
           </Button>
         )}
       </div>
 
       {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
+        <Alert variant='destructive' className='mb-4'>
+          <AlertCircle className='h-4 w-4' />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {successMessage && (
-        <Alert className="mb-4 border-green-200 bg-green-50">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-700">{successMessage}</AlertDescription>
+        <Alert className='mb-4 border-green-200 bg-green-50'>
+          <CheckCircle2 className='h-4 w-4 text-green-600' />
+          <AlertDescription className='text-green-700'>
+            {successMessage}
+          </AlertDescription>
         </Alert>
       )}
 
       {!isEditing ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[4],
+          }}
+        >
           {hasSchedule ? (
             <>
               <div>
-                <div style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing[1],
-                }}>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.medium,
+                    color: theme.colors.textSecondary,
+                    marginBottom: theme.spacing[1],
+                  }}
+                >
                   Start Date & Time
                 </div>
-                <div style={{
-                  fontSize: theme.typography.fontSize.base,
-                  color: theme.colors.textPrimary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                }}>
-                  <Icon name="clock" size={16} color={theme.colors.textSecondary} />
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.base,
+                    color: theme.colors.textPrimary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                  }}
+                >
+                  <Icon
+                    name='clock'
+                    size={16}
+                    color={theme.colors.textSecondary}
+                  />
                   {formatDate(currentSchedule?.scheduled_start_date || null)}
                 </div>
               </div>
 
               {currentSchedule?.scheduled_end_date && (
                 <div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.textSecondary,
-                    marginBottom: theme.spacing[1],
-                  }}>
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.medium,
+                      color: theme.colors.textSecondary,
+                      marginBottom: theme.spacing[1],
+                    }}
+                  >
                     End Date & Time
                   </div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.base,
-                    color: theme.colors.textPrimary,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[2],
-                  }}>
-                    <Icon name="clock" size={16} color={theme.colors.textSecondary} />
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.base,
+                      color: theme.colors.textPrimary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing[2],
+                    }}
+                  >
+                    <Icon
+                      name='clock'
+                      size={16}
+                      color={theme.colors.textSecondary}
+                    />
                     {formatDate(currentSchedule.scheduled_end_date)}
                   </div>
                 </div>
@@ -287,112 +359,139 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
 
               {currentSchedule?.scheduled_duration_hours && (
                 <div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.textSecondary,
-                    marginBottom: theme.spacing[1],
-                  }}>
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.medium,
+                      color: theme.colors.textSecondary,
+                      marginBottom: theme.spacing[1],
+                    }}
+                  >
                     Estimated Duration
                   </div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.base,
-                    color: theme.colors.textPrimary,
-                  }}>
-                    {currentSchedule.scheduled_duration_hours} {currentSchedule.scheduled_duration_hours === 1 ? 'hour' : 'hours'}
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.base,
+                      color: theme.colors.textPrimary,
+                    }}
+                  >
+                    {currentSchedule.scheduled_duration_hours}{' '}
+                    {currentSchedule.scheduled_duration_hours === 1
+                      ? 'hour'
+                      : 'hours'}
                   </div>
                 </div>
               )}
 
-              <div style={{
-                padding: theme.spacing[3],
-                backgroundColor: theme.colors.info + '20',
-                borderRadius: theme.borderRadius.md,
-                color: theme.colors.info,
-                fontSize: theme.typography.fontSize.sm,
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[2],
-              }}>
-                <Icon name="info" size={20} color={theme.colors.info} />
-                This schedule appears on both your and the {userRole === 'contractor' ? "homeowner's" : "contractor's"} calendar.
+              <div
+                style={{
+                  padding: theme.spacing[3],
+                  backgroundColor: theme.colors.info + '20',
+                  borderRadius: theme.borderRadius.md,
+                  color: theme.colors.info,
+                  fontSize: theme.typography.fontSize.sm,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing[2],
+                }}
+              >
+                <Icon name='info' size={20} color={theme.colors.info} />
+                This schedule appears on both your and the{' '}
+                {userRole === 'contractor'
+                  ? "homeowner's"
+                  : "contractor's"}{' '}
+                calendar.
               </div>
             </>
           ) : (
             <div style={{ textAlign: 'center', padding: theme.spacing[4] }}>
-              <Icon name="calendar" size={48} color={theme.colors.textTertiary} />
-              <p style={{
-                marginTop: theme.spacing[4],
-                marginBottom: theme.spacing[4],
-                color: theme.colors.textSecondary,
-                fontSize: theme.typography.fontSize.base,
-              }}>
-                No schedule set yet. Set a start date to coordinate with the {userRole === 'contractor' ? 'homeowner' : 'contractor'}.
-              </p>
-              <Button
-                onClick={() => setIsEditing(true)}
-                variant="primary"
+              <Icon
+                name='calendar'
+                size={48}
+                color={theme.colors.textTertiary}
+              />
+              <p
+                style={{
+                  marginTop: theme.spacing[4],
+                  marginBottom: theme.spacing[4],
+                  color: theme.colors.textSecondary,
+                  fontSize: theme.typography.fontSize.base,
+                }}
               >
-                <Icon name="calendar" size={20} color="white" />
+                No schedule set yet. Set a start date to coordinate with the{' '}
+                {userRole === 'contractor' ? 'homeowner' : 'contractor'}.
+              </p>
+              <Button onClick={() => setIsEditing(true)} variant='primary'>
+                <Icon name='calendar' size={20} color='white' />
                 Set Schedule
               </Button>
             </div>
           )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
-          <div className="space-y-2">
-            <Label htmlFor="start-date">Start Date & Time *</Label>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[4],
+          }}
+        >
+          <div className='space-y-2'>
+            <Label htmlFor='start-date'>Start Date & Time *</Label>
             <Input
-              id="start-date"
-              type="datetime-local"
+              id='start-date'
+              type='datetime-local'
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               min={new Date().toISOString().slice(0, 16)}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="end-date">End Date & Time (Optional)</Label>
+          <div className='space-y-2'>
+            <Label htmlFor='end-date'>End Date & Time (Optional)</Label>
             <Input
-              id="end-date"
-              type="datetime-local"
+              id='end-date'
+              type='datetime-local'
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               min={startDate || new Date().toISOString().slice(0, 16)}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="duration-hours">Estimated Duration (hours, Optional)</Label>
+          <div className='space-y-2'>
+            <Label htmlFor='duration-hours'>
+              Estimated Duration (hours, Optional)
+            </Label>
             <Input
-              id="duration-hours"
-              type="number"
+              id='duration-hours'
+              type='number'
               value={durationHours}
               onChange={(e) => setDurationHours(e.target.value)}
-              placeholder="e.g., 8"
-              min="1"
+              placeholder='e.g., 8'
+              min='1'
             />
           </div>
 
-          <div style={{
-            display: 'flex',
-            gap: theme.spacing[3],
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: theme.spacing[3],
+            }}
+          >
             <Button
               onClick={handleSave}
               disabled={isSaving || !startDate}
-              variant="primary"
-              className="flex-1"
+              variant='primary'
+              className='flex-1'
             >
               {isSaving ? (
                 <>
-                  <Icon name="loader" size={20} color="white" />
+                  <Icon name='loader' size={20} color='white' />
                   Saving...
                 </>
               ) : (
                 <>
-                  <Icon name="check" size={20} color="white" />
+                  <Icon name='check' size={20} color='white' />
                   Save Schedule
                 </>
               )}
@@ -403,16 +502,26 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
                 setError(null);
                 setSuccessMessage(null);
                 // Reset form
-                setStartDate(currentSchedule?.scheduled_start_date
-                  ? new Date(currentSchedule.scheduled_start_date).toISOString().slice(0, 16)
-                  : '');
-                setEndDate(currentSchedule?.scheduled_end_date
-                  ? new Date(currentSchedule.scheduled_end_date).toISOString().slice(0, 16)
-                  : '');
-                setDurationHours(currentSchedule?.scheduled_duration_hours?.toString() || '');
+                setStartDate(
+                  currentSchedule?.scheduled_start_date
+                    ? new Date(currentSchedule.scheduled_start_date)
+                        .toISOString()
+                        .slice(0, 16)
+                    : ''
+                );
+                setEndDate(
+                  currentSchedule?.scheduled_end_date
+                    ? new Date(currentSchedule.scheduled_end_date)
+                        .toISOString()
+                        .slice(0, 16)
+                    : ''
+                );
+                setDurationHours(
+                  currentSchedule?.scheduled_duration_hours?.toString() || ''
+                );
               }}
               disabled={isSaving}
-              variant="outline"
+              variant='outline'
             >
               Cancel
             </Button>
@@ -422,4 +531,3 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
     </div>
   );
 }
-

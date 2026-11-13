@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+
 import {
   Card,
   CardHeader,
@@ -60,27 +60,45 @@ export function VideoCallScheduler(props: VideoCallSchedulerProps) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isVisible) {
-      fetchJobs();
-    }
-  }, [isVisible]);
+    let active = true;
+    setJobs([]);
+    setSelectedJobId('');
+    if (!isVisible || !currentUserId) return;
+    const fetchJobs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('id, title, contractor_id, homeowner_id')
+          .in('status', ['posted', 'assigned', 'in_progress'])
+          .or(
+            `homeowner_id.eq.${currentUserId},contractor_id.eq.${currentUserId}`
+          )
+          .limit(20);
+        if (!active) return;
+        if (error) throw error;
 
-  const fetchJobs = async () => {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select('id, title, contractor_id, homeowner_id')
-      .in('status', ['posted', 'assigned', 'in_progress'])
-      .limit(20);
-
-    if (data) {
-      setJobs(data);
-      if (initialJobId && data.some((j) => j.id === initialJobId)) {
-        setSelectedJobId(initialJobId);
-      } else if (data.length > 0) {
-        setSelectedJobId(data[0].id);
+        if (data) {
+          setJobs(data);
+          if (initialJobId && data.some((j) => j.id === initialJobId)) {
+            setSelectedJobId(initialJobId);
+          } else if (data.length > 0) {
+            setSelectedJobId(data[0].id);
+          }
+        }
+      } catch (error) {
+        if (active) {
+          logger.error('Failed to load video call jobs:', error);
+          toast.error(
+            'Unable to load jobs. Please reopen the scheduler to retry.'
+          );
+        }
       }
-    }
-  };
+    };
+    void fetchJobs();
+    return () => {
+      active = false;
+    };
+  }, [isVisible, currentUserId, initialJobId]);
 
   const handleSchedule = async () => {
     if (!selectedJobId || !scheduledTime) return;

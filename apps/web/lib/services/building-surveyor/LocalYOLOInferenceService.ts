@@ -10,7 +10,13 @@
 
 import * as ort from 'onnxruntime-node';
 import { logger } from '@mintenance/shared';
-import { mkdtempSync, writeFileSync, unlinkSync, existsSync, rmdirSync } from 'fs';
+import {
+  mkdtempSync,
+  writeFileSync,
+  unlinkSync,
+  existsSync,
+  rmdirSync,
+} from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { createHash } from 'crypto';
@@ -388,7 +394,7 @@ export class LocalYOLOInferenceService {
             unlinkSync(tempPath);
           }
           rmdirSync(tempDir);
-        } catch (err) {
+        } catch {
           // Ignore cleanup errors
         }
       });

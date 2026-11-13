@@ -5,7 +5,13 @@
  * Migration from public-rate-limiter.ts to use Upstash Redis
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+/**
+ * Redis-based Public Rate Limiter
+ * Replaces in-memory rate limiting with persistent Redis storage for production use
+ *
+ * Migration from public-rate-limiter.ts to use Upstash Redis
+ */
+import { NextRequest } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
@@ -191,19 +197,3 @@ export async function checkPublicRateLimit(
 /**
  * Create rate limit response headers
  */
-function createPublicRateLimitHeaders(result: {
-  remaining: number;
-  reset: number;
-  retryAfter?: number;
-}): Record<string, string> {
-  const headers: Record<string, string> = {
-    'X-RateLimit-Remaining': result.remaining.toString(),
-    'X-RateLimit-Reset': new Date(result.reset).toISOString(),
-  };
-
-  if (result.retryAfter) {
-    headers['Retry-After'] = result.retryAfter.toString();
-  }
-
-  return headers;
-}

@@ -25,7 +25,6 @@ const inputStyle: React.CSSProperties = {
 };
 
 export function CorrectionForm({
-  result,
   correctionState,
   onCorrectionStateChange,
   onSubmit,
@@ -210,9 +209,7 @@ export function CorrectionForm({
                 <option value='Significant'>
                   Significant: serious, repair soon
                 </option>
-                <option value='Dangerous'>
-                  Dangerous: urgent/safety risk
-                </option>
+                <option value='Dangerous'>Dangerous: urgent/safety risk</option>
               </select>
             </div>
           )}

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getCsrfHeaders } from '@/lib/csrf-client';
-import Image from 'next/image';
+
 import {
   PropertiesToolbar,
   PropertySortOption,
@@ -66,7 +66,6 @@ export function PropertiesClient2025({
   propertyLimit,
   tier,
   isEarlyAccess,
-  userInfo,
 }: PropertiesClient2025Props) {
   const router = useRouter();
 

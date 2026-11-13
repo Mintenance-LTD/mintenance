@@ -24,7 +24,6 @@ interface RenderSettingInputProps {
 export function RenderSettingInput({
   setting,
   saving,
-  errors,
   setErrors,
   handleSave,
 }: RenderSettingInputProps) {

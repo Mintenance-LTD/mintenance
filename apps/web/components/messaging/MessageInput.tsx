@@ -4,9 +4,13 @@ import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
+import { createMessageAttachmentPath } from '@/lib/utils/message-attachment-path';
 
 interface MessageInputProps {
-  onSendMessage: (message: string, attachment?: { url: string; name: string; type: string }) => void;
+  onSendMessage: (
+    message: string,
+    attachment?: { url: string; name: string; type: string }
+  ) => void;
   disabled?: boolean;
   placeholder?: string;
 }
@@ -19,14 +23,21 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [message, setMessage] = useState('');
   const [isComposing, setIsComposing] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [pendingFile, setPendingFile] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [pendingFile, setPendingFile] = useState<{
+    url: string;
+    name: string;
+    type: string;
+  } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
     const trimmedMessage = message.trim();
     if ((trimmedMessage || pendingFile) && !disabled) {
-      onSendMessage(trimmedMessage || (pendingFile ? `Sent file: ${pendingFile.name}` : ''), pendingFile || undefined);
+      onSendMessage(
+        trimmedMessage || (pendingFile ? `Sent file: ${pendingFile.name}` : ''),
+        pendingFile || undefined
+      );
       setMessage('');
       setPendingFile(null);
       if (textareaRef.current) {
@@ -68,9 +79,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'bin';
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const storagePath = `message-attachments/${fileName}`;
+      const storagePath = createMessageAttachmentPath(file.name);
 
       const { error: uploadError } = await supabase.storage
         .from('attachments')
@@ -87,7 +96,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         name: file.name,
         type: file.type.startsWith('image/') ? 'image' : 'file',
       });
-    } catch (error) {
+    } catch {
       toast.error('Failed to upload file. Please try again.');
     } finally {
       setUploading(false);
@@ -98,7 +107,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const handleEmojiPicker = () => {
     const emojis = ['👍', '👋', '😊', '🎉', '✅', '❤️', '🔨', '🏠'];
     const emoji = emojis[Math.floor(Math.random() * emojis.length)];
-    setMessage(prev => prev + emoji);
+    setMessage((prev) => prev + emoji);
     textareaRef.current?.focus();
   };
 
@@ -115,22 +124,58 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     >
       {/* Pending file preview */}
       {pendingFile && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: `${theme.spacing.sm} ${theme.spacing.md}`, backgroundColor: theme.colors.backgroundSecondary, borderBottom: `1px solid ${theme.colors.border}` }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderBottom: `1px solid ${theme.colors.border}`,
+          }}
+        >
           <File size={16} style={{ color: theme.colors.primary }} />
-          <span style={{ fontSize: '13px', color: theme.colors.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pendingFile.name}</span>
-          <button onClick={() => setPendingFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: theme.colors.textSecondary }}>
+          <span
+            style={{
+              fontSize: '13px',
+              color: theme.colors.text,
+              flex: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {pendingFile.name}
+          </span>
+          <button
+            onClick={() => setPendingFile(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '2px',
+              color: theme.colors.textSecondary,
+            }}
+          >
             <X size={16} />
           </button>
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: theme.spacing.sm, padding: theme.spacing.md }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: theme.spacing.sm,
+          padding: theme.spacing.md,
+        }}
+      >
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
-          type="file"
+          type='file'
           onChange={handleFileSelected}
-          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+          accept='image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv'
           style={{ display: 'none' }}
         />
 
@@ -153,16 +198,21 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           }}
           onMouseEnter={(e) => {
             if (!disabled && !uploading) {
-              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+              e.currentTarget.style.backgroundColor =
+                theme.colors.backgroundSecondary;
             }
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
-          title="Attach file"
-          aria-label="Attach file"
+          title='Attach file'
+          aria-label='Attach file'
         >
-          {uploading ? <Loader2 size={20} className="animate-spin" /> : <Paperclip size={20} />}
+          {uploading ? (
+            <Loader2 size={20} className='animate-spin' />
+          ) : (
+            <Paperclip size={20} />
+          )}
         </button>
 
         {/* Message Input Container */}
@@ -215,21 +265,24 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               border: 'none',
               borderRadius: theme.borderRadius.md,
               cursor: disabled ? 'not-allowed' : 'pointer',
-              color: disabled ? theme.colors.textSecondary : theme.colors.primary,
+              color: disabled
+                ? theme.colors.textSecondary
+                : theme.colors.primary,
               fontSize: theme.typography.fontSize.lg,
               marginRight: theme.spacing.xs,
               transition: 'background-color 0.2s ease',
             }}
             onMouseEnter={(e) => {
               if (!disabled) {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                e.currentTarget.style.backgroundColor =
+                  theme.colors.backgroundTertiary;
               }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
-            title="Add emoji"
-            aria-label="Add emoji"
+            title='Add emoji'
+            aria-label='Add emoji'
           >
             <Smile size={20} />
           </button>
@@ -239,9 +292,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         <Button
           onClick={handleSend}
           disabled={disabled || (!message.trim() && !pendingFile)}
-          variant="primary"
-          size="sm"
-          aria-label="Send message"
+          variant='primary'
+          size='sm'
+          aria-label='Send message'
           style={{
             minWidth: '60px',
             height: '40px',
@@ -249,7 +302,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             fontSize: theme.typography.fontSize.lg,
           }}
         >
-          <span aria-hidden="true"><ExternalLink size={20} /></span>
+          <span aria-hidden='true'>
+            <ExternalLink size={20} />
+          </span>
         </Button>
       </div>
     </div>

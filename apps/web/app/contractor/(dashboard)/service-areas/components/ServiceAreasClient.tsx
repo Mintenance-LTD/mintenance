@@ -77,7 +77,7 @@ export function ServiceAreasClient({
         tone: 'success',
         message: 'Service area added successfully.',
       });
-    } catch (error) {
+    } catch {
       setNotification({
         tone: 'error',
         message: 'Failed to add service area.',
@@ -99,7 +99,7 @@ export function ServiceAreasClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ areaId, isActive: !currentStatus }),
       });
-    } catch (error) {
+    } catch {
       setServiceAreas(serviceAreas);
       setNotification({
         tone: 'error',

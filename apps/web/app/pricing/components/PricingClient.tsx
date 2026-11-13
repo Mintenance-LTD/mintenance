@@ -23,7 +23,6 @@ import {
   PRICING_FAQS,
 } from './pricing-plans';
 
-
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
@@ -50,7 +49,7 @@ export function PricingClient() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const router = useRouter();
-  const { user, loading: userLoading } = useCurrentUser();
+  const { user } = useCurrentUser();
   const { csrfToken } = useCSRF();
 
   const homeownerPlans = getHomeownerPlans(isAnnual);

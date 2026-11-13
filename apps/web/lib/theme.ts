@@ -229,47 +229,6 @@ export const theme = {
 // Utility functions for web (using design tokens)
 const getColor = tokens.getColor;
 
-const getSpacing = (size: keyof typeof tokens.spacing): string => {
-  const value = tokens.spacing[size];
-  return typeof value === 'string' ? value : `${value}px`;
-};
-
-const getFontSize = (size: keyof typeof tokens.typography.fontSize): string => {
-  return tokens.typography.fontSize[size];
-};
-
-const getShadow = (size: keyof typeof tokens.shadows): string => {
-  return tokens.shadows[size];
-};
-
 // Status color helper
-const getStatusColor = (status: string): string => {
-  switch (status) {
-    case 'posted':
-      return tokens.colors.statusPosted;
-    case 'assigned':
-      return tokens.colors.statusAssigned;
-    case 'in_progress':
-      return tokens.colors.statusInProgress;
-    case 'completed':
-      return tokens.colors.statusCompleted;
-    case 'cancelled':
-      return tokens.colors.statusCancelled;
-    default:
-      return tokens.colors.textSecondary;
-  }
-};
 
 // Priority color helper
-const getPriorityColor = (priority: string): string => {
-  switch (priority) {
-    case 'high':
-      return tokens.colors.priorityHigh;
-    case 'medium':
-      return tokens.colors.priorityMedium;
-    case 'low':
-      return tokens.colors.priorityLow;
-    default:
-      return tokens.colors.textSecondary;
-  }
-};

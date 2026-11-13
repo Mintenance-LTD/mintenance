@@ -19,7 +19,6 @@ import { logger } from '@mintenance/shared';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
-
 import type { SceneGraphFeatures } from './scene_graph_features';
 import type { RoboflowDetection } from './types';
 import {
@@ -41,13 +40,16 @@ export interface EnhancedFusionInput {
 
   // SAM3 evidence
   sam3Evidence?: {
-    damageTypes: Record<string, {
-      confidence: number;
-      numInstances: number;
-      presenceScore: number;
-      masks?: number[][][]; // Pixel masks for refinement
-      boxes?: number[][]; // Bounding boxes
-    }>;
+    damageTypes: Record<
+      string,
+      {
+        confidence: number;
+        numInstances: number;
+        presenceScore: number;
+        masks?: number[][][]; // Pixel masks for refinement
+        boxes?: number[][]; // Bounding boxes
+      }
+    >;
     overallConfidence: number;
     presenceChecked: boolean;
     averagePresenceScore: number;
@@ -115,20 +117,25 @@ export class EnhancedBayesianFusionService {
 
   // Weight history for adaptive learning
   private static weightHistory: AttentionWeights[] = [];
-  private static performanceHistory: { agreement: number; accuracy?: number }[] = [];
+  private static performanceHistory: {
+    agreement: number;
+    accuracy?: number;
+  }[] = [];
 
   // Current learned weights
   private static currentWeights: AttentionWeights = {
     yolo: 0.35,
     sam3: 0.35,
     gpt4: 0.25,
-    sceneGraph: 0.05
+    sceneGraph: 0.05,
   };
 
   /**
    * Main three-way fusion with attention mechanism
    */
-  static fuseThreeWayEvidence(input: EnhancedFusionInput): EnhancedFusionOutput {
+  static fuseThreeWayEvidence(
+    input: EnhancedFusionInput
+  ): EnhancedFusionOutput {
     try {
       const startTime = Date.now();
 
@@ -145,16 +152,19 @@ export class EnhancedBayesianFusionService {
         yolo: yoloProb,
         sam3: sam3Prob,
         gpt4: gpt4Prob,
-        sceneGraph: sceneProb
+        sceneGraph: sceneProb,
       });
 
       // 3. Apply regularized Bayesian fusion
-      const fusionResult = this.regularizedBayesianFusion({
-        yolo: yoloProb,
-        sam3: sam3Prob,
-        gpt4: gpt4Prob,
-        sceneGraph: sceneProb
-      }, attentionWeights);
+      const fusionResult = this.regularizedBayesianFusion(
+        {
+          yolo: yoloProb,
+          sam3: sam3Prob,
+          gpt4: gpt4Prob,
+          sceneGraph: sceneProb,
+        },
+        attentionWeights
+      );
 
       // 4. Refine YOLO boxes with SAM3 masks if available
       const refinedBoxes = refineBoxesWithMasks(
@@ -166,15 +176,19 @@ export class EnhancedBayesianFusionService {
       const modalityAgreement = this.calculateModalityAgreement({
         yolo: yoloProb.probability,
         sam3: sam3Prob.probability,
-        gpt4: gpt4Prob.probability
+        gpt4: gpt4Prob.probability,
       });
 
       // 6. Calculate fusion metrics
-      const fusionMetrics = this.calculateFusionMetrics({
-        yolo: yoloProb,
-        sam3: sam3Prob,
-        gpt4: gpt4Prob
-      }, attentionWeights, fusionResult);
+      const fusionMetrics = this.calculateFusionMetrics(
+        {
+          yolo: yoloProb,
+          sam3: sam3Prob,
+          gpt4: gpt4Prob,
+        },
+        attentionWeights,
+        fusionResult
+      );
 
       // 7. Suggest weight updates based on agreement
       const adaptiveUpdate = this.suggestWeightUpdate(
@@ -193,7 +207,7 @@ export class EnhancedBayesianFusionService {
         fusionTimeMs: Date.now() - startTime,
         modalityAgreement,
         uncertaintyLevel: calibratedResult.uncertaintyLevel,
-        attentionWeights
+        attentionWeights,
       });
 
       return {
@@ -202,11 +216,11 @@ export class EnhancedBayesianFusionService {
         modalityAgreement,
         refinedBoundingBoxes: refinedBoxes,
         fusionMetrics,
-        adaptiveWeightUpdate: adaptiveUpdate
+        adaptiveWeightUpdate: adaptiveUpdate,
       };
     } catch (error) {
       logger.error('Enhanced Bayesian fusion failed', error, {
-        service: 'EnhancedBayesianFusionService'
+        service: 'EnhancedBayesianFusionService',
       });
 
       // Return conservative fallback
@@ -214,12 +228,14 @@ export class EnhancedBayesianFusionService {
     }
   }
 
-
   /**
    * Calculate attention weights using quality-aware attention mechanism
    */
   private static calculateAttentionWeights(
-    probabilities: Record<string, { probability: number; confidence: number; quality: number } | null>
+    probabilities: Record<
+      string,
+      { probability: number; confidence: number; quality: number } | null
+    >
   ): AttentionWeights {
     // Start with learned weights
     const baseWeights = { ...this.currentWeights };
@@ -233,7 +249,8 @@ export class EnhancedBayesianFusionService {
         scores[modality] = this.MIN_WEIGHT;
       } else {
         // Attention score = base_weight * confidence * quality
-        const baseWeight = baseWeights[modality as keyof AttentionWeights] || 0.25;
+        const baseWeight =
+          baseWeights[modality as keyof AttentionWeights] || 0.25;
         const score = baseWeight * prob.confidence * prob.quality;
         scores[modality] = Math.max(this.MIN_WEIGHT, score);
       }
@@ -244,7 +261,7 @@ export class EnhancedBayesianFusionService {
     const weights: AttentionWeights = {
       yolo: 0,
       sam3: 0,
-      gpt4: 0
+      gpt4: 0,
     };
 
     for (const [modality, score] of Object.entries(scores)) {
@@ -270,12 +287,19 @@ export class EnhancedBayesianFusionService {
    * Apply regularized Bayesian fusion
    */
   private static regularizedBayesianFusion(
-    probabilities: Record<string, { probability: number; confidence: number; quality: number } | null>,
+    probabilities: Record<
+      string,
+      { probability: number; confidence: number; quality: number } | null
+    >,
     weights: AttentionWeights
-  ): { mean: number; variance: number; confidenceInterval: [number, number]; uncertaintyLevel: 'low' | 'medium' | 'high' } {
+  ): {
+    mean: number;
+    variance: number;
+    confidenceInterval: [number, number];
+    uncertaintyLevel: 'low' | 'medium' | 'high';
+  } {
     // Prior mean and variance (uninformative prior)
     const priorMean = 0.5;
-    const priorVariance = 0.25;
 
     // Calculate posterior mean with regularization
     let posteriorMean = this.PRIOR_STRENGTH * priorMean;
@@ -309,21 +333,24 @@ export class EnhancedBayesianFusionService {
     }
 
     // Add entropy regularization
-    const entropy = -posteriorMean * Math.log(posteriorMean + 1e-8)
-                    - (1 - posteriorMean) * Math.log(1 - posteriorMean + 1e-8);
+    const entropy =
+      -posteriorMean * Math.log(posteriorMean + 1e-8) -
+      (1 - posteriorMean) * Math.log(1 - posteriorMean + 1e-8);
     const entropyRegularization = this.ENTROPY_REGULARIZATION * entropy;
 
-    const totalVariance = epistemicVariance + aleatoricVariance + entropyRegularization;
+    const totalVariance =
+      epistemicVariance + aleatoricVariance + entropyRegularization;
 
     // Calculate confidence interval
     const stdDev = Math.sqrt(totalVariance);
     const confidenceInterval: [number, number] = [
       Math.max(0, posteriorMean - 2 * stdDev),
-      Math.min(1, posteriorMean + 2 * stdDev)
+      Math.min(1, posteriorMean + 2 * stdDev),
     ];
 
     // Determine uncertainty level
-    const coefficientOfVariation = posteriorMean > 0 ? stdDev / posteriorMean : stdDev;
+    const coefficientOfVariation =
+      posteriorMean > 0 ? stdDev / posteriorMean : stdDev;
     let uncertaintyLevel: 'low' | 'medium' | 'high';
 
     if (coefficientOfVariation < 0.15) {
@@ -338,10 +365,9 @@ export class EnhancedBayesianFusionService {
       mean: posteriorMean,
       variance: totalVariance,
       confidenceInterval,
-      uncertaintyLevel
+      uncertaintyLevel,
     };
   }
-
 
   /**
    * Calculate agreement between modalities
@@ -354,12 +380,14 @@ export class EnhancedBayesianFusionService {
 
     // Calculate standard deviation
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+    const variance =
+      values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+      values.length;
     const stdDev = Math.sqrt(variance);
 
     // Convert to agreement score (lower std dev = higher agreement)
     // Max std dev for probabilities [0,1] is 0.5
-    const agreement = 1 - (stdDev / 0.5);
+    const agreement = 1 - stdDev / 0.5;
 
     return Math.max(0, Math.min(1, agreement));
   }
@@ -368,10 +396,17 @@ export class EnhancedBayesianFusionService {
    * Calculate fusion performance metrics
    */
   private static calculateFusionMetrics(
-    probabilities: Record<string, { probability: number; confidence: number; quality: number } | null>,
+    probabilities: Record<
+      string,
+      { probability: number; confidence: number; quality: number } | null
+    >,
     weights: AttentionWeights,
     fusionResult: { mean: number; variance: number }
-  ): { entropyReduction: number; informationGain: number; effectiveSampleSize: number } {
+  ): {
+    entropyReduction: number;
+    informationGain: number;
+    effectiveSampleSize: number;
+  } {
     // Calculate entropy before fusion (average of individual entropies)
     let beforeEntropy = 0;
     let count = 0;
@@ -391,27 +426,28 @@ export class EnhancedBayesianFusionService {
 
     // Calculate entropy after fusion
     const p = fusionResult.mean;
-    const afterEntropy = p > 0 && p < 1
-      ? -p * Math.log(p) - (1 - p) * Math.log(1 - p)
-      : 0;
+    const afterEntropy =
+      p > 0 && p < 1 ? -p * Math.log(p) - (1 - p) * Math.log(1 - p) : 0;
 
     // Entropy reduction (positive = good)
     const entropyReduction = Math.max(0, beforeEntropy - afterEntropy);
 
     // Information gain (KL divergence from uniform prior)
     const prior = 0.5;
-    const informationGain = p > 0 && p < 1
-      ? p * Math.log(p / prior) + (1 - p) * Math.log((1 - p) / (1 - prior))
-      : 0;
+    const informationGain =
+      p > 0 && p < 1
+        ? p * Math.log(p / prior) + (1 - p) * Math.log((1 - p) / (1 - prior))
+        : 0;
 
     // Effective sample size (based on variance reduction)
     const priorVariance = 0.25; // Variance of uniform prior
-    const effectiveSampleSize = priorVariance / Math.max(fusionResult.variance, 0.001);
+    const effectiveSampleSize =
+      priorVariance / Math.max(fusionResult.variance, 0.001);
 
     return {
       entropyReduction,
       informationGain: Math.abs(informationGain),
-      effectiveSampleSize
+      effectiveSampleSize,
     };
   }
 
@@ -443,7 +479,8 @@ export class EnhancedBayesianFusionService {
       const current = currentWeights[key as keyof AttentionWeights] ?? 0;
       // Move towards equal weights when agreement is high
       const target = 1 / Object.keys(currentWeights).length;
-      gradients[key as keyof AttentionWeights] = learningRate * (target - current);
+      gradients[key as keyof AttentionWeights] =
+        learningRate * (target - current);
     }
 
     // Apply weight decay
@@ -465,7 +502,7 @@ export class EnhancedBayesianFusionService {
 
     return {
       suggested,
-      reason: `High agreement (${(modalityAgreement * 100).toFixed(1)}%) suggests balanced weights`
+      reason: `High agreement (${(modalityAgreement * 100).toFixed(1)}%) suggests balanced weights`,
     };
   }
 
@@ -473,16 +510,26 @@ export class EnhancedBayesianFusionService {
    * Apply conformal calibration for uncertainty
    */
   private static applyConformalCalibration(
-    fusionResult: { mean: number; variance: number; confidenceInterval: [number, number]; uncertaintyLevel: 'low' | 'medium' | 'high' },
+    fusionResult: {
+      mean: number;
+      variance: number;
+      confidenceInterval: [number, number];
+      uncertaintyLevel: 'low' | 'medium' | 'high';
+    },
     modalityAgreement: number
-  ): { mean: number; variance: number; confidenceInterval: [number, number]; uncertaintyLevel: 'low' | 'medium' | 'high' } {
+  ): {
+    mean: number;
+    variance: number;
+    confidenceInterval: [number, number];
+    uncertaintyLevel: 'low' | 'medium' | 'high';
+  } {
     // Adjust confidence interval based on modality agreement
     const adjustmentFactor = 0.5 + 0.5 * modalityAgreement; // 0.5 to 1.0
 
     const adjustedStdDev = Math.sqrt(fusionResult.variance) * adjustmentFactor;
     const adjustedInterval: [number, number] = [
       Math.max(0, fusionResult.mean - 2 * adjustedStdDev),
-      Math.min(1, fusionResult.mean + 2 * adjustedStdDev)
+      Math.min(1, fusionResult.mean + 2 * adjustedStdDev),
     ];
 
     // Recalculate uncertainty level
@@ -501,7 +548,7 @@ export class EnhancedBayesianFusionService {
       mean: fusionResult.mean,
       variance: fusionResult.variance * adjustmentFactor * adjustmentFactor,
       confidenceInterval: adjustedInterval,
-      uncertaintyLevel
+      uncertaintyLevel,
     };
   }
 
@@ -519,8 +566,8 @@ export class EnhancedBayesianFusionService {
       fusionMetrics: {
         entropyReduction: 0,
         informationGain: 0,
-        effectiveSampleSize: 1
-      }
+        effectiveSampleSize: 1,
+      },
     };
   }
 
@@ -549,17 +596,20 @@ export class EnhancedBayesianFusionService {
       }
 
       // Persist to file
-      const weightsPath = join(process.cwd(), 'apps/web/lib/services/building-surveyor/adaptive_fusion_weights.json');
+      const weightsPath = join(
+        process.cwd(),
+        'apps/web/lib/services/building-surveyor/adaptive_fusion_weights.json'
+      );
       writeFileSync(weightsPath, JSON.stringify(this.currentWeights, null, 2));
 
       logger.info('Updated adaptive fusion weights', {
         service: 'EnhancedBayesianFusionService',
         weights: this.currentWeights,
-        performanceMetric
+        performanceMetric,
       });
     } catch (error) {
       logger.error('Failed to update learned weights', error, {
-        service: 'EnhancedBayesianFusionService'
+        service: 'EnhancedBayesianFusionService',
       });
     }
   }
@@ -569,7 +619,10 @@ export class EnhancedBayesianFusionService {
    */
   static loadLearnedWeights(): void {
     try {
-      const weightsPath = join(process.cwd(), 'apps/web/lib/services/building-surveyor/adaptive_fusion_weights.json');
+      const weightsPath = join(
+        process.cwd(),
+        'apps/web/lib/services/building-surveyor/adaptive_fusion_weights.json'
+      );
 
       if (existsSync(weightsPath)) {
         const content = readFileSync(weightsPath, 'utf-8');
@@ -579,14 +632,14 @@ export class EnhancedBayesianFusionService {
           this.currentWeights = weights;
           logger.info('Loaded adaptive fusion weights', {
             service: 'EnhancedBayesianFusionService',
-            weights: this.currentWeights
+            weights: this.currentWeights,
           });
         }
       }
     } catch (error) {
       logger.warn('Failed to load learned weights, using defaults', {
         service: 'EnhancedBayesianFusionService',
-        error
+        error,
       });
     }
   }
@@ -594,16 +647,21 @@ export class EnhancedBayesianFusionService {
   /**
    * Validate weight structure
    */
-  private static validateWeights(weights: unknown): weights is AttentionWeights {
+  private static validateWeights(
+    weights: unknown
+  ): weights is AttentionWeights {
     if (!weights || typeof weights !== 'object') return false;
     const w = weights as Record<string, unknown>;
     return (
       typeof w.yolo === 'number' &&
       typeof w.sam3 === 'number' &&
       typeof w.gpt4 === 'number' &&
-      w.yolo >= 0 && w.yolo <= 1 &&
-      w.sam3 >= 0 && w.sam3 <= 1 &&
-      w.gpt4 >= 0 && w.gpt4 <= 1
+      w.yolo >= 0 &&
+      w.yolo <= 1 &&
+      w.sam3 >= 0 &&
+      w.sam3 <= 1 &&
+      w.gpt4 >= 0 &&
+      w.gpt4 <= 1
     );
   }
 
@@ -616,17 +674,23 @@ export class EnhancedBayesianFusionService {
     fusionCount: number;
     weightStability: number;
   } {
-    const avgAgreement = this.performanceHistory.length > 0
-      ? this.performanceHistory.reduce((sum, p) => sum + p.agreement, 0) / this.performanceHistory.length
-      : 0;
+    const avgAgreement =
+      this.performanceHistory.length > 0
+        ? this.performanceHistory.reduce((sum, p) => sum + p.agreement, 0) /
+          this.performanceHistory.length
+        : 0;
 
     // Calculate weight stability (low variance = high stability)
     let weightVariance = 0;
     if (this.weightHistory.length > 1) {
       for (const key in this.currentWeights) {
-        const values = this.weightHistory.map(w => w[key as keyof AttentionWeights] ?? 0);
+        const values = this.weightHistory.map(
+          (w) => w[key as keyof AttentionWeights] ?? 0
+        );
         const mean = values.reduce((a, b) => a + b, 0) / values.length;
-        const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+        const variance =
+          values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+          values.length;
         weightVariance += variance;
       }
     }
@@ -637,7 +701,7 @@ export class EnhancedBayesianFusionService {
       currentWeights: this.currentWeights,
       averageAgreement: avgAgreement,
       fusionCount: this.performanceHistory.length,
-      weightStability: stability
+      weightStability: stability,
     };
   }
 }

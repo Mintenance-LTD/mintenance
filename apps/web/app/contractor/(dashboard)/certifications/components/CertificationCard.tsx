@@ -1,7 +1,7 @@
 'use client';
 
 import { Shield, CheckCircle, Download, Edit, Trash2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+
 import { safeNavigationUrl } from '@/lib/security/navigation-url';
 
 interface Certification {
@@ -106,7 +106,9 @@ export function CertificationCard({
         <div className='flex flex-wrap gap-2'>
           {documentUrl && (
             <button
-              onClick={() => window.open(documentUrl, '_blank', 'noopener,noreferrer')}
+              onClick={() =>
+                window.open(documentUrl, '_blank', 'noopener,noreferrer')
+              }
               className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm'
             >
               <Download className='w-4 h-4' />

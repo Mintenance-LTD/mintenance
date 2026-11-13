@@ -3,13 +3,11 @@
  * Single interface: tool name, params, result, summary for evidence recording.
  */
 
-const TOOL_NAMES = [
-  'detect',
-  'segment',
-  'vision_labels',
-  'retrieve_memory',
-] as const;
-export type ToolName = (typeof TOOL_NAMES)[number];
+export type ToolName =
+  | 'detect'
+  | 'segment'
+  | 'vision_labels'
+  | 'retrieve_memory';
 
 export interface ToolRun<TResult = unknown> {
   toolName: ToolName;

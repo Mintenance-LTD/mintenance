@@ -73,7 +73,7 @@ export const PUT = withApiHandler(
     // SECURITY: Verify admin role from database for sensitive operations
     try {
       await requireAdminFromDatabase(user.id);
-    } catch (error) {
+    } catch {
       logger.warn('Admin role verification failed for settings update', {
         service: 'admin',
         userId: user.id,
@@ -153,7 +153,7 @@ export const POST = withApiHandler(
     // SECURITY: Verify admin role from database for sensitive operations
     try {
       await requireAdminFromDatabase(user.id);
-    } catch (error) {
+    } catch {
       logger.warn('Admin role verification failed for settings creation', {
         service: 'admin',
         userId: user.id,

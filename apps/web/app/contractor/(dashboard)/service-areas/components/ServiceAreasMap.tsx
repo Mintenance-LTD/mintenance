@@ -44,7 +44,7 @@ export function ServiceAreasMap({
   onAreaClick,
   selectedAreaId,
 }: ServiceAreasMapProps): JSX.Element {
-  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [, setMap] = useState<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const circlesRef = useRef<google.maps.Circle[]>([]);
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Image as ImageIcon, Paperclip, Phone } from 'lucide-react';
-import { theme } from '@/lib/theme';
+
 import type { MessageThread } from '@mintenance/types';
 
 interface ConversationCardProps {
@@ -16,7 +16,9 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
 }) => {
   const otherParticipant = (conversation.participants || []).find(
     (p: { id: string }) => p.id !== currentUserId
-  ) as { id: string; name: string; role: string; profile_image_url?: string } | undefined;
+  ) as
+    | { id: string; name: string; role: string; profile_image_url?: string }
+    | undefined;
 
   const displayName = otherParticipant?.name ?? 'Unknown User';
   const avatarInitial = otherParticipant?.name
@@ -33,7 +35,10 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
       return 'No messages yet';
     }
 
-    const messageText = conversation.lastMessage.messageText || conversation.lastMessage.content || '';
+    const messageText =
+      conversation.lastMessage.messageText ||
+      conversation.lastMessage.content ||
+      '';
     const messageType = conversation.lastMessage.messageType;
 
     switch (messageType) {
@@ -78,7 +83,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className="flex items-center p-4 cursor-pointer bg-white transition-colors duration-200 hover:bg-gray-50"
+      className='flex items-center p-4 cursor-pointer bg-white transition-colors duration-200 hover:bg-gray-50'
       style={{ padding: '16px 24px' }}
     >
       {/* Profile Avatar - Left Side */}
@@ -87,7 +92,9 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
           width: '48px',
           height: '48px',
           borderRadius: '50%',
-          backgroundColor: otherParticipant?.profile_image_url ? 'transparent' : '#14b8a6',
+          backgroundColor: otherParticipant?.profile_image_url
+            ? 'transparent'
+            : '#14b8a6',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -116,7 +123,15 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
       </div>
 
       {/* Conversation Details - Right Side */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+        }}
+      >
         {/* Sender Name */}
         <div
           style={{
@@ -147,14 +162,16 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
       </div>
 
       {/* Right Side: Timestamp and Unread Badge */}
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'flex-end', 
-        gap: '8px',
-        flexShrink: 0,
-        marginLeft: '16px',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '8px',
+          flexShrink: 0,
+          marginLeft: '16px',
+        }}
+      >
         {conversation.lastMessage && (
           <span
             style={{
@@ -181,7 +198,9 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
               padding: '0 8px',
             }}
           >
-            {(conversation.unreadCount ?? 0) > 99 ? '99+' : conversation.unreadCount}
+            {(conversation.unreadCount ?? 0) > 99
+              ? '99+'
+              : conversation.unreadCount}
           </div>
         )}
       </div>

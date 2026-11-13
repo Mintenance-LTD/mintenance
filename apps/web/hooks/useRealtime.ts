@@ -160,26 +160,11 @@ export function useRealtime(config?: RealtimeConfig) {
 /**
  * User presence data
  */
-interface PresenceUserData {
-  id?: string;
-  name?: string;
-  avatar?: string;
-  [key: string]: unknown;
-}
 
 /**
  * Presence state map
  */
-type PresenceState = Record<string, PresenceUserData[]>;
 
 /**
  * Broadcast message structure
  */
-interface BroadcastMessage {
-  id?: string;
-  type?: string;
-  content?: string;
-  timestamp?: number;
-  senderId?: string;
-  [key: string]: unknown;
-}

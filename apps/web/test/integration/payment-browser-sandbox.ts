@@ -98,7 +98,7 @@ export async function verifySandboxBrowserJourney() {
           buffer: photo,
         });
         await workPage
-          .locator('#photo-upload-input')
+          .locator('#photo-upload-input:enabled')
           .setInputFiles(file('synthetic-before.png'));
         let response = workPage.waitForResponse(
           (r) =>
@@ -120,9 +120,15 @@ export async function verifySandboxBrowserJourney() {
           .getByRole('button', { name: 'Start Job', exact: true })
           .click();
         await successful(await response, 'Start job after reload');
+        await workPage
+          .getByText('Upload After Photos', { exact: true })
+          .waitFor();
         await workPage.reload();
         await workPage
-          .locator('#photo-upload-input')
+          .getByText('Upload After Photos', { exact: true })
+          .waitFor();
+        await workPage
+          .locator('#photo-upload-input:enabled')
           .setInputFiles([
             file('synthetic-after-wide.png'),
             file('synthetic-after-detail.png'),

@@ -243,7 +243,7 @@ export async function submitJob({
       if (contentType && contentType.includes('application/json')) {
         try {
           errorData = await response.json();
-        } catch (parseError) {
+        } catch {
           // If JSON parsing fails, read as text
           const textError = await response.text().catch(() => 'Unknown error');
           errorData = {

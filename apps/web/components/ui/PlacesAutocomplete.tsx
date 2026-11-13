@@ -32,12 +32,6 @@ interface PlacesAutocompleteProps {
 }
 
 // Map Google Places country codes to form country codes
-const COUNTRY_CODE_MAP: Record<string, string> = {
-  'GB': 'UK', // United Kingdom
-  'US': 'US', // United States
-  'CA': 'CA', // Canada
-  'AU': 'AU', // Australia
-};
 
 export function PlacesAutocomplete({
   value,
@@ -113,9 +107,15 @@ export function PlacesAutocomplete({
 
         // Try to extract country code from the last part
         let country = 'UK'; // Default
-        if (countryPart.includes('United Kingdom') || countryPart.includes('UK')) {
+        if (
+          countryPart.includes('United Kingdom') ||
+          countryPart.includes('UK')
+        ) {
           country = 'UK';
-        } else if (countryPart.includes('United States') || countryPart.includes('USA')) {
+        } else if (
+          countryPart.includes('United States') ||
+          countryPart.includes('USA')
+        ) {
           country = 'US';
         } else if (countryPart.includes('Canada')) {
           country = 'CA';
@@ -144,7 +144,8 @@ export function PlacesAutocomplete({
         throw new Error('No location data returned');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unable to geocode address';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unable to geocode address';
       setError(errorMessage);
       logger.error('Error geocoding address via proxy:', error);
     } finally {
@@ -166,7 +167,7 @@ export function PlacesAutocomplete({
     <div className={className} style={{ position: 'relative', width: '100%' }}>
       <input
         ref={inputRef}
-        type="text"
+        type='text'
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -176,25 +177,29 @@ export function PlacesAutocomplete({
         placeholder={placeholder}
         style={{
           ...style,
-          paddingRight: isGeocoding || showGeocodeButton ? '80px' : style?.paddingRight,
+          paddingRight:
+            isGeocoding || showGeocodeButton ? '80px' : style?.paddingRight,
         }}
         required={required}
-        autoComplete="off"
+        autoComplete='off'
         disabled={isGeocoding}
-        title="Enter address and press Enter or click Geocode button"
+        title='Enter address and press Enter or click Geocode button'
       />
 
       {/* Loading Spinner */}
       {isGeocoding && (
         <>
-          <style dangerouslySetInnerHTML={{
-            __html: `
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
             @keyframes places-autocomplete-spin {
               to {
                 transform: rotate(360deg);
               }
             }
-          `}} />
+          `,
+            }}
+          />
           <div
             style={{
               position: 'absolute',
@@ -221,7 +226,7 @@ export function PlacesAutocomplete({
       {/* Geocode Button */}
       {showGeocodeButton && (
         <button
-          type="button"
+          type='button'
           onClick={handleManualGeocode}
           style={{
             position: 'absolute',
@@ -246,7 +251,7 @@ export function PlacesAutocomplete({
             e.currentTarget.style.backgroundColor = 'transparent';
             e.currentTarget.style.color = '#10B981';
           }}
-          title="Geocode this address to get coordinates"
+          title='Geocode this address to get coordinates'
         >
           Geocode
         </button>
@@ -254,25 +259,29 @@ export function PlacesAutocomplete({
 
       {/* Error Message */}
       {error && (
-        <div style={{
-          fontSize: '12px',
-          color: '#EF4444',
-          marginTop: '4px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-        }}>
+        <div
+          style={{
+            fontSize: '12px',
+            color: '#EF4444',
+            marginTop: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
           <span>⚠️</span>
           <span>{error}</span>
         </div>
       )}
 
       {/* Info Message */}
-      <div style={{
-        fontSize: '11px',
-        color: '#6B7280',
-        marginTop: '4px',
-      }}>
+      <div
+        style={{
+          fontSize: '11px',
+          color: '#6B7280',
+          marginTop: '4px',
+        }}
+      >
         💡 Type address and press Enter or click Geocode
       </div>
     </div>

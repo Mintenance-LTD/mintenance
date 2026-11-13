@@ -281,7 +281,7 @@ function MessagesPageContent() {
       );
 
       setMessageInput('');
-    } catch (error) {
+    } catch {
       toast.error('Failed to send message');
     } finally {
       setSending(false);

@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge.unified';
-import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+
 import {
   getGradientCardStyle,
   getCardHoverStyle,

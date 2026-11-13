@@ -85,7 +85,7 @@ export function useTrainingRecords() {
       });
       if (!res.ok) throw new Error('Failed to delete');
       toast.success('Training deleted');
-    } catch (error) {
+    } catch {
       setTraining(previous);
       toast.error('Failed to delete training record');
     }

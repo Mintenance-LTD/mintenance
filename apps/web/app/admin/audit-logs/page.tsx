@@ -19,28 +19,10 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 
 // ---------------------------------------------------------------------------
 // Animation variants
 // ---------------------------------------------------------------------------
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 },
-  },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { opacity: 1, x: 0 },
-};
 
 // ---------------------------------------------------------------------------
 // Types -- matches audit_logs DB table
@@ -82,7 +64,10 @@ interface AuditFilters {
 // ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
-async function fetchAuditLogs(filters: AuditFilters, request: (url: string, options?: RequestInit) => Promise<Response>): Promise<AuditLogsResponse> {
+async function fetchAuditLogs(
+  filters: AuditFilters,
+  request: (url: string, options?: RequestInit) => Promise<Response>
+): Promise<AuditLogsResponse> {
   const params = new URLSearchParams();
   params.set('limit', '100');
   if (filters.search) params.set('search', filters.search);
@@ -93,7 +78,11 @@ async function fetchAuditLogs(filters: AuditFilters, request: (url: string, opti
   const response = await request(`/api/admin/audit-logs?${params.toString()}`);
 
   if (!response.ok) {
-    throw new Error(response.status === 401 ? 'Your session has expired. Sign in again to view audit logs.' : 'Unable to load audit logs. Please try again.');
+    throw new Error(
+      response.status === 401
+        ? 'Your session has expired. Sign in again to view audit logs.'
+        : 'Unable to load audit logs. Please try again.'
+    );
   }
 
   return response.json();
@@ -147,23 +136,23 @@ function getStatusColor(status: AuditLog['status']): string {
 function getStatusIcon(status: AuditLog['status']): React.ReactNode {
   switch (status) {
     case 'success':
-      return <CheckCircle className="w-4 h-4 text-green-600" />;
+      return <CheckCircle className='w-4 h-4 text-green-600' />;
     case 'failure':
-      return <XCircle className="w-4 h-4 text-red-600" />;
+      return <XCircle className='w-4 h-4 text-red-600' />;
     case 'warning':
-      return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+      return <AlertTriangle className='w-4 h-4 text-yellow-600' />;
     default:
-      return <FileText className="w-4 h-4 text-gray-600" />;
+      return <FileText className='w-4 h-4 text-gray-600' />;
   }
 }
 
 function getActionIcon(action: string): React.ReactNode {
-  if (action.includes('SETTINGS')) return <Settings className="w-5 h-5" />;
+  if (action.includes('SETTINGS')) return <Settings className='w-5 h-5' />;
   if (action.includes('USER') || action.includes('LOGIN'))
-    return <User className="w-5 h-5" />;
+    return <User className='w-5 h-5' />;
   if (action.includes('PAYMENT') || action.includes('REFUND'))
-    return <CreditCard className="w-5 h-5" />;
-  return <FileText className="w-5 h-5" />;
+    return <CreditCard className='w-5 h-5' />;
+  return <FileText className='w-5 h-5' />;
 }
 
 function formatTimestamp(iso: string): string {
@@ -188,7 +177,8 @@ function formatDetails(details: AuditLog['details']): string {
 // ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
-export default function AuditLogsPage() { const adminFetch = useAdminFetch();
+export default function AuditLogsPage() {
+  const adminFetch = useAdminFetch();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAction, setSelectedAction] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -201,7 +191,7 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
       status: selectedStatus,
       dateRange,
     }),
-    [searchQuery, selectedAction, selectedStatus, dateRange],
+    [searchQuery, selectedAction, selectedStatus, dateRange]
   );
 
   const {
@@ -218,9 +208,14 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
     retry: false,
   });
 
-  const errorMessage = queryError instanceof Error ? queryError.message : queryError ? 'Failed to load audit logs' : null;
+  const errorMessage =
+    queryError instanceof Error
+      ? queryError.message
+      : queryError
+        ? 'Failed to load audit logs'
+        : null;
 
-  const logs = data?.logs ?? [];
+  const logs = useMemo(() => data?.logs ?? [], [data?.logs]);
   const stats = data?.stats ?? { total: 0, success: 0, failure: 0, warning: 0 };
 
   const handleExport = useCallback(() => {
@@ -229,7 +224,8 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
       return;
     }
 
-    const csvHeader = 'Timestamp,User ID,Action,Resource Type,Resource ID,Status,IP Address,Details';
+    const csvHeader =
+      'Timestamp,User ID,Action,Resource Type,Resource ID,Status,IP Address,Details';
     const csvRows = logs.map((log) =>
       [
         log.created_at,
@@ -240,7 +236,7 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
         log.status,
         log.ip_address ?? '',
         `"${formatDetails(log.details).replace(/"/g, '""')}"`,
-      ].join(','),
+      ].join(',')
     );
 
     const csvContent = [csvHeader, ...csvRows].join('\n');
@@ -258,12 +254,15 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
   // -- Loading state -------------------------------------------------------
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto">
-        <div className="h-12 w-72 bg-gray-200 rounded animate-pulse mb-3" />
-        <div className="h-5 w-96 bg-gray-100 rounded animate-pulse mb-8" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto'>
+        <div className='h-12 w-72 bg-gray-200 rounded animate-pulse mb-3' />
+        <div className='h-5 w-96 bg-gray-100 rounded animate-pulse mb-8' />
+        <div className='grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-[1.5rem] p-6 min-h-[100px] animate-pulse" />
+            <div
+              key={i}
+              className='bg-white rounded-[1.5rem] p-6 min-h-[100px] animate-pulse'
+            />
           ))}
         </div>
       </div>
@@ -273,16 +272,23 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
   // -- Error state ---------------------------------------------------------
   if (errorMessage && !data) {
     return (
-      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
-        <div className="text-center max-w-md bg-white rounded-[1.5rem] p-8 shadow-sm">
-          <XCircle className="w-12 h-12 text-[#9f403d] mx-auto mb-4" aria-hidden="true" />
-          <h2 className="text-lg font-semibold text-[#2a3439] mb-2">Failed to load audit logs</h2>
-          <p className="text-[#9f403d] mb-6 text-sm break-words">{errorMessage}</p>
+      <div className='min-h-screen bg-[#f7f9fb] flex items-center justify-center'>
+        <div className='text-center max-w-md bg-white rounded-[1.5rem] p-8 shadow-sm'>
+          <XCircle
+            className='w-12 h-12 text-[#9f403d] mx-auto mb-4'
+            aria-hidden='true'
+          />
+          <h2 className='text-lg font-semibold text-[#2a3439] mb-2'>
+            Failed to load audit logs
+          </h2>
+          <p className='text-[#9f403d] mb-6 text-sm break-words'>
+            {errorMessage}
+          </p>
           <button
             onClick={() => refetch()}
-            className="px-5 py-2.5 bg-[#565e74] text-white rounded-xl font-semibold text-sm hover:brightness-110 transition-all inline-flex items-center gap-2"
+            className='px-5 py-2.5 bg-[#565e74] text-white rounded-xl font-semibold text-sm hover:brightness-110 transition-all inline-flex items-center gap-2'
           >
-            <RefreshCw className="w-4 h-4" aria-hidden="true" />
+            <RefreshCw className='w-4 h-4' aria-hidden='true' />
             Retry
           </button>
         </div>
@@ -292,109 +298,136 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
 
   // -- Main render ---------------------------------------------------------
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
+    <div className='min-h-screen bg-[#f7f9fb]'>
       {/* Page Header — flat style matching mockup */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4'>
+        <div className='flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8'>
           <div>
-            <h1 className="text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight">Audit Logs</h1>
-            <p className="text-[#566166] text-lg mt-2">
+            <h1 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+              Audit Logs
+            </h1>
+            <p className='text-[#566166] text-lg mt-2'>
               Monitor all system activities and administrative actions.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className='flex items-center gap-3'>
             {isFetching && !isLoading && (
-              <Loader2 className="w-5 h-5 text-[#717c82] animate-spin" aria-label="Refreshing data" />
+              <Loader2
+                className='w-5 h-5 text-[#717c82] animate-spin'
+                aria-label='Refreshing data'
+              />
             )}
             <button
               onClick={handleExport}
-              aria-label="Export audit logs as CSV"
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#565e74] text-white rounded-xl font-semibold text-sm hover:brightness-110 transition-all shadow-sm"
+              aria-label='Export audit logs as CSV'
+              className='flex items-center gap-2 px-5 py-2.5 bg-[#565e74] text-white rounded-xl font-semibold text-sm hover:brightness-110 transition-all shadow-sm'
             >
-              <Download className="w-4 h-4" aria-hidden="true" />
+              <Download className='w-4 h-4' aria-hidden='true' />
               Export Logs
             </button>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8" aria-label="Audit log statistics">
-          <div className="bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#dae2fd]/30 flex items-center justify-center">
-                <FileText className="w-5 h-5 text-[#565e74]" aria-hidden="true" />
+        <div
+          className='grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8'
+          aria-label='Audit log statistics'
+        >
+          <div className='bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all'>
+            <div className='flex items-center gap-2 mb-3'>
+              <div className='w-10 h-10 rounded-xl bg-[#dae2fd]/30 flex items-center justify-center'>
+                <FileText
+                  className='w-5 h-5 text-[#565e74]'
+                  aria-hidden='true'
+                />
               </div>
             </div>
-            <p className="text-[#566166] text-sm font-medium">Total Events</p>
-            <p className="text-3xl font-bold text-[#2a3439] mt-1">{stats.total.toLocaleString()}</p>
+            <p className='text-[#566166] text-sm font-medium'>Total Events</p>
+            <p className='text-3xl font-bold text-[#2a3439] mt-1'>
+              {stats.total.toLocaleString()}
+            </p>
           </div>
 
-          <div className="bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#d3e4fe]/30 flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-[#506076]" aria-hidden="true" />
+          <div className='bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all'>
+            <div className='flex items-center gap-2 mb-3'>
+              <div className='w-10 h-10 rounded-xl bg-[#d3e4fe]/30 flex items-center justify-center'>
+                <CheckCircle
+                  className='w-5 h-5 text-[#506076]'
+                  aria-hidden='true'
+                />
               </div>
             </div>
-            <p className="text-[#566166] text-sm font-medium">Successful</p>
-            <p className="text-3xl font-bold text-[#2a3439] mt-1">{stats.success.toLocaleString()}</p>
+            <p className='text-[#566166] text-sm font-medium'>Successful</p>
+            <p className='text-3xl font-bold text-[#2a3439] mt-1'>
+              {stats.success.toLocaleString()}
+            </p>
           </div>
 
-          <div className="bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#fe8983]/15 flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-[#9f403d]" aria-hidden="true" />
+          <div className='bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all'>
+            <div className='flex items-center gap-2 mb-3'>
+              <div className='w-10 h-10 rounded-xl bg-[#fe8983]/15 flex items-center justify-center'>
+                <XCircle
+                  className='w-5 h-5 text-[#9f403d]'
+                  aria-hidden='true'
+                />
               </div>
             </div>
-            <p className="text-[#566166] text-sm font-medium">Failures</p>
-            <p className="text-3xl font-bold text-[#2a3439] mt-1">{stats.failure.toLocaleString()}</p>
+            <p className='text-[#566166] text-sm font-medium'>Failures</p>
+            <p className='text-3xl font-bold text-[#2a3439] mt-1'>
+              {stats.failure.toLocaleString()}
+            </p>
           </div>
 
-          <div className="bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#e3dbfd]/30 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-[#605c78]" aria-hidden="true" />
+          <div className='bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all'>
+            <div className='flex items-center gap-2 mb-3'>
+              <div className='w-10 h-10 rounded-xl bg-[#e3dbfd]/30 flex items-center justify-center'>
+                <AlertTriangle
+                  className='w-5 h-5 text-[#605c78]'
+                  aria-hidden='true'
+                />
               </div>
             </div>
-            <p className="text-[#566166] text-sm font-medium">Warnings</p>
-            <p className="text-3xl font-bold text-[#2a3439] mt-1">{stats.warning.toLocaleString()}</p>
+            <p className='text-[#566166] text-sm font-medium'>Warnings</p>
+            <p className='text-3xl font-bold text-[#2a3439] mt-1'>
+              {stats.warning.toLocaleString()}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8'>
         {/* Filter bar */}
-        <div className="bg-white rounded-[1.5rem] p-6 mb-6 shadow-[0_12px_32px_-4px_rgba(42,52,57,0.04)] border border-[#a9b4b9]/10">
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className='bg-white rounded-[1.5rem] p-6 mb-6 shadow-[0_12px_32px_-4px_rgba(42,52,57,0.04)] border border-[#a9b4b9]/10'>
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
             {/* Search */}
-            <div className="relative">
+            <div className='relative'>
               <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                aria-hidden="true"
+                className='absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400'
+                aria-hidden='true'
               />
               <input
-                type="text"
+                type='text'
                 value={searchQuery}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setSearchQuery(e.target.value)
                 }
-                id="audit-search"
-                aria-label="Search audit logs"
-                placeholder="Search logs..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                id='audit-search'
+                aria-label='Search audit logs'
+                placeholder='Search logs...'
+                className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent'
               />
             </div>
 
             {/* Action filter */}
             <select
-              id="action-filter"
-              aria-label="Filter by action"
+              id='action-filter'
+              aria-label='Filter by action'
               value={selectedAction}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setSelectedAction(e.target.value)
               }
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent'
             >
               {ACTION_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -405,13 +438,13 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
 
             {/* Status filter */}
             <select
-              id="audit-status-filter"
-              aria-label="Filter by status"
+              id='audit-status-filter'
+              aria-label='Filter by status'
               value={selectedStatus}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setSelectedStatus(e.target.value)
               }
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent'
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -422,13 +455,13 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
 
             {/* Date range filter */}
             <select
-              id="date-filter"
-              aria-label="Filter by date range"
+              id='date-filter'
+              aria-label='Filter by date range'
               value={dateRange}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setDateRange(e.target.value)
               }
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent'
             >
               {DATE_RANGE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -440,101 +473,100 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
         </div>
 
         {/* Logs table */}
-        <div className="bg-white rounded-[1.5rem] overflow-hidden shadow-[0_12px_32px_-4px_rgba(42,52,57,0.04)] border border-[#a9b4b9]/10">
-
-          <div className="overflow-x-auto">
-            <table className="w-full" aria-label="Audit log entries">
-              <caption className="sr-only">
+        <div className='bg-white rounded-[1.5rem] overflow-hidden shadow-[0_12px_32px_-4px_rgba(42,52,57,0.04)] border border-[#a9b4b9]/10'>
+          <div className='overflow-x-auto'>
+            <table className='w-full' aria-label='Audit log entries'>
+              <caption className='sr-only'>
                 System audit log entries with timestamps, users, actions, and
                 statuses
               </caption>
-              <thead className="bg-slate-50 border-b border-gray-200">
+              <thead className='bg-slate-50 border-b border-gray-200'>
                 <tr>
                   <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                    scope='col'
+                    className='px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider'
                   >
                     Timestamp
                   </th>
                   <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                    scope='col'
+                    className='px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider'
                   >
                     User
                   </th>
                   <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                    scope='col'
+                    className='px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider'
                   >
                     Action
                   </th>
                   <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                    scope='col'
+                    className='px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider'
                   >
                     Resource
                   </th>
                   <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                    scope='col'
+                    className='px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider'
                   >
                     Status
                   </th>
                   <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                    scope='col'
+                    className='px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider'
                   >
                     IP Address
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className='divide-y divide-gray-200'>
                 {logs.map((log) => (
                   <tr
                     key={log.id}
-                    className="hover:bg-slate-50 transition-colors"
+                    className='hover:bg-slate-50 transition-colors'
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-sm text-gray-900">
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <div className='flex items-center gap-2 text-sm text-gray-900'>
                         <Clock
-                          className="w-4 h-4 text-gray-400"
-                          aria-hidden="true"
+                          className='w-4 h-4 text-gray-400'
+                          aria-hidden='true'
                         />
                         {formatTimestamp(log.created_at)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-slate-100 rounded-full">
-                          <User className="w-4 h-4 text-slate-600" />
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <div className='flex items-center gap-2'>
+                        <div className='p-2 bg-slate-100 rounded-full'>
+                          <User className='w-4 h-4 text-slate-600' />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
+                          <p className='text-sm font-medium text-gray-900 truncate max-w-[200px]'>
                             {log.user_id}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <div className='flex items-center gap-2'>
                         {getActionIcon(log.action)}
-                        <span className="text-sm text-gray-900">
+                        <span className='text-sm text-gray-900'>
                           {log.action.replace(/_/g, ' ')}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
+                    <td className='px-6 py-4'>
+                      <div className='text-sm text-gray-900'>
                         {log.resource_type.replace(/_/g, ' ')}
                       </div>
                       {log.resource_id && (
-                        <div className="text-xs text-gray-500 font-mono truncate max-w-[180px]">
+                        <div className='text-xs text-gray-500 font-mono truncate max-w-[180px]'>
                           {log.resource_id}
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <div className='flex items-center gap-2'>
                         {getStatusIcon(log.status)}
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(log.status)}`}
@@ -543,8 +575,8 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900 font-mono">
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <span className='text-sm text-gray-900 font-mono'>
                         {log.ip_address ?? '--'}
                       </span>
                     </td>
@@ -555,15 +587,15 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
 
             {/* Empty state */}
             {logs.length === 0 && !isLoading && (
-              <div className="text-center py-16">
+              <div className='text-center py-16'>
                 <Shield
-                  className="w-16 h-16 text-gray-300 mx-auto mb-4"
-                  aria-hidden="true"
+                  className='w-16 h-16 text-gray-300 mx-auto mb-4'
+                  aria-hidden='true'
                 />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className='text-lg font-semibold text-gray-900 mb-2'>
                   No logs found
                 </h3>
-                <p className="text-gray-600 mb-6">
+                <p className='text-gray-600 mb-6'>
                   Try adjusting your filters or check back later.
                 </p>
                 <button
@@ -573,7 +605,7 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
                     setSelectedStatus('all');
                     setDateRange('7days');
                   }}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+                  className='px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium'
                 >
                   Reset Filters
                 </button>
@@ -583,18 +615,18 @@ export default function AuditLogsPage() { const adminFetch = useAdminFetch();
 
           {/* Footer with count */}
           {logs.length > 0 && (
-            <div className="px-6 py-3 bg-slate-50 border-t border-gray-200 text-sm text-gray-600 flex items-center justify-between">
+            <div className='px-6 py-3 bg-slate-50 border-t border-gray-200 text-sm text-gray-600 flex items-center justify-between'>
               <span>
                 Showing {logs.length} of {stats.total.toLocaleString()} entries
               </span>
               <button
                 onClick={() => refetch()}
                 disabled={isFetching}
-                className="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 font-medium disabled:opacity-50"
+                className='inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 font-medium disabled:opacity-50'
               >
                 <RefreshCw
                   className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`}
-                  aria-hidden="true"
+                  aria-hidden='true'
                 />
                 Refresh
               </button>

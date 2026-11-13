@@ -12,7 +12,6 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query-client';
-import { logger } from '@mintenance/shared';
 
 /**
  * Contractor profile type

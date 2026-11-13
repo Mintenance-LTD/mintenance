@@ -20,7 +20,9 @@ interface VerificationBannerProps {
 /**
  * Banner component displayed when user needs to verify account before posting jobs
  */
-export function VerificationBanner({ verificationStatus }: VerificationBannerProps) {
+export function VerificationBanner({
+  verificationStatus,
+}: VerificationBannerProps) {
   const { csrfToken } = useCSRF();
   const [resendingEmail, setResendingEmail] = useState(false);
   const [emailResendMessage, setEmailResendMessage] = useState<{
@@ -56,16 +58,19 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
       if (!response.ok) {
         setEmailResendMessage({
           type: 'error',
-          message: data.error || 'Failed to send verification email. Please try again.',
+          message:
+            data.error ||
+            'Failed to send verification email. Please try again.',
         });
       } else {
         setEmailResendMessage({
           type: 'success',
-          message: data.message || 'Verification email sent! Please check your inbox.',
+          message:
+            data.message || 'Verification email sent! Please check your inbox.',
           inbucketUrl: data.inbucketUrl,
         });
       }
-    } catch (error) {
+    } catch {
       setEmailResendMessage({
         type: 'error',
         message: 'An unexpected error occurred. Please try again.',
@@ -85,24 +90,47 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
         marginBottom: theme.spacing[6],
       }}
     >
-      <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: theme.spacing[4] }}>
+      <h2
+        style={{
+          fontSize: '20px',
+          fontWeight: 600,
+          marginBottom: theme.spacing[4],
+        }}
+      >
         Verification Required
       </h2>
       <p style={{ marginBottom: theme.spacing[4] }}>
         Please verify your account before posting jobs:
       </p>
-      <ul style={{ marginBottom: theme.spacing[4], paddingLeft: theme.spacing[6] }}>
+      <ul
+        style={{
+          marginBottom: theme.spacing[4],
+          paddingLeft: theme.spacing[6],
+        }}
+      >
         {verificationStatus.missingRequirements.map((req, i) => (
           <li key={i} style={{ marginBottom: theme.spacing[2] }}>
             {req}
           </li>
         ))}
       </ul>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: theme.spacing[3],
+        }}
+      >
         {!verificationStatus.emailVerified && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[2],
+            }}
+          >
             <Button
-              variant="primary"
+              variant='primary'
               onClick={handleResendEmail}
               disabled={resendingEmail}
               style={{ width: 'fit-content' }}
@@ -115,8 +143,13 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
                   padding: theme.spacing[2],
                   borderRadius: '8px',
                   backgroundColor:
-                    emailResendMessage.type === 'success' ? '#D1FAE5' : '#FEE2E2',
-                  color: emailResendMessage.type === 'success' ? '#065F46' : '#991B1B',
+                    emailResendMessage.type === 'success'
+                      ? '#D1FAE5'
+                      : '#FEE2E2',
+                  color:
+                    emailResendMessage.type === 'success'
+                      ? '#065F46'
+                      : '#991B1B',
                   fontSize: '14px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -127,8 +160,8 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
                 {emailResendMessage.inbucketUrl && (
                   <a
                     href={emailResendMessage.inbucketUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    target='_blank'
+                    rel='noopener noreferrer'
                     style={{
                       color: '#3B82F6',
                       textDecoration: 'underline',
@@ -144,7 +177,7 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
         )}
         {!verificationStatus.phoneVerified && (
           <Link
-            href="/verify-phone"
+            href='/verify-phone'
             style={{
               display: 'inline-block',
               padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
@@ -163,4 +196,3 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
     </div>
   );
 }
-

@@ -1,5 +1,5 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { PhoneVerificationService } from './PhoneVerificationService';
+
 import { isPhoneVerificationWaivedFor } from './EarlyAccessCohort';
 import { logger } from '@mintenance/shared';
 

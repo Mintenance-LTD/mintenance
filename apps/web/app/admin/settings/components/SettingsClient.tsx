@@ -21,10 +21,7 @@ interface SettingsClientProps {
   adminId: string;
 }
 
-export function SettingsClient({
-  initialSettings,
-  adminId,
-}: SettingsClientProps) {
+export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [settings, setSettings] = useState(initialSettings);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});

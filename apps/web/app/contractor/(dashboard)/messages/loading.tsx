@@ -1,4 +1,3 @@
-import { MessageSkeleton } from '@/components/skeletons/MessageSkeleton';
 import { Skeleton, SkeletonAvatar } from '@/components/ui/Skeleton';
 
 export default function ContractorMessagesLoading() {

@@ -212,7 +212,6 @@ export class ImageAnalysisService {
       const allLabels: Map<string, number> = new Map();
       const allObjects: Map<string, number> = new Map();
       const allText: string[] = [];
-      const detectedFeatures: string[] = [];
 
       // Analyze each image with timeout protection
       const API_TIMEOUT_MS = 10000; // 10 seconds per API call
@@ -352,12 +351,7 @@ export class ImageAnalysisService {
       );
 
       // Process all results (maintains exact same aggregation logic)
-      for (const {
-        imageUrl,
-        labelResult,
-        objectResult,
-        textResult,
-      } of imageResults) {
+      for (const { labelResult, objectResult, textResult } of imageResults) {
         // Process labels (only if we got results)
         if (labelResult?.labelAnnotations) {
           (

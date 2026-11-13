@@ -92,7 +92,7 @@ jobs:
         with:
           version: 2.119.0
       - name: Prepare isolated payment database
-        run: node scripts/readiness/prepare-local.cjs
+        run: node scripts/readiness/prepare-local.cjs --payment
       - name: Start isolated payment database
         run: supabase start --workdir output/readiness-stack
       - name: Exercise authenticated payment, refunds and settlement
@@ -132,6 +132,8 @@ jobs:
       - run: npm run test:transfer-recovery --prefix scripts/db-tests
       - run: npm run test:inspections --prefix scripts/db-tests
       - run: npm run test:availability --prefix scripts/db-tests
+      - name: Verify archival policy keys and access preservation
+        run: node scripts/db-tests/archive-primary-keys.mjs
       - name: Check onboarding recovery and legacy migration compatibility
         run: |
           npm run test:onboarding --prefix scripts/db-tests

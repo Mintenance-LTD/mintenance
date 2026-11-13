@@ -5,7 +5,6 @@
  * Following Single Responsibility Principle - only handles notification creation logic
  */
 
-import { serverSupabase } from '@/lib/api/supabaseServer';
 import { NotificationService } from './NotificationService';
 import { logger } from '@mintenance/shared';
 
@@ -54,8 +53,7 @@ export async function notifyJobStatusChange(
   params: JobStatusNotificationParams
 ): Promise<JobStatusNotificationIds> {
   try {
-    const { jobId, jobTitle, oldStatus, newStatus, homeownerId, contractorId } =
-      params;
+    const { jobId, jobTitle, newStatus, homeownerId, contractorId } = params;
 
     // Determine notification recipients and messages based on status transition
     const notifications: Array<{

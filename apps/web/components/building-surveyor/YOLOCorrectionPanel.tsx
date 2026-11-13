@@ -35,7 +35,7 @@ export function YOLOCorrectionPanel({
   const [corrections, setCorrections] = useState<
     Map<number, CorrectedDetection[]>
   >(new Map());
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   const [submittedCount, setSubmittedCount] = useState(0);
 
   const currentImageUrl = imageUrls[currentImageIndex];

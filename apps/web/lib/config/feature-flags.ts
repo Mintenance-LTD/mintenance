@@ -399,11 +399,5 @@ export const featureFlags = FeatureFlagService.getInstance();
 // React hook for feature flags
 
 // Next.js API route helper
-interface FeatureFlagRequest {
-  cookies?: Record<string, string>;
-  headers: Record<string, string | string[] | undefined>;
-  connection?: { remoteAddress?: string };
-}
 
 // Export for use in other modules
-import React from 'react';

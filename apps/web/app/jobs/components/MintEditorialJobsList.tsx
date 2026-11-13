@@ -28,13 +28,6 @@ interface Props {
   jobs: JobListItem[];
 }
 
-const formatGBP = (n: number) =>
-  new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-    maximumFractionDigits: 0,
-  }).format(n);
-
 function CategoryThumb({ category }: { category?: string }) {
   const map: Record<string, { Icon: typeof Droplet; key: string }> = {
     plumbing: { Icon: Droplet, key: 'plumbing' },
@@ -117,7 +110,17 @@ const TABS: { id: Tab; label: string; match: (s: string) => boolean }[] = [
 export function MintEditorialJobsList({ jobs }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('all');
   const [category, setCategory] = useState('all');
-  const categories = useMemo(() => [...new Set(jobs.map(job => job.category).filter((value): value is string => !!value))].sort(), [jobs]);
+  const categories = useMemo(
+    () =>
+      [
+        ...new Set(
+          jobs
+            .map((job) => job.category)
+            .filter((value): value is string => !!value)
+        ),
+      ].sort(),
+    [jobs]
+  );
 
   const counts = useMemo(
     () =>
@@ -129,7 +132,10 @@ export function MintEditorialJobsList({ jobs }: Props) {
 
   const visible = useMemo(() => {
     const matcher = TABS.find((t) => t.id === activeTab)!.match;
-    return jobs.filter((j) => matcher(j.status) && (category === 'all' || j.category === category));
+    return jobs.filter(
+      (j) =>
+        matcher(j.status) && (category === 'all' || j.category === category)
+    );
   }, [jobs, activeTab, category]);
 
   // Split visible jobs into "active-ish" (everything except completed) and
@@ -167,10 +173,20 @@ export function MintEditorialJobsList({ jobs }: Props) {
         className='row'
         style={{ gap: 8, marginBottom: 14, justifyContent: 'flex-end' }}
       >
-        <label className='row' style={{ gap: 8 }}>Category
-          <select aria-label='Filter jobs by category' className='btn btn-secondary btn-sm' value={category} onChange={event => setCategory(event.target.value)}>
+        <label className='row' style={{ gap: 8 }}>
+          Category
+          <select
+            aria-label='Filter jobs by category'
+            className='btn btn-secondary btn-sm'
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+          >
             <option value='all'>All categories</option>
-            {categories.map(value => <option key={value} value={value}>{value}</option>)}
+            {categories.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
           </select>
         </label>
         <Link href='/jobs/create' className='btn btn-primary btn-sm'>
@@ -197,7 +213,10 @@ export function MintEditorialJobsList({ jobs }: Props) {
             <button
               type='button'
               className='btn btn-secondary'
-              onClick={() => { setActiveTab('all'); setCategory('all'); }}
+              onClick={() => {
+                setActiveTab('all');
+                setCategory('all');
+              }}
             >
               See all jobs
             </button>

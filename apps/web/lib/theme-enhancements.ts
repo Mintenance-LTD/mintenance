@@ -72,19 +72,6 @@ export function getCardHoverStyle(): CSSProperties {
 /**
  * Create keyframes for gradient animation (to be used in CSS)
  */
-const gradientKeyframes = `
-  @keyframes gradientShift {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
-`;
 
 /**
  * Get fade-in animation style
@@ -99,42 +86,3 @@ export function getFadeInStyle(delay: number = 0): CSSProperties {
  * Additional keyframes for animations (moved to animations-enhanced.css)
  * This is kept for backwards compatibility
  */
-const animationKeyframes = `
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;

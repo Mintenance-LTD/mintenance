@@ -26,11 +26,7 @@ function getCSRFToken(): string {
   return match?.[1] || '';
 }
 
-export function OnMyWayButton({
-  jobId,
-  contractorId,
-  appointmentId,
-}: OnMyWayButtonProps) {
+export function OnMyWayButton({ jobId, appointmentId }: OnMyWayButtonProps) {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +55,7 @@ export function OnMyWayButton({
         );
         if (arrivedTrip) setTrip(arrivedTrip);
       }
-    } catch (err) {
+    } catch {
       // Silently fail - trips may not exist yet
     }
   }, [jobId]);

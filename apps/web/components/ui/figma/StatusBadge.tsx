@@ -1,5 +1,4 @@
 import React from 'react';
-import { theme } from '@/lib/theme';
 
 type StatusBadgeVariant =
   | 'completed'
