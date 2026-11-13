@@ -4,37 +4,20 @@
  * Uses expo-camera for cross-platform camera access
  */
 
-import React, {
-  useState,
-  useRef,
-  useCallback,
-  useEffect,
-  useMemo,
-} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  Dimensions,
-  Platform,
-  Modal,
-  ScrollView,
-  Animated,
-} from 'react-native';
+/**
+ * Video Capture Screen with Guidance
+ * Provides step-by-step guidance for property video capture
+ * Uses expo-camera for cross-platform camera access
+ */
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, Modal } from 'react-native';
 import { styles } from './videoCaptureStyles';
-import {
-  CameraView,
-  CameraType,
-  useCameraPermissions,
-  useMicrophonePermissions,
-} from 'expo-camera';
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTranslation } from 'react-i18next';
-import VideoService, { VideoGuidancePhase } from '../../services/VideoService';
+import VideoService from '../../services/VideoService';
 import { roomGuidancePhase } from '../../services/video/upload/roomGuidance';
 import { runWalkthrough } from '../../services/walkthrough/KeyframeWalkthroughService';
 import { logger } from '@mintenance/shared';

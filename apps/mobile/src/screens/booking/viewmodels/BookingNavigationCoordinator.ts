@@ -147,34 +147,11 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
 /**
  * Custom hook for Booking navigation
  */
-const useBookingNavigation = (
-  navigation: AnyNavigation
-): BookingNavigationActions => {
-  const haptics = useHaptics();
-  const coordinator = new BookingNavigationCoordinator(navigation, haptics);
 
-  return {
-    goBack: coordinator.goBack,
-    openSearch: coordinator.openSearch,
-    openBookingDetails: coordinator.openBookingDetails,
-    openContractorProfile: coordinator.openContractorProfile,
-    openReschedule: coordinator.openReschedule,
-    openReview: coordinator.openReview,
-    openSupport: coordinator.openSupport,
-    shareBooking: coordinator.shareBooking,
-  };
-};
 
 /**
  * Navigation route definitions for type safety
  */
-type BookingNavigationRoutes = {
-  BookingSearch: undefined;
-  BookingDetails: { bookingId: string };
-  ContractorProfile: { contractorId: string };
-  RescheduleBooking: { booking: Booking };
-  LeaveReview: { booking: Booking };
-  HelpCenter: undefined;
-};
+
 
 // Re-export AnyNavigation type alias for external usage

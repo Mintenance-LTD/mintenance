@@ -20,7 +20,9 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export default function AdminForgotPasswordPage() {
   const { csrfToken, loading: csrfLoading } = useCSRF();
-  const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
+  const [submitStatus, setSubmitStatus] = React.useState<
+    'idle' | 'success' | 'error'
+  >('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
   const [submittedEmail, setSubmittedEmail] = React.useState('');
 
@@ -28,15 +30,12 @@ export default function AdminForgotPasswordPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    watch,
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       email: '',
     },
   });
-
-  const email = watch('email');
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
     if (!csrfToken) {
@@ -62,15 +61,28 @@ export default function AdminForgotPasswordPage() {
 
       if (!response.ok) {
         if (response.status === 429) {
-          throw new Error('Too many password reset requests. Please try again later.');
+          throw new Error(
+            'Too many password reset requests. Please try again later.'
+          );
         } else if (response.status === 403) {
-          throw new Error('Access denied. Please refresh the page and try again.');
+          throw new Error(
+            'Access denied. Please refresh the page and try again.'
+          );
         } else if (response.status === 400) {
-          throw new Error(responseData.error || 'Invalid email address. Please check and try again.');
+          throw new Error(
+            responseData.error ||
+              'Invalid email address. Please check and try again.'
+          );
         } else if (response.status === 500 || response.status === 503) {
-          throw new Error(responseData.error || 'Service temporarily unavailable. Please try again later.');
+          throw new Error(
+            responseData.error ||
+              'Service temporarily unavailable. Please try again later.'
+          );
         } else {
-          throw new Error(responseData.error || 'Failed to send reset email. Please try again.');
+          throw new Error(
+            responseData.error ||
+              'Failed to send reset email. Please try again.'
+          );
         }
       }
 
@@ -78,83 +90,97 @@ export default function AdminForgotPasswordPage() {
         setSubmittedEmail(data.email);
         setSubmitStatus('success');
       } else {
-        throw new Error(responseData.error || 'Failed to send reset email. Please try again.');
+        throw new Error(
+          responseData.error || 'Failed to send reset email. Please try again.'
+        );
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send reset email. Please try again.';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to send reset email. Please try again.';
       setErrorMessage(errorMessage);
       setSubmitStatus('error');
     }
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="flex w-1/2 bg-primary text-white p-12 flex-col justify-between">
+    <div className='min-h-screen flex'>
+      <div className='flex w-1/2 bg-primary text-white p-12 flex-col justify-between'>
         <div>
-          <Link href="/" className="flex items-center space-x-2 mb-12">
+          <Link href='/' className='flex items-center space-x-2 mb-12'>
             <Logo />
-            <h1 className="text-3xl font-bold">Mintenance</h1>
+            <h1 className='text-3xl font-bold'>Mintenance</h1>
           </Link>
-          <h2 className="text-4xl font-bold mb-6">Admin Portal</h2>
-          <p className="text-xl text-gray-300">Reset your admin account password.</p>
+          <h2 className='text-4xl font-bold mb-6'>Admin Portal</h2>
+          <p className='text-xl text-gray-300'>
+            Reset your admin account password.
+          </p>
         </div>
-        <div className="text-sm text-gray-400">
+        <div className='text-sm text-gray-400'>
           <p>© 2025 MINTENANCE LTD</p>
           <p>Company No. 16542104</p>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h2>
-          <p className="text-gray-600 mb-8">
-            Enter your email address and we'll send you a link to reset your password.
+      <div className='flex-1 flex items-center justify-center p-8 bg-white'>
+        <div className='w-full max-w-md'>
+          <h2 className='text-3xl font-bold text-gray-900 mb-2'>
+            Reset Password
+          </h2>
+          <p className='text-gray-600 mb-8'>
+            Enter your email address and we'll send you a link to reset your
+            password.
           </p>
 
           {submitStatus === 'success' ? (
-            <div className="space-y-6">
-              <Alert className="border-green-200 bg-green-50">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-800">Check Your Email</AlertTitle>
-                <AlertDescription className="text-green-700">
-                  We've sent a password reset link to <strong>{submittedEmail}</strong>. Please check your inbox and follow the instructions.
+            <div className='space-y-6'>
+              <Alert className='border-green-200 bg-green-50'>
+                <CheckCircle2 className='h-4 w-4 text-green-600' />
+                <AlertTitle className='text-green-800'>
+                  Check Your Email
+                </AlertTitle>
+                <AlertDescription className='text-green-700'>
+                  We've sent a password reset link to{' '}
+                  <strong>{submittedEmail}</strong>. Please check your inbox and
+                  follow the instructions.
                 </AlertDescription>
               </Alert>
-              <p className="text-sm text-gray-600">
+              <p className='text-sm text-gray-600'>
                 Didn't receive the email? Check your spam folder or{' '}
                 <button
                   onClick={() => {
                     setSubmitStatus('idle');
                     setSubmittedEmail('');
                   }}
-                  className="text-primary hover:text-primary-light font-medium"
+                  className='text-primary hover:text-primary-light font-medium'
                 >
                   try again
                 </button>
                 .
               </p>
-              <Link href="/admin/login">
-                <Button variant="primary" fullWidth>
+              <Link href='/admin/login'>
+                <Button variant='primary' fullWidth>
                   Back to Sign In
                 </Button>
               </Link>
             </div>
           ) : (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
               {submitStatus === 'error' && errorMessage && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
+                <Alert variant='destructive'>
+                  <AlertCircle className='h-4 w-4' />
                   <AlertTitle>Error</AlertTitle>
                   <AlertDescription>{errorMessage}</AlertDescription>
                 </Alert>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email address</Label>
+              <div className='space-y-2'>
+                <Label htmlFor='email'>Email address</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your work email"
+                  id='email'
+                  type='email'
+                  placeholder='Enter your work email'
                   {...register('email')}
                   errorText={errors.email?.message}
                   disabled={isSubmitting}
@@ -162,19 +188,27 @@ export default function AdminForgotPasswordPage() {
               </div>
 
               <Button
-                type="submit"
-                variant="primary"
+                type='submit'
+                variant='primary'
                 fullWidth
                 disabled={isSubmitting || csrfLoading}
-                leftIcon={isSubmitting || csrfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
+                leftIcon={
+                  isSubmitting || csrfLoading ? (
+                    <Loader2 className='h-4 w-4 animate-spin' />
+                  ) : undefined
+                }
               >
-                {csrfLoading ? 'Loading...' : isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                {csrfLoading
+                  ? 'Loading...'
+                  : isSubmitting
+                    ? 'Sending...'
+                    : 'Send Reset Link'}
               </Button>
 
-              <div className="text-center">
+              <div className='text-center'>
                 <Link
-                  href="/admin/login"
-                  className="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
+                  href='/admin/login'
+                  className='text-sm font-medium text-gray-600 hover:text-primary transition-colors'
                 >
                   ← Back to Sign In
                 </Link>
@@ -182,9 +216,10 @@ export default function AdminForgotPasswordPage() {
             </form>
           )}
 
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center">
-              For your security, password reset links expire after 1 hour. If you didn't request this reset, you can safely ignore the email.
+          <div className='mt-8 pt-6 border-t border-gray-200'>
+            <p className='text-xs text-gray-500 text-center'>
+              For your security, password reset links expire after 1 hour. If
+              you didn't request this reset, you can safely ignore the email.
             </p>
           </div>
         </div>
@@ -192,4 +227,3 @@ export default function AdminForgotPasswordPage() {
     </div>
   );
 }
-

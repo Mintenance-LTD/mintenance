@@ -4,11 +4,7 @@
 // ============================================================================
 
 import { logger } from '../logger';
-import {
-  PerformanceMetric,
-  ComponentPerformance,
-  PerformanceViolation,
-} from './types';
+import { PerformanceMetric, ComponentPerformance } from './types';
 
 export class MetricsCollector {
   private metrics: PerformanceMetric[] = [];

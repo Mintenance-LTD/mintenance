@@ -1,8 +1,4 @@
-import {
-  ContractorMeeting,
-  MeetingUpdate,
-  LocationData,
-} from '@mintenance/types';
+import { ContractorMeeting, MeetingUpdate } from '@mintenance/types';
 import { ContractorLocationContext } from '../JobContextLocationService';
 
 export interface ContractorLocation {
@@ -66,16 +62,7 @@ export interface DatabaseMeetingRow {
   };
 }
 
-interface DatabaseMeetingUpdateRow {
-  id: string;
-  meeting_id: string;
-  update_type: MeetingUpdate['updateType'];
-  message: string;
-  updated_by: string;
-  timestamp: string;
-  old_value: string | null;
-  new_value: string | null;
-}
+
 
 export interface DatabaseContractorLocationRow {
   id: string;

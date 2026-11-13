@@ -113,22 +113,7 @@ export function mapAppointmentToMeeting(
   };
 }
 
-function normalizeSupabaseError(
-  error: Error | unknown,
-  fallbackMessage: string
-): Error {
-  if (!error) return new Error(fallbackMessage);
-  if (error instanceof Error) return error;
-  const supabaseError = error as SupabaseError;
-  const messageCandidate = [
-    typeof supabaseError.message === 'string' && supabaseError.message.trim(),
-    typeof supabaseError.error_description === 'string' &&
-      supabaseError.error_description.trim(),
-    typeof supabaseError.details === 'string' && supabaseError.details.trim(),
-    typeof supabaseError.hint === 'string' && supabaseError.hint.trim(),
-  ].find((value) => value);
-  return new Error((messageCandidate as string) || fallbackMessage);
-}
+
 
 export function mapDatabaseToMeeting(
   data: DatabaseMeetingRow

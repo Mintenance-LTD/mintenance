@@ -13,14 +13,7 @@ interface PricingState {
   error: string | null;
 }
 
-const useCachedPricing = (jobId: string, analysis: PricingAnalysis | null) => {
-  return useQuery({
-    queryKey: ['pricing', jobId],
-    queryFn: async () => analysis,
-    enabled: !!analysis,
-    staleTime: 5 * 60 * 1000,
-  });
-};
+
 
 export const useAIPricing = () => {
   const [pricingState, setPricingState] = useState<PricingState>({

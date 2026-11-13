@@ -1,7 +1,4 @@
-interface LocalDatabaseConfig {
-  name: string;
-  version: number;
-}
+
 
 export interface SyncMetadata {
   table: string;
@@ -75,11 +72,7 @@ export interface DatabaseSyncMetadataRow {
   is_dirty: number;
 }
 
-interface DatabaseStorageInfoRow {
-  total?: number;
-  dirty?: number;
-  actions?: number;
-}
+
 
 export interface DatabaseOfflineActionRow {
   id: string;

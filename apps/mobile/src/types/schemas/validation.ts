@@ -34,46 +34,8 @@ export const validateSchema = <T>(schema: z.ZodSchema<T>, data: unknown): T => {
   }
 };
 
-const safeValidateSchema = <T>(
-  schema: z.ZodSchema<T>,
-  data: unknown
-): { success: true; data: T } | { success: false; error: ValidationError } => {
-  try {
-    const validData = validateSchema(schema, data);
-    return { success: true, data: validData };
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return { success: false, error };
-    }
-    return {
-      success: false,
-      error: new ValidationError('Unknown validation error'),
-    };
-  }
-};
+
 
 // ============================================================================
 // COMMON VALIDATORS
 // ============================================================================
-
-const isValidEmail = (email: string): boolean => {
-  return EmailSchema.safeParse(email).success;
-};
-
-const isValidPassword = (password: string): boolean => {
-  return PasswordSchema.safeParse(password).success;
-};
-
-const isValidUUID = (id: string): boolean => {
-  return UUIDSchema.safeParse(id).success;
-};
-
-const isValidJobCategory = (category: string): category is JobCategory => {
-  return JobCategorySchema.safeParse(category).success;
-};
-
-const isValidUserRole = (
-  role: string
-): role is z.infer<typeof UserRoleSchema> => {
-  return UserRoleSchema.safeParse(role).success;
-};

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TextStyle, StyleSheet } from 'react-native';
+import { Text, TextStyle } from 'react-native';
 import { theme } from '../../../theme';
 
 type TypographyVariant =
@@ -123,12 +123,8 @@ export const Typography: React.FC<TypographyProps> = ({
   </Text>
 );
 
-const Display1: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
-  <Typography {...props} variant='display1' accessibilityRole='header' />
-);
-const Display2: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
-  <Typography {...props} variant='display2' accessibilityRole='header' />
-);
+
+
 export const H1: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
   <Typography {...props} variant='h1' accessibilityRole='header' />
 );
@@ -138,21 +134,11 @@ export const H2: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
 export const H3: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
   <Typography {...props} variant='h3' accessibilityRole='header' />
 );
-const H4: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
-  <Typography {...props} variant='h4' accessibilityRole='header' />
-);
-const H5: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
-  <Typography {...props} variant='h5' accessibilityRole='header' />
-);
-const H6: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
-  <Typography {...props} variant='h6' accessibilityRole='header' />
-);
-const Subtitle1: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
-  <Typography {...props} variant='subtitle1' />
-);
-const Subtitle2: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
-  <Typography {...props} variant='subtitle2' />
-);
+
+
+
+
+
 export const Body1: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
   <Typography {...props} variant='body1' />
 );
@@ -161,7 +147,4 @@ export const Body2: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
 );
 export const Caption: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
   <Typography {...props} variant='caption' />
-);
-const Overline: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
-  <Typography {...props} variant='overline' />
 );

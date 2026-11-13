@@ -169,71 +169,7 @@ interface ThemeModeSelectorProps {
   testID?: string;
 }
 
-const ThemeModeSelector: React.FC<ThemeModeSelectorProps> = ({
-  style,
-  testID,
-}) => {
-  const { themeMode, setThemeMode } = useTheme();
-  const modes: {
-    key: 'light' | 'dark' | 'system';
-    label: string;
-    icon: string;
-  }[] = [
-    { key: 'light', label: 'Light', icon: 'sunny' },
-    { key: 'dark', label: 'Dark', icon: 'moon' },
-    { key: 'system', label: 'System', icon: 'phone-portrait' },
-  ];
 
-  return (
-    <View style={[styles.selectorContainer, style]} testID={testID}>
-      <Text style={styles.selectorTitle}>Theme</Text>
-      <View style={styles.selectorOptions}>
-        {modes.map((mode) => (
-          <TouchableOpacity
-            key={mode.key}
-            style={[
-              styles.selectorOption,
-              {
-                backgroundColor:
-                  themeMode === mode.key
-                    ? theme.colors.textPrimary
-                    : theme.colors.backgroundSecondary,
-                borderColor: theme.colors.border,
-              },
-            ]}
-            onPress={() => setThemeMode(mode.key)}
-            accessibilityRole='button'
-            accessibilityLabel={`Set ${mode.label.toLowerCase()} theme`}
-            accessibilityState={{ selected: themeMode === mode.key }}
-          >
-            <Ionicons
-              name={mode.icon as keyof typeof Ionicons.glyphMap}
-              size={20}
-              color={
-                themeMode === mode.key
-                  ? theme.colors.textInverse
-                  : theme.colors.textPrimary
-              }
-            />
-            <Text
-              style={[
-                styles.selectorOptionText,
-                {
-                  color:
-                    themeMode === mode.key
-                      ? theme.colors.textInverse
-                      : theme.colors.textPrimary,
-                },
-              ]}
-            >
-              {mode.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-};
 
 const styles = StyleSheet.create({
   buttonContent: {

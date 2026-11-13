@@ -24,8 +24,7 @@ export const useTypedNavigation = <T extends keyof RootStackParamList>() =>
 /**
  * Type-safe version of useRoute for root navigation
  */
-const useTypedRoute = <T extends keyof RootStackParamList>() =>
-  useRoute<RouteProp<RootStackParamList, T>>();
+
 
 // ============================================================================
 // FEATURE-SPECIFIC NAVIGATION HOOKS
@@ -40,8 +39,7 @@ export const useJobsNavigation = <T extends keyof JobsStackParamList>() =>
 /**
  * Type-safe route hook for Jobs feature
  */
-const useJobsRoute = <T extends keyof JobsStackParamList>() =>
-  useRoute<RouteProp<JobsStackParamList, T>>();
+
 
 /**
  * Type-safe navigation hook for Messaging feature
@@ -53,8 +51,7 @@ export const useMessagingNavigation = <
 /**
  * Type-safe route hook for Messaging feature
  */
-const useMessagingRoute = <T extends keyof MessagingStackParamList>() =>
-  useRoute<RouteProp<MessagingStackParamList, T>>();
+
 
 /**
  * Type-safe navigation hook for Profile feature
@@ -65,8 +62,7 @@ export const useProfileNavigation = <T extends keyof ProfileStackParamList>() =>
 /**
  * Type-safe route hook for Profile feature
  */
-const useProfileRoute = <T extends keyof ProfileStackParamList>() =>
-  useRoute<RouteProp<ProfileStackParamList, T>>();
+
 
 // ============================================================================
 // NAVIGATION UTILITIES
@@ -360,82 +356,3 @@ const useEnhancedNavigation = () => {
 /**
  * Navigation flow helper for common user journeys
  */
-const useNavigationFlows = () => {
-  const { navigateWithGuard, user } = useEnhancedNavigation();
-
-  const navigateToJobDetails = (jobId: string) => {
-    return navigateWithGuard(
-      'Main',
-      {
-        screen: 'JobsTab',
-        params: { screen: 'JobDetails', params: { jobId } },
-      },
-      {
-        requiresAuth: true,
-      }
-    );
-  };
-
-  const navigateToMessaging = (params: {
-    conversationId: string;
-    jobTitle?: string;
-    otherUserId?: string;
-    otherUserName?: string;
-  }) => {
-    return navigateWithGuard(
-      'Main',
-      {
-        screen: 'MessagingTab',
-        params: {
-          screen: 'Messaging',
-          params: {
-            conversationId: params.conversationId,
-            jobTitle: params.jobTitle,
-            recipientId: params.otherUserId,
-            recipientName: params.otherUserName,
-          },
-        },
-      },
-      {
-        requiresAuth: true,
-      }
-    );
-  };
-
-  const navigateToCreateJob = () => {
-    return navigateWithGuard(
-      'Modal',
-      {
-        screen: 'ServiceRequest',
-      },
-      {
-        requiresAuth: true,
-        allowedRoles: ['homeowner'],
-        fallbackScreen: 'Main',
-      }
-    );
-  };
-
-  const navigateToBidSubmission = (jobId: string) => {
-    return navigateWithGuard(
-      'Main',
-      {
-        screen: 'JobsTab',
-        params: { screen: 'BidSubmission', params: { jobId } },
-      },
-      {
-        requiresAuth: true,
-        allowedRoles: ['contractor'],
-        fallbackScreen: 'Main',
-      }
-    );
-  };
-
-  return {
-    navigateToJobDetails,
-    navigateToMessaging,
-    navigateToCreateJob,
-    navigateToBidSubmission,
-    user,
-  };
-};

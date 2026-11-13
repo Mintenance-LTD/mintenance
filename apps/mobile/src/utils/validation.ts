@@ -5,15 +5,13 @@
  * Uses the standardized types and ensures data consistency across the application.
  */
 
-import {
-  User,
-  Job,
-  Bid,
-  Message,
-  ContractorProfile,
-  ValidationResult,
-  FieldValidation
-} from '../types/standardized';
+/**
+ * Data Validation Schemas
+ *
+ * This file provides comprehensive validation schemas for all application entities.
+ * Uses the standardized types and ensures data consistency across the application.
+ */
+import { User, Job, Bid, Message, ContractorProfile, ValidationResult } from '../types/standardized';
 
 // =============================================
 // VALIDATION UTILITIES

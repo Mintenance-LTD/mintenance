@@ -64,7 +64,7 @@ export const useI18n = () => {
       const opts =
         typeof options === 'string' ? { defaultValue: options } : options;
       return t(key, opts as Record<string, string>);
-    } catch (error) {
+    } catch {
       logger.warn('Translation missing for key: ${key}');
       // Return the key as fallback
       return key.split('.').pop() || key;
@@ -239,24 +239,6 @@ export const useI18n = () => {
 };
 
 // Hook for RTL-aware styles
-const useRTLStyles = <T extends Record<string, unknown>>(
-  ltrStyles: T,
-  rtlStyles?: Partial<T>
-) => {
-  const { isRTL } = useI18n();
 
-  if (!isRTL || !rtlStyles) {
-    return ltrStyles;
-  }
-
-  return {
-    ...ltrStyles,
-    ...rtlStyles,
-  };
-};
 
 // Hook for direction-aware values
-const useDirectionValue = <T>(ltrValue: T, rtlValue: T) => {
-  const { isRTL } = useI18n();
-  return isRTL ? rtlValue : ltrValue;
-};

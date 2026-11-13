@@ -24,11 +24,7 @@ export interface ChunkMetrics {
   timestamp: number;
 }
 
-interface SplittingStrategy {
-  type: 'route' | 'feature' | 'vendor' | 'lazy';
-  threshold: number; // KB
-  priority: 'high' | 'medium' | 'low';
-}
+
 
 class CodeSplittingManager {
   private static instance: CodeSplittingManager;

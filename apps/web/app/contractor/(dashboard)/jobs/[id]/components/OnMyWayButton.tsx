@@ -26,10 +26,22 @@ function getCSRFToken(): string {
   return match?.[1] || '';
 }
 
-export function OnMyWayButton({ jobId, appointmentId }: OnMyWayButtonProps) {
+export function OnMyWayButton(props: OnMyWayButtonProps) {
+  return <TripStatus key={`${props.contractorId}:${props.jobId}`} {...props} />;
+}
+
+function TripStatus({ jobId, appointmentId }: OnMyWayButtonProps) {
   const [trip, setTrip] = useState<Trip | null>(null);
+  const [now, setNow] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (trip?.status !== 'en_route') return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, [trip?.status]);
 
   const fetchActiveTrip = useCallback(async () => {
     try {
@@ -160,9 +172,13 @@ export function OnMyWayButton({ jobId, appointmentId }: OnMyWayButtonProps) {
 
   // En route state
   if (trip?.status === 'en_route') {
-    const elapsed = Math.round(
-      (Date.now() - new Date(trip.started_at).getTime()) / 60000
-    );
+    const elapsed =
+      now === null
+        ? 0
+        : Math.max(
+            0,
+            Math.round((now - new Date(trip.started_at).getTime()) / 60000)
+          );
     return (
       <div className='bg-blue-50 border-2 border-blue-200 rounded-2xl p-5'>
         <div className='flex items-center justify-between mb-3'>

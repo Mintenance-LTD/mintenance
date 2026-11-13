@@ -56,23 +56,10 @@ interface AppConfig {
 }
 
 // Helper function to parse boolean from string
-const parseBoolean = (
-  value: string | undefined,
-  defaultValue: boolean = false
-): boolean => {
-  if (!value) return defaultValue;
-  return value.toLowerCase() === 'true';
-};
+
 
 // Helper function to parse number from string
-const parseNumber = (
-  value: string | undefined,
-  defaultValue: number
-): number => {
-  if (!value) return defaultValue;
-  const parsed = parseInt(value, 10);
-  return isNaN(parsed) ? defaultValue : parsed;
-};
+
 
 // Get current environment
 const getCurrentEnvironment = (): Environment => {
@@ -219,9 +206,7 @@ const validateConfig = (): {
 };
 
 // Get comprehensive security report
-const getSecurityReport = () => {
-  return environmentSecurity.generateSecurityReport();
-};
+
 
 // Helper functions for feature flags
 export const isFeatureEnabled = (
@@ -238,8 +223,8 @@ export const isFeatureEnabled = (
 };
 
 const isDevelopment = () => config.environment === 'development';
-const isStaging = () => config.environment === 'staging';
-const isProduction = () => config.environment === 'production';
+
+
 
 // Log configuration on startup (development only)
 if (isDevelopment()) {

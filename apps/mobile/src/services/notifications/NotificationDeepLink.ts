@@ -2,13 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { logger } from '../../utils/logger';
 import * as sentry from '../../config/sentry';
 import { routeForNotification } from './notificationRoutingTable';
-import type {
-  NotificationData,
-  NotificationDeepLinkData,
-  DeepLinkParams,
-  NavigationRef,
-  QueuedNotification,
-} from './types';
+import type { NotificationData, NotificationDeepLinkData, DeepLinkParams, NavigationRef } from './types';
 
 function addBreadcrumb(
   message: string,

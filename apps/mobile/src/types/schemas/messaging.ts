@@ -56,6 +56,3 @@ const CreateMessageSchema = z.object({
 });
 
 // Type exports
-type Message = z.infer<typeof MessageSchema>;
-type CreateMessage = z.infer<typeof CreateMessageSchema>;
-type MessageType = z.infer<typeof MessageTypeSchema>;

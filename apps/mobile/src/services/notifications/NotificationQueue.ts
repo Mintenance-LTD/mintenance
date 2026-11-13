@@ -18,9 +18,7 @@ function addBreadcrumb(
 
 let notificationQueue: QueuedNotification[] = [];
 
-function getQueue(): QueuedNotification[] {
-  return notificationQueue;
-}
+
 
 export async function queueNotification(
   notification: Notifications.Notification

@@ -55,7 +55,7 @@ class Logger {
         }
         return value;
       });
-    } catch (error) {
+    } catch {
       return '[Unable to stringify]';
     }
   }
@@ -76,7 +76,7 @@ class Logger {
       return this.sanitizeContext(input as LogContext);
     try {
       return { value: String(input) };
-    } catch (_) {
+    } catch {
       return { value: '[Unserializable]' };
     }
   }
@@ -168,7 +168,7 @@ class Logger {
         }
       }
       return sanitized;
-    } catch (error) {
+    } catch {
       return { error: 'Failed to sanitize context' };
     }
   }

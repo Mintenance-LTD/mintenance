@@ -202,7 +202,7 @@ export const formatDate = (date: Date, language?: Language): string => {
       month: 'short',
       day: 'numeric',
     }).format(date);
-  } catch (error) {
+  } catch {
     // Fallback to ISO string
     return date.toISOString().split('T')[0] ?? '';
   }
@@ -227,7 +227,7 @@ export const formatRelativeTime = (date: Date, language?: Language): string => {
     } else {
       return rtf.format(-Math.floor(diffInSeconds / 86400), 'day');
     }
-  } catch (error) {
+  } catch {
     // Fallback to simple formatting
     if (diffInSeconds < 60) return 'just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;

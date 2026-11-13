@@ -7,31 +7,7 @@ interface QuickActionsProps {
   onStartVideoCapture: () => void;
 }
 
-const QuickActions: React.FC<QuickActionsProps> = ({ onStartVideoCapture }) => {
-  return (
-    <View style={styles.quickActions}>
-      <TouchableOpacity
-        style={styles.primaryAction}
-        onPress={onStartVideoCapture}
-        activeOpacity={0.8}
-      >
-        <Icon name='videocam' size={22} color='#FFFFFF' />
-        <Text style={styles.primaryActionText}>Start Video Capture</Text>
-      </TouchableOpacity>
 
-      <View style={styles.secondaryRow}>
-        <TouchableOpacity style={styles.secondaryAction} activeOpacity={0.7}>
-          <Icon name='save' size={18} color={me.ink2} />
-          <Text style={styles.secondaryText}>Save Draft</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryAction} activeOpacity={0.7}>
-          <Icon name='share' size={18} color={me.ink2} />
-          <Text style={styles.secondaryText}>Share</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
 
 export const TipsCard: React.FC = () => {
   return (

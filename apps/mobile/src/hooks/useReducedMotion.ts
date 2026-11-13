@@ -88,56 +88,7 @@ function useReducedMotion(): boolean {
  * />
  * ```
  */
-function useMotionPreference() {
-  const prefersReducedMotion = useReducedMotion();
 
-  return {
-    /** Whether animations should be applied */
-    shouldAnimate: !prefersReducedMotion,
-
-    /** Whether reduced motion is preferred */
-    prefersReducedMotion,
-
-    /**
-     * Get animation duration with reduced motion support
-     * Returns 0 if reduced motion is preferred
-     */
-    getDuration: (duration: number): number => {
-      if (prefersReducedMotion) {
-        return 0;
-      }
-      return duration;
-    },
-
-    /**
-     * Get animation config with reduced motion support
-     * Returns instant animation if reduced motion is preferred
-     */
-    getAnimationConfig: <T extends Record<string, unknown>>(
-      config?: T
-    ): T | { duration: number; useNativeDriver: boolean } => {
-      if (prefersReducedMotion) {
-        return { duration: 0, useNativeDriver: true };
-      }
-      return config ?? ({} as T);
-    },
-
-    /**
-     * Conditionally execute animation
-     * Returns a no-op function if reduced motion is preferred
-     */
-    withAnimation: <T extends (...args: unknown[]) => unknown>(
-      animationFn: T
-    ): T | (() => void) => {
-      if (prefersReducedMotion) {
-        return () => {
-          // No-op
-        };
-      }
-      return animationFn;
-    },
-  };
-}
 
 /**
  * Helper to get animation value with reduced motion support
@@ -151,15 +102,7 @@ function useMotionPreference() {
  * });
  * ```
  */
-function useAnimatedValue(
-  shouldReduce: boolean,
-  config: {
-    initial: number;
-    final: number;
-  }
-): number {
-  return shouldReduce ? config.final : config.initial;
-}
+
 
 /**
  * Helper to conditionally apply animation properties
@@ -172,15 +115,7 @@ function useAnimatedValue(
  * });
  * ```
  */
-function useConditionalAnimation<T>(
-  shouldReduce: boolean,
-  config: {
-    animated: T;
-    static: T;
-  }
-): T {
-  return shouldReduce ? config.static : config.animated;
-}
+
 
 /**
  * Check if screen reader is enabled
@@ -230,27 +165,7 @@ function useScreenReaderEnabled(): boolean {
  * const { reducedMotion, screenReader, shouldSimplifyUI } = useAccessibilityState();
  * ```
  */
-function useAccessibilityState() {
-  const reducedMotion = useReducedMotion();
-  const screenReader = useScreenReaderEnabled();
 
-  return {
-    /** Whether user prefers reduced motion */
-    reducedMotion,
-
-    /** Whether screen reader is active */
-    screenReader,
-
-    /** Whether UI should be simplified (either condition true) */
-    shouldSimplifyUI: reducedMotion || screenReader,
-
-    /** Whether animations should be disabled */
-    shouldDisableAnimations: reducedMotion,
-
-    /** Whether to use alternative feedback (vibration, sound) */
-    shouldUseAlternativeFeedback: screenReader,
-  };
-}
 
 /**
  * Default export for convenience

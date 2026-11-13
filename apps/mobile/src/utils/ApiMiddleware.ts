@@ -3,7 +3,11 @@
  * Integrates API protection with service calls
  */
 
-import { apiProtectionService, ApiRequest, ApiResponse } from './ApiProtection';
+/**
+ * API Middleware
+ * Integrates API protection with service calls
+ */
+import { apiProtectionService, ApiRequest } from './ApiProtection';
 import { logger } from './logger';
 import { config } from '../config/environment';
 

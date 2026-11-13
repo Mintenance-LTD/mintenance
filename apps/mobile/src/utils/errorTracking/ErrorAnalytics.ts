@@ -5,17 +5,7 @@
 
 import { Platform } from 'react-native';
 import { logger } from '../logger';
-import {
-  ErrorPattern,
-  ErrorOccurrence,
-  ErrorMetrics,
-  ErrorInsight,
-  ErrorRecommendation,
-  ErrorTrend,
-  UserErrorProfile,
-  ErrorCategory,
-  ErrorSeverity,
-} from './ErrorTypes';
+import { ErrorPattern, ErrorOccurrence, ErrorInsight, ErrorRecommendation, ErrorTrend, UserErrorProfile, ErrorCategory, ErrorSeverity } from './ErrorTypes';
 import { ErrorReportGenerator } from './ErrorReportGenerator';
 import { ErrorTrendAnalysis } from './ErrorTrendAnalysis';
 

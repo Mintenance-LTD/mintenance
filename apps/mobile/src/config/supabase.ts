@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 import { logger } from '../utils/logger';
 import { ExpoSecureStoreAdapter } from './supabaseStorageAdapter';
 
-type SupabaseLike = SupabaseClient | MockSupabase;
+
 
 interface MockSupabase {
   auth: {
@@ -173,33 +173,7 @@ export const supabaseConfigErrorDetails: readonly string[] = initError
   ? validation.errors
   : [];
 
-const testSupabaseConnection = async (): Promise<{
-  success: boolean;
-  error?: string;
-  latency?: number;
-}> => {
-  if (useMockFlag || !credentialsValid) {
-    return {
-      success: false,
-      error: 'Mock client active or credentials invalid',
-    };
-  }
 
-  try {
-    const start = Date.now();
-    const { error } = await supabase.auth.getSession();
-    const latency = Date.now() - start;
-
-    if (error) {
-      return { success: false, error: error.message, latency };
-    }
-
-    return { success: true, latency };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return { success: false, error: message };
-  }
-};
 
 export { supabase };
 

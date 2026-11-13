@@ -5,7 +5,13 @@
  * Provides better UX with contextual error messages and recovery options.
  */
 
-import React, { Component, ReactNode, ErrorInfo } from 'react';
+/**
+ * Enhanced Error Boundary
+ *
+ * Intelligent error boundary that uses ErrorRecoveryManager for smart recovery strategies.
+ * Provides better UX with contextual error messages and recovery options.
+ */
+import React, { Component, ErrorInfo } from 'react';
 import {
   View,
   Text,

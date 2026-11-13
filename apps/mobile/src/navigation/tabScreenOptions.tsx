@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  ViewStyle,
-  GestureResponderEvent,
-} from 'react-native';
+import { TouchableOpacity, ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type {
   BottomTabNavigationOptions,

@@ -1,9 +1,4 @@
-import type {
-  Invoice,
-  InvoiceLineItem,
-  ExpenseRecord,
-  PaymentRecord,
-} from '../types';
+import type { InvoiceLineItem } from '../types';
 
 export type { InvoiceLineItem };
 
@@ -46,17 +41,7 @@ export interface DatabaseExpenseRow {
   updated_at: string;
 }
 
-interface DatabasePaymentRow {
-  id: string;
-  contractor_id: string;
-  invoice_id?: string | null;
-  amount: number;
-  payment_method: string;
-  payment_date: string;
-  reference_number?: string | null;
-  notes?: string | null;
-  created_at: string;
-}
+
 
 export interface DatabaseInvoiceUpdateData {
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';

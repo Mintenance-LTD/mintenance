@@ -22,9 +22,7 @@ import type { SystemHealth, Alert } from './monitoring/types';
 export const monitoringAndAlerting = MonitoringAndAlerting.getInstance();
 
 // Enhanced performance monitor with alerting integration
-const recordMetric = (name: string, value: number): void => {
-  performanceMonitor.recordMetric?.(name, value);
-};
+
 
 // Convenience functions for common monitoring tasks
 export const checkSystemHealth = (): SystemHealth =>

@@ -184,7 +184,7 @@ export class EnvironmentSecurity {
           if (this.config.environment === 'production' && urlObj.protocol !== 'https:') {
             errors.push(`${key} must use HTTPS in production`);
           }
-        } catch (error) {
+        } catch {
           errors.push(`Invalid URL format for ${key}: ${url}`);
         }
       }

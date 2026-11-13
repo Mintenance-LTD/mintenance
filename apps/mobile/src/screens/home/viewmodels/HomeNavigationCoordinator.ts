@@ -131,43 +131,12 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
 /**
  * Custom hook for Home navigation
  */
-const useHomeNavigation = (
-  navigation: AnyNavigation
-): HomeNavigationActions => {
-  const haptics = useHaptics();
-  const coordinator = new HomeNavigationCoordinator(navigation, haptics);
 
-  return {
-    openServiceRequest: coordinator.openServiceRequest,
-    openJobsList: coordinator.openJobsList,
-    openInbox: coordinator.openInbox,
-    openConversation: coordinator.openConversation,
-    openMeetingSchedule: coordinator.openMeetingSchedule,
-    openJobDetails: coordinator.openJobDetails,
-    openProfileScreen: coordinator.openProfileScreen,
-    openSettingsScreen: coordinator.openSettingsScreen,
-    openNotificationSettings: coordinator.openNotificationSettings,
-    openPaymentMethods: coordinator.openPaymentMethods,
-    openSupport: coordinator.openSupport,
-  };
-};
 
 /**
  * Navigation route definitions for type safety
  */
-type HomeNavigationRoutes = {
-  ServiceRequest: { params?: Record<string, unknown> };
-  JobsList: undefined;
-  MessagesList: undefined;
-  Messaging: { params: Record<string, unknown> };
-  MeetingSchedule: undefined;
-  JobDetails: { jobId: string };
-  Profile: undefined;
-  Settings: undefined;
-  NotificationSettings: undefined;
-  PaymentMethods: undefined;
-  HelpCenter: undefined;
-};
+
 
 /**
  * Quick action definitions for the dashboard
@@ -184,68 +153,3 @@ interface QuickAction {
 /**
  * Generate quick actions based on user role
  */
-const generateQuickActions = (
-  userRole: 'homeowner' | 'contractor',
-  navigation: HomeNavigationActions
-): QuickAction[] => {
-  const commonActions: QuickAction[] = [
-    {
-      id: 'messages',
-      title: 'Messages',
-      subtitle: 'View conversations',
-      icon: 'chatbubbles-outline',
-      color: '#3B82F6',
-      action: navigation.openInbox,
-    },
-    {
-      id: 'settings',
-      title: 'Settings',
-      subtitle: 'Account preferences',
-      icon: 'settings-outline',
-      color: me.ink3,
-      action: navigation.openSettingsScreen,
-    },
-  ];
-
-  if (userRole === 'homeowner') {
-    return [
-      {
-        id: 'post_job',
-        title: 'Post Job',
-        subtitle: 'Create service request',
-        icon: 'add-circle-outline',
-        color: me.accent,
-        action: () => navigation.openServiceRequest(),
-      },
-      {
-        id: 'my_jobs',
-        title: 'My Jobs',
-        subtitle: 'Active projects',
-        icon: 'briefcase-outline',
-        color: '#3B82F6',
-        action: navigation.openJobsList,
-      },
-      ...commonActions,
-    ];
-  } else {
-    return [
-      {
-        id: 'browse_jobs',
-        title: 'Browse Jobs',
-        subtitle: 'Find opportunities',
-        icon: 'search-outline',
-        color: me.brand,
-        action: navigation.openJobsList,
-      },
-      {
-        id: 'schedule_meeting',
-        title: 'Schedule Meeting',
-        subtitle: 'Meet with clients',
-        icon: 'calendar-outline',
-        color: me.accent,
-        action: navigation.openMeetingSchedule,
-      },
-      ...commonActions,
-    ];
-  }
-};

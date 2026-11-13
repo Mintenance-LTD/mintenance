@@ -45,16 +45,3 @@ userDataCache.setStrategy({
 // ============================================================================
 // REACT HOOKS
 // ============================================================================
-
-const useCache = (cacheInstance = globalCache) => {
-  return {
-    get: cacheInstance.get.bind(cacheInstance),
-    set: cacheInstance.set.bind(cacheInstance),
-    invalidate: cacheInstance.invalidate.bind(cacheInstance),
-    invalidateByTag: cacheInstance.invalidateByTag.bind(cacheInstance),
-    clear: cacheInstance.clear.bind(cacheInstance),
-    getStats: cacheInstance.getStats.bind(cacheInstance),
-    warmup: cacheInstance.warmup.bind(cacheInstance),
-    prefetch: cacheInstance.prefetch.bind(cacheInstance),
-  };
-};

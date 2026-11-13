@@ -73,18 +73,9 @@ export interface WebVital {
   timestamp: number;
 }
 
-interface ScrollDepth {
-  depth: number;
-  timestamp: number;
-  url: string;
-}
 
-interface UserEngagement {
-  timeOnPage: number;
-  interactions: number;
-  scrollDepth: number;
-  bounced: boolean;
-}
+
+
 
 export interface WebOptimizationConfig {
   pwa?: PWAConfig;

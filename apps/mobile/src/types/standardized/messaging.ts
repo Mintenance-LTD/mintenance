@@ -41,17 +41,7 @@ export interface Message {
   job?: Job;
 }
 
-interface MessageThread {
-  jobId: string;
-  jobTitle: string;
-  lastMessage?: Message;
-  unreadCount: number;
-  participants: {
-    id: string;
-    name: string;
-    role: string;
-  }[];
-}
+
 
 // Database field mapping type
 export type DatabaseMessage = {

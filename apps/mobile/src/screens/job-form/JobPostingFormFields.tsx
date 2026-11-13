@@ -3,14 +3,7 @@
  * Extracted to keep JobPostingScreen under 600 lines.
  */
 import React from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Input } from '../../components/ui/Input';
 import { Picker } from '@react-native-picker/picker';
 import { AIPricingWidget } from '../../components/AIPricingWidget';

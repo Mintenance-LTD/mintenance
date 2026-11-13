@@ -55,64 +55,6 @@ export const useAccessibleText = (
 };
 
 // Hook for getting accessible colors with high contrast support
-const useAccessibleColors = () => {
-  const [isHighContrastEnabled, setIsHighContrastEnabled] = useState(false);
 
-  useEffect(() => {
-    // Check for high contrast preference (iOS 13+)
-    AccessibilityInfo.isHighTextContrastEnabled?.().then(
-      setIsHighContrastEnabled
-    );
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const subscription = (AccessibilityInfo.addEventListener as any)?.(
-      'highTextContrastChanged',
-      setIsHighContrastEnabled
-    );
-
-    return () => subscription?.remove?.();
-  }, []);
-
-  return {
-    isHighContrastEnabled,
-    // Enhanced colors for high contrast mode
-    colors: {
-      ...theme.colors,
-      textPrimary: isHighContrastEnabled ? '#000000' : theme.colors.textPrimary,
-      textSecondary: isHighContrastEnabled
-        ? '#1F1F1F'
-        : theme.colors.textSecondary,
-      background: isHighContrastEnabled ? '#FFFFFF' : theme.colors.background,
-    },
-  };
-};
 
 // Hook for accessible touch targets
-const useAccessibleTouchTarget = (baseSize: number) => {
-  const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
-
-  useEffect(() => {
-    AccessibilityInfo.isScreenReaderEnabled().then(setIsScreenReaderEnabled);
-
-    const subscription = AccessibilityInfo.addEventListener(
-      'screenReaderChanged',
-      setIsScreenReaderEnabled
-    );
-
-    return () => subscription?.remove();
-  }, []);
-
-  // Increase touch targets when screen reader is enabled
-  const accessibleSize = isScreenReaderEnabled
-    ? Math.max(baseSize, 44)
-    : Math.max(baseSize, 44); // Always meet minimum 44px
-
-  return {
-    touchTargetSize: accessibleSize,
-    isScreenReaderEnabled,
-    style: {
-      minHeight: accessibleSize,
-      minWidth: accessibleSize,
-    },
-  };
-};

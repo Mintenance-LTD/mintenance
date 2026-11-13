@@ -46,10 +46,3 @@ export interface Alert {
   resolved: boolean;
   details?: Record<string, unknown>;
 }
-
-interface MetricThreshold {
-  metric: keyof PerformanceMetrics;
-  warning: number;
-  critical: number;
-  comparison: 'greater' | 'less' | 'equal';
-}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,10 +15,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
 import { MeetingService } from '../services/MeetingService';
 import { MessagingService } from '../services/MessagingService';
-import {
-  ContractorMeeting,
-  MeetingUpdate,
-} from '@mintenance/types';
+import { ContractorMeeting, MeetingUpdate } from '@mintenance/types';
 import type { Message } from '../services/messaging/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { logger } from '../utils/logger';
@@ -38,6 +35,8 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
   onClose,
 }) => {
   const { user } = useAuth();
+  const userId = user?.id;
+  const requestSequence = useRef({ id: 0 });
   const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<'chat' | 'schedule'>('chat');
@@ -54,39 +53,48 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
   const [rescheduleReason, setRescheduleReason] = useState('');
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      loadCommunicationData();
-    }
-  }, [visible, meeting.id]);
-
-  const loadCommunicationData = async () => {
+  const loadCommunicationData = useCallback(async () => {
+    const request = ++requestSequence.current.id;
     try {
       setLoading(true);
-
-      // Load job messages
-      if (meeting.job_id) {
-        const jobMessages = await MessagingService.getJobMessages(meeting.job_id);
-        setMessages(jobMessages);
-      }
-
-      // Load meeting updates
-      const meetingUpdates = await MeetingService.getMeetingUpdates(meeting.id);
+      const [jobMessages, meetingUpdates] = await Promise.all([
+        meeting.job_id
+          ? MessagingService.getJobMessages(meeting.job_id)
+          : Promise.resolve([]),
+        MeetingService.getMeetingUpdates(meeting.id),
+      ]);
+      if (request !== requestSequence.current.id) return;
+      setMessages(jobMessages);
       setUpdates(meetingUpdates);
     } catch (error) {
-      logger.error('Error loading communication data:', error);
+      if (request === requestSequence.current.id)
+        logger.error('Error loading communication data:', error);
     } finally {
-      setLoading(false);
+      if (request === requestSequence.current.id) setLoading(false);
     }
-  };
+  }, [meeting.id, meeting.job_id]);
+
+  useEffect(() => {
+    const requests = requestSequence.current;
+    setMessages([]);
+    setUpdates([]);
+    setNewMessage('');
+    setLoading(false);
+    if (visible && userId) void loadCommunicationData();
+    return () => {
+      requests.id++;
+    };
+  }, [visible, userId, loadCommunicationData]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !user || !meeting.job_id) return;
+    const request = requestSequence.current.id;
 
     try {
-      const otherUserId = user.role === 'homeowner'
-        ? meeting.contractor_id
-        : meeting.homeowner_id;
+      const otherUserId =
+        user.role === 'homeowner'
+          ? meeting.contractor_id
+          : meeting.homeowner_id;
 
       if (!otherUserId) return;
 
@@ -98,17 +106,26 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
         'text'
       );
 
+      if (request !== requestSequence.current.id) return;
       setNewMessage('');
       loadCommunicationData(); // Refresh messages
     } catch (error) {
       logger.error('Error sending message:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to send message');
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to send message'
+      );
     }
   };
 
   const handleReschedule = async () => {
+    if (!userId) return;
+    const request = requestSequence.current.id;
     if (!rescheduleReason.trim()) {
-      Alert.alert('Reason Required', 'Please provide a reason for rescheduling');
+      Alert.alert(
+        'Reason Required',
+        'Please provide a reason for rescheduling'
+      );
       return;
     }
 
@@ -131,6 +148,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
         rescheduleReason.trim()
       );
 
+      if (request !== requestSequence.current.id) return;
       onMeetingUpdate(updatedMeeting);
       setRescheduleReason('');
       loadCommunicationData(); // Refresh updates
@@ -141,13 +159,18 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
       );
     } catch (error) {
       logger.error('Error rescheduling meeting:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to reschedule meeting');
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to reschedule meeting'
+      );
     } finally {
       setRescheduleLoading(false);
     }
   };
 
   const handleStatusChange = async (newStatus: ContractorMeeting['status']) => {
+    if (!userId) return;
+    const request = requestSequence.current.id;
     try {
       const updatedMeeting = await MeetingService.updateMeetingStatus(
         meeting.id,
@@ -155,6 +178,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
         user?.id || ''
       );
 
+      if (request !== requestSequence.current.id) return;
       onMeetingUpdate(updatedMeeting);
       loadCommunicationData(); // Refresh updates
 
@@ -164,7 +188,12 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
       );
     } catch (error) {
       logger.error('Error updating meeting status:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update meeting status');
+      Alert.alert(
+        'Error',
+        error instanceof Error
+          ? error.message
+          : 'Failed to update meeting status'
+      );
     }
   };
 
@@ -204,14 +233,14 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType='slide'
+      presentationStyle='pageSheet'
       onRequestClose={onClose}
     >
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+            <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Meeting Communication</Text>
           <View style={styles.placeholder} />
@@ -224,9 +253,13 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
             onPress={() => setActiveTab('chat')}
           >
             <Ionicons
-              name="chatbubbles"
+              name='chatbubbles'
               size={20}
-              color={activeTab === 'chat' ? theme.colors.textInverse : theme.colors.textSecondary}
+              color={
+                activeTab === 'chat'
+                  ? theme.colors.textInverse
+                  : theme.colors.textSecondary
+              }
             />
             <Text
               style={[
@@ -243,9 +276,13 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
             onPress={() => setActiveTab('schedule')}
           >
             <Ionicons
-              name="calendar"
+              name='calendar'
               size={20}
-              color={activeTab === 'schedule' ? theme.colors.textInverse : theme.colors.textSecondary}
+              color={
+                activeTab === 'schedule'
+                  ? theme.colors.textInverse
+                  : theme.colors.textSecondary
+              }
             />
             <Text
               style={[
@@ -260,13 +297,16 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
 
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#3B82F6" />
+            <ActivityIndicator size='large' color='#3B82F6' />
           </View>
         )}
 
         {!loading && activeTab === 'chat' && (
           <View style={styles.chatContainer}>
-            <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.messagesContainer}
+              showsVerticalScrollIndicator={false}
+            >
               {messages.map((message) => {
                 const isOwnMessage = message.senderId === user?.id;
                 return (
@@ -274,19 +314,25 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                     key={message.id}
                     style={[
                       styles.messageContainer,
-                      isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
+                      isOwnMessage
+                        ? styles.ownMessageContainer
+                        : styles.otherMessageContainer,
                     ]}
                   >
                     <View
                       style={[
                         styles.messageBubble,
-                        isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble,
+                        isOwnMessage
+                          ? styles.ownMessageBubble
+                          : styles.otherMessageBubble,
                       ]}
                     >
                       <Text
                         style={[
                           styles.messageText,
-                          isOwnMessage ? styles.ownMessageText : styles.otherMessageText,
+                          isOwnMessage
+                            ? styles.ownMessageText
+                            : styles.otherMessageText,
                         ]}
                       >
                         {message.messageText}
@@ -294,7 +340,9 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                       <Text
                         style={[
                           styles.messageTime,
-                          isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime,
+                          isOwnMessage
+                            ? styles.ownMessageTime
+                            : styles.otherMessageTime,
                         ]}
                       >
                         {formatMessageTime(message.createdAt)}
@@ -306,7 +354,11 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
 
               {messages.length === 0 && (
                 <View style={styles.emptyMessages}>
-                  <Ionicons name="chatbubbles-outline" size={50} color={theme.colors.textTertiary} />
+                  <Ionicons
+                    name='chatbubbles-outline'
+                    size={50}
+                    color={theme.colors.textTertiary}
+                  />
                   <Text style={styles.emptyMessagesText}>No messages yet</Text>
                   <Text style={styles.emptyMessagesSubtext}>
                     Start a conversation about the meeting
@@ -319,18 +371,25 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
             <View style={styles.messageInputContainer}>
               <TextInput
                 style={styles.messageInput}
-                placeholder="Type a message..."
+                placeholder='Type a message...'
                 value={newMessage}
                 onChangeText={setNewMessage}
                 multiline
                 maxLength={500}
               />
               <TouchableOpacity
-                style={[styles.sendButton, !newMessage.trim() && styles.sendButtonDisabled]}
+                style={[
+                  styles.sendButton,
+                  !newMessage.trim() && styles.sendButtonDisabled,
+                ]}
                 onPress={sendMessage}
                 disabled={!newMessage.trim()}
               >
-                <Ionicons name="send" size={20} color={theme.colors.textInverse} />
+                <Ionicons
+                  name='send'
+                  size={20}
+                  color={theme.colors.textInverse}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -353,28 +412,45 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
               </View>
 
               {/* Quick Status Actions */}
-              {user?.role === 'contractor' && meeting.status === 'scheduled' && (
-                <View style={styles.quickActions}>
-                  <Text style={styles.sectionTitle}>Quick Actions</Text>
-                  <View style={styles.statusButtons}>
-                    <TouchableOpacity
-                      style={[styles.statusButton, { backgroundColor: theme.colors.primary }]}
-                      onPress={() => handleStatusChange('in_progress')}
-                    >
-                      <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
-                      <Text style={styles.statusButtonText}>Confirm</Text>
-                    </TouchableOpacity>
+              {user?.role === 'contractor' &&
+                meeting.status === 'scheduled' && (
+                  <View style={styles.quickActions}>
+                    <Text style={styles.sectionTitle}>Quick Actions</Text>
+                    <View style={styles.statusButtons}>
+                      <TouchableOpacity
+                        style={[
+                          styles.statusButton,
+                          { backgroundColor: theme.colors.primary },
+                        ]}
+                        onPress={() => handleStatusChange('in_progress')}
+                      >
+                        <Ionicons
+                          name='checkmark'
+                          size={16}
+                          color={theme.colors.textInverse}
+                        />
+                        <Text style={styles.statusButtonText}>Confirm</Text>
+                      </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={[styles.statusButton, { backgroundColor: theme.colors.accent }]}
-                      onPress={() => handleStatusChange('rescheduled')}
-                    >
-                      <Ionicons name="calendar" size={16} color={theme.colors.textInverse} />
-                      <Text style={styles.statusButtonText}>Needs Reschedule</Text>
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.statusButton,
+                          { backgroundColor: theme.colors.accent },
+                        ]}
+                        onPress={() => handleStatusChange('rescheduled')}
+                      >
+                        <Ionicons
+                          name='calendar'
+                          size={16}
+                          color={theme.colors.textInverse}
+                        />
+                        <Text style={styles.statusButtonText}>
+                          Needs Reschedule
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              )}
+                )}
 
               {/* Reschedule Section */}
               <View style={styles.rescheduleSection}>
@@ -385,7 +461,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   style={styles.dateTimeButton}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
+                  <Ionicons name='calendar-outline' size={20} color='#3B82F6' />
                   <Text style={styles.dateTimeText}>
                     {newDate.toLocaleDateString('en-US', {
                       weekday: 'long',
@@ -401,7 +477,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   style={styles.dateTimeButton}
                   onPress={() => setShowTimePicker(true)}
                 >
-                  <Ionicons name="time-outline" size={20} color="#3B82F6" />
+                  <Ionicons name='time-outline' size={20} color='#3B82F6' />
                   <Text style={styles.dateTimeText}>
                     {newTime.toLocaleTimeString('en-US', {
                       hour: '2-digit',
@@ -413,7 +489,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                 {/* Reason Input */}
                 <TextInput
                   style={styles.reasonInput}
-                  placeholder="Reason for rescheduling..."
+                  placeholder='Reason for rescheduling...'
                   value={rescheduleReason}
                   onChangeText={setRescheduleReason}
                   multiline
@@ -430,11 +506,20 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   disabled={rescheduleLoading}
                 >
                   {rescheduleLoading ? (
-                    <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                    <ActivityIndicator
+                      size='small'
+                      color={theme.colors.textInverse}
+                    />
                   ) : (
                     <>
-                      <Ionicons name="calendar" size={16} color={theme.colors.textInverse} />
-                      <Text style={styles.rescheduleButtonText}>Request Reschedule</Text>
+                      <Ionicons
+                        name='calendar'
+                        size={16}
+                        color={theme.colors.textInverse}
+                      />
+                      <Text style={styles.rescheduleButtonText}>
+                        Request Reschedule
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -452,15 +537,17 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                             update.updateType === 'rescheduled'
                               ? 'calendar'
                               : update.updateType === 'status_change'
-                              ? 'checkmark-circle'
-                              : 'notifications'
+                                ? 'checkmark-circle'
+                                : 'notifications'
                           }
                           size={16}
-                          color="#3B82F6"
+                          color='#3B82F6'
                         />
                       </View>
                       <View style={styles.updateContent}>
-                        <Text style={styles.updateMessage}>{update.message}</Text>
+                        <Text style={styles.updateMessage}>
+                          {update.message}
+                        </Text>
                         <Text style={styles.updateTime}>
                           {formatUpdateTime(update.timestamp)}
                         </Text>
@@ -477,8 +564,8 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
         {showDatePicker && (
           <DateTimePicker
             value={newDate}
-            mode="date"
-            display="default"
+            mode='date'
+            display='default'
             onChange={(event, selectedDate) => {
               setShowDatePicker(false);
               if (selectedDate) setNewDate(selectedDate);
@@ -490,8 +577,8 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
         {showTimePicker && (
           <DateTimePicker
             value={newTime}
-            mode="time"
-            display="default"
+            mode='time'
+            display='default'
             onChange={(event, selectedTime) => {
               setShowTimePicker(false);
               if (selectedTime) setNewTime(selectedTime);
@@ -502,6 +589,5 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
     </Modal>
   );
 };
-
 
 export default MeetingCommunicationPanel;

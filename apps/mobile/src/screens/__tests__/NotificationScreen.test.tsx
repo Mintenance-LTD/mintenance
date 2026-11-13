@@ -177,15 +177,52 @@ describe('NotificationScreen — load states', () => {
   it('does not call the service or open a realtime channel when there is no user', async () => {
     mockUser = null;
     const { getByText } = renderScreen();
-    // loadNotifications early-returns before the try/finally, so loading
-    // never flips and the spinner stays mounted.
-    expect(getByText('Loading notifications...')).toBeTruthy();
+    expect(getByText('All caught up')).toBeTruthy();
     expect(mockGetUserNotifications).not.toHaveBeenCalled();
     expect(mockChannel).not.toHaveBeenCalled();
   });
 });
 
 describe('NotificationScreen — populated list', () => {
+  it('clears the previous inbox on sign-out', async () => {
+    mockGetUserNotifications.mockResolvedValue([
+      makeNotif({ title: 'Private item' }),
+    ]);
+    const view = renderScreen();
+    await waitFor(() => expect(view.getByText('Private item')).toBeTruthy());
+    mockUser = null;
+    view.rerender(<NotificationScreen />);
+    expect(view.queryByText('Private item')).toBeNull();
+    expect(view.getByText('All caught up')).toBeTruthy();
+    expect(mockUnsubscribe).toHaveBeenCalled();
+  });
+
+  it('ignores requests and realtime callbacks from an earlier account', async () => {
+    let finish!: (value: unknown) => void;
+    mockGetUserNotifications.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const view = renderScreen();
+    const oldHandler = realtimeHandler!;
+    mockUser = { id: 'user-2' };
+    mockGetUserNotifications.mockResolvedValue([
+      makeNotif({ title: 'Current item', userId: 'user-2' }),
+    ]);
+    view.rerender(<NotificationScreen />);
+    await waitFor(() => expect(view.getByText('Current item')).toBeTruthy());
+    await act(async () => {
+      finish([makeNotif({ title: 'Stale item' })]);
+      oldHandler({
+        eventType: 'INSERT',
+        new: { id: 'late', title: 'Stale event' },
+      });
+    });
+    expect(view.queryByText('Stale item')).toBeNull();
+    expect(view.queryByText('Stale event')).toBeNull();
+    expect(view.getByText('Current item')).toBeTruthy();
+  });
   it('renders read and unread notifications with correct subtitle', async () => {
     mockGetUserNotifications.mockResolvedValue([
       makeNotif({ id: 'n1', title: 'Unread one', read: false }),

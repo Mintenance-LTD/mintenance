@@ -27,36 +27,15 @@ export interface User {
   phone?: string;
 }
 
-interface UserProfile {
-  id: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  role: 'homeowner' | 'contractor';
-  phone?: string;
-  address?: string;
-  bio?: string;
-  profileImageUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+
 
 // =============================================
 // AUTHENTICATION TYPES
 // =============================================
 
-interface BiometricCredentials {
-  email: string;
-  accessToken: string;
-  refreshToken: string;
-}
 
-interface AuthSession {
-  user: User;
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: string;
-}
+
+
 
 // Database field mapping type
 export type DatabaseUser = {

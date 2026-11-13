@@ -19,7 +19,7 @@ let FileSystem: {
 };
 try {
   FileSystem = require('expo-file-system');
-} catch (error) {
+} catch {
   // Mock FileSystem for test environments
   FileSystem = {
     getInfoAsync: () =>
@@ -279,7 +279,7 @@ class SecurityManagerService {
           name: fileName,
         },
       };
-    } catch (error) {
+    } catch {
       return {
         isValid: false,
         errors: ['Failed to validate file'],

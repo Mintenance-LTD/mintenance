@@ -26,10 +26,7 @@ interface BookingStatusParams {
   jobId?: string;
 }
 
-interface Props {
-  route?: RouteProp<{ params: BookingStatusParams }>;
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'BookingStatus'>;
-}
+
 
 export type BookingStatus = 'upcoming' | 'completed' | 'cancelled';
 
@@ -81,7 +78,7 @@ export const BookingStatusScreen: React.FC<{
       const bookingService = new BookingService();
       const allBookings = await bookingService.loadUserBookings(user);
       setBookings(allBookings);
-    } catch (err) {
+    } catch {
       setError('Failed to load bookings');
     } finally {
       setLoading(false);
@@ -110,7 +107,7 @@ export const BookingStatusScreen: React.FC<{
       await bookingService.cancelBooking(selectedBooking.id, reason);
       setShowCancelModal(false);
       setSelectedBooking(null);
-    } catch (err) {
+    } catch {
       // rollback on failure
       setBookings((prev) => prev);
       setShowCancelModal(true);

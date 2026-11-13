@@ -136,6 +136,47 @@ describe('MeetingCommunicationPanel Component', () => {
   });
 
   describe('Initial Rendering', () => {
+    it.each(['meeting', 'job'])(
+      'ignores late messages after the %s changes',
+      async (change) => {
+        let finish!: (value: unknown) => void;
+        (MessagingService.getJobMessages as jest.Mock)
+          .mockReturnValueOnce(
+            new Promise((resolve) => {
+              finish = resolve;
+            })
+          )
+          .mockResolvedValueOnce([
+            { ...mockMessages[0], messageText: 'Current conversation' },
+          ]);
+        const props = {
+          onMeetingUpdate: jest.fn(),
+          visible: true,
+          onClose: jest.fn(),
+        };
+        const view = render(
+          <MeetingCommunicationPanel {...props} meeting={mockMeeting} />
+        );
+        view.rerender(
+          <MeetingCommunicationPanel
+            {...props}
+            meeting={{
+              ...mockMeeting,
+              id: change === 'meeting' ? 'new-meeting' : mockMeeting.id,
+              job_id: 'new-job',
+            }}
+          />
+        );
+        await waitFor(() =>
+          expect(view.getByText('Current conversation')).toBeTruthy()
+        );
+        await act(async () => {
+          finish([{ ...mockMessages[0], messageText: 'Stale conversation' }]);
+        });
+        expect(view.queryByText('Stale conversation')).toBeNull();
+        expect(view.getByText('Current conversation')).toBeTruthy();
+      }
+    );
     it('should render null when not visible', () => {
       const { toJSON } = render(
         <MeetingCommunicationPanel

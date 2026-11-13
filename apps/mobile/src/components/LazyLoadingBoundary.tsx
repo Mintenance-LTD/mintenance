@@ -226,43 +226,7 @@ export class LazyLoadingBoundary extends React.Component<
 /**
  * Hook for lazy loading with automatic boundary
  */
-const useLazyComponent = <P extends object>(
-  importFn: () => Promise<{ default: React.ComponentType<P> }>,
-  chunkName: string,
-  options?: {
-    preload?: boolean;
-    timeout?: number;
-    retryAttempts?: number;
-  }
-): {
-  Component: React.ComponentType<P>;
-  LazyBoundary: React.ComponentType<{ children: React.ReactNode }>;
-} => {
-  const LazyComponent = React.useMemo(() => {
-    return codeSplittingManager.createLazyComponent(importFn, {
-      chunkName,
-      preload: options?.preload,
-      timeout: options?.timeout,
-      retryAttempts: options?.retryAttempts,
-    });
-  }, [importFn, chunkName, options]);
 
-  const LazyBoundary: React.ComponentType<{ children: React.ReactNode }> =
-    React.useMemo(
-      () =>
-        ({ children }) => (
-          <LazyLoadingBoundary chunkName={chunkName} enableMetrics>
-            {children}
-          </LazyLoadingBoundary>
-        ),
-      [chunkName]
-    );
-
-  return {
-    Component: LazyComponent,
-    LazyBoundary,
-  };
-};
 
 const styles = StyleSheet.create({
   fallbackContainer: {
