@@ -61,18 +61,6 @@ export function applyMemoryAdjustments(
 }
 
 /**
- * Apply damage type adjustment (currently not modifying type, but could be enhanced)
- */
-function applyDamageTypeAdjustment(
-  originalType: string,
-  adjustment: number
-): string {
-  // For now, return original type
-  // Future: Could adjust confidence or suggest alternative types
-  return originalType;
-}
-
-/**
  * Apply severity adjustment
  */
 function applySeverityAdjustment(

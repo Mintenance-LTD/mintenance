@@ -238,26 +238,6 @@ function generateEmptyMonths(months: number): MonthlyRevenue[] {
   return result;
 }
 
-/**
- * Format currency for display
- */
-function formatRevenue(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-/**
- * Format growth percentage
- */
-function formatGrowth(percentage: number): string {
-  const sign = percentage >= 0 ? '+' : '';
-  return `${sign}${percentage.toFixed(1)}%`;
-}
-
 // ==========================================================
 // EXPORTS FOR TESTING
 // ==========================================================

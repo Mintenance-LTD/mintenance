@@ -336,25 +336,3 @@ export function Icon({
     </span>
   );
 }
-
-/**
- * Convenience export for filled icons
- * Note: Most Lucide icons are outline by default. Use fill prop for filled variants.
- */
-function IconFilled({
-  name,
-  size = 20,
-  color = 'currentColor',
-  className = '',
-  style = {},
-}: IconProps): JSX.Element | null {
-  return (
-    <Icon
-      name={name === 'star' ? 'starFilled' : name}
-      size={size}
-      color={color}
-      className={className}
-      style={{ ...style, fill: color }}
-    />
-  );
-}

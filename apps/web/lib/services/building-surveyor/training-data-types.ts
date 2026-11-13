@@ -11,29 +11,6 @@ import type { Phase1BuildingAssessment } from './types';
 // GPT-4 Training Labels
 // ============================================================================
 
-interface GPT4TrainingLabel {
-  id?: string;
-  assessmentId: string;
-  imageUrls: string[];
-  gpt4Response: Phase1BuildingAssessment;
-  damageType: string;
-  severity: 'early' | 'developing' | 'significant' | 'dangerous';
-  confidence: number;
-  safetyHazards: unknown[];
-  complianceIssues: unknown[];
-  insuranceRisk: unknown;
-  contextData: Record<string, unknown>;
-  usedInTraining: boolean;
-  trainingVersion?: string;
-  trainingJobId?: string;
-  responseQuality?: 'high' | 'medium' | 'low' | 'uncertain';
-  humanVerified: boolean;
-  verifiedBy?: string;
-  verifiedAt?: Date;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
 export interface GPT4TrainingLabelInput {
   assessmentId: string;
   imageUrls: string[];

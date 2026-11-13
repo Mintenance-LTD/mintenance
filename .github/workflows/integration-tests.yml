@@ -84,6 +84,10 @@ jobs:
           ONNXRUNTIME_NODE_INSTALL: skip
         run: npm ci
       - run: npm run build:packages
+      - name: Install payment browser
+        run: |
+          sudo "$(command -v node)" scripts/ci/configure-e2e-apt.cjs
+          npx playwright install --with-deps chromium
       - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520
         with:
           version: 2.119.0
@@ -92,6 +96,8 @@ jobs:
       - name: Start isolated payment database
         run: supabase start --workdir output/readiness-stack
       - name: Exercise authenticated payment, refunds and settlement
+        env:
+          PAYMENT_BROWSER_TESTS: '1'
         run: |
           supabase status --workdir output/readiness-stack --output json > "$RUNNER_TEMP/payment-db-status.json"
           node scripts/readiness/run-payment-sandbox.cjs "$RUNNER_TEMP/payment-sandbox.env" "$RUNNER_TEMP/payment-db-status.json"

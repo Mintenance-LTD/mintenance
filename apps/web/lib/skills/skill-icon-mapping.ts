@@ -73,5 +73,3 @@ export const AVAILABLE_SKILL_ICONS = [
   'clipboard',
   'trash',
 ] as const;
-
-type SkillIconName = (typeof AVAILABLE_SKILL_ICONS)[number];

@@ -173,62 +173,6 @@ interface PresenceUserData {
 type PresenceState = Record<string, PresenceUserData[]>;
 
 /**
- * Hook for realtime presence (track online users)
- */
-function useRealtimePresence(roomId: string) {
-  const [presenceState, setPresenceState] = useState<PresenceState>({});
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
-  useEffect(() => {
-    const channel = supabase.channel(`presence:${roomId}`, {
-      config: {
-        presence: {
-          key: 'user',
-        },
-      },
-    });
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState() as PresenceState;
-        setPresenceState(state);
-      })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        logger.info('User joined:', { key, newPresences });
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        logger.info('User left:', { key, leftPresences });
-      })
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [roomId]);
-
-  const trackPresence = useCallback((userData: PresenceUserData) => {
-    if (channelRef.current) {
-      channelRef.current.track(userData);
-    }
-  }, []);
-
-  const untrackPresence = useCallback(() => {
-    if (channelRef.current) {
-      channelRef.current.untrack();
-    }
-  }, []);
-
-  return {
-    presenceState,
-    trackPresence,
-    untrackPresence,
-    onlineCount: Object.keys(presenceState).length,
-  };
-}
-
-/**
  * Broadcast message structure
  */
 interface BroadcastMessage {
@@ -238,45 +182,4 @@ interface BroadcastMessage {
   timestamp?: number;
   senderId?: string;
   [key: string]: unknown;
-}
-
-/**
- * Hook for realtime broadcast (send and receive messages)
- */
-function useRealtimeBroadcast<T extends BroadcastMessage = BroadcastMessage>(
-  channelName: string
-) {
-  const [messages, setMessages] = useState<T[]>([]);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
-  useEffect(() => {
-    const channel = supabase.channel(`broadcast:${channelName}`);
-
-    channel
-      .on('broadcast', { event: 'message' }, (payload) => {
-        setMessages((prev) => [...prev, payload.payload as T]);
-      })
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [channelName]);
-
-  const send = useCallback((message: T) => {
-    if (channelRef.current) {
-      channelRef.current.send({
-        type: 'broadcast',
-        event: 'message',
-        payload: message,
-      });
-    }
-  }, []);
-
-  return {
-    messages,
-    send,
-  };
 }

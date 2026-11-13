@@ -138,6 +138,7 @@ interface MintEditorialJobDetailViewProps {
   escrowId: string | null;
   paymentAmounts?: { gross: number; fee: number | null; net: number | null };
   jobPhotoUrls: string[];
+  existingBeforePhotosCount?: number;
   buildingAssessment: unknown;
   userId: string;
   messageHref: string | null;
@@ -201,6 +202,7 @@ export function MintEditorialJobDetailView({
   escrowId,
   paymentAmounts,
   jobPhotoUrls,
+  existingBeforePhotosCount = 0,
   buildingAssessment,
   userId,
   messageHref,
@@ -390,6 +392,7 @@ export function MintEditorialJobDetailView({
                   <JobPhotoUpload
                     jobId={job.id}
                     jobStatus={job.status || 'posted'}
+                    existingBeforePhotosCount={existingBeforePhotosCount}
                     latitude={job.latitude ?? undefined}
                     longitude={job.longitude ?? undefined}
                     location={job.location ?? undefined}

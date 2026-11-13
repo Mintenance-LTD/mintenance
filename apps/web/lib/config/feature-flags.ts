@@ -397,52 +397,12 @@ class FeatureFlagService {
 export const featureFlags = FeatureFlagService.getInstance();
 
 // React hook for feature flags
-function useFeatureFlag<T = unknown>(flag: FeatureFlag, defaultValue: T): T {
-  const [value, setValue] = React.useState<T>(() =>
-    typeof window !== 'undefined'
-      ? featureFlags.getFlag(flag, defaultValue)
-      : defaultValue
-  );
-
-  React.useEffect(() => {
-    const handleChange = () => {
-      setValue(featureFlags.getFlag(flag, defaultValue));
-    };
-
-    window.addEventListener(
-      'sam3-config-changed',
-      handleChange as EventListener
-    );
-    return () => {
-      window.removeEventListener(
-        'sam3-config-changed',
-        handleChange as EventListener
-      );
-    };
-  }, [flag, defaultValue]);
-
-  return value;
-}
 
 // Next.js API route helper
 interface FeatureFlagRequest {
   cookies?: Record<string, string>;
   headers: Record<string, string | string[] | undefined>;
   connection?: { remoteAddress?: string };
-}
-
-async function initializeFeatureFlags(req: FeatureFlagRequest): Promise<void> {
-  const userId =
-    req.cookies?.userId || (req.headers['x-user-id'] as string | undefined);
-  const attributes = {
-    ip:
-      (req.headers['x-forwarded-for'] as string | undefined) ||
-      req.connection?.remoteAddress,
-    userAgent: req.headers['user-agent'] as string | undefined,
-    referer: req.headers['referer'] as string | undefined,
-  };
-
-  await featureFlags.initialize(userId, attributes);
 }
 
 // Export for use in other modules

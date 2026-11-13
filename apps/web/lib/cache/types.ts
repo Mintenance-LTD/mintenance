@@ -22,12 +22,6 @@ export interface JobWithPhotos {
   [key: string]: unknown;
 }
 
-interface PhotoData {
-  job_id: string;
-  photo_url: string;
-  display_order?: number;
-}
-
 export interface SubscriptionData {
   id: string;
   status: string;

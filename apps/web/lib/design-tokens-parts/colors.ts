@@ -133,5 +133,3 @@ export const colors = {
     focus: '#14B8A6', // mint-500
   },
 } as const;
-
-type Colors = typeof colors;

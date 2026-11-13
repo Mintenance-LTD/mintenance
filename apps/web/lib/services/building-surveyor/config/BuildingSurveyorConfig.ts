@@ -274,17 +274,3 @@ function getDomainConfig(domainId: string): DomainConfig {
   }
   return domain;
 }
-
-/**
- * List all registered domain IDs
- */
-function getRegisteredDomains(): string[] {
-  return Object.keys(DOMAIN_REGISTRY);
-}
-
-/**
- * Register a new domain at runtime (e.g. loaded from DB)
- */
-function registerDomain(domain: DomainConfig): void {
-  DOMAIN_REGISTRY[domain.id] = domain;
-}

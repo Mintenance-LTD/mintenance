@@ -11,11 +11,6 @@ const TOOL_NAMES = [
 ] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 
-interface ToolCall {
-  tool: ToolName;
-  params?: Record<string, unknown>;
-}
-
 export interface ToolRun<TResult = unknown> {
   toolName: ToolName;
   params: Record<string, unknown>;

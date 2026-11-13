@@ -295,13 +295,6 @@ export function getPreviousStepInFlow(
 }
 
 /**
- * Get step index (for progress indication)
- */
-function getStepIndex(flow: OnboardingFlow, stepId: string): number {
-  return flow.steps.findIndex((step) => step.id === stepId);
-}
-
-/**
  * Get all step IDs for a flow
  */
 export function getAllStepIds(flow: OnboardingFlow): string[] {

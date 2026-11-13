@@ -128,39 +128,6 @@ export async function checkRateLimit(
 }
 
 /**
- * Rate limit middleware wrapper
- */
-function withRateLimit(
-  handler: (req: NextRequest) => Promise<NextResponse>,
-  config: RateLimitConfig
-) {
-  return async (req: NextRequest): Promise<NextResponse> => {
-    const rateLimitResult = await checkRateLimit(req, config);
-
-    if (!rateLimitResult.success) {
-      return rateLimitResult.response!;
-    }
-
-    // Add rate limit headers to response
-    const response = await handler(req);
-    response.headers.set(
-      'X-RateLimit-Limit',
-      config.uniqueTokenPerInterval.toString()
-    );
-    response.headers.set(
-      'X-RateLimit-Remaining',
-      rateLimitResult.remaining.toString()
-    );
-    response.headers.set(
-      'X-RateLimit-Reset',
-      rateLimitResult.resetTime.toString()
-    );
-
-    return response;
-  };
-}
-
-/**
  * Pre-configured rate limit configs
  */
 export const RATE_LIMIT_CONFIGS = {
@@ -220,36 +187,3 @@ export const RATE_LIMIT_CONFIGS = {
     uniqueTokenPerInterval: 10,
   },
 } as const;
-
-/**
- * Clear rate limit for identifier (admin use)
- */
-function clearRateLimit(identifier: string): boolean {
-  return rateLimitStore.delete(identifier);
-}
-
-/**
- * Get rate limit stats
- */
-function getRateLimitStats(): {
-  totalIdentifiers: number;
-  activeIdentifiers: number;
-  totalRequests: number;
-} {
-  const now = Date.now();
-  let totalRequests = 0;
-  let activeIdentifiers = 0;
-
-  for (const entry of rateLimitStore.values()) {
-    totalRequests += entry.count;
-    if (now < entry.resetTime) {
-      activeIdentifiers++;
-    }
-  }
-
-  return {
-    totalIdentifiers: rateLimitStore.size,
-    activeIdentifiers,
-    totalRequests,
-  };
-}

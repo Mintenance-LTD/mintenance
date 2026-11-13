@@ -44,61 +44,10 @@ export function resolveJobCoordsAndDistance(
   return { lat, lng, distance };
 }
 
-/**
- * Map a job priority string to Mint Editorial token CSS values.
- * Returns an inline-style object (background / text / border tokens).
- */
-function getUrgencyColor(priority: string | null): {
-  background: string;
-  color: string;
-  borderColor: string;
-} {
-  switch (priority?.toLowerCase()) {
-    case 'high':
-      return {
-        background: 'var(--me-err-bg)',
-        color: 'var(--me-err-fg)',
-        borderColor: 'var(--me-err-fg)',
-      };
-    case 'medium':
-      return {
-        background: 'var(--me-warn-bg)',
-        color: 'var(--me-warn-fg)',
-        borderColor: 'var(--me-warn-fg)',
-      };
-    case 'low':
-      return {
-        background: 'var(--me-ok-bg)',
-        color: 'var(--me-ok-fg)',
-        borderColor: 'var(--me-ok-fg)',
-      };
-    default:
-      return {
-        background: 'var(--me-bg-2)',
-        color: 'var(--me-ink-2)',
-        borderColor: 'var(--me-line)',
-      };
-  }
-}
-
 /** Return a short, human-readable location from a property object. */
 export function formatLocation(
   property: { address: string; postcode: string } | null
 ): string {
   if (!property) return 'Location not specified';
   return property.address.split(',')[0] || property.postcode || 'UK';
-}
-
-/** Full name of a homeowner, falling back to "Homeowner". */
-function getHomeownerName(
-  homeowner: { first_name: string; last_name: string } | null
-): string {
-  if (!homeowner) return 'Homeowner';
-  return `${homeowner.first_name} ${homeowner.last_name}`;
-}
-
-/** First letter of the homeowner's first name, for avatar fallback. */
-function getHomeownerInitial(homeowner: { first_name: string } | null): string {
-  if (!homeowner || !homeowner.first_name) return 'H';
-  return homeowner.first_name.charAt(0).toUpperCase();
 }

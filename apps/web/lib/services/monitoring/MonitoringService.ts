@@ -4,11 +4,6 @@ import { logger } from '@mintenance/shared';
 const METRICS_ENABLED =
   process.env.BUILDING_SURVEYOR_METRICS_ENABLED === 'true';
 
-interface MetricPayload {
-  metric: string;
-  payload: Record<string, unknown>;
-}
-
 export class MonitoringService {
   static async record(metric: string, payload: Record<string, unknown>): Promise<void> {
     // Always log for debugging
@@ -36,4 +31,3 @@ export class MonitoringService {
     }
   }
 }
-

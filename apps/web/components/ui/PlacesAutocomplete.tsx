@@ -39,10 +39,6 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
   'AU': 'AU', // Australia
 };
 
-function normalizeCountryCode(code: string): string {
-  return COUNTRY_CODE_MAP[code] || code || 'UK';
-}
-
 export function PlacesAutocomplete({
   value,
   onChange,

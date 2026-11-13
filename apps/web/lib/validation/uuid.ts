@@ -25,34 +25,3 @@ const uuidSchema = z.string().regex(UUID_V4_REGEX, 'Invalid UUID format');
 export function isValidUUID(id: string): boolean {
   return UUID_V4_REGEX.test(id);
 }
-
-/**
- * Validate UUID and throw error if invalid
- * @param id - The UUID string to validate
- * @param fieldName - Name of the field for error message
- * @throws Error if UUID is invalid
- */
-function validateUUID(id: string, fieldName: string = 'ID'): void {
-  if (!isValidUUID(id)) {
-    throw new Error(`Invalid ${fieldName} format`);
-  }
-}
-
-/**
- * Validate UUID from request params
- * @param id - The UUID string from params
- * @param fieldName - Name of the field for error message
- * @returns NextResponse with error if invalid, null if valid
- */
-function validateUUIDOrRespond(id: string, fieldName: string = 'ID') {
-  if (!isValidUUID(id)) {
-    return {
-      error: true,
-      response: {
-        json: { error: `Invalid ${fieldName} format` },
-        status: 400,
-      },
-    };
-  }
-  return { error: false };
-}

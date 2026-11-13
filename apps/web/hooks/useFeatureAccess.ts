@@ -316,30 +316,3 @@ export function useFeatureAccess() {
     isFreeActive: subscription?.status === 'free',
   };
 }
-
-/**
- * Hook to check a single feature access
- * Convenience wrapper around useFeatureAccess
- */
-function useFeature(featureId: string): FeatureAccessResult & {
-  loading: boolean;
-  trackUsage: () => Promise<boolean>;
-} {
-  const {
-    hasAccess: checkAccess,
-    trackUsage: trackUsageBase,
-    loading,
-  } = useFeatureAccess();
-
-  const result = checkAccess(featureId);
-
-  const trackUsage = useCallback(async () => {
-    return trackUsageBase(featureId);
-  }, [featureId, trackUsageBase]);
-
-  return {
-    ...result,
-    loading,
-    trackUsage,
-  };
-}

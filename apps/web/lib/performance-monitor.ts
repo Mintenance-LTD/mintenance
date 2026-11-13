@@ -368,29 +368,3 @@ export function getPerformanceHistory(): Array<{
     return [];
   }
 }
-
-/**
- * Report performance metric to analytics
- */
-function reportPerformanceMetric(metric: PerformanceMetric): void {
-  // This would integrate with your analytics service (e.g., Google Analytics, Sentry)
-  if (typeof window !== 'undefined') {
-    const gtag = window.gtag;
-    if (gtag) {
-      gtag('event', 'web_vitals', {
-        event_category: 'Web Vitals',
-        event_label: metric.name,
-        value: Math.round(metric.value),
-        metric_rating: metric.rating,
-      });
-    }
-  }
-
-  // Log performance metric
-  logger.info(`Performance metric: ${metric.name}`, {
-    service: 'performance-monitor',
-    metric: metric.name,
-    value: metric.value,
-    rating: metric.rating,
-  });
-}

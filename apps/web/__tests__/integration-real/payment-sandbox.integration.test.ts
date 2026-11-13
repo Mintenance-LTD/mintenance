@@ -31,6 +31,16 @@ import { waitForSandboxAccount } from '../../test/integration/sandbox-account-re
 describe.skipIf(process.env.PAYMENT_SANDBOX_TESTS !== '1')(
   'Payment sandbox readiness',
   () => {
+    it.skipIf(process.env.PAYMENT_BROWSER_TESTS !== '1')(
+      'pays through Stripe Elements, uploads evidence, reloads, completes and approves release in Chromium',
+      async () => {
+        const { verifySandboxBrowserJourney } =
+          await import('../../test/integration/payment-browser-sandbox');
+        await verifySandboxBrowserJourney();
+      },
+      600000
+    );
+
     it('accepts, signs, pays, uploads evidence, completes and releases exactly once through authenticated handlers', async () => {
       const { verifySandboxAcceptance } =
         await import('../../test/integration/payment-acceptance-sandbox');

@@ -13,14 +13,6 @@ import type { MemoryQueryResult } from '../../ml-engine/memory/types';
 
 const AGENT_NAME = 'building-surveyor';
 
-interface FeatureExtractionResult {
-  finalFeatures: number[];
-  sceneGraphFeatures: unknown;
-  sceneGraph: unknown;
-  memoryAdjustments: number[];
-  imageQuality: { lightingQuality: number; imageClarity: number };
-}
-
 /**
  * Extracts features from evidence: scene graph, detection vectors, memory adjustments,
  * and image quality metrics.

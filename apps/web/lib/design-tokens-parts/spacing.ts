@@ -106,9 +106,3 @@ export const containers = {
   '2xl': '1400px',
   full: '100%',
 } as const;
-
-type Spacing = typeof spacing;
-type BorderRadius = typeof borderRadius;
-type ZIndex = typeof zIndex;
-type Breakpoints = typeof breakpoints;
-type Containers = typeof containers;

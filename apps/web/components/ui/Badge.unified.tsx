@@ -188,20 +188,3 @@ export function StatusBadge({
     </Badge>
   );
 }
-
-function CountBadge({
-  count,
-  variant = 'primary',
-  size = 'sm',
-}: {
-  count: number;
-  variant?: BadgeVariant;
-  size?: BadgeSize;
-}) {
-  if (count === 0) return null;
-  return (
-    <Badge variant={variant} size={size}>
-      {count > 99 ? '99+' : count}
-    </Badge>
-  );
-}

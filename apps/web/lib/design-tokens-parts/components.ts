@@ -84,5 +84,3 @@ export const components = {
     },
   },
 } as const;
-
-type Components = typeof components;

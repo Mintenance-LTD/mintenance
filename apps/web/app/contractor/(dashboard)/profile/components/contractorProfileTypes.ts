@@ -31,13 +31,6 @@ export interface ContractorReview {
   };
 }
 
-interface CompletedJob {
-  id: string;
-  title: string;
-  category: string;
-  photos?: Array<{ url: string }>;
-}
-
 export interface ContractorPost {
   id: string;
   title: string;

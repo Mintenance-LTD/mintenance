@@ -34,19 +34,6 @@ export interface PayoutBalance {
   eligibleForPayout: boolean;
 }
 
-interface PayoutTransferRecord {
-  id: string;
-  contractorId: string;
-  stripeTransferId: string;
-  amountMinor: number;
-  currency: string;
-  status: 'pending' | 'paid' | 'failed' | 'reversed';
-  relatedJobIds: string[];
-  createdAt: string;
-  paidAt: string | null;
-  failureMessage: string | null;
-}
-
 export interface SetupIntentCreateResponse {
   clientSecret: string;
   setupIntentId: string;

@@ -4,7 +4,12 @@ import { NextRequest } from 'next/server';
 import { CUSTOMER_TERMS_VERSION } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
 import { serverSupabase as db } from '@/lib/api/supabaseServer';
-import { createTestUser, createTestJob, createTestBid } from './fixtures';
+import {
+  createTestUser,
+  createTestJob,
+  createTestBid,
+  type TestUser,
+} from './fixtures';
 import { createAnonClient } from './supabase-test-client';
 import { handleAccountUpdated } from '@/lib/services/stripe-webhook/checkout-handlers';
 import { waitForSandboxAccount } from './sandbox-account-readiness';
@@ -14,6 +19,8 @@ export interface SandboxJourney {
   ownerId: string;
   contractorId: string;
   accountId: string;
+  owner: Pick<TestUser, 'email' | 'password'>;
+  contractor: Pick<TestUser, 'email' | 'password'>;
   request: (
     url: string,
     role: 'owner' | 'contractor',
@@ -24,12 +31,29 @@ export interface SandboxJourney {
 
 /** Actual route-to-provider check. Never run with a hosted DB or live key. */
 export async function verifySandboxAcceptance(
-  continueJourney?: (journey: SandboxJourney) => Promise<void>
+  continueJourney?: (journey: SandboxJourney) => Promise<void>,
+  checkout?: (journey: SandboxJourney) => Promise<void>
 ) {
   assert.equal(process.env.NEXT_PUBLIC_SUPABASE_URL, 'http://127.0.0.1:57321');
   assert.ok(process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_'));
   const owner = await createTestUser({ role: 'homeowner' });
   const contractor = await createTestUser({ role: 'contractor' });
+  if (checkout) {
+    for (const user of [owner, contractor]) {
+      const profile = await db
+        .from('profiles')
+        .update({
+          verified: true,
+          phone_verified: true,
+          onboarding_completed: true,
+          ...(user.role === 'contractor'
+            ? { verification_status: 'verified', admin_verified: true }
+            : {}),
+        })
+        .eq('id', user.id);
+      assert.equal(profile.error, null);
+    }
+  }
   const job = await createTestJob({
     homeowner_id: owner.id,
     title: 'itest_phase6_accept_sign_pay',
@@ -186,25 +210,38 @@ export async function verifySandboxAcceptance(
       const body = await signed.json();
       assert.ok(signed.ok, `${role} signature: ${JSON.stringify(body.error)}`);
     }
-    const { POST: pay } =
-      await import('@/app/api/payments/process-job-payment/route');
-    const card = await stripe.paymentMethods.create({
-      type: 'card',
-      card: { token: 'tok_bypassPendingInternational' },
-    });
-    const paid = await pay(
-      request('/api/payments/process-job-payment', 'owner', {
-        jobId: job.id,
-        amount: 5,
-        paymentMethodId: card.id,
-      }),
-      { params: Promise.resolve({}) }
-    );
-    const payment = await paid.json();
-    assert.ok(
-      paid.ok && payment.success,
-      `Payment: ${JSON.stringify(payment.error)}`
-    );
+    const journey: SandboxJourney = {
+      jobId: job.id,
+      ownerId: owner.id,
+      contractorId: contractor.id,
+      accountId: account.id,
+      owner: { email: owner.email, password: owner.password },
+      contractor: { email: contractor.email, password: contractor.password },
+      request,
+    };
+    if (checkout) {
+      await checkout(journey);
+    } else {
+      const { POST: pay } =
+        await import('@/app/api/payments/process-job-payment/route');
+      const card = await stripe.paymentMethods.create({
+        type: 'card',
+        card: { token: 'tok_bypassPendingInternational' },
+      });
+      const paid = await pay(
+        request('/api/payments/process-job-payment', 'owner', {
+          jobId: job.id,
+          amount: 5,
+          paymentMethodId: card.id,
+        }),
+        { params: Promise.resolve({}) }
+      );
+      const payment = await paid.json();
+      assert.ok(
+        paid.ok && payment.success,
+        `Payment: ${JSON.stringify(payment.error)}`
+      );
+    }
     assert.equal(
       (await db.from('jobs').select('payment_status').eq('id', job.id).single())
         .data?.payment_status,
@@ -220,13 +257,7 @@ export async function verifySandboxAcceptance(
       ).data?.status,
       'held'
     );
-    await continueJourney?.({
-      jobId: job.id,
-      ownerId: owner.id,
-      contractorId: contractor.id,
-      accountId: account.id,
-      request,
-    });
+    await continueJourney?.(journey);
   } finally {
     await ownerAuth.auth.signOut();
     await contractorAuth.auth.signOut();

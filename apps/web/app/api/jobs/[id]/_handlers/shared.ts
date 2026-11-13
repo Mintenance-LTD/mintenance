@@ -25,13 +25,6 @@ export interface Params {
   params: Promise<{ id: string }>;
 }
 
-interface JobAttachment {
-  id: string;
-  file_url: string;
-  file_type: string;
-  uploaded_at: string;
-}
-
 // Audit re-review (2026-04-29): expanded the PATCH/PUT response
 // SELECT to match what `_handlers/get.ts` returns. Previously
 // PATCH echoed back a stripped `{ id, title, description, status,

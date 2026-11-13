@@ -9,24 +9,6 @@ import { timingSafeEqual } from 'crypto';
 import { ForbiddenError } from '@/lib/errors/api-error';
 
 /**
- * Parse cookie string into key-value pairs
- */
-function parseCookie(cookieString: string): Record<string, string> {
-  const cookies: Record<string, string> = {};
-
-  if (!cookieString) return cookies;
-
-  cookieString.split(';').forEach((cookie) => {
-    const [name, value] = cookie.trim().split('=');
-    if (name && value) {
-      cookies[name] = decodeURIComponent(value);
-    }
-  });
-
-  return cookies;
-}
-
-/**
  * Validate CSRF token from request headers and cookies
  */
 export async function validateCSRF(request: NextRequest): Promise<boolean> {

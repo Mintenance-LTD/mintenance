@@ -2,26 +2,6 @@ import * as Sentry from '@sentry/nextjs';
 import { logger } from '@mintenance/shared';
 
 /**
- * Initialize Sentry for error tracking and performance monitoring.
- * Sentry client/server entrypoints handle the actual init
- * (instrumentation-client.ts / sentry.server.config.ts).
- * This module provides helper functions for capturing events and setting user context.
- */
-function initSentry() {
-  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN;
-  if (!dsn) {
-    logger.warn(
-      'Sentry DSN not configured — error monitoring is disabled. Set NEXT_PUBLIC_SENTRY_DSN in your environment.',
-      {
-        service: 'monitoring',
-      }
-    );
-    return;
-  }
-  logger.info('Sentry monitoring active', { service: 'monitoring' });
-}
-
-/**
  * Capture custom events
  */
 const captureEvent = {
@@ -61,24 +41,3 @@ const captureEvent = {
     });
   },
 };
-
-/**
- * Set user context for better error tracking
- */
-function setUserContext(user: { id: string; email: string; role: string }) {
-  Sentry.setUser({
-    id: user.id,
-    email: user.email,
-    username: user.email,
-  });
-
-  Sentry.setTag('user.role', user.role);
-}
-
-/**
- * Clear user context on logout
- */
-function clearUserContext() {
-  Sentry.setUser(null);
-  Sentry.setTag('user.role', null);
-}

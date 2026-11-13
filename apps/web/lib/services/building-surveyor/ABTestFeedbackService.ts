@@ -14,17 +14,6 @@ import {
 } from './ContextFeatureService';
 import type { Phase1BuildingAssessment } from './types';
 
-interface FeedbackData {
-  assessmentId: string;
-  decisionId: string;
-  context: number[]; // d_eff = 12 dimensional context vector
-  arm: 'automate' | 'escalate';
-  reward: number; // 1.0 if correct, 0.0 if incorrect
-  safetyViolation: boolean; // True if SFN (Safety False Negative) occurred
-  validatedBy: string;
-  validatedAt: string;
-}
-
 export class ABTestFeedbackService {
   /**
    * Collect feedback from validated assessment

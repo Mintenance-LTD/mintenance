@@ -75,15 +75,6 @@ type FeatureCategory = (typeof FEATURE_CATEGORIES)[number];
 // =====================================================
 
 /**
- * Get all features for a specific category
- */
-function getFeaturesByCategory(category: FeatureCategory): FeatureDefinition[] {
-  return Object.values(FEATURES).filter(
-    (feature) => feature.category === category
-  );
-}
-
-/**
  * Resolve the effective homeowner tier key for FeatureLimit lookup
  */
 function getHomeownerTierKey(tier?: SubscriptionTier): keyof FeatureLimit {
@@ -118,35 +109,6 @@ function resolveHomeownerLimit(
   }
 
   return false;
-}
-
-/**
- * Get all features available to a specific role and tier
- */
-function getAvailableFeatures(
-  role: UserRole,
-  tier?: SubscriptionTier
-): FeatureDefinition[] {
-  if (role === 'admin') {
-    return Object.values(FEATURES);
-  }
-
-  if (role === 'homeowner') {
-    return Object.values(HOMEOWNER_FEATURES).filter((feature) => {
-      const limit = resolveHomeownerLimit(feature.limits, tier);
-      return limit !== false && limit !== 0;
-    });
-  }
-
-  // Contractor features based on tier
-  if (!tier) {
-    return [];
-  }
-
-  return Object.values(CONTRACTOR_FEATURES).filter((feature) => {
-    const limit = feature.limits[tier as ContractorSubscriptionTier];
-    return limit !== false && limit !== 0;
-  });
 }
 
 /**

@@ -114,13 +114,3 @@ export function MessageSkeleton({
     </div>
   );
 }
-
-function MessageListSkeleton({ count = 5 }: { count?: number }) {
-  return (
-    <div className='bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden'>
-      {Array.from({ length: count }).map((_, i) => (
-        <MessageSkeleton key={i} variant='list' />
-      ))}
-    </div>
-  );
-}
