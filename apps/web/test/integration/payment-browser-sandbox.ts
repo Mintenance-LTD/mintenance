@@ -200,7 +200,7 @@ export async function verifySandboxBrowserJourney() {
           .getByLabel(/^Expiration/)
           .fill('1234');
         await payment.getByLabel(/^Security code/).fill('123');
-        const country = payment.getByLabel(/^Country/);
+        const country = payment.getByLabel('Country', { exact: true });
         if (await country.count()) await country.selectOption('GB');
         const postal = payment.getByLabel(/Postal code|ZIP code/);
         if (await postal.count()) await postal.fill('SW1A 1AA');
