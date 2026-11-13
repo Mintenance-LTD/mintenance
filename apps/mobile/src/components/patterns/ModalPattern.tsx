@@ -1,25 +1,5 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useMemo,
-  Children,
-  cloneElement,
-  isValidElement,
-  memo,
-} from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  Animated,
-  LayoutAnimation,
-  Platform,
-} from 'react-native';
+import React, { createContext, useContext, useState, useCallback, useMemo, cloneElement, isValidElement, memo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, LayoutAnimation, Platform } from 'react-native';
 import { theme } from '../../theme';
 
 // ============================================================================

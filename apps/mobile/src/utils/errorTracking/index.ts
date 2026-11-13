@@ -303,46 +303,15 @@ class EnhancedErrorAnalytics {
 export const enhancedErrorAnalytics = EnhancedErrorAnalytics.getInstance();
 
 // Convenience functions
-const trackEnhancedError = (
-  error: Error,
-  category: import('./ErrorTypes').ErrorCategory,
-  severity: import('./ErrorTypes').ErrorSeverity = ErrorSeverity.ERROR,
-  context: import('./ErrorTypes').ErrorContext = {},
-  userId?: string
-): string => {
-  return enhancedErrorAnalytics.trackError(
-    error,
-    category,
-    severity,
-    context,
-    userId
-  );
-};
 
-const addErrorBreadcrumb = (
-  message: string,
-  category: string,
-  level: 'debug' | 'info' | 'warning' | 'error' = 'info',
-  data?: Record<string, unknown>
-): void => {
-  enhancedErrorAnalytics.addBreadcrumb(message, category, level, data);
-};
 
-const getErrorTrends = (
-  period: import('./ErrorTypes').ErrorTrend['period'] = '24h'
-): import('./ErrorTypes').ErrorTrend => {
-  return enhancedErrorAnalytics.generateErrorTrends(period);
-};
 
-const getTopErrorPatterns = (
-  limit: number = 10
-): import('./ErrorTypes').ErrorPattern[] => {
-  return enhancedErrorAnalytics.getErrorPatterns({ limit, sortBy: 'impact' });
-};
 
-const generateErrorReport = (): string => {
-  return enhancedErrorAnalytics.generateAnalyticsReport();
-};
+
+
+
+
+
 
 // Auto-initialize analytics in production
 if (!__DEV__) {

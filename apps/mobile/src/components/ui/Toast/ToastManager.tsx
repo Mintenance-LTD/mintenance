@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Toast, ToastProps } from './Toast';
 
@@ -15,9 +15,7 @@ interface ToastInstance extends ToastProps {
   timestamp: number;
 }
 
-interface ToastManagerState {
-  toasts: ToastInstance[];
-}
+
 
 // ============================================================================
 // TOAST MANAGER CLASS

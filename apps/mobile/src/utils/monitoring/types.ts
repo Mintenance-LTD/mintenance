@@ -47,9 +47,4 @@ export interface Alert {
   details?: Record<string, unknown>;
 }
 
-interface MetricThreshold {
-  metric: keyof PerformanceMetrics;
-  warning: number;
-  critical: number;
-  comparison: 'greater' | 'less' | 'equal';
-}
+

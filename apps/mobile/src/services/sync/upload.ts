@@ -3,12 +3,7 @@ import { AuthService } from '../AuthService';
 import { MessagingService } from '../MessagingService';
 import { logger } from '../../utils/logger';
 import type { User } from '@mintenance/types';
-import type {
-  DatabaseMessageRow,
-  DatabaseUserRow,
-  SyncOptions,
-  SYNC_DEFAULTS,
-} from './types';
+import type { DatabaseMessageRow, DatabaseUserRow, SyncOptions } from './types';
 import { SYNC_DEFAULTS as DEFAULTS } from './types';
 
 /**

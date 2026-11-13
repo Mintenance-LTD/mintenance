@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Skeleton, SkeletonAvatar, SkeletonGroup } from './Skeleton';
+import { Skeleton, SkeletonAvatar } from './Skeleton';
 import { theme } from '../../theme';
 
 interface ListSkeletonProps {

@@ -136,18 +136,7 @@ export const useUnreadMessageCount = () => {
 /**
  * Hook to search messages in a job conversation
  */
-const useSearchJobMessages = (
-  jobId: string,
-  searchTerm: string,
-  limit: number = 20
-) => {
-  return useQuery({
-    queryKey: ['messages', 'search', jobId, searchTerm],
-    queryFn: () => MessagingService.searchJobMessages(jobId, searchTerm, limit),
-    enabled: !!jobId && searchTerm.length > 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes for search results
-  });
-};
+
 
 /**
  * Hook to subscribe to real-time messages for a job

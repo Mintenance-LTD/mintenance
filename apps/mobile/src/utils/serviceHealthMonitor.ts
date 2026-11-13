@@ -364,7 +364,7 @@ export class ServiceHealthMonitor {
       } finally {
         clearTimeout(timeoutId);
       }
-    } catch (error) {
+    } catch {
       return false;
     }
   }

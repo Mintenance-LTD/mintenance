@@ -105,11 +105,4 @@ export interface DatabaseReviewRow {
   };
 }
 
-interface DatabaseMatchRow {
-  id: string;
-  homeowner_id: string;
-  contractor_id: string;
-  action: string;
-  created_at: string;
-  contractor?: DatabaseUserRow;
-}
+

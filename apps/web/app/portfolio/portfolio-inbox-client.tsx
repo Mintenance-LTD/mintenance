@@ -1,9 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 
-type TicketStatus = 'open' | 'triaged' | 'in_progress' | 'blocked' | 'resolved' | 'closed';
+type TicketStatus =
+  | 'open'
+  | 'triaged'
+  | 'in_progress'
+  | 'blocked'
+  | 'resolved'
+  | 'closed';
 type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 interface PortfolioInboxClientProps {
@@ -61,14 +67,28 @@ interface TicketDetailResponse {
   updates: TicketUpdate[];
 }
 
-const STATUS_OPTIONS: TicketStatus[] = ['open', 'triaged', 'in_progress', 'blocked', 'resolved', 'closed'];
+const STATUS_OPTIONS: TicketStatus[] = [
+  'open',
+  'triaged',
+  'in_progress',
+  'blocked',
+  'resolved',
+  'closed',
+];
 const PRIORITY_OPTIONS: TicketPriority[] = ['low', 'medium', 'high', 'urgent'];
 
 const toLabel = (value: string) =>
   value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
 
 export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
-  const [mobileView, setMobileView] = useState<'inbox' | 'detail' | 'create'>('inbox');
+  return <PortfolioInbox key={user.id} user={user} />;
+}
+
+function PortfolioInbox({ user }: PortfolioInboxClientProps) {
+  const pendingRequests = useRef({ tickets: 0, properties: 0, detail: 0 });
+  const [mobileView, setMobileView] = useState<'inbox' | 'detail' | 'create'>(
+    'inbox'
+  );
   const [access, setAccess] = useState<PortfolioAccessResponse | null>(null);
   const [accessLoading, setAccessLoading] = useState(true);
   const [accessError, setAccessError] = useState<string | null>(null);
@@ -83,14 +103,17 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
   const [propertiesLoading, setPropertiesLoading] = useState(false);
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
-  const [selectedTicket, setSelectedTicket] = useState<TicketSummary | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<TicketSummary | null>(
+    null
+  );
   const [ticketUpdates, setTicketUpdates] = useState<TicketUpdate[]>([]);
   const [ticketLoading, setTicketLoading] = useState(false);
   const [ticketError, setTicketError] = useState<string | null>(null);
 
   const [updatingTicket, setUpdatingTicket] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<TicketStatus>('open');
-  const [updatePriority, setUpdatePriority] = useState<TicketPriority>('medium');
+  const [updatePriority, setUpdatePriority] =
+    useState<TicketPriority>('medium');
   const [resolutionNote, setResolutionNote] = useState('');
 
   const [creatingTicket, setCreatingTicket] = useState(false);
@@ -117,7 +140,9 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
       setAccessError(null);
 
       try {
-        const response = await fetch('/api/portfolio/access', { cache: 'no-store' });
+        const response = await fetch('/api/portfolio/access', {
+          cache: 'no-store',
+        });
         const data = await response.json();
 
         if (!response.ok) {
@@ -128,7 +153,11 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
         setAccess(data as PortfolioAccessResponse);
       } catch (error) {
         if (!mounted) return;
-        setAccessError(error instanceof Error ? error.message : 'Failed to verify portfolio access');
+        setAccessError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to verify portfolio access'
+        );
       } finally {
         if (mounted) setAccessLoading(false);
       }
@@ -140,18 +169,8 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!access?.allowed) return;
-    void loadTickets();
-    void loadProperties();
-  }, [access?.allowed]);
-
-  useEffect(() => {
-    if (!selectedTicketId || !access?.allowed) return;
-    void loadTicketDetail(selectedTicketId);
-  }, [selectedTicketId, access?.allowed]);
-
-  const loadTickets = async () => {
+  const loadTickets = useCallback(async () => {
+    const request = ++pendingRequests.current.tickets;
     setTicketsLoading(true);
     setTicketsError(null);
     setCreateSuccess(null);
@@ -163,56 +182,82 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
         params.set('status', statusFilter);
       }
 
-      const response = await fetch(`/api/portfolio/tickets?${params.toString()}`, { cache: 'no-store' });
+      const response = await fetch(
+        `/api/portfolio/tickets?${params.toString()}`,
+        { cache: 'no-store' }
+      );
       const data = await response.json();
+      if (request !== pendingRequests.current.tickets) return;
 
       if (!response.ok) {
-        throw new Error(data?.message || data?.error || 'Failed to load tickets');
+        throw new Error(
+          data?.message || data?.error || 'Failed to load tickets'
+        );
       }
 
       const ticketItems = (data?.tickets || []) as TicketSummary[];
       setTickets(ticketItems);
       setOrgId(data?.orgId || null);
 
-      if (!selectedTicketId && ticketItems.length > 0) {
-        setSelectedTicketId(ticketItems[0].id);
-      }
-      if (selectedTicketId && !ticketItems.some((ticket) => ticket.id === selectedTicketId)) {
-        setSelectedTicketId(ticketItems[0]?.id || null);
-      }
+      setSelectedTicketId((current) =>
+        ticketItems.some((ticket) => ticket.id === current)
+          ? current
+          : ticketItems[0]?.id || null
+      );
     } catch (error) {
-      setTicketsError(error instanceof Error ? error.message : 'Failed to load tickets');
+      if (request !== pendingRequests.current.tickets) return;
+      setTicketsError(
+        error instanceof Error ? error.message : 'Failed to load tickets'
+      );
     } finally {
-      setTicketsLoading(false);
+      if (request === pendingRequests.current.tickets) setTicketsLoading(false);
     }
-  };
+  }, [statusFilter]);
 
-  const loadProperties = async () => {
+  const loadProperties = useCallback(async () => {
+    const request = ++pendingRequests.current.properties;
     setPropertiesLoading(true);
     try {
-      const response = await fetch('/api/portfolio/properties', { cache: 'no-store' });
+      const response = await fetch('/api/portfolio/properties', {
+        cache: 'no-store',
+      });
       const data = await response.json();
+      if (request !== pendingRequests.current.properties) return;
       if (!response.ok) {
-        throw new Error(data?.message || data?.error || 'Failed to load properties');
+        throw new Error(
+          data?.message || data?.error || 'Failed to load properties'
+        );
       }
       setProperties((data?.properties || []) as PortfolioProperty[]);
     } catch {
-      setProperties([]);
+      if (request === pendingRequests.current.properties) setProperties([]);
     } finally {
-      setPropertiesLoading(false);
+      if (request === pendingRequests.current.properties)
+        setPropertiesLoading(false);
     }
-  };
+  }, []);
 
-  const loadTicketDetail = async (ticketId: string) => {
+  const loadTicketDetail = useCallback(async (ticketId: string) => {
+    const request = ++pendingRequests.current.detail;
     setTicketLoading(true);
     setTicketError(null);
+    setSelectedTicket(null);
+    setTicketUpdates([]);
 
     try {
-      const response = await fetch(`/api/portfolio/tickets/${ticketId}`, { cache: 'no-store' });
-      const data = (await response.json()) as TicketDetailResponse & { error?: string; message?: string };
+      const response = await fetch(`/api/portfolio/tickets/${ticketId}`, {
+        cache: 'no-store',
+      });
+      const data = (await response.json()) as TicketDetailResponse & {
+        error?: string;
+        message?: string;
+      };
+      if (request !== pendingRequests.current.detail) return;
 
       if (!response.ok) {
-        throw new Error(data?.message || data?.error || 'Failed to load ticket detail');
+        throw new Error(
+          data?.message || data?.error || 'Failed to load ticket detail'
+        );
       }
 
       setSelectedTicket(data.ticket);
@@ -221,44 +266,91 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
       setUpdatePriority(data.ticket.priority);
       setResolutionNote('');
     } catch (error) {
-      setTicketError(error instanceof Error ? error.message : 'Failed to load ticket detail');
+      if (request !== pendingRequests.current.detail) return;
+      setTicketError(
+        error instanceof Error ? error.message : 'Failed to load ticket detail'
+      );
       setSelectedTicket(null);
       setTicketUpdates([]);
     } finally {
-      setTicketLoading(false);
+      if (request === pendingRequests.current.detail) setTicketLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const requests = pendingRequests.current;
+    if (access?.allowed) void loadTickets();
+    return () => {
+      requests.tickets++;
+    };
+  }, [access?.allowed, loadTickets]);
+
+  useEffect(() => {
+    const requests = pendingRequests.current;
+    if (access?.allowed) void loadProperties();
+    return () => {
+      requests.properties++;
+    };
+  }, [access?.allowed, loadProperties]);
+
+  useEffect(() => {
+    const requests = pendingRequests.current;
+    if (selectedTicketId && access?.allowed)
+      void loadTicketDetail(selectedTicketId);
+    else {
+      setSelectedTicket(null);
+      setTicketUpdates([]);
+      setTicketLoading(false);
+      setTicketError(null);
+    }
+    return () => {
+      requests.detail++;
+    };
+  }, [selectedTicketId, access?.allowed, loadTicketDetail]);
 
   const submitTicketUpdate = async () => {
     if (!selectedTicketId || !selectedTicket) return;
+    const detailRevision = pendingRequests.current.detail;
     setUpdatingTicket(true);
     setTicketError(null);
 
     try {
       const payload: Record<string, unknown> = {};
       if (updateStatus !== selectedTicket.status) payload.status = updateStatus;
-      if (updatePriority !== selectedTicket.priority) payload.priority = updatePriority;
-      if (resolutionNote.trim().length > 0) payload.resolutionNote = resolutionNote.trim();
+      if (updatePriority !== selectedTicket.priority)
+        payload.priority = updatePriority;
+      if (resolutionNote.trim().length > 0)
+        payload.resolutionNote = resolutionNote.trim();
 
       if (Object.keys(payload).length === 0) {
         setUpdatingTicket(false);
         return;
       }
 
-      const response = await fetch(`/api/portfolio/tickets/${selectedTicketId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        `/api/portfolio/tickets/${selectedTicketId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || data?.error || 'Failed to update ticket');
+        throw new Error(
+          data?.message || data?.error || 'Failed to update ticket'
+        );
       }
 
-      await Promise.all([loadTickets(), loadTicketDetail(selectedTicketId)]);
+      await loadTickets();
+      if (detailRevision === pendingRequests.current.detail)
+        await loadTicketDetail(selectedTicketId);
     } catch (error) {
-      setTicketError(error instanceof Error ? error.message : 'Failed to update ticket');
+      if (detailRevision === pendingRequests.current.detail)
+        setTicketError(
+          error instanceof Error ? error.message : 'Failed to update ticket'
+        );
     } finally {
       setUpdatingTicket(false);
     }
@@ -295,7 +387,9 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.message || data?.error || 'Failed to create ticket');
+        throw new Error(
+          data?.message || data?.error || 'Failed to create ticket'
+        );
       }
 
       setCreateSuccess('Ticket created.');
@@ -310,48 +404,56 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
         setMobileView('detail');
       }
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : 'Failed to create ticket');
+      setCreateError(
+        error instanceof Error ? error.message : 'Failed to create ticket'
+      );
     } finally {
       setCreatingTicket(false);
     }
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <main className='mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8'>
+      <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Portfolio Inbox</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className='text-2xl font-semibold text-gray-900'>
+            Portfolio Inbox
+          </h1>
+          <p className='text-sm text-gray-600'>
             Manage maintenance tickets across your properties.
           </p>
         </div>
-        <div className="text-sm text-gray-500">
-          Signed in as <span className="font-medium text-gray-700">{user.name}</span>
+        <div className='text-sm text-gray-500'>
+          Signed in as{' '}
+          <span className='font-medium text-gray-700'>{user.name}</span>
         </div>
       </div>
 
       {accessLoading && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600">
+        <div className='rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600'>
           Checking portfolio access...
         </div>
       )}
 
       {!accessLoading && accessError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className='rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700'>
           {accessError}
         </div>
       )}
 
       {!accessLoading && access && !access.allowed && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
-          <h2 className="text-lg font-semibold text-amber-900">Portfolio Mode Locked</h2>
-          <p className="mt-2 text-sm text-amber-800">
-            {access.message || 'Upgrade to access landlord and agent maintenance workflows.'}
+        <div className='rounded-xl border border-amber-200 bg-amber-50 p-6'>
+          <h2 className='text-lg font-semibold text-amber-900'>
+            Portfolio Mode Locked
+          </h2>
+          <p className='mt-2 text-sm text-amber-800'>
+            {access.message ||
+              'Upgrade to access landlord and agent maintenance workflows.'}
           </p>
-          <div className="mt-4">
+          <div className='mt-4'>
             <Link
               href={access.upgradeUrl || '/pricing?feature=portfolio_mode'}
-              className="inline-flex items-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+              className='inline-flex items-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700'
             >
               Upgrade Plan
             </Link>
@@ -360,32 +462,38 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
       )}
 
       {!accessLoading && access?.allowed && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <section className="rounded-xl border border-gray-200 bg-white p-3 lg:col-span-12 lg:hidden">
-            <div className="grid grid-cols-3 gap-2">
+        <div className='grid grid-cols-1 gap-6 lg:grid-cols-12'>
+          <section className='rounded-xl border border-gray-200 bg-white p-3 lg:col-span-12 lg:hidden'>
+            <div className='grid grid-cols-3 gap-2'>
               <button
-                type="button"
+                type='button'
                 onClick={() => setMobileView('inbox')}
                 className={`rounded-md px-3 py-2 text-sm font-medium ${
-                  mobileView === 'inbox' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700'
+                  mobileView === 'inbox'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-gray-100 text-gray-700'
                 }`}
               >
                 Inbox
               </button>
               <button
-                type="button"
+                type='button'
                 onClick={() => setMobileView('detail')}
                 className={`rounded-md px-3 py-2 text-sm font-medium ${
-                  mobileView === 'detail' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700'
+                  mobileView === 'detail'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-gray-100 text-gray-700'
                 }`}
               >
                 Detail
               </button>
               <button
-                type="button"
+                type='button'
                 onClick={() => setMobileView('create')}
                 className={`rounded-md px-3 py-2 text-sm font-medium ${
-                  mobileView === 'create' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700'
+                  mobileView === 'create'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-gray-100 text-gray-700'
                 }`}
               >
                 Create
@@ -398,25 +506,29 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
               mobileView === 'inbox' ? 'block' : 'hidden lg:block'
             }`}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700">Tickets</h2>
+            <div className='mb-3 flex items-center justify-between'>
+              <h2 className='text-sm font-semibold uppercase tracking-wide text-gray-700'>
+                Tickets
+              </h2>
               <button
-                type="button"
+                type='button'
                 onClick={() => void loadTickets()}
-                className="text-xs font-medium text-teal-700 hover:text-teal-800"
+                className='text-xs font-medium text-teal-700 hover:text-teal-800'
               >
                 Refresh
               </button>
             </div>
 
-            <label className="mb-3 block text-xs text-gray-600">
+            <label className='mb-3 block text-xs text-gray-600'>
               Status filter
               <select
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as 'all' | TicketStatus)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as 'all' | TicketStatus)
+                }
+                className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
               >
-                <option value="all">All</option>
+                <option value='all'>All</option>
                 {STATUS_OPTIONS.map((status) => (
                   <option key={status} value={status}>
                     {toLabel(status)}
@@ -426,17 +538,17 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
             </label>
 
             {ticketsLoading ? (
-              <p className="text-sm text-gray-600">Loading tickets...</p>
+              <p className='text-sm text-gray-600'>Loading tickets...</p>
             ) : ticketsError ? (
-              <p className="text-sm text-red-700">{ticketsError}</p>
+              <p className='text-sm text-red-700'>{ticketsError}</p>
             ) : filteredTickets.length === 0 ? (
-              <p className="text-sm text-gray-600">No tickets found.</p>
+              <p className='text-sm text-gray-600'>No tickets found.</p>
             ) : (
-              <div className="space-y-2">
+              <div className='space-y-2'>
                 {filteredTickets.map((ticket) => (
                   <button
                     key={ticket.id}
-                    type="button"
+                    type='button'
                     onClick={() => {
                       setSelectedTicketId(ticket.id);
                       setMobileView('detail');
@@ -447,11 +559,14 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    <p className="text-sm font-medium text-gray-900">{ticket.title}</p>
-                    <p className="mt-1 text-xs text-gray-600">
-                      {toLabel(ticket.priority)} priority · {toLabel(ticket.status)}
+                    <p className='text-sm font-medium text-gray-900'>
+                      {ticket.title}
                     </p>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className='mt-1 text-xs text-gray-600'>
+                      {toLabel(ticket.priority)} priority ·{' '}
+                      {toLabel(ticket.status)}
+                    </p>
+                    <p className='mt-1 text-xs text-gray-500'>
                       {new Date(ticket.created_at).toLocaleString()}
                     </p>
                   </button>
@@ -465,33 +580,49 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
               mobileView === 'detail' ? 'block' : 'hidden lg:block'
             }`}
           >
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700">Ticket Detail</h2>
+            <h2 className='mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700'>
+              Ticket Detail
+            </h2>
 
             {ticketLoading ? (
-              <p className="text-sm text-gray-600">Loading ticket detail...</p>
+              <p className='text-sm text-gray-600'>Loading ticket detail...</p>
             ) : ticketError ? (
-              <p className="text-sm text-red-700">{ticketError}</p>
+              <p className='text-sm text-red-700'>{ticketError}</p>
             ) : !selectedTicket ? (
-              <p className="text-sm text-gray-600">Select a ticket to view details.</p>
+              <p className='text-sm text-gray-600'>
+                Select a ticket to view details.
+              </p>
             ) : (
-              <div className="space-y-4">
-                <div className="rounded-lg border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{selectedTicket.title}</h3>
-                  <p className="mt-2 text-sm text-gray-700">{selectedTicket.description}</p>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
-                    <span className="rounded bg-gray-100 px-2 py-1">Status: {toLabel(selectedTicket.status)}</span>
-                    <span className="rounded bg-gray-100 px-2 py-1">Priority: {toLabel(selectedTicket.priority)}</span>
-                    <span className="rounded bg-gray-100 px-2 py-1">Category: {toLabel(selectedTicket.category)}</span>
+              <div className='space-y-4'>
+                <div className='rounded-lg border border-gray-200 p-4'>
+                  <h3 className='text-lg font-semibold text-gray-900'>
+                    {selectedTicket.title}
+                  </h3>
+                  <p className='mt-2 text-sm text-gray-700'>
+                    {selectedTicket.description}
+                  </p>
+                  <div className='mt-3 flex flex-wrap gap-2 text-xs text-gray-600'>
+                    <span className='rounded bg-gray-100 px-2 py-1'>
+                      Status: {toLabel(selectedTicket.status)}
+                    </span>
+                    <span className='rounded bg-gray-100 px-2 py-1'>
+                      Priority: {toLabel(selectedTicket.priority)}
+                    </span>
+                    <span className='rounded bg-gray-100 px-2 py-1'>
+                      Category: {toLabel(selectedTicket.category)}
+                    </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <label className="text-sm text-gray-700">
+                <div className='grid grid-cols-1 gap-3 md:grid-cols-2'>
+                  <label className='text-sm text-gray-700'>
                     Status
                     <select
                       value={updateStatus}
-                      onChange={(event) => setUpdateStatus(event.target.value as TicketStatus)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                      onChange={(event) =>
+                        setUpdateStatus(event.target.value as TicketStatus)
+                      }
+                      className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
                     >
                       {STATUS_OPTIONS.map((status) => (
                         <option key={status} value={status}>
@@ -501,12 +632,14 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
                     </select>
                   </label>
 
-                  <label className="text-sm text-gray-700">
+                  <label className='text-sm text-gray-700'>
                     Priority
                     <select
                       value={updatePriority}
-                      onChange={(event) => setUpdatePriority(event.target.value as TicketPriority)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                      onChange={(event) =>
+                        setUpdatePriority(event.target.value as TicketPriority)
+                      }
+                      className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
                     >
                       {PRIORITY_OPTIONS.map((priority) => (
                         <option key={priority} value={priority}>
@@ -517,38 +650,46 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
                   </label>
                 </div>
 
-                <label className="block text-sm text-gray-700">
+                <label className='block text-sm text-gray-700'>
                   Resolution note (optional)
                   <textarea
                     value={resolutionNote}
                     onChange={(event) => setResolutionNote(event.target.value)}
                     rows={3}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                    placeholder="Add context for this update"
+                    className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                    placeholder='Add context for this update'
                   />
                 </label>
 
                 <button
-                  type="button"
+                  type='button'
                   onClick={() => void submitTicketUpdate()}
                   disabled={updatingTicket}
-                  className="inline-flex items-center rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className='inline-flex items-center rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60'
                 >
                   {updatingTicket ? 'Updating...' : 'Update Ticket'}
                 </button>
 
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold text-gray-800">Timeline</h4>
+                  <h4 className='mb-2 text-sm font-semibold text-gray-800'>
+                    Timeline
+                  </h4>
                   {ticketUpdates.length === 0 ? (
-                    <p className="text-sm text-gray-600">No updates yet.</p>
+                    <p className='text-sm text-gray-600'>No updates yet.</p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className='space-y-2'>
                       {ticketUpdates.map((update) => (
-                        <div key={update.id} className="rounded-md border border-gray-200 p-3">
-                          <p className="text-xs text-gray-500">
-                            {toLabel(update.update_type)} · {new Date(update.created_at).toLocaleString()}
+                        <div
+                          key={update.id}
+                          className='rounded-md border border-gray-200 p-3'
+                        >
+                          <p className='text-xs text-gray-500'>
+                            {toLabel(update.update_type)} ·{' '}
+                            {new Date(update.created_at).toLocaleString()}
                           </p>
-                          <p className="mt-1 text-sm text-gray-700">{update.body}</p>
+                          <p className='mt-1 text-sm text-gray-700'>
+                            {update.body}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -563,38 +704,47 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
               mobileView === 'create' ? 'block' : 'hidden lg:block'
             }`}
           >
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700">Create Ticket</h2>
+            <h2 className='mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700'>
+              Create Ticket
+            </h2>
 
             {!orgId && (
-              <p className="mb-3 text-sm text-amber-700">
-                No organization membership found. You need an active organization before creating tickets.
+              <p className='mb-3 text-sm text-amber-700'>
+                No organization membership found. You need an active
+                organization before creating tickets.
               </p>
             )}
 
-            <form onSubmit={submitNewTicket} className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <label className="text-sm text-gray-700 md:col-span-1">
+            <form
+              onSubmit={submitNewTicket}
+              className='grid grid-cols-1 gap-3 md:grid-cols-2'
+            >
+              <label className='text-sm text-gray-700 md:col-span-1'>
                 Property
                 <select
                   value={newPropertyId}
                   onChange={(event) => setNewPropertyId(event.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
                   disabled={propertiesLoading}
                 >
-                  <option value="">Select property</option>
+                  <option value=''>Select property</option>
                   {properties.map((property) => (
                     <option key={property.id} value={property.id}>
-                      {property.property_name || 'Unnamed property'}{property.address ? ` - ${property.address}` : ''}
+                      {property.property_name || 'Unnamed property'}
+                      {property.address ? ` - ${property.address}` : ''}
                     </option>
                   ))}
                 </select>
               </label>
 
-              <label className="text-sm text-gray-700 md:col-span-1">
+              <label className='text-sm text-gray-700 md:col-span-1'>
                 Priority
                 <select
                   value={newPriority}
-                  onChange={(event) => setNewPriority(event.target.value as TicketPriority)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                  onChange={(event) =>
+                    setNewPriority(event.target.value as TicketPriority)
+                  }
+                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
                 >
                   {PRIORITY_OPTIONS.map((priority) => (
                     <option key={priority} value={priority}>
@@ -604,37 +754,37 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
                 </select>
               </label>
 
-              <label className="text-sm text-gray-700 md:col-span-2">
+              <label className='text-sm text-gray-700 md:col-span-2'>
                 Title
                 <input
                   value={newTitle}
                   onChange={(event) => setNewTitle(event.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                  placeholder="Kitchen sink leaking"
+                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  placeholder='Kitchen sink leaking'
                   required
                   minLength={3}
                   maxLength={200}
                 />
               </label>
 
-              <label className="text-sm text-gray-700 md:col-span-1">
+              <label className='text-sm text-gray-700 md:col-span-1'>
                 Category
                 <input
                   value={newCategory}
                   onChange={(event) => setNewCategory(event.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                  placeholder="plumbing"
+                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  placeholder='plumbing'
                   maxLength={100}
                 />
               </label>
 
-              <label className="text-sm text-gray-700 md:col-span-2">
+              <label className='text-sm text-gray-700 md:col-span-2'>
                 Description
                 <textarea
                   value={newDescription}
                   onChange={(event) => setNewDescription(event.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                  placeholder="Describe the issue in detail..."
+                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  placeholder='Describe the issue in detail...'
                   rows={3}
                   required
                   minLength={10}
@@ -642,14 +792,22 @@ export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
                 />
               </label>
 
-              {createError && <p className="text-sm text-red-700 md:col-span-2">{createError}</p>}
-              {createSuccess && <p className="text-sm text-emerald-700 md:col-span-2">{createSuccess}</p>}
+              {createError && (
+                <p className='text-sm text-red-700 md:col-span-2'>
+                  {createError}
+                </p>
+              )}
+              {createSuccess && (
+                <p className='text-sm text-emerald-700 md:col-span-2'>
+                  {createSuccess}
+                </p>
+              )}
 
-              <div className="md:col-span-2">
+              <div className='md:col-span-2'>
                 <button
-                  type="submit"
+                  type='submit'
                   disabled={creatingTicket || !orgId}
-                  className="inline-flex items-center rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className='inline-flex items-center rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60'
                 >
                   {creatingTicket ? 'Creating...' : 'Create Ticket'}
                 </button>

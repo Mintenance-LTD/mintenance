@@ -171,12 +171,7 @@ const createQueryClient = () => {
 const queryClient = createQueryClient();
 
 // Helper function to create query keys
-const createQueryKey = (
-  prefix: keyof typeof QUERY_KEYS,
-  ...params: (string | number | object | undefined)[]
-) => {
-  return [QUERY_KEYS[prefix], ...params.filter(Boolean)];
-};
+
 
 // Helper function to prefetch queries
 const prefetchQuery = async <T>(
@@ -192,84 +187,21 @@ const prefetchQuery = async <T>(
 };
 
 // Helper function to warm cache with multiple queries
-const warmCache = async (
-  queries: {
-    queryKey: unknown[];
-    queryFn: () => Promise<unknown>;
-    staleTime?: number;
-  }[]
-) => {
-  logger.info('Warming cache', { count: queries.length });
 
-  const startTime = Date.now();
-
-  await Promise.allSettled(
-    queries.map(({ queryKey, queryFn, staleTime }) =>
-      prefetchQuery(queryKey, queryFn, staleTime)
-    )
-  );
-
-  const duration = Date.now() - startTime;
-
-  logger.info('Cache warmed', { duration, count: queries.length });
-  performanceMonitor.recordMetric('cache_warm_duration', duration, 'custom');
-};
 
 // Helper function for optimistic updates
-const optimisticUpdate = <T>(
-  queryKey: unknown[],
-  updater: (oldData: T | undefined) => T
-) => {
-  // Cancel any outgoing refetches
-  queryClient.cancelQueries({ queryKey });
 
-  // Snapshot the previous value
-  const previousData = queryClient.getQueryData<T>(queryKey);
-
-  // Optimistically update to the new value
-  queryClient.setQueryData<T>(queryKey, updater);
-
-  // Return a rollback function
-  return () => {
-    queryClient.setQueryData(queryKey, previousData);
-  };
-};
 
 // Helper function to invalidate related queries
-const invalidateQueries = (
-  prefix: keyof typeof QUERY_KEYS,
-  exact: boolean = false
-) => {
-  return queryClient.invalidateQueries({
-    queryKey: [QUERY_KEYS[prefix]],
-    exact,
-  });
-};
+
 
 // Helper function to clear all cache
-const clearCache = () => {
-  logger.warn('Clearing all React Query cache');
-  queryClient.clear();
-};
+
 
 // Helper function to get cache stats
-const getCacheStats = () => {
-  const cache = queryClient.getQueryCache();
-  const queries = cache.getAll();
 
-  const stats = {
-    total: queries.length,
-    stale: queries.filter((q) => q.isStale()).length,
-    fetching: queries.filter((q) => q.state.fetchStatus === 'fetching').length,
-    paused: queries.filter((q) => q.state.fetchStatus === 'paused').length,
-    inactive: queries.filter((q) => !q.getObserversCount()).length,
-  };
-
-  logger.debug('Cache stats', stats);
-  return stats;
-};
 
 // Export types
-type QueryKeyPrefix = keyof typeof QUERY_KEYS;
-type CacheTime = (typeof CACHE_TIMES)[keyof typeof CACHE_TIMES];
-type StaleTime = (typeof STALE_TIMES)[keyof typeof STALE_TIMES];
+
+
+

@@ -34,35 +34,7 @@ function cleanupOldestChannel(): void {
  * Fetch a single message with sender info via direct Supabase query.
  * Used to enrich realtime events which only contain the raw row.
  */
-async function fetchMessageById(messageId: string): Promise<Message | null> {
-  try {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('id', messageId)
-      .single();
 
-    if (error || !data) return null;
-
-    const row = data as DatabaseMessageRow;
-    return {
-      id: row.id,
-      jobId: row.job_id,
-      senderId: row.sender_id,
-      receiverId: row.receiver_id,
-      messageText: row.message_text || row.content || '',
-      messageType: (row.message_type || 'text') as Message['messageType'],
-      attachmentUrl: row.attachment_url,
-      read: row.read ?? false,
-      createdAt: row.created_at,
-      callId: row.call_id,
-      callDuration: row.call_duration,
-    };
-  } catch {
-    // If the query fails, the caller should handle null gracefully
-    return null;
-  }
-}
 
 /** Subscribe to real-time messages for a job. Returns a cleanup function. */
 export function subscribeToJobMessages(

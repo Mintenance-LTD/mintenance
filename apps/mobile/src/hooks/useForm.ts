@@ -5,12 +5,7 @@ import {
   validateAllFieldsWithSchema,
   type FieldError,
 } from './useForm/validation';
-import type {
-  FormField,
-  FormState,
-  UseFormOptions,
-  UseFormReturn,
-} from './useForm/types';
+import type { FormField, UseFormOptions, UseFormReturn } from './useForm/types';
 
 // Re-export types for backward compatibility
 // ============================================================================

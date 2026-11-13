@@ -15,13 +15,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import {
-  dashboardData,
-  systemMonitoring,
-  performanceTracking,
-  errorTracking,
-  webPlatform,
-} from '../utils/productionSetupGuide';
+import { dashboardData, systemMonitoring, errorTracking, webPlatform } from '../utils/productionSetupGuide';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';
 

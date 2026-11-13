@@ -97,7 +97,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         status: statusFilter,
       });
       setQuotes(data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to filter quotes');
     } finally {
       setLoading(false);
@@ -109,7 +109,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
       await QuoteBuilderService.sendQuote(quoteId);
       await loadQuotes();
       toast.success('Quote sent successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to send quote');
     }
   };
@@ -119,7 +119,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
       await QuoteBuilderService.duplicateQuote(quoteId);
       await loadQuotes();
       toast.success('Quote duplicated successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to duplicate quote');
     }
   };
@@ -138,7 +138,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
               await QuoteBuilderService.deleteQuote(quoteId);
               await loadQuotes();
               toast.success('Quote deleted successfully');
-            } catch (error) {
+            } catch {
               toast.error('Failed to delete quote');
             }
           },

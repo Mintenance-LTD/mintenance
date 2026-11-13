@@ -1,16 +1,6 @@
 import { User } from '@mintenance/types';
 
-interface DatabaseJobRow {
-  id: string;
-  status: string;
-  budget: number;
-  created_at: string;
-  updated_at: string;
-  homeowner_id: string;
-  contractor_id?: string;
-  title?: string;
-  location?: string;
-}
+
 export interface DatabaseReviewRow {
   rating: number;
   comment: string;

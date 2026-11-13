@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -83,7 +83,7 @@ export function PhotoUploadDialog(props: PhotoUploadDialogProps) {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
+    control,
     reset,
   } = useForm<PhotoUploadFormData>({
     resolver: zodResolver(photoUploadSchema),
@@ -93,7 +93,7 @@ export function PhotoUploadDialog(props: PhotoUploadDialogProps) {
     },
   });
 
-  const category = watch('category');
+  const category = useWatch({ control, name: 'category' });
   const uploadProgress = Math.min(
     100,
     Math.round((selectedFiles.length / MAX_FILES) * 100)
@@ -191,7 +191,8 @@ export function PhotoUploadDialog(props: PhotoUploadDialogProps) {
         <DialogHeader>
           <DialogTitle>Upload photos</DialogTitle>
           <DialogDescription>
-            These photos will be public on your web and mobile profile. Only upload photos you have permission to share.
+            These photos will be public on your web and mobile profile. Only
+            upload photos you have permission to share.
           </DialogDescription>
         </DialogHeader>
 

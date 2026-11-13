@@ -5,7 +5,13 @@
  * Manages state and delegates rendering to extracted components.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import {
   View,
   FlatList,
@@ -37,6 +43,11 @@ import {
 
 export const NotificationScreen: React.FC = () => {
   const { user } = useAuth();
+  return <NotificationInbox key={user?.id || 'signed-out'} userId={user?.id} />;
+};
+
+const NotificationInbox: React.FC<{ userId?: string }> = ({ userId }) => {
+  const requests = useRef({ id: 0 });
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
@@ -51,24 +62,33 @@ export const NotificationScreen: React.FC = () => {
     [notifications, activeTab]
   );
 
-  const loadNotifications = async () => {
-    if (!user) return;
+  const loadNotifications = useCallback(async () => {
+    const request = ++requests.current.id;
+    if (!userId) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
       const [notificationsData, count] = await Promise.all([
-        NotificationService.getUserNotifications(user.id),
-        NotificationService.getUnreadCount(user.id),
+        NotificationService.getUserNotifications(userId),
+        NotificationService.getUnreadCount(userId),
       ]);
+      if (request !== requests.current.id) return;
       setNotifications(notificationsData);
       setUnreadCount(count);
       setError(null);
     } catch (err) {
+      if (request !== requests.current.id) return;
       setError('Failed to load notifications');
       logger.error('Failed to load notifications', err);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (request === requests.current.id) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  };
+  }, [userId]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -95,13 +115,13 @@ export const NotificationScreen: React.FC = () => {
   };
 
   const handleMarkAllAsRead = () => {
-    if (!user) return;
+    if (!userId) return;
     Alert.alert('Mark All as Read', 'Mark all notifications as read?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Mark All',
         onPress: async () => {
-          await NotificationService.markAllAsRead(user.id);
+          await NotificationService.markAllAsRead(userId);
           setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
           setUnreadCount(0);
         },
@@ -110,24 +130,30 @@ export const NotificationScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    loadNotifications();
-  }, [user]);
+    const pending = requests.current;
+    void loadNotifications();
+    return () => {
+      pending.id++;
+    };
+  }, [loadNotifications]);
 
   // Supabase Realtime — live updates for the inbox. New rows prepend,
   // read-state updates from other devices reflect in place.
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
+    let active = true;
     const channel = supabase
-      .channel(`notifications:${user.id}`)
+      .channel(`notifications:${userId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
+          if (!active) return;
           try {
             if (payload.eventType === 'INSERT') {
               const row = payload.new as Record<string, unknown>;
@@ -156,7 +182,7 @@ export const NotificationScreen: React.FC = () => {
                 data,
                 type: (row.type as NotificationData['type']) || 'system',
                 priority: 'normal' as const,
-                userId: String(row.user_id ?? user.id),
+                userId: String(row.user_id ?? userId),
                 createdAt:
                   (row.created_at as string) || new Date().toISOString(),
                 read: Boolean(row.read ?? false),
@@ -188,9 +214,10 @@ export const NotificationScreen: React.FC = () => {
       .subscribe();
 
     return () => {
+      active = false;
       channel.unsubscribe();
     };
-  }, [user]);
+  }, [userId]);
 
   if (loading) {
     return <LoadingSpinner message='Loading notifications...' />;

@@ -47,7 +47,7 @@ const CreatePaymentSchema = z.object({
 });
 
 // Type exports
-type Payment = z.infer<typeof PaymentSchema>;
-type CreatePayment = z.infer<typeof CreatePaymentSchema>;
-type PaymentStatus = z.infer<typeof PaymentStatusSchema>;
-type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
+
+
+
+

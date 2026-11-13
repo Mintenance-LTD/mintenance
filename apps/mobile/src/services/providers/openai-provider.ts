@@ -259,7 +259,7 @@ async function performRequest(
       const parsedResponse = JSON.parse(jsonMatch[0]);
       return validateAndFormatResponse(parsedResponse, job);
     }
-  } catch (parseError) {
+  } catch {
     logger.warn('Failed to parse OpenAI JSON response, using text parsing');
   }
 

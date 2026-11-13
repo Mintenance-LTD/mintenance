@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -44,24 +44,22 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [resendTimer, setResendTimer] = useState(30);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   useEffect(() => {
-    if (success && resendTimer > 0) {
-      timerRef.current = setInterval(() => {
-        setResendTimer((prev) => {
-          if (prev <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    if (!success || resendTimer <= 0) return;
+    const timer = setTimeout(
+      () => setResendTimer((prev) => Math.max(0, prev - 1)),
+      1000
+    );
+    return () => clearTimeout(timer);
+  }, [success, resendTimer]);
+
+  const validateForm = useCallback(() => {
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErrorMessage('Please enter a valid email address');
+      return false;
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [success]);
+    return true;
+  }, [email]);
 
   // 2026-06-06 audit: the old resend called handleResetPassword, which
   // does setSuccess(false) at its start — so every resend tore down the
@@ -88,21 +86,13 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
-  }, [email]);
+  }, [email, validateForm]);
 
   const clearError = useCallback(() => {
     if (errorMessage) {
       setErrorMessage(null);
     }
   }, [errorMessage]);
-
-  const validateForm = () => {
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setErrorMessage('Please enter a valid email address');
-      return false;
-    }
-    return true;
-  };
 
   const handleResetPassword = async () => {
     if (!validateForm()) return;

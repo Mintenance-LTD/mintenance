@@ -214,14 +214,14 @@ const CreateBidSchema = z.object({
 });
 
 // Type exports
-type Job = z.infer<typeof JobSchema>;
-type CreateJob = z.infer<typeof CreateJobSchema>;
-type UpdateJob = z.infer<typeof UpdateJobSchema>;
-type JobFilter = z.infer<typeof JobFilterSchema>;
-export type JobCategory = z.infer<typeof JobCategorySchema>;
-type JobPriority = z.infer<typeof JobPrioritySchema>;
-type JobStatus = z.infer<typeof JobStatusSchema>;
 
-type Bid = z.infer<typeof BidSchema>;
-type CreateBid = z.infer<typeof CreateBidSchema>;
-type BidStatus = z.infer<typeof BidStatusSchema>;
+
+
+
+export type JobCategory = z.infer<typeof JobCategorySchema>;
+
+
+
+
+
+

@@ -62,37 +62,7 @@ export const setupGlobalErrorHandler = () => {
 };
 
 // Custom error logger
-const logError = (error: Error, context?: unknown) => {
-  logger.error('App Error:', error, context);
 
-  import('@sentry/react-native')
-    .then(({ captureException }) => {
-      captureException(error, {
-        contexts: {
-          customContext: context as Record<string, unknown>,
-        },
-      });
-    })
-    .catch((e) => {
-      logger.warn('Sentry not available for custom error:', { data: e });
-    });
-};
 
 // Performance monitoring
-const trackPerformance = (operation: string, duration: number) => {
-  logger.debug(`Performance: ${operation} took ${duration}ms`);
 
-  import('@sentry/react-native')
-    .then(({ addBreadcrumb }) => {
-      addBreadcrumb({
-        message: `${operation} completed`,
-        data: { duration },
-        category: 'performance',
-      });
-    })
-    .catch((e) => {
-      logger.warn('Sentry not available for performance tracking:', {
-        data: e,
-      });
-    });
-};

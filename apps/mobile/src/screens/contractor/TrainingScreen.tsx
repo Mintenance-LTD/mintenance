@@ -3,16 +3,7 @@
  * @filesize Target: <200 lines
  */
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  RefreshControl,
-  TextInput,
-  StatusBar,
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';

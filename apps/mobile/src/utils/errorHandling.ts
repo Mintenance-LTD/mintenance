@@ -414,35 +414,24 @@ export class ErrorHandlingService {
 /**
  * Quick error handler for common use cases
  */
-const handleError = (
-  error: Error | StandardError,
-  context?: ErrorContext,
-  showAlert = true
-) => ErrorHandlingService.handleError(error, context, showAlert);
+
 
 /**
  * Network error handler
  */
-const handleNetworkError = (error: Error, context?: ErrorContext) =>
-  ErrorHandlingService.handleNetworkError(error, context);
+
 
 /**
  * Validation error handler
  */
-const handleValidationError = (messages: string[], context?: ErrorContext) =>
-  ErrorHandlingService.handleValidationError(messages, context);
+
 
 /**
  * Authentication error handler
  */
-const handleAuthError = (error: Error, context?: ErrorContext) =>
-  ErrorHandlingService.handleAuthenticationError(error, context);
+
 
 /**
  * Business logic error handler
  */
-const handleBusinessError = (
-  message: string,
-  userMessage: string,
-  context?: ErrorContext
-) => ErrorHandlingService.handleBusinessError(message, userMessage, context);
+

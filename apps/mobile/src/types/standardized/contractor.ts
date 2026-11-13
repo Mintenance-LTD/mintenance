@@ -63,12 +63,6 @@ export interface Review {
   createdAt: string;
 }
 
-interface ContractorMatch {
-  id: string;
-  homeownerId: string;
-  contractorId: string;
-  action: 'like' | 'pass';
-  createdAt: string;
-}
+
 
 // Re-exports for backward compatibility

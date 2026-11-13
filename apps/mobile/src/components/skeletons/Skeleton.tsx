@@ -188,24 +188,7 @@ interface SkeletonTextProps extends Omit<SkeletonProps, 'width' | 'height'> {
   lineHeight?: number;
 }
 
-const SkeletonText: React.FC<SkeletonTextProps> = ({
-  lines = 3,
-  lineHeight = 16,
-  ...props
-}) => {
-  return (
-    <SkeletonGroup gap={8}>
-      {Array.from({ length: lines }).map((_, index) => (
-        <Skeleton
-          key={index}
-          width={index === lines - 1 ? '80%' : '100%'}
-          height={lineHeight}
-          {...props}
-        />
-      ))}
-    </SkeletonGroup>
-  );
-};
+
 
 /**
  * Pre-built skeleton for avatars
@@ -233,18 +216,7 @@ interface SkeletonButtonProps extends Omit<SkeletonProps, 'width' | 'height'> {
   size?: 'sm' | 'md' | 'lg';
 }
 
-const SkeletonButton: React.FC<SkeletonButtonProps> = ({
-  size = 'md',
-  ...props
-}) => {
-  const sizes = {
-    sm: { width: 80, height: 36 },
-    md: { width: 100, height: 44 },
-    lg: { width: 140, height: 52 },
-  };
 
-  return <Skeleton {...sizes[size]} borderRadius={12} {...props} />;
-};
 
 /**
  * Pre-built skeleton for images

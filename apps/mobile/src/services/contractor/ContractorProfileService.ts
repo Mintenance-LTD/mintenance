@@ -2,7 +2,7 @@ import { ContractorProfile } from '@mintenance/types';
 import { logger } from '../../utils/logger';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { mapDatabaseToContractorProfile } from './ContractorHelpers';
-import type { DatabaseContractorProfileRow, DatabaseError } from './types';
+import type { DatabaseContractorProfileRow } from './types';
 
 /**
  * Shape of the `contractor` block returned by the canonical

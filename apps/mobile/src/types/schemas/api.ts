@@ -36,10 +36,6 @@ const PaginatedResponseSchema = z.object({
 });
 
 // Type exports
-type ApiSuccess<T = unknown> = z.infer<typeof ApiSuccessSchema> & {
-  data: T;
-};
-type ApiError = z.infer<typeof ApiErrorSchema>;
-type PaginatedResponse<T = unknown> = z.infer<
-  typeof PaginatedResponseSchema
-> & { data: T[] };
+
+
+

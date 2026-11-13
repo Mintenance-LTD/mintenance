@@ -6,13 +6,7 @@
 import { Platform } from 'react-native';
 import { logger } from '../logger';
 import { ErrorTracker } from '../errorTracking';
-import {
-  ErrorContext,
-  ErrorOccurrence,
-  Breadcrumb,
-  ErrorCategory,
-  ErrorSeverity,
-} from './ErrorTypes';
+import { ErrorContext, ErrorOccurrence, Breadcrumb } from './ErrorTypes';
 
 export class ErrorCapture {
   private sessionBreadcrumbs = new Map<string, Breadcrumb[]>();

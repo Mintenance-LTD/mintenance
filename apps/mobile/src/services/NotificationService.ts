@@ -4,14 +4,7 @@ import { logger } from '../utils/logger';
 import * as sentry from '../config/sentry';
 import * as notificationCrud from './notifications/NotificationCRUD';
 
-import type {
-  NotificationData,
-  NotificationPreferences,
-  QueuedNotification,
-  DeepLinkParams,
-  NavigationRef,
-  NotificationDeepLinkData,
-} from './notifications/types';
+import type { NotificationData, NavigationRef, NotificationDeepLinkData } from './notifications/types';
 
 import {
   getNotificationPreferences,

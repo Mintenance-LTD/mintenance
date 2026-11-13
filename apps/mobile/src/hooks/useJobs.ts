@@ -6,46 +6,13 @@ import { Job } from '@mintenance/types';
 import { validateJobDraft, type JobDraft } from '@mintenance/api-contracts';
 
 // Query hooks
-const useJobs = (limit: number = 20, offset: number = 0) => {
-  return useOfflineQuery({
-    queryKey: queryKeys.jobs.list(`limit:${limit},offset:${offset}`),
-    queryFn: (signal) =>
-      signal
-        ? JobService.getJobs(undefined, limit, signal)
-        : JobService.getJobs(undefined, limit),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-};
 
-const useAvailableJobs = () => {
-  return useOfflineQuery({
-    queryKey: queryKeys.jobs.list('available'),
-    queryFn: (signal) =>
-      signal ? JobService.getAvailableJobs(signal) : JobService.getAvailableJobs(),
-    staleTime: 60 * 1000, // 1 minute for active jobs
-  });
-};
 
-const useJobsByHomeowner = (homeownerId: string) => {
-  return useOfflineQuery({
-    queryKey: queryKeys.jobs.list(`homeowner:${homeownerId}`),
-    queryFn: (signal) =>
-      signal
-        ? JobService.getJobsByHomeowner(homeownerId, signal)
-        : JobService.getJobsByHomeowner(homeownerId),
-    enabled: !!homeownerId,
-  });
-};
 
-const useJobsByStatus = (status: Job['status'], userId?: string) => {
-  return useOfflineQuery({
-    queryKey: queryKeys.jobs.list(`status:${status},user:${userId || 'all'}`),
-    queryFn: (signal) =>
-      signal
-        ? JobService.getJobsByStatus(status, userId, signal)
-        : JobService.getJobsByStatus(status, userId),
-  });
-};
+
+
+
+
 
 export const useJob = (jobId: string) => {
   return useOfflineQuery({
@@ -102,17 +69,7 @@ export const useMyBidForJob = (
   });
 };
 
-const useSearchJobs = (query: string, limit: number = 20) => {
-  return useOfflineQuery({
-    queryKey: queryKeys.search.jobs(query),
-    queryFn: (signal) =>
-      signal
-        ? JobService.searchJobs(query, {}, limit, signal)
-        : JobService.searchJobs(query, {}, limit),
-    enabled: query.length > 2, // Only search if query is meaningful
-    staleTime: 5 * 60 * 1000, // 5 minutes for search results
-  });
-};
+
 
 // Mutation hooks
 export const useCreateJob = () => {
@@ -206,57 +163,13 @@ export const useCreateJob = () => {
   });
 };
 
-const useUpdateJobStatus = () => {
-  return useOfflineMutation({
-    mutationFn: ({
-      jobId,
-      status,
-      contractorId,
-    }: {
-      jobId: string;
-      status: Job['status'];
-      contractorId?: string;
-    }) => JobService.updateJobStatus(jobId, status, contractorId),
-    entity: 'job',
-    actionType: 'UPDATE',
-    getQueryKey: (variables) => queryKeys.jobs.details(variables.jobId),
-  });
-};
 
-const useStartJob = () => {
-  return useOfflineMutation({
-    mutationFn: (jobId: string) => JobService.startJob(jobId),
-    entity: 'job',
-    actionType: 'UPDATE',
-    getQueryKey: (jobId) => queryKeys.jobs.details(jobId),
-    optimisticUpdate: () => ({ status: 'in_progress' }),
-  });
-};
 
-const useCompleteJob = () => {
-  return useOfflineMutation({
-    mutationFn: (jobId: string) => JobService.completeJob(jobId),
-    entity: 'job',
-    actionType: 'UPDATE',
-    getQueryKey: (jobId) => queryKeys.jobs.details(jobId),
-    optimisticUpdate: () => ({ status: 'completed' }),
-  });
-};
 
-const useSubmitBid = () => {
-  return useOfflineMutation({
-    mutationFn: JobService.submitBid,
-    entity: 'bid',
-    actionType: 'CREATE',
-    getQueryKey: (variables) => queryKeys.jobs.bids(variables.jobId),
-    optimisticUpdate: (variables) => ({
-      id: `temp_bid_${Date.now()}`,
-      ...variables,
-      status: 'pending' as const,
-      createdAt: new Date().toISOString(),
-    }),
-  });
-};
+
+
+
+
 
 /**
  * Audit step 11 (2026-04-29): the mutation now accepts an

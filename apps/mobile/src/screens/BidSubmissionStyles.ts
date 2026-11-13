@@ -1,4 +1,4 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { me } from '../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({

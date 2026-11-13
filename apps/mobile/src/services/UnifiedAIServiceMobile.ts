@@ -3,21 +3,11 @@
  * Provides all AI functionality to mobile app using the unified service
  */
 
-import {
-  UnifiedAIService,
-  BuildingAssessment,
-  PricingRecommendation,
-  AgentDecision,
-  SearchResult,
-  SearchFilters,
-  ESGScore,
-  ImageAnalysis,
-  SemanticSearchQuery,
-  AgentContext,
-  AIServiceResponse,
-  AIServiceConfig,
-  UserCorrection,
-} from '@mintenance/ai-core';
+/**
+ * Mobile AI Service Wrapper
+ * Provides all AI functionality to mobile app using the unified service
+ */
+import { UnifiedAIService, BuildingAssessment, PricingRecommendation, AgentDecision, SearchResult, SearchFilters, ESGScore, ImageAnalysis, SemanticSearchQuery, AgentContext, AIServiceConfig, UserCorrection } from '@mintenance/ai-core';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '../config/environment';
 import { logger } from '@mintenance/shared';

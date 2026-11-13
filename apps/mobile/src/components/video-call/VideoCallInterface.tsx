@@ -1,15 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  StatusBar,
-  Dimensions,
-  SafeAreaView,
-  Platform,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert, StatusBar, Dimensions, SafeAreaView } from 'react-native';
 import { styles } from './videoCallInterfaceStyles';
 import { Ionicons } from '@expo/vector-icons';
 import haptics from '../../utils/haptics';

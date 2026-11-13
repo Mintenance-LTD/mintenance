@@ -71,8 +71,8 @@ const UpdateUserSchema = UserSchema.partial().omit({
 });
 
 // Type exports
-type User = z.infer<typeof UserSchema>;
-type UserProfile = z.infer<typeof UserProfileSchema>;
-type CreateUser = z.infer<typeof CreateUserSchema>;
-type SignIn = z.infer<typeof SignInSchema>;
-type UpdateUser = z.infer<typeof UpdateUserSchema>;
+
+
+
+
+

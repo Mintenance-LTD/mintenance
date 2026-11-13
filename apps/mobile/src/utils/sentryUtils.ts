@@ -32,7 +32,7 @@ try {
     addBreadcrumb: sentry.addBreadcrumb || (() => {}),
     measureAsyncPerformance: sentry.measureAsyncPerformance || (<T>(fn: () => Promise<T>) => fn()),
   };
-} catch (error) {
+} catch {
   logger.debug('Sentry not available, using no-op functions');
   sentryFunctions = {
     setUserContext: () => {},

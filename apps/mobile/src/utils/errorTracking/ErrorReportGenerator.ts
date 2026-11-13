@@ -4,12 +4,7 @@
  */
 
 import { Platform } from 'react-native';
-import {
-  ErrorPattern,
-  ErrorTrend,
-  ErrorSeverity,
-  ErrorCategory,
-} from './ErrorTypes';
+import { ErrorPattern, ErrorTrend, ErrorSeverity } from './ErrorTypes';
 
 export class ErrorReportGenerator {
   /**

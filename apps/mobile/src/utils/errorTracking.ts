@@ -48,7 +48,7 @@ let Sentry: SentryLike | null = null;
 try {
   Sentry = require('@sentry/react-native');
   logger.info('Sentry (@sentry/react-native) available for error tracking');
-} catch (error) {
+} catch {
   logger.warn('Sentry not available, using fallback error tracking');
   Sentry = null;
 }

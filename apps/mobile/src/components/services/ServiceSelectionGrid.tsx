@@ -128,51 +128,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 };
 
 // Special offers component inspired by the beauty salon's discount cards
-const SpecialOffersSection: React.FC<{
-  offers: {
-    id: string;
-    title: string;
-    description: string;
-    discount: string;
-    validUntil: string;
-    image: string;
-  }[];
-  onOfferSelect: (id: string) => void;
-}> = ({ offers, onOfferSelect }) => {
-  return (
-    <View style={styles.offersContainer}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>Special Offers</Text>
-        <Text style={styles.subtitle}>Limited time deals</Text>
-      </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {offers.map((offer) => (
-          <TouchableOpacity
-            key={offer.id}
-            style={styles.offerCard}
-            onPress={() => onOfferSelect(offer.id)}
-          >
-            <View style={styles.offerContent}>
-              <View style={styles.discountBadge}>
-                <Text style={styles.discountText}>Up to</Text>
-                <Text style={styles.discountValue}>{offer.discount}</Text>
-              </View>
-              <Text style={styles.offerTitle}>{offer.title}</Text>
-              <Text style={styles.offerDescription}>{offer.description}</Text>
-              <Text style={styles.validUntil}>
-                Valid until {offer.validUntil}
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.claimButton}>
-              <Text style={styles.claimButtonText}>Claim</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-};
 
 const styles = StyleSheet.create({
   container: {

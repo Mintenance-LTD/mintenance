@@ -126,11 +126,7 @@ export function useResponsiveGrid(props: GridProps) {
 }
 
 // Layout detection
-function useLayoutMode(): 'mobile' | 'desktop' {
-  const { isWeb, isDesktop } = useResponsive();
 
-  return isWeb && isDesktop ? 'desktop' : 'mobile';
-}
 
 // Sidebar layout helper
 export function useSidebarLayout() {
@@ -144,32 +140,4 @@ export function useSidebarLayout() {
 }
 
 // Multi-column layout helper
-function useMultiColumnLayout() {
-  const responsive = useResponsive();
 
-  const getColumnCount = () => {
-    if (responsive.isDesktop) {
-      return responsive.width > 1600 ? 3 : 2;
-    }
-    return 1;
-  };
-
-  const columns = getColumnCount();
-  const gap = 24;
-  const columnWidth = responsive.isDesktop ? `${100 / columns}%` : '100%';
-
-  return {
-    columns,
-    columnWidth,
-    gap,
-    isMultiColumn: columns > 1,
-    containerStyle: {
-      flexDirection: columns > 1 ? ('row' as const) : ('column' as const),
-      gap: columns > 1 ? gap : 0,
-    },
-    columnStyle: {
-      flex: columns > 1 ? 1 : undefined,
-      width: columns > 1 ? undefined : '100%',
-    },
-  };
-}

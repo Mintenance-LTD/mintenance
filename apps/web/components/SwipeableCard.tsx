@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { theme } from '@/lib/theme';
 
 interface SwipeableCardProps {
@@ -24,7 +24,10 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = (props) => {
   } = props || {};
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
+  const gesture = useRef<{
+    start: { x: number; y: number };
+    offset: { x: number; y: number };
+  } | null>(null);
   const [rotation, setRotation] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -33,23 +36,35 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = (props) => {
 
   const handleStart = (clientX: number, clientY: number) => {
     setIsDragging(true);
-    setStartPosition({ x: clientX, y: clientY });
+    gesture.current = {
+      start: { x: clientX, y: clientY },
+      offset: { x: 0, y: 0 },
+    };
   };
 
-  const handleMove = (clientX: number, clientY: number) => {
-    if (!isDragging) return;
+  const handleMove = useCallback((clientX: number, clientY: number) => {
+    if (!gesture.current) return;
 
-    const deltaX = clientX - startPosition.x;
-    const deltaY = clientY - startPosition.y;
+    const deltaX = clientX - gesture.current.start.x;
+    const deltaY = clientY - gesture.current.start.y;
 
+    gesture.current.offset = { x: deltaX, y: deltaY };
     setPosition({ x: deltaX, y: deltaY });
     setRotation(deltaX * ROTATION_FACTOR);
-  };
+  }, []);
 
-  const handleEnd = () => {
-    if (!isDragging) return;
+  const resetGesture = useCallback(() => {
+    gesture.current = null;
+    setIsDragging(false);
+    setPosition({ x: 0, y: 0 });
+    setRotation(0);
+  }, []);
 
-    const { x, y } = position;
+  const handleEnd = useCallback(() => {
+    if (!gesture.current) return;
+
+    const { x, y } = gesture.current.offset;
+    resetGesture();
     const absX = Math.abs(x);
     const absY = Math.abs(y);
 
@@ -72,12 +87,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = (props) => {
         }
       }
     }
-
-    // Reset position
-    setIsDragging(false);
-    setPosition({ x: 0, y: 0 });
-    setRotation(0);
-  };
+  }, [onSwipeRight, onSwipeLeft, onSwipeDown, onSwipeUp, resetGesture]);
 
   // Mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -85,47 +95,38 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = (props) => {
     handleStart(e.clientX, e.clientY);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    handleMove(e.clientX, e.clientY);
-  };
-
-  const handleMouseUp = () => {
-    handleEnd();
-  };
-
   // Touch events
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
-    handleStart(touch.clientX, touch.clientY);
-  };
-
-  const handleTouchMove = (e: TouchEvent) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    if (touch) {
-      handleMove(touch.clientX, touch.clientY);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    handleEnd();
+    if (touch) handleStart(touch.clientX, touch.clientY);
   };
 
   useEffect(() => {
     if (isDragging) {
+      const handleMouseMove = (e: MouseEvent) =>
+        handleMove(e.clientX, e.clientY);
+      const handleTouchMove = (e: TouchEvent) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        if (touch) handleMove(touch.clientX, touch.clientY);
+      };
       document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd);
+      document.addEventListener('mouseup', handleEnd);
+      document.addEventListener('touchmove', handleTouchMove, {
+        passive: false,
+      });
+      document.addEventListener('touchend', handleEnd);
+      document.addEventListener('touchcancel', resetGesture);
 
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('mouseup', handleEnd);
         document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
+        document.removeEventListener('touchend', handleEnd);
+        document.removeEventListener('touchcancel', resetGesture);
       };
     }
-  }, [isDragging, startPosition]);
+  }, [isDragging, handleMove, handleEnd, resetGesture]);
 
   const cardStyle: React.CSSProperties = {
     transform: `translate(${position.x}px, ${position.y}px) rotate(${rotation}deg)`,
@@ -178,37 +179,38 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = (props) => {
       {children}
 
       {/* Swipe Overlay */}
-      {isDragging && (Math.abs(position.x) > 20 || Math.abs(position.y) > 20) && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: getOverlayColor(),
-            opacity: getOverlayOpacity(),
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 'inherit',
-            pointerEvents: 'none',
-            zIndex: 10,
-          }}
-        >
+      {isDragging &&
+        (Math.abs(position.x) > 20 || Math.abs(position.y) > 20) && (
           <div
             style={{
-              color: theme.colors.white,
-              fontSize: theme.typography.fontSize['4xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-              transform: `rotate(${-rotation}deg)`, // Counter-rotate text
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: getOverlayColor(),
+              opacity: getOverlayOpacity(),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 'inherit',
+              pointerEvents: 'none',
+              zIndex: 10,
             }}
           >
-            {getOverlayText()}
+            <div
+              style={{
+                color: theme.colors.white,
+                fontSize: theme.typography.fontSize['4xl'],
+                fontWeight: theme.typography.fontWeight.bold,
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                transform: `rotate(${-rotation}deg)`, // Counter-rotate text
+              }}
+            >
+              {getOverlayText()}
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 };
