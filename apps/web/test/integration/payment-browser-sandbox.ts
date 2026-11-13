@@ -163,10 +163,13 @@ export async function verifySandboxBrowserJourney() {
         await ownerPage
           .getByRole('button', { name: 'Approve & release', exact: true })
           .click();
-        transferId = (
-          await successful(await response, 'Owner release confirmation')
-        ).transferId;
-        assert.ok(transferId);
+        // Success reloads this page immediately. Chromium may discard the
+        // response body, so verify the durable ledger and provider transfer.
+        const released = await response;
+        assert.ok(
+          released.ok(),
+          `Owner release confirmation: HTTP ${released.status()}`
+        );
         const stored = await db
           .from('escrow_transactions')
           .select('status,transfer_id,homeowner_approval,contractor_payout')
@@ -174,6 +177,8 @@ export async function verifySandboxBrowserJourney() {
           .single();
         assert.equal(stored.error, null);
         assert.equal(stored.data?.status, 'completed');
+        transferId = stored.data?.transfer_id;
+        assert.ok(transferId);
         assert.equal(stored.data?.transfer_id, transferId);
         assert.equal(stored.data?.homeowner_approval, true);
         const transfer = await stripe.transfers.retrieve(transferId);
