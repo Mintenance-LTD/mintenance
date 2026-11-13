@@ -8,6 +8,7 @@
 import { formatMilesFromKm } from '@mintenance/shared';
 import { colors } from '@mintenance/design-tokens';
 import { formatMoney } from '@/lib/utils/currency';
+import { createMapElement } from '@/components/maps/info-window-content';
 
 interface ContractorLocationForMap {
   city?: string | null;
@@ -69,18 +70,26 @@ function createContractorMarker(
     },
   });
 
-  const contractorInfoWindow = new google.maps.InfoWindow({
-    content: `
-      <div style="padding: 8px;">
-        <strong style="color: #111827; font-size: 14px;">Your Location</strong>
-        ${
-          contractorLocation.city || contractorLocation.country
-            ? `<p style="margin: 4px 0 0 0; color: #6B7280; font-size: 12px;">${[contractorLocation.city, contractorLocation.country].filter(Boolean).join(', ')}</p>`
-            : ''
-        }
-      </div>
-    `,
-  });
+  const content = createMapElement('div', 'padding: 8px;');
+  content.append(
+    createMapElement(
+      'strong',
+      'color: #111827; font-size: 14px;',
+      'Your Location'
+    )
+  );
+  if (contractorLocation.city || contractorLocation.country) {
+    content.append(
+      createMapElement(
+        'p',
+        'margin: 4px 0 0 0; color: #6B7280; font-size: 12px;',
+        [contractorLocation.city, contractorLocation.country]
+          .filter(Boolean)
+          .join(', ')
+      )
+    );
+  }
+  const contractorInfoWindow = new google.maps.InfoWindow({ content });
 
   contractorMarker.addListener('click', () => {
     refs.infoWindowsRef.current.forEach((window) => window.close());
@@ -117,28 +126,47 @@ function createJobMarkers(refs: MapRefs, jobs: JobForMap[]): void {
 
     const homeownerName = job.homeowner
       ? `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() ||
-        job.homeowner.email
+        job.homeowner.email ||
+        'Unknown'
       : 'Unknown';
 
-    const jobInfoWindow = new google.maps.InfoWindow({
-      content: `
-        <div style="padding: 8px; max-width: 250px;">
-          <strong style="color: #111827; font-size: 14px;">${job.title}</strong>
-          <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 12px;">${job.location || 'Location not specified'}</p>
-          ${
-            job.distance !== undefined
-              ? `<p style="margin: 4px 0 0 0; color: ${colors.info}; font-size: 12px; font-weight: 600;">${formatMilesFromKm(job.distance)} away</p>`
-              : ''
-          }
-          ${
-            job.budget
-              ? `<p style="margin: 4px 0 0 0; color: #10B981; font-size: 12px; font-weight: 600;">${formatMoney(parseFloat(job.budget))}</p>`
-              : ''
-          }
-          <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 11px;">Posted by: ${homeownerName}</p>
-        </div>
-      `,
-    });
+    const content = createMapElement('div', 'padding: 8px; max-width: 250px;');
+    content.append(
+      createMapElement('strong', 'color: #111827; font-size: 14px;', job.title)
+    );
+    content.append(
+      createMapElement(
+        'p',
+        'margin: 4px 0 0 0; color: #6B7280; font-size: 12px;',
+        job.location || 'Location not specified'
+      )
+    );
+    if (job.distance !== undefined) {
+      content.append(
+        createMapElement(
+          'p',
+          `margin: 4px 0 0 0; color: ${colors.info}; font-size: 12px; font-weight: 600;`,
+          `${formatMilesFromKm(job.distance)} away`
+        )
+      );
+    }
+    if (job.budget) {
+      content.append(
+        createMapElement(
+          'p',
+          'margin: 4px 0 0 0; color: #10B981; font-size: 12px; font-weight: 600;',
+          formatMoney(parseFloat(job.budget))
+        )
+      );
+    }
+    content.append(
+      createMapElement(
+        'p',
+        'margin: 4px 0 0 0; color: #6B7280; font-size: 11px;',
+        `Posted by: ${homeownerName}`
+      )
+    );
+    const jobInfoWindow = new google.maps.InfoWindow({ content });
 
     jobMarker.addListener('click', () => {
       refs.infoWindowsRef.current.forEach((window) => window.close());
@@ -184,9 +212,10 @@ export function updateMarkers(
   contractorLocation: ContractorLocationForMap,
   jobs: JobForMap[]
 ): void {
-  if (!refs.mapRef.current || !contractorCoords) return;
+  if (!refs.mapRef.current) return;
 
   clearMarkers(refs);
+  if (!contractorCoords) return;
   createContractorMarker(refs, contractorCoords, contractorLocation);
   createJobMarkers(refs, jobs);
   fitBounds(refs, contractorCoords);
