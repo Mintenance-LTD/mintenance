@@ -1,410 +1,210 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { QuoteBuilderScreen } from '../QuoteBuilderScreen';
 import type { ContractorQuote } from '../../services/QuoteBuilderService';
-
-// ---- Mock externals only (never the screen under test) ----
-
+jest.mock('react-native', () => {
+  const native = jest.requireActual('react-native');
+  const React = require('react');
+  return {
+    ...native,
+    FlatList: ({
+      data,
+      renderItem,
+      ListHeaderComponent,
+      ListEmptyComponent,
+    }: any) =>
+      React.createElement(
+        native.View,
+        null,
+        ListHeaderComponent,
+        data.length
+          ? data.map((item: any, index: number) =>
+              React.createElement(
+                React.Fragment,
+                { key: item.id },
+                renderItem({ item, index })
+              )
+            )
+          : ListEmptyComponent
+      ),
+  };
+});
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (callback: () => void) =>
+    require('react').useEffect(callback, [callback]),
+}));
 jest.mock('react-native-safe-area-context', () => ({
-  useSafeAreaInsets: () => ({ top: 10, bottom: 0, left: 0, right: 0 }),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0 }),
+  SafeAreaView: require('react-native').View,
 }));
-
-const mockToast = {
-  success: jest.fn(),
-  error: jest.fn(),
-  info: jest.fn(),
-};
-jest.mock('../../components/ui/Toast', () => ({
-  useToast: () => mockToast,
-}));
-
-import { logger } from '../../utils/logger';
-
+const mockToast = { success: jest.fn(), error: jest.fn() };
+jest.mock('../../components/ui/Toast', () => ({ useToast: () => mockToast }));
 let mockUser: { id: string } | null = { id: 'contractor-1' };
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
-
-const mockGetQuotes = jest.fn();
-const mockGetStats = jest.fn();
-const mockSendQuote = jest.fn();
-const mockDuplicateQuote = jest.fn();
-const mockDeleteQuote = jest.fn();
+const mockGetQuotes = jest.fn(),
+  mockGetStats = jest.fn(),
+  mockDuplicateQuote = jest.fn(),
+  mockDeleteQuote = jest.fn();
 jest.mock('../../services/QuoteBuilderService', () => ({
   QuoteBuilderService: {
     getQuotes: (...a: unknown[]) => mockGetQuotes(...a),
     getQuoteSummaryStats: (...a: unknown[]) => mockGetStats(...a),
-    sendQuote: (...a: unknown[]) => mockSendQuote(...a),
     duplicateQuote: (...a: unknown[]) => mockDuplicateQuote(...a),
     deleteQuote: (...a: unknown[]) => mockDeleteQuote(...a),
   },
 }));
-
-// ---- Fixtures ----
-
-const makeQuote = (over: Partial<ContractorQuote> = {}): ContractorQuote =>
-  ({
-    id: 'quote-abc12345',
-    quote_number: 'Q-1001',
-    contractor_id: 'contractor-1',
-    job_id: 'job-9',
-    client_name: 'Jane Homeowner',
-    client_email: 'jane@example.com',
-    project_title: 'Bathroom refit',
-    subtotal: 1000,
-    tax_amount: 200,
-    total_amount: 1200,
-    tax_rate: 0.2,
-    currency: 'GBP',
-    status: 'draft',
-    created_at: '2026-01-01T00:00:00.000Z',
-    updated_at: '2026-01-01T00:00:00.000Z',
-    ...over,
-  }) as ContractorQuote;
-
-const fullStats = {
-  total_quotes: 12,
-  draft_quotes: 3,
-  sent_quotes: 4,
-  accepted_quotes: 5,
+const draft = {
+  id: 'quote-1',
+  quote_number: 'Q-001',
+  project_title: 'Bathroom refit',
+  client_name: 'Jane',
+  status: 'draft',
+  total_amount: 1200,
+  currency: 'GBP',
+  created_at: '2026-01-01',
+} as ContractorQuote;
+const accepted = {
+  ...draft,
+  id: 'quote-2',
+  quote_number: 'Q-002',
+  status: 'accepted',
+  project_title: 'Garden fence',
+  client_name: 'Jim',
+} as ContractorQuote;
+const stats = {
+  total_quotes: 2,
+  draft_quotes: 1,
+  sent_quotes: 0,
+  accepted_quotes: 1,
   rejected_quotes: 0,
-  total_value: 7817.05,
-  accepted_value: 4000,
-  average_quote_value: 651.42,
-  acceptance_rate: 41.6,
-  conversion_rate: 30,
+  total_value: 2400,
+  accepted_value: 1200,
+  acceptance_rate: 100,
 };
-
-const mockNavigation = {
-  navigate: jest.fn(),
-  goBack: jest.fn(),
-} as never;
-
-const renderScreen = () =>
-  render(<QuoteBuilderScreen navigation={mockNavigation} />);
-
-let loggerErrorSpy: jest.SpyInstance;
-
+const navigation = { navigate: jest.fn(), goBack: jest.fn() };
+const show = () =>
+  render(<QuoteBuilderScreen navigation={navigation as never} />);
 beforeEach(() => {
   jest.clearAllMocks();
   mockUser = { id: 'contractor-1' };
-  mockGetQuotes.mockResolvedValue([makeQuote()]);
-  mockGetStats.mockResolvedValue(fullStats);
-  loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+  mockGetQuotes.mockResolvedValue([draft, accepted]);
+  mockGetStats.mockResolvedValue(stats);
+  mockDuplicateQuote.mockResolvedValue(draft);
+  mockDeleteQuote.mockResolvedValue(undefined);
 });
-
-afterEach(() => {
-  loggerErrorSpy.mockRestore();
+afterEach(() => jest.restoreAllMocks());
+it('has one create action, compact summary and existing draft navigation', async () => {
+  const ui = show();
+  await ui.findByText('Bathroom refit');
+  expect(ui.getAllByLabelText('Create new quote')).toHaveLength(1);
+  expect(ui.queryByText('Total quoted: £2,400.00')).toBeNull();
+  fireEvent.press(ui.getByText('Quote summary'));
+  expect(ui.getByText('Total quoted: £2,400.00')).toBeTruthy();
+  fireEvent.press(ui.getByLabelText('Review draft Q-001'));
+  expect(navigation.navigate).toHaveBeenCalledWith('QuoteDetail', {
+    quoteId: 'quote-1',
+  });
+  fireEvent.press(ui.getByLabelText('Create new quote'));
+  expect(navigation.navigate).toHaveBeenCalledWith('CreateQuote', {});
+  fireEvent.press(ui.getByText('Quick quote'));
+  expect(navigation.navigate).toHaveBeenCalledWith('QuickQuote', {});
+  fireEvent.press(ui.getByText('Templates'));
+  expect(navigation.navigate).toHaveBeenCalledWith('QuoteTemplates');
 });
-
-// Press the TouchableOpacity that owns an icon rendered as <Text>{name}</Text>.
-// QuoteCard action handlers call e.stopPropagation(), so a synthetic event is supplied.
-const pressIconButton = (getByText: (t: string) => unknown, name: string) => {
-  const iconText = getByText(name) as { parent: unknown };
-  fireEvent.press(
-    iconText.parent as never,
-    {
-      stopPropagation: jest.fn(),
-    } as never
+it('combines client search and all status choices without extra fetches', async () => {
+  const ui = show();
+  await ui.findByText('Bathroom refit');
+  fireEvent.changeText(ui.getByLabelText('Search quotes'), 'jim');
+  expect(ui.queryByText('Bathroom refit')).toBeNull();
+  expect(ui.getByText('Garden fence')).toBeTruthy();
+  fireEvent.press(ui.getByLabelText('Quote status: All statuses (2)'));
+  expect(ui.getByText('Expired (0)')).toBeTruthy();
+  fireEvent.press(ui.getByText('Draft (1)'));
+  expect(ui.getByText('No matching quotes')).toBeTruthy();
+  fireEvent.press(ui.getByText('Clear filters'));
+  expect(ui.getByText('Bathroom refit')).toBeTruthy();
+  expect(mockGetQuotes).toHaveBeenCalledTimes(1);
+});
+it('shows a retryable error, not a false empty list, and clears it after recovery', async () => {
+  mockGetQuotes.mockRejectedValueOnce(new Error('offline'));
+  const ui = show();
+  await ui.findByText('Retry quotes');
+  expect(ui.queryByText('No quotes yet')).toBeNull();
+  fireEvent.press(ui.getByText('Retry quotes'));
+  await ui.findByText('Bathroom refit');
+  expect(ui.queryByText('Retry quotes')).toBeNull();
+});
+it('reloads counts after duplication and blocks duplicate taps during a mutation', async () => {
+  let resolve!: () => void;
+  mockDuplicateQuote.mockReturnValue(
+    new Promise<void>((r) => {
+      resolve = r;
+    })
   );
-};
-
-describe('QuoteBuilderScreen', () => {
-  it('shows loading spinner before data resolves, then renders content', async () => {
-    let resolveQuotes!: (v: ContractorQuote[]) => void;
-    mockGetQuotes.mockReturnValueOnce(
-      new Promise<ContractorQuote[]>((res) => {
-        resolveQuotes = res;
-      })
-    );
-    const { getByText, queryByText } = renderScreen();
-    // loading && quotes.length === 0 -> spinner branch
-    expect(getByText('Loading quotes...')).toBeTruthy();
-
-    resolveQuotes([makeQuote()]);
-    await waitFor(() => expect(queryByText('Quote Builder')).toBeTruthy());
+  const ui = show();
+  await ui.findByText('Bathroom refit');
+  fireEvent.press(ui.getByLabelText('More actions for quote Q-001'));
+  fireEvent.press(ui.getByText('Duplicate as a draft'));
+  expect(
+    ui.getByLabelText('More actions for quote Q-001').props.accessibilityState
+      .disabled
+  ).toBe(true);
+  await act(async () => resolve());
+  await waitFor(() =>
+    expect(mockToast.success).toHaveBeenCalledWith('Draft copy created')
+  );
+  expect(mockDuplicateQuote).toHaveBeenCalledTimes(1);
+  expect(mockGetStats).toHaveBeenCalledTimes(2);
+});
+it('requires confirmation before deleting a draft and refreshes summary', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const ui = show();
+  await ui.findByText('Bathroom refit');
+  fireEvent.press(ui.getByLabelText('More actions for quote Q-001'));
+  fireEvent.press(ui.getByText('Delete draft'));
+  expect(mockDeleteQuote).not.toHaveBeenCalled();
+  const confirm = alert.mock.calls[0][2]?.find(
+    (button) => button.text === 'Delete draft'
+  );
+  await act(async () => {
+    confirm?.onPress?.();
   });
-
-  it('renders header, stats card (GBP), filter counts and a quote card', async () => {
-    const { getByText, queryByText } = renderScreen();
-
-    await waitFor(() => expect(getByText('Quote Builder')).toBeTruthy());
-    expect(getByText('Revenue Growth')).toBeTruthy();
-    expect(getByText('Performance')).toBeTruthy();
-
-    // STAT_ITEMS computed values
-    expect(getByText('12')).toBeTruthy(); // total
-    expect(getByText('5')).toBeTruthy(); // accepted
-    expect(getByText('£7,817.05')).toBeTruthy(); // total_value GBP
-    expect(getByText('42%')).toBeTruthy(); // acceptance_rate.toFixed(0)
-
-    // Filter chips with counts
-    expect(getByText('All (12)')).toBeTruthy();
-    expect(getByText('Draft (3)')).toBeTruthy();
-    expect(getByText('Sent (4)')).toBeTruthy();
-    expect(getByText('Accepted (5)')).toBeTruthy();
-    expect(getByText('Rejected (0)')).toBeTruthy();
-
-    // Section title for 'all'
-    expect(getByText('All Quotes')).toBeTruthy();
-    // Quote card rendered (GBP total)
-    expect(getByText('£1200.00')).toBeTruthy();
-    // analytics panel hidden by default
-    expect(queryByText('Analytics Overview')).toBeNull();
-
-    // service called with contractor id + no status filter
-    expect(mockGetQuotes).toHaveBeenCalledWith('contractor-1', {
-      status: undefined,
-    });
-    expect(mockGetStats).toHaveBeenCalledWith('contractor-1');
-  });
-
-  it('does not call services when there is no authenticated user', async () => {
-    mockUser = null;
-    renderScreen();
-    await waitFor(() => {
-      expect(mockGetQuotes).not.toHaveBeenCalled();
-    });
-    expect(mockGetStats).not.toHaveBeenCalled();
-  });
-
-  it('falls back to empty contractor id when user.id is missing', async () => {
-    mockUser = { id: '' };
-    mockGetStats.mockResolvedValue(null);
-    const { getByText } = renderScreen();
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-    // user truthy but id empty -> `user?.id || ''` fallback exercised on load
-    expect(mockGetQuotes).toHaveBeenCalledWith('', { status: undefined });
-
-    // and again on the status-filter path
-    fireEvent.press(getByText('Draft (0)'));
-    await waitFor(() =>
-      expect(mockGetQuotes).toHaveBeenLastCalledWith('', { status: ['draft'] })
-    );
-  });
-
-  it('renders the empty state for "all" when no quotes returned', async () => {
-    mockGetQuotes.mockResolvedValue([]);
-    const { getByText } = renderScreen();
-    await waitFor(() => expect(getByText('No quotes found')).toBeTruthy());
-    expect(
-      getByText(
-        'Create your first quote to get started with professional proposals'
-      )
-    ).toBeTruthy();
-
-    // Create button in empty state navigates to CreateQuote
-    fireEvent.press(getByText('Create Quote'));
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('CreateQuote');
-  });
-
-  it('filters by status: success path updates section title and empty text', async () => {
-    const { getByText } = renderScreen();
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-
-    // Filter -> 'sent', return empty so we hit the status-specific empty branch
-    mockGetQuotes.mockResolvedValueOnce([]);
-    fireEvent.press(getByText('Sent (4)'));
-
-    await waitFor(() => expect(getByText('Sent Quotes')).toBeTruthy());
-    expect(getByText('No sent quotes at the moment')).toBeTruthy();
-    // status filter array passed
-    expect(mockGetQuotes).toHaveBeenLastCalledWith('contractor-1', {
-      status: ['sent'],
-    });
-  });
-
-  it('filters by status: error path shows toast', async () => {
-    const { getByText } = renderScreen();
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-
-    mockGetQuotes.mockRejectedValueOnce(new Error('boom'));
-    fireEvent.press(getByText('Draft (3)'));
-
-    await waitFor(() =>
-      expect(mockToast.error).toHaveBeenCalledWith('Failed to filter quotes')
-    );
-  });
-
-  it('shows error banner when initial quote load fails', async () => {
-    mockGetQuotes.mockRejectedValueOnce(new Error('network'));
-    const { getByText } = renderScreen();
-    await waitFor(() =>
-      expect(getByText('Failed to load quotes. Pull to refresh.')).toBeTruthy()
-    );
-    expect(loggerErrorSpy).toHaveBeenCalledWith(
-      'Error loading quotes',
-      expect.any(Error)
-    );
-  });
-
-  it('logs stats load failure without crashing', async () => {
-    mockGetStats.mockRejectedValueOnce(new Error('stats-fail'));
-    const { getByText } = renderScreen();
-    // screen still renders quotes list despite stats failure
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-    expect(loggerErrorSpy).toHaveBeenCalledWith(
-      'Error loading stats',
-      expect.any(Error)
-    );
-  });
-
-  it('renders without stats card when stats is null', async () => {
-    mockGetStats.mockResolvedValueOnce(null);
-    const { getByText, queryByText } = renderScreen();
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-    expect(queryByText('Performance')).toBeNull();
-    // filter counts fall back to 0
-    expect(getByText('All (0)')).toBeTruthy();
-    expect(getByText('Draft (0)')).toBeTruthy();
-  });
-
-  it('sends a quote successfully and reloads', async () => {
-    const { getByText } = renderScreen();
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-
-    mockSendQuote.mockResolvedValueOnce(undefined);
-    // The draft quote card exposes a send button (Ionicon 'send').
-    pressIconButton(getByText, 'send');
-
-    await waitFor(() =>
-      expect(mockToast.success).toHaveBeenCalledWith('Quote sent successfully')
-    );
-    expect(mockSendQuote).toHaveBeenCalledWith('quote-abc12345');
-  });
-
-  it('shows error toast when sending a quote fails', async () => {
-    const { getByText } = renderScreen();
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-
-    mockSendQuote.mockRejectedValueOnce(new Error('send-fail'));
-    pressIconButton(getByText, 'send');
-
-    await waitFor(() =>
-      expect(mockToast.error).toHaveBeenCalledWith('Failed to send quote')
-    );
-  });
-
-  it('duplicates a quote successfully and on error', async () => {
-    const { getByText } = renderScreen();
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-
-    mockDuplicateQuote.mockResolvedValueOnce(undefined);
-    pressIconButton(getByText, 'copy');
-    await waitFor(() =>
-      expect(mockToast.success).toHaveBeenCalledWith(
-        'Quote duplicated successfully'
-      )
-    );
-    expect(mockDuplicateQuote).toHaveBeenCalledWith('quote-abc12345');
-
-    // error branch
-    mockDuplicateQuote.mockRejectedValueOnce(new Error('dup-fail'));
-    pressIconButton(getByText, 'copy');
-    await waitFor(() =>
-      expect(mockToast.error).toHaveBeenCalledWith('Failed to duplicate quote')
-    );
-  });
-
-  it('deletes a quote via Alert confirm: success and error onPress paths', async () => {
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    const { getByText } = renderScreen();
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-
-    pressIconButton(getByText, 'trash');
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Delete Quote',
-      expect.stringContaining('cannot be undone'),
-      expect.any(Array)
-    );
-
-    // Invoke the destructive button's onPress (success)
-    const buttons = alertSpy.mock.calls[0][2] as Array<{
-      text: string;
-      onPress?: () => Promise<void> | void;
-    }>;
-    const deleteBtn = buttons.find((b) => b.text === 'Delete')!;
-    mockDeleteQuote.mockResolvedValueOnce(undefined);
-    await deleteBtn.onPress!();
-    expect(mockDeleteQuote).toHaveBeenCalledWith('quote-abc12345');
-    expect(mockToast.success).toHaveBeenCalledWith(
-      'Quote deleted successfully'
-    );
-
-    // error path
-    mockDeleteQuote.mockRejectedValueOnce(new Error('del-fail'));
-    await deleteBtn.onPress!();
-    expect(mockToast.error).toHaveBeenCalledWith('Failed to delete quote');
-
-    alertSpy.mockRestore();
-  });
-
-  it('pull-to-refresh reloads quotes and stats', async () => {
-    const { getByText, UNSAFE_root } = renderScreen();
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-
-    mockGetQuotes.mockClear();
-    mockGetStats.mockClear();
-
-    // Find the vertical ScrollView carrying the RefreshControl and fire its onRefresh.
-    const scrollViews = UNSAFE_root.findAll(
-      (node: { props?: { refreshControl?: unknown } }) =>
-        Boolean(node.props && node.props.refreshControl)
-    );
-    expect(scrollViews.length).toBeGreaterThan(0);
-    const onRefresh = (
-      scrollViews[0].props.refreshControl as {
-        props: { onRefresh: () => void };
-      }
-    ).props.onRefresh;
-    onRefresh();
-
-    await waitFor(() => {
-      expect(mockGetQuotes).toHaveBeenCalled();
-      expect(mockGetStats).toHaveBeenCalled();
-    });
-  });
-
-  it('navigates from header, add button and quick actions', async () => {
-    const { getByText, getAllByText, getByLabelText } = renderScreen();
-    await waitFor(() => expect(getByText('Quote Builder')).toBeTruthy());
-
-    // back button
-    fireEvent.press(getByLabelText('Go back'));
-    expect(mockNavigation.goBack).toHaveBeenCalled();
-
-    // header "New Quote" + quick action "New Quote"
-    const newQuoteEls = getAllByText('New Quote');
-    fireEvent.press(newQuoteEls[0]);
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('CreateQuote');
-
-    // quick actions
-    fireEvent.press(getByText('Templates'));
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('QuoteTemplates');
-    fireEvent.press(getByText('Quick quote'));
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('QuickQuote');
-
-    // Quick action "New Quote" (distinct onPress from the header button).
-    (mockNavigation.navigate as jest.Mock).mockClear();
-    fireEvent.press(newQuoteEls[1]);
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('CreateQuote');
-  });
-
-  it('navigates to detail and edit from a quote card', async () => {
-    const { getByText } = renderScreen();
-    await waitFor(() => expect(getByText('All Quotes')).toBeTruthy());
-
-    // Press the card itself -> QuoteDetail
-    fireEvent.press(getByText('Bathroom refit'));
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('QuoteDetail', {
-      quoteId: 'quote-abc12345',
-    });
-
-    // Edit pencil -> CreateQuote with jobId
-    pressIconButton(getByText, 'pencil');
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('CreateQuote', {
-      jobId: 'job-9',
-    });
-  });
+  await waitFor(() => expect(mockDeleteQuote).toHaveBeenCalledWith('quote-1'));
+  expect(mockGetStats).toHaveBeenCalledTimes(2);
+});
+it('reports mutation failures and releases the busy control', async () => {
+  mockDuplicateQuote.mockRejectedValue(new Error('offline'));
+  const ui = show();
+  await ui.findByText('Bathroom refit');
+  fireEvent.press(ui.getByLabelText('More actions for quote Q-001'));
+  fireEvent.press(ui.getByText('Duplicate as a draft'));
+  await waitFor(() => expect(mockToast.error).toHaveBeenCalled());
+  expect(
+    ui.getByLabelText('More actions for quote Q-001').props.accessibilityState
+      .disabled
+  ).toBe(false);
+});
+it('ignores an old account response after switching accounts', async () => {
+  let resolve!: (value: ContractorQuote[]) => void;
+  mockGetQuotes.mockReturnValueOnce(
+    new Promise<ContractorQuote[]>((r) => {
+      resolve = r;
+    })
+  );
+  const ui = show();
+  mockUser = { id: 'contractor-2' };
+  mockGetQuotes.mockResolvedValue([]);
+  ui.rerender(<QuoteBuilderScreen navigation={navigation as never} />);
+  await ui.findByText('No quotes yet');
+  await act(async () => resolve([draft]));
+  expect(ui.queryByText('Bathroom refit')).toBeNull();
+});
+it('does not request quotes without a signed in account', async () => {
+  mockUser = null;
+  const ui = show();
+  await ui.findByText('No quotes yet');
+  expect(mockGetQuotes).not.toHaveBeenCalled();
 });

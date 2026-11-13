@@ -312,7 +312,16 @@ export const PropertyContacts: React.FC<Props> = ({ propertyId }) => {
             ]}
           >
             <View style={styles.avatarWrap}>
-              <Ionicons name='person' size={18} color={me.ink2} />
+              <Text
+                style={{ color: me.brand2, fontWeight: '700', fontSize: 16 }}
+              >
+                {c.name
+                  .split(/\s+/)
+                  .map((part) => part[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()}
+              </Text>
             </View>
             <View style={styles.contactInfo}>
               <View style={styles.nameRow}>
@@ -396,11 +405,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 18,
     fontWeight: '700',
-    color: me.ink3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    color: me.ink,
   },
   form: {
     marginBottom: 12,
@@ -486,7 +493,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  linkRow: { flexDirection: 'row', gap: 12, marginTop: 2 },
+  linkRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 2 },
   contactLink: { fontSize: 13, color: me.brand, fontWeight: '600' },
   inactiveTag: {
     fontSize: 11,
@@ -494,5 +501,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontStyle: 'italic',
   },
-  actions: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    alignItems: 'center',
+    maxWidth: 80,
+  },
 });

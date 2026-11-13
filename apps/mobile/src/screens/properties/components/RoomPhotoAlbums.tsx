@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { PropertyChoice } from '../../../components/properties/PropertyChoice';
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -37,7 +38,7 @@ export function RoomPhotoAlbums({
       active.current = false;
     };
   }, []);
-  const [room, setRoom] = useState('kitchen');
+  const [room, setRoom] = useState('all');
   const [date, setDate] = useState('all');
   const [busy, setBusy] = useState(false);
   // The preference is deliberately absent here: changing view never grants a feature.
@@ -64,13 +65,18 @@ export function RoomPhotoAlbums({
       return result.photos;
     },
   });
-  const albums = groupRoomPhotoAlbums(photos.data ?? [], room);
+  const albums = groupRoomPhotoAlbums(
+    room === 'all'
+      ? (photos.data ?? []).map((photo) => ({ ...photo, room_type: 'all' }))
+      : (photos.data ?? []),
+    room
+  );
   const reload = async () => {
     setDate('all');
     await client.invalidateQueries({ queryKey });
   };
   const upload = async (camera: boolean) => {
-    if (!editable || busy || !allowed) return;
+    if (!editable || busy || !allowed || room === 'all') return;
     setBusy(true);
     try {
       if (
@@ -193,7 +199,10 @@ export function RoomPhotoAlbums({
             <PropertyChoice
               label='Room'
               value={room}
-              options={ROOM_PHOTO_TYPES}
+              options={[
+                { value: 'all', label: 'All rooms' },
+                ...ROOM_PHOTO_TYPES,
+              ]}
               onChange={(value) => {
                 setRoom(value);
                 setDate('all');
@@ -214,25 +223,36 @@ export function RoomPhotoAlbums({
               />
             )}
           </View>
+          {editable && room === 'all' && (
+            <Text style={styles.detail}>
+              Choose a room type before uploading a photo.
+            </Text>
+          )}
           {editable && (
             <View style={styles.options}>
               <TouchableOpacity
                 accessibilityRole='button'
-                accessibilityState={{ disabled: busy }}
-                disabled={busy}
+                accessibilityState={{ disabled: busy || room === 'all' }}
+                disabled={busy || room === 'all'}
                 style={styles.button}
                 onPress={() => void upload(true)}
               >
+                <Ionicons name='camera-outline' size={20} color={me.brand2} />
                 <Text style={styles.label}>Take photo</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 accessibilityRole='button'
-                accessibilityState={{ disabled: busy }}
-                disabled={busy}
+                accessibilityState={{ disabled: busy || room === 'all' }}
+                disabled={busy || room === 'all'}
                 style={styles.button}
                 onPress={() => void upload(false)}
               >
-                <Text style={styles.label}>Choose photo</Text>
+                <Ionicons
+                  name='cloud-upload-outline'
+                  size={20}
+                  color={me.brand2}
+                />
+                <Text style={styles.label}>Upload photo</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -253,7 +273,11 @@ export function RoomPhotoAlbums({
           ) : (
             <>
               {albums.length === 0 && (
-                <Text style={styles.detail}>No photos in this room yet.</Text>
+                <Text style={styles.detail}>
+                  {room === 'all'
+                    ? 'No room photos yet.'
+                    : 'No photos in this room yet.'}
+                </Text>
               )}
               {albums
                 .filter((album) => date === 'all' || date === album.date)
@@ -314,6 +338,9 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 12,

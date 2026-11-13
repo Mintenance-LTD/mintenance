@@ -2,6 +2,7 @@ import { scheduleRequest } from '../../../utils/scheduleRequestKey';
 /**
  * RecurringMaintenance - Manage recurring maintenance schedules for a property
  */
+import { PropertySheet } from './PropertyWorkspaceUI';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
@@ -561,162 +562,171 @@ const RecurringEditor: React.FC<Props> = ({
       )}
 
       {editable && showForm && !accessDenied && !loadError && (
-        <View style={styles.form}>
-          {staleDraft && (
-            <Text style={styles.emptyText}>
-              Unsaved draft — review the latest schedule before saving
-            </Text>
-          )}
-          <TextInput
-            editable={!blocked}
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            accessibilityLabel='Schedule title'
-            placeholder='e.g. Boiler Service'
-            placeholderTextColor={me.ink3}
-          />
-          <TextInput
-            editable={!blocked}
-            style={styles.input}
-            accessibilityLabel='First due date, YYYY-MM-DD'
-            placeholder='First due date: YYYY-MM-DD'
-            value={firstDueDate}
-            onChangeText={setFirstDueDate}
-            autoCapitalize='none'
-          />
-          <Text style={styles.emptyText}>Trade category</Text>
-          <View style={[styles.freqRow, { flexWrap: 'wrap' }]}>
-            {[
-              'plumbing',
-              'electrical',
-              'heating',
-              'carpentry',
-              'painting',
-              'roofing',
-              'flooring',
-              'gardening',
-              'cleaning',
-              'handyman',
-              'hvac',
-              'pest_control',
-              'other',
-            ].map((trade) => (
-              <TouchableOpacity
-                key={trade}
-                style={styles.freqChip}
-                accessibilityRole='radio'
-                disabled={blocked}
-                accessibilityState={{
-                  checked: category === trade,
-                  disabled: blocked,
-                }}
-                onPress={() => setCategory(trade)}
-              >
-                <Text>
-                  {category === trade ? 'Selected: ' : ''}
-                  {trade.replace('_', ' ')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <TouchableOpacity
-            accessibilityRole='checkbox'
-            disabled={blocked}
-            style={styles.actionBtn}
-            accessibilityState={{ checked: favouriteOnly, disabled: blocked }}
-            onPress={() => setFavouriteOnly(!favouriteOnly)}
-          >
-            <Text style={styles.emptyText}>
-              {favouriteOnly ? 'Selected: ' : ''}Notify my chosen favourite only
-            </Text>
-          </TouchableOpacity>
-          {favouriteOnly && (
-            <View>
-              <TouchableOpacity
-                accessibilityRole='button'
-                disabled={blocked || loadingContractors}
-                accessibilityState={{ disabled: blocked || loadingContractors }}
-                style={styles.actionBtn}
-                onPress={loadContractors}
-              >
-                <Text style={styles.emptyText}>
-                  {loadingContractors
-                    ? 'Loading contractors...'
-                    : 'Load previously hired contractors'}
-                </Text>
-              </TouchableOpacity>
-              {contractors.map((c) => (
+        <PropertySheet
+          title={editing ? 'Edit recurring task' : 'New recurring task'}
+          busy={busy}
+          onClose={() => setShowForm(false)}
+        >
+          <View style={styles.form}>
+            {staleDraft && (
+              <Text style={styles.emptyText}>
+                Unsaved draft — review the latest schedule before saving
+              </Text>
+            )}
+            <TextInput
+              editable={!blocked}
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              accessibilityLabel='Schedule title'
+              placeholder='e.g. Boiler Service'
+              placeholderTextColor={me.ink3}
+            />
+            <TextInput
+              editable={!blocked}
+              style={styles.input}
+              accessibilityLabel='First due date, YYYY-MM-DD'
+              placeholder='First due date: YYYY-MM-DD'
+              value={firstDueDate}
+              onChangeText={setFirstDueDate}
+              autoCapitalize='none'
+            />
+            <Text style={styles.emptyText}>Trade category</Text>
+            <View style={[styles.freqRow, { flexWrap: 'wrap' }]}>
+              {[
+                'plumbing',
+                'electrical',
+                'heating',
+                'carpentry',
+                'painting',
+                'roofing',
+                'flooring',
+                'gardening',
+                'cleaning',
+                'handyman',
+                'hvac',
+                'pest_control',
+                'other',
+              ].map((trade) => (
                 <TouchableOpacity
-                  key={c.id}
+                  key={trade}
+                  style={styles.freqChip}
                   accessibilityRole='radio'
                   disabled={blocked}
-                  style={styles.actionBtn}
                   accessibilityState={{
-                    checked: preferredId === c.id,
+                    checked: category === trade,
                     disabled: blocked,
                   }}
-                  onPress={() => setPreferredId(c.id)}
+                  onPress={() => setCategory(trade)}
                 >
-                  <Text style={styles.emptyText}>
-                    {preferredId === c.id ? 'Selected: ' : ''}
-                    {c.name}
+                  <Text>
+                    {category === trade ? 'Selected: ' : ''}
+                    {trade.replace('_', ' ')}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-          )}
-          <Text style={styles.emptyText}>
-            Alerts require a matching trade and service area. The job remains
-            open for bids.
-          </Text>
-          <Text style={styles.emptyText}>
-            A job is created when the task becomes due. This does not charge you
-            or book a contractor.
-          </Text>
-          <View style={styles.freqRow}>
-            {FREQ_OPTIONS.map((f) => (
-              <TouchableOpacity
-                key={f}
-                accessibilityRole='radio'
-                disabled={blocked}
-                accessibilityState={{
-                  checked: frequency === f,
-                  disabled: blocked,
-                }}
-                style={[
-                  styles.freqChip,
-                  frequency === f && { backgroundColor: FREQ_COLORS[f] },
-                ]}
-                onPress={() => setFrequency(f)}
-              >
-                <Text
-                  style={[
-                    styles.freqText,
-                    frequency === f && styles.freqTextActive,
-                  ]}
+            <TouchableOpacity
+              accessibilityRole='checkbox'
+              disabled={blocked}
+              style={styles.actionBtn}
+              accessibilityState={{ checked: favouriteOnly, disabled: blocked }}
+              onPress={() => setFavouriteOnly(!favouriteOnly)}
+            >
+              <Text style={styles.emptyText}>
+                {favouriteOnly ? 'Selected: ' : ''}Notify my chosen favourite
+                only
+              </Text>
+            </TouchableOpacity>
+            {favouriteOnly && (
+              <View>
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  disabled={blocked || loadingContractors}
+                  accessibilityState={{
+                    disabled: blocked || loadingContractors,
+                  }}
+                  style={styles.actionBtn}
+                  onPress={loadContractors}
                 >
-                  {FREQ_LABEL[f]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <TouchableOpacity
-            style={styles.createBtn}
-            accessibilityRole='button'
-            onPress={handleCreate}
-            disabled={blocked || staleDraft}
-            accessibilityState={{ disabled: blocked || staleDraft }}
-          >
-            <Text style={styles.createBtnText}>
-              {createMutation.isPending
-                ? 'Saving...'
-                : editing
-                  ? 'Save Changes'
-                  : 'Add Schedule'}
+                  <Text style={styles.emptyText}>
+                    {loadingContractors
+                      ? 'Loading contractors...'
+                      : 'Load previously hired contractors'}
+                  </Text>
+                </TouchableOpacity>
+                {contractors.map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    accessibilityRole='radio'
+                    disabled={blocked}
+                    style={styles.actionBtn}
+                    accessibilityState={{
+                      checked: preferredId === c.id,
+                      disabled: blocked,
+                    }}
+                    onPress={() => setPreferredId(c.id)}
+                  >
+                    <Text style={styles.emptyText}>
+                      {preferredId === c.id ? 'Selected: ' : ''}
+                      {c.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            <Text style={styles.emptyText}>
+              Alerts require a matching trade and service area. The job remains
+              open for bids.
             </Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={styles.emptyText}>
+              A job is created when the task becomes due. This does not charge
+              you or book a contractor.
+            </Text>
+            <View style={styles.freqRow}>
+              {FREQ_OPTIONS.map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  accessibilityRole='radio'
+                  disabled={blocked}
+                  accessibilityState={{
+                    checked: frequency === f,
+                    disabled: blocked,
+                  }}
+                  style={[
+                    styles.freqChip,
+                    frequency === f && { backgroundColor: FREQ_COLORS[f] },
+                  ]}
+                  onPress={() => setFrequency(f)}
+                >
+                  <Text
+                    style={[
+                      styles.freqText,
+                      frequency === f && styles.freqTextActive,
+                    ]}
+                  >
+                    {FREQ_LABEL[f]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.createBtn}
+              accessibilityRole='button'
+              onPress={handleCreate}
+              disabled={blocked || staleDraft}
+              accessibilityState={{ disabled: blocked || staleDraft }}
+            >
+              <Text style={styles.createBtnText}>
+                {createMutation.isPending
+                  ? 'Saving...'
+                  : editing
+                    ? 'Save Changes'
+                    : 'Add Schedule'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </PropertySheet>
       )}
 
       {isLoading || isFetching ? (
@@ -740,6 +750,51 @@ const RecurringEditor: React.FC<Props> = ({
         <View style={styles.emptyWrap}>
           <Ionicons name='repeat-outline' size={20} color={me.ink3} />
           <Text style={styles.emptyText}>No recurring schedules yet</Text>
+          <Text style={styles.emptyText}>
+            Plan regular checks and services for this property.
+          </Text>
+          {editable && (
+            <View style={{ width: '100%', marginTop: 12 }}>
+              <Text style={styles.sectionTitle}>Task templates</Text>
+              {[
+                'Boiler service',
+                'Gas safety check',
+                'Electrical inspection',
+                'Gutter cleaning',
+              ].map((template) => (
+                <TouchableOpacity
+                  key={template}
+                  accessibilityRole='button'
+                  accessibilityLabel={'Set up ' + template}
+                  disabled={blocked}
+                  style={styles.scheduleRow}
+                  onPress={() => {
+                    setEditing(null);
+                    setStaleDraft(false);
+                    setRecovery('');
+                    setTitle(template);
+                    setFirstDueDate('');
+                    setFrequency('annual');
+                    setCategory(
+                      template === 'Electrical inspection'
+                        ? 'electrical'
+                        : template === 'Gutter cleaning'
+                          ? 'handyman'
+                          : 'heating'
+                    );
+                    setPreferredId(null);
+                    setFavouriteOnly(false);
+                    setShowForm(true);
+                  }}
+                >
+                  <Text style={[styles.scheduleTitle, { flex: 1 }]}>
+                    {template}
+                  </Text>
+                  <Text style={{ color: me.brand2, padding: 12 }}>Set up</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       ) : (
         schedules.map((s) => (

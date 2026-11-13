@@ -109,3 +109,27 @@ it('does not retain account-specific edit fields while another account loads', a
   view.rerender(view.content());
   expect(view.queryByDisplayValue('Private draft')).toBeNull();
 });
+
+it('saves room steppers and square-metre floor area as canonical square feet', async () => {
+  mockPut.mockResolvedValue({ success: true });
+  const view = screen();
+  await view.findByDisplayValue('Original home');
+  fireEvent.press(view.getByLabelText('Increase bedrooms'));
+  fireEvent.press(view.getByRole('tab', { name: 'm²' }));
+  fireEvent.changeText(view.getByLabelText('Floor area'), '100');
+  await act(async () => fireEvent.press(view.getByText('Save Changes')));
+  await waitFor(() =>
+    expect(mockPut).toHaveBeenCalledWith(
+      '/api/properties/property',
+      expect.objectContaining({ bedrooms: 3, squareFeet: 1076 })
+    )
+  );
+});
+it('does not let the room stepper go below zero', async () => {
+  const view = screen();
+  await view.findByDisplayValue('Original home');
+  fireEvent.press(view.getByLabelText('Decrease bedrooms'));
+  fireEvent.press(view.getByLabelText('Decrease bedrooms'));
+  fireEvent.press(view.getByLabelText('Decrease bedrooms'));
+  expect(view.getByLabelText('Bedrooms').props.value).toBe('0');
+});
