@@ -14,6 +14,13 @@
  */
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+
+// ---- Alert --------------------------------------------------------------
+import { Alert } from 'react-native';
+
+import { logger } from '../../utils/logger';
+import { ContractorCardEditorScreen } from '../ContractorCardEditorScreen';
 
 // ---- Navigation ---------------------------------------------------------
 const mockGoBack = jest.fn();
@@ -83,13 +90,7 @@ jest.mock('../../utils/logger', () => ({
     warn: jest.fn(),
   },
 }));
-
-// ---- Alert --------------------------------------------------------------
-import { Alert } from 'react-native';
 const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
-import { logger } from '../../utils/logger';
-import { ContractorCardEditorScreen } from '../ContractorCardEditorScreen';
 
 const CONTRACTOR = {
   id: 'c-1',
@@ -570,13 +571,10 @@ describe('ContractorCardEditorScreen — save', () => {
     });
   });
 
-  it('stays on the loading spinner with no user (save unreachable, no update call)', async () => {
-    // With no user, loadContractorProfile returns before setLoading(false),
-    // so the screen never leaves the spinner and the Save button is
-    // unreachable — updateContractorProfile must never fire.
+  it('asks for sign-in with no user and does not allow saving', async () => {
     mockUser = null;
-    const { getByTestId, queryByText } = await renderScreen();
-    expect(getByTestId('loading-spinner')).toBeTruthy();
+    const { getByText, queryByText } = await renderScreen();
+    expect(getByText('Sign in to edit your discovery card.')).toBeTruthy();
     expect(queryByText('Save Discovery Card')).toBeNull();
     expect(mockUpdateProfile).not.toHaveBeenCalled();
   });
@@ -612,6 +610,104 @@ describe('ContractorCardEditorScreen — save', () => {
       resolveSave();
       await Promise.resolve();
     });
+  });
+});
+
+describe('ContractorCardEditorScreen — account and request boundaries', () => {
+  const navigation = { goBack: mockGoBack } as never;
+  const screen = () => <ContractorCardEditorScreen navigation={navigation} />;
+  const deferred = <T,>() => {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((done) => {
+      resolve = done;
+    });
+    return { promise, resolve };
+  };
+
+  it('loads when authentication arrives after the first render', async () => {
+    mockUser = null;
+    const view = render(screen());
+    expect(mockGetProfile).not.toHaveBeenCalled();
+    mockUser = { ...CONTRACTOR };
+    view.rerender(screen());
+    await view.findByText('Save Discovery Card');
+    expect(mockGetProfile).toHaveBeenCalledWith(CONTRACTOR.id);
+  });
+
+  it('ignores an old account profile arriving after a new account loads', async () => {
+    const oldRequest = deferred<unknown>();
+    mockGetProfile
+      .mockReturnValueOnce(oldRequest.promise)
+      .mockResolvedValueOnce({ company_name: 'New account' });
+    const view = render(screen());
+    mockUser = { ...CONTRACTOR, id: 'c-2' };
+    view.rerender(screen());
+    await view.findByDisplayValue('New account');
+    await act(async () => {
+      oldRequest.resolve({ company_name: 'Private old account' });
+    });
+    expect(view.queryByDisplayValue('Private old account')).toBeNull();
+    expect(view.getByDisplayValue('New account')).toBeTruthy();
+  });
+
+  it('keeps edits on a same-account context refresh without refetching', async () => {
+    mockGetProfile.mockResolvedValueOnce({ company_name: 'Saved company' });
+    const view = render(screen());
+    fireEvent.changeText(
+      await view.findByDisplayValue('Saved company'),
+      'Unsaved company'
+    );
+    mockUser = { ...CONTRACTOR, first_name: 'Updated' };
+    view.rerender(screen());
+    expect(view.getByDisplayValue('Unsaved company')).toBeTruthy();
+    expect(mockGetProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts only one save when pressed twice before the next render', async () => {
+    const pending = deferred<void>();
+    mockUpdateProfile.mockReturnValueOnce(pending.promise);
+    const view = render(screen());
+    const button = await view.findByText('Save Discovery Card');
+    act(() => {
+      fireEvent.press(button);
+      fireEvent.press(button);
+    });
+    expect(mockUpdateProfile).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      pending.resolve();
+    });
+    expect(mobileApiClient.patch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not send the business-profile step or success UI after an account switch', async () => {
+    const pending = deferred<void>();
+    mockUpdateProfile.mockReturnValueOnce(pending.promise);
+    const view = render(screen());
+    fireEvent.press(await view.findByText('Save Discovery Card'));
+    await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalledTimes(1));
+    mockUser = { ...CONTRACTOR, id: 'c-2' };
+    view.rerender(screen());
+    await view.findByText('Save Discovery Card');
+    await act(async () => {
+      pending.resolve();
+    });
+    expect(mobileApiClient.patch).not.toHaveBeenCalled();
+    expect(alertSpy).not.toHaveBeenCalledWith('Success', expect.any(String));
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
+
+  it('does not open the picker after signing out during its permission request', async () => {
+    const pending = deferred<{ status: string }>();
+    mockRequestPerms.mockReturnValueOnce(pending.promise);
+    const view = render(screen());
+    fireEvent.press(await view.findByText('Add Company Logo'));
+    mockUser = null;
+    view.rerender(screen());
+    await act(async () => {
+      pending.resolve({ status: 'granted' });
+    });
+    expect(mockLaunchLibrary).not.toHaveBeenCalled();
+    expect(view.queryByText('Save Discovery Card')).toBeNull();
   });
 });
 

@@ -38,7 +38,6 @@ export function CardEditorClient({
   const [availability, setAvailability] = useState(
     initialProfile.is_available ? 'available' : 'busy'
   );
-  const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{
     tone: 'success' | 'error';

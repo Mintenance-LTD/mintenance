@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -42,8 +42,32 @@ interface ContractorCardEditorScreenProps {
 export const ContractorCardEditorScreen: React.FC<
   ContractorCardEditorScreenProps
 > = ({ navigation }) => {
-  const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  return (
+    <ContractorCardEditor
+      key={user?.id ?? 'signed-out'}
+      navigation={navigation}
+      user={user}
+    />
+  );
+};
+
+const ContractorCardEditor: React.FC<
+  ContractorCardEditorScreenProps & {
+    user: ReturnType<typeof useAuth>['user'];
+  }
+> = ({ navigation, user }) => {
+  const insets = useSafeAreaInsets();
+  const accountId = user?.id;
+  const active = useRef(true);
+  const saveInFlight = useRef(false);
+  const requestVersion = useRef(0);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -74,21 +98,23 @@ export const ContractorCardEditorScreen: React.FC<
     setHasEdits(true);
   };
 
-  useEffect(() => {
-    loadContractorProfile();
-  }, []);
-
-  const loadContractorProfile = async () => {
-    if (!user) return;
+  const loadContractorProfile = useCallback(async () => {
+    const version = ++requestVersion.current;
+    if (!accountId) {
+      setLoading(false);
+      setLoadFailed(true);
+      return;
+    }
 
     try {
       setLoading(true);
-      const contractorProfile = await ContractorService.getContractorProfile(
-        user.id
-      );
+      setLoadFailed(false);
+      const contractorProfile =
+        await ContractorService.getContractorProfile(accountId);
+      if (!active.current || version !== requestVersion.current) return;
       if (!contractorProfile) throw new Error('Could not load saved profile');
       if (contractorProfile) {
-        let businessAddr = contractorProfile.business_address;
+        const businessAddr = contractorProfile.business_address;
 
         setProfile({
           ...contractorProfile,
@@ -102,20 +128,37 @@ export const ContractorCardEditorScreen: React.FC<
         });
       }
     } catch (error) {
+      if (!active.current) return;
+      if (!active.current || version !== requestVersion.current) return;
       setLoadFailed(true);
       logger.error('Failed to load contractor profile:', error);
       Alert.alert('Unable to load profile', 'Please retry before editing.', [
-        { text: 'Go back', onPress: () => navigation.goBack() },
+        {
+          text: 'Go back',
+          onPress: () => {
+            if (active.current) navigation.goBack();
+          },
+        },
       ]);
     } finally {
-      setLoading(false);
+      if (active.current && version === requestVersion.current)
+        setLoading(false);
     }
-  };
+  }, [accountId, navigation]);
+
+  useEffect(() => {
+    const requests = requestVersion;
+    void loadContractorProfile();
+    return () => {
+      requests.current++;
+    };
+  }, [loadContractorProfile]);
 
   const handleImagePicker = async (type: 'logo' | 'portfolio') => {
     try {
       const permission =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!active.current) return;
 
       if (permission.status !== 'granted') {
         Alert.alert(
@@ -132,6 +175,7 @@ export const ContractorCardEditorScreen: React.FC<
         quality: 0.8,
         allowsMultipleSelection: type === 'portfolio',
       });
+      if (!active.current) return;
 
       if (!result.canceled) {
         if (type === 'logo') {
@@ -152,6 +196,7 @@ export const ContractorCardEditorScreen: React.FC<
         setHasEdits(true);
       }
     } catch (error) {
+      if (!active.current) return;
       logger.error('Image picker error:', error);
       Alert.alert('Error', 'Failed to select image');
     }
@@ -168,11 +213,13 @@ export const ContractorCardEditorScreen: React.FC<
             text: 'Remove',
             style: 'destructive',
             onPress: async () => {
+              if (!active.current || saveInFlight.current) return;
               try {
                 await mobileApiClient.delete(
                   '/api/contractor/portfolio-image',
                   { body: JSON.stringify({ url: imageUri }) }
                 );
+                if (!active.current) return;
                 setProfile((previous) => ({
                   ...previous,
                   portfolioImages: previous.portfolioImages?.filter(
@@ -200,7 +247,15 @@ export const ContractorCardEditorScreen: React.FC<
   };
 
   const saveProfile = async () => {
-    if (!user || loadFailed) return;
+    if (
+      !user ||
+      loading ||
+      loadFailed ||
+      saveInFlight.current ||
+      !active.current
+    )
+      return;
+    saveInFlight.current = true;
 
     try {
       setSaving(true);
@@ -217,6 +272,7 @@ export const ContractorCardEditorScreen: React.FC<
             isAvailable: profile.availability !== 'busy',
           }
         );
+        if (!active.current) return;
         setProfile((previous) => ({ ...previous, companyLogo: logo }));
       }
       const existing = profile.portfolioImages ?? [];
@@ -236,6 +292,7 @@ export const ContractorCardEditorScreen: React.FC<
             const uploaded = await mobileApiClient.postFormData<{
               data: { media_urls: string[] };
             }>('/api/contractor/upload-photos', formData);
+            if (!active.current) return;
             setProfile((previous) => ({
               ...previous,
               portfolioImages: previous.portfolioImages?.flatMap((value) =>
@@ -264,15 +321,18 @@ export const ContractorCardEditorScreen: React.FC<
         lastName: user.last_name ?? user.lastName ?? '',
         isAvailable: availabilityIsAvailable,
       });
+      if (!active.current) return;
       await mobileApiClient.patch('/api/contractor/business-profile', {
         companyName: profile.companyName ?? '',
         businessAddress: profile.businessAddress ?? '',
       });
+      if (!active.current) return;
       setHasEdits(false);
       Alert.alert('Success', 'Your discovery card has been updated!');
       allowExit();
       navigation.goBack();
     } catch (error) {
+      if (!active.current) return;
       logger.error('Failed to save contractor profile:', error);
       Alert.alert(
         'Error',
@@ -281,9 +341,17 @@ export const ContractorCardEditorScreen: React.FC<
           : 'Failed to save profile. Please try again.'
       );
     } finally {
-      setSaving(false);
+      saveInFlight.current = false;
+      if (active.current) setSaving(false);
     }
   };
+
+  if (!user)
+    return (
+      <View style={styles.container}>
+        <Text>Sign in to edit your discovery card.</Text>
+      </View>
+    );
 
   if (loadFailed)
     return (

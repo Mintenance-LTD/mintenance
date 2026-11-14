@@ -90,7 +90,6 @@ export function DiscoverClient({
 
   const items = jobs;
   const hasMoreItems = currentIndex < items.length;
-  const remainingCount = items.length - currentIndex;
   const progressPercentage =
     items.length > 0 ? Math.round((currentIndex / items.length) * 100) : 0;
 

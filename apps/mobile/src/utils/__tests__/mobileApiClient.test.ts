@@ -86,6 +86,23 @@ function makeResponse(init: FakeResponseInit = {}): Response {
   } as unknown as Response;
 }
 
+function accountToken(
+  label: string,
+  account = 'account-a',
+  session = 'session-a'
+): string {
+  return (
+    'header.' +
+    Buffer.from(
+      JSON.stringify({ sub: account, session_id: session, label })
+    ).toString('base64url') +
+    '.signature'
+  );
+}
+const PRIMARY_TOKEN = accountToken('primary');
+const REFRESHED_TOKEN = accountToken('refreshed');
+const QUEUED_TOKEN = accountToken('queued');
+
 function sessionWith(token: string | null) {
   return {
     data: { session: token ? { access_token: token } : null },
@@ -98,13 +115,13 @@ const ORIGINAL_ENV = { ...process.env };
 beforeEach(() => {
   jest.clearAllMocks();
   // Default: authenticated via primary getSession path.
-  mockSupabaseAuth.getSession.mockResolvedValue(sessionWith('primary-token'));
+  mockSupabaseAuth.getSession.mockResolvedValue(sessionWith(PRIMARY_TOKEN));
   mockSupabaseAuth.getUser.mockResolvedValue({
     data: { user: null },
     error: null,
   });
   mockSupabaseAuth.refreshSession.mockResolvedValue({
-    data: { session: { access_token: 'refreshed-token' } },
+    data: { session: { access_token: REFRESHED_TOKEN } },
     error: null,
   });
   mockSupabaseAuth.setSession.mockResolvedValue({ error: null });
@@ -228,7 +245,7 @@ describe('getAuthToken (via request auth header injection)', () => {
     );
     const res = await client.get('/me');
     expect(res).toEqual({ ok: 1 });
-    expect(lastFetchHeaders().Authorization).toBe('Bearer primary-token');
+    expect(lastFetchHeaders().Authorization).toBe('Bearer ' + PRIMARY_TOKEN);
     // URL building: relative path appended to base.
     expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
       'https://api.test/me'
@@ -661,7 +678,7 @@ describe('401 refresh-and-retry', () => {
 
     const retryHeaders = (global.fetch as jest.Mock).mock.calls[1][1]
       .headers as Record<string, string>;
-    expect(retryHeaders.Authorization).toBe('Bearer refreshed-token');
+    expect(retryHeaders.Authorization).toBe('Bearer ' + REFRESHED_TOKEN);
   });
 
   it('signs out and rejects when refresh fails on 401', async () => {
@@ -715,14 +732,14 @@ describe('401 refresh-and-retry', () => {
     mockSupabaseAuth.refreshSession.mockImplementation(async () => {
       await refreshGate;
       return {
-        data: { session: { access_token: 'queued-token' } },
+        data: { session: { access_token: QUEUED_TOKEN } },
         error: null,
       };
     });
 
     (global.fetch as jest.Mock).mockImplementation(async (_url, opts) => {
       const auth = (opts.headers as Record<string, string>).Authorization;
-      if (auth === 'Bearer queued-token') {
+      if (auth === 'Bearer ' + QUEUED_TOKEN) {
         return makeResponse({ jsonBody: { served: true } });
       }
       return makeResponse({
@@ -796,7 +813,7 @@ describe('postFormData', () => {
     expect(opts.method).toBe('POST');
     expect(opts.body).toBe(fd);
     expect((opts.headers as Record<string, string>).Authorization).toBe(
-      'Bearer primary-token'
+      'Bearer ' + PRIMARY_TOKEN
     );
   });
 
@@ -832,7 +849,7 @@ describe('postFormData', () => {
     expect(mockSupabaseAuth.refreshSession).toHaveBeenCalledTimes(1);
     const retryHeaders = (global.fetch as jest.Mock).mock.calls[1][1]
       .headers as Record<string, string>;
-    expect(retryHeaders.Authorization).toBe('Bearer refreshed-token');
+    expect(retryHeaders.Authorization).toBe('Bearer ' + REFRESHED_TOKEN);
   });
 
   it('preserves actionable upload validation errors', async () => {
@@ -926,5 +943,87 @@ describe('mobileApiClient singleton', () => {
     expect(typeof mobileApiClient.patch).toBe('function');
     expect(typeof mobileApiClient.delete).toBe('function');
     expect(typeof mobileApiClient.postFormData).toBe('function');
+  });
+});
+
+describe('account-bound retries', () => {
+  let client: ReturnType<typeof importFresh>['mobileApiClient'];
+  beforeEach(() => {
+    client = importFresh().mobileApiClient;
+  });
+
+  describe.each(['json', 'upload'] as const)('%s', (kind) => {
+    const send = () =>
+      kind === 'json'
+        ? client.patch('/api/user/notification-preferences', {
+            push_enabled: false,
+          })
+        : client.postFormData('/api/contractor/upload-photos', new FormData());
+    const unauthorized = () =>
+      makeResponse({
+        status: 401,
+        ok: false,
+        jsonBody: { message: 'expired' },
+      });
+
+    it('does not refresh or replay an old request after another account signs in', async () => {
+      (global.fetch as jest.Mock).mockImplementationOnce(async () => {
+        mockSupabaseAuth.getSession.mockResolvedValue(
+          sessionWith(accountToken('new', 'account-b', 'session-b'))
+        );
+        return unauthorized();
+      });
+      await expect(send()).rejects.toThrow('Your sign-in changed');
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(mockSupabaseAuth.refreshSession).not.toHaveBeenCalled();
+      expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+    });
+
+    it('rejects a different account returned while refresh is pending', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce(unauthorized());
+      mockSupabaseAuth.refreshSession.mockImplementationOnce(async () => {
+        const next = accountToken('new', 'account-b', 'session-b');
+        mockSupabaseAuth.getSession.mockResolvedValue(sessionWith(next));
+        return sessionWith(next);
+      });
+      await expect(send()).rejects.toThrow('Your sign-in changed');
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+    });
+
+    it('does not replay a refreshed request after sign-out', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce(unauthorized());
+      mockSupabaseAuth.refreshSession.mockImplementationOnce(async () => {
+        mockSupabaseAuth.getSession.mockResolvedValue(sessionWith(null));
+        return sessionWith(REFRESHED_TOKEN);
+      });
+      await expect(send()).rejects.toThrow('Your sign-in changed');
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+    });
+
+    it('does not replay after the same account starts a different sign-in session', async () => {
+      (global.fetch as jest.Mock).mockImplementationOnce(async () => {
+        mockSupabaseAuth.getSession.mockResolvedValue(
+          sessionWith(accountToken('new', 'account-a', 'session-b'))
+        );
+        return unauthorized();
+      });
+      await expect(send()).rejects.toThrow('Your sign-in changed');
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(mockSupabaseAuth.refreshSession).not.toHaveBeenCalled();
+      expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when the original account cannot be determined', async () => {
+      mockSupabaseAuth.getSession.mockResolvedValue(
+        sessionWith('invalid-token')
+      );
+      (global.fetch as jest.Mock).mockResolvedValueOnce(unauthorized());
+      await expect(send()).rejects.toThrow('Your sign-in changed');
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(mockSupabaseAuth.refreshSession).not.toHaveBeenCalled();
+      expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+    });
   });
 });

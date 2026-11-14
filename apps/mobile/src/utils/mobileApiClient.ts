@@ -13,6 +13,7 @@ import {
 } from '@mintenance/api-client';
 import { supabase } from '../config/supabase';
 import { logger } from './logger';
+import { decodeJWTPayload } from '../services/auth/jwt';
 
 /**
  * Resolve the API base URL the mobile client targets.
@@ -226,7 +227,7 @@ class MobileApiClient extends ApiClient {
       const apiError = error as IApiError;
       if (apiError.statusCode === 401) {
         // Wait for token refresh (queued if another refresh is in progress)
-        const newToken = await this.waitForTokenRefresh();
+        const newToken = await this.refreshForRequest(token);
         const retryHeaders = {
           ...options.headers,
           Authorization: `Bearer ${newToken}`,
@@ -272,11 +273,45 @@ class MobileApiClient extends ApiClient {
     }
   }
 
+  // This comparison only restricts retries; the server still authenticates JWTs.
+  // An old request must never be replayed with another account's credentials.
+  private assertSameRequestAccount(
+    original: string | null,
+    next: string | null
+  ): void {
+    const before = original ? decodeJWTPayload(original) : null;
+    const after = next ? decodeJWTPayload(next) : null;
+    if (
+      typeof before?.sub !== 'string' ||
+      !before.sub ||
+      before.sub !== after?.sub ||
+      (before.session_id !== undefined &&
+        before.session_id !== after?.session_id)
+    ) {
+      throw new Error('Your sign-in changed. Please try the action again.');
+    }
+  }
+
+  private async refreshForRequest(original: string | null): Promise<string> {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    this.assertSameRequestAccount(original, session?.access_token ?? null);
+    const refreshed = await this.waitForTokenRefresh(original);
+    this.assertSameRequestAccount(original, refreshed);
+    // Sign-out/account changes can also happen while the shared refresh waits.
+    const {
+      data: { session: current },
+    } = await supabase.auth.getSession();
+    this.assertSameRequestAccount(original, current?.access_token ?? null);
+    return refreshed;
+  }
+
   /**
    * Queue-based token refresh: if a refresh is already in progress, subsequent
    * callers wait for the same refresh to complete instead of triggering a new one.
    */
-  private waitForTokenRefresh(): Promise<string> {
+  private waitForTokenRefresh(requestToken: string | null): Promise<string> {
     if (this.isRefreshing) {
       return new Promise<string>((resolve, reject) => {
         this.refreshQueue.push({ resolve, reject });
@@ -284,14 +319,20 @@ class MobileApiClient extends ApiClient {
     }
 
     this.isRefreshing = true;
-    return this.performTokenRefresh();
+    return this.performTokenRefresh(requestToken);
   }
 
-  private async performTokenRefresh(): Promise<string> {
+  private async performTokenRefresh(
+    requestToken: string | null
+  ): Promise<string> {
     try {
       const {
         data: { session: originalSession },
       } = await supabase.auth.getSession();
+      this.assertSameRequestAccount(
+        requestToken,
+        originalSession?.access_token ?? null
+      );
       const { data, error } = await supabase.auth.refreshSession();
       if (error || !data.session) {
         // A timeout, network failure, rate limit or Auth outage does not revoke a session.
@@ -386,7 +427,7 @@ class MobileApiClient extends ApiClient {
 
     if (response.status === 401) {
       // Mirror request()'s behaviour: wait for the queued refresh, retry once.
-      const newToken = await this.waitForTokenRefresh();
+      const newToken = await this.refreshForRequest(initialToken);
       response = await doRequest(newToken);
       if (response.status === 401) {
         await this.signOutIfCurrent(newToken, initialToken);
