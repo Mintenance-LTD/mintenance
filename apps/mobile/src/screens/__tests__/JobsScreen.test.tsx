@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor, fireEvent } from '../..//test-utils';
+import { render, waitFor } from '../..//test-utils';
 import { JobsScreen } from '../JobsScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';

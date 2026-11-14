@@ -10,7 +10,7 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { JobHeader } from '../JobHeader';
 import type { Job } from '@mintenance/types';
-import { theme, getStatusBadge } from '../../../../theme';
+import { getStatusBadge } from '../../../../theme';
 import { me } from '../../../../design-system/mint-editorial';
 
 describe('JobHeader Component', () => {

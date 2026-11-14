@@ -13,11 +13,7 @@
 import { BudgetEnforcer } from '../BudgetEnforcer';
 import { logger } from '../../logger';
 import { DeviceEventEmitter } from 'react-native';
-import type {
-  BudgetEnforcementRule,
-  PerformanceMetric,
-  PerformanceViolation,
-} from '../types';
+import type { BudgetEnforcementRule, PerformanceMetric } from '../types';
 
 jest.mock('../../logger', () => ({
   logger: {

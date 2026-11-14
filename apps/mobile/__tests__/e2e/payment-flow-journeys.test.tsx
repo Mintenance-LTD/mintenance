@@ -9,33 +9,14 @@
  */
 
 import React from 'react';
-import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import AddPaymentMethodScreen from '../../src/screens/payment/AddPaymentMethodScreen';
 import { PaymentService } from '../../src/services/PaymentService';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import {
-  STRIPE_TEST_CARDS,
-  createMockCardDetails,
-  EXPECTED_ERROR_MESSAGES,
-} from './stripe-test-cards';
-import {
-  MOCK_TEST_USER,
-  MOCK_TEST_JOB,
-  mockSuccessfulSetupIntent,
-  mock3DSRequiredSetupIntent,
-  mock3DSCompletedSetupIntent,
-  mockCardDeclinedError,
-  mockAuthCanceledError,
-  mockSuccessfulPaymentIntent,
-  mockPaymentMethodsList,
-  mockApiSuccess,
-  mockApiError,
-  mockAuthSession,
-  suppressConsoleLogs,
-  waitForAsync,
-} from './test-helpers';
+import { STRIPE_TEST_CARDS, createMockCardDetails } from './stripe-test-cards';
+import { MOCK_TEST_USER, MOCK_TEST_JOB, mockSuccessfulSetupIntent, mock3DSCompletedSetupIntent, mockCardDeclinedError, mockAuthCanceledError, mockPaymentMethodsList, mockAuthSession, suppressConsoleLogs } from './test-helpers';
 
 // Mock dependencies
 jest.mock('@stripe/stripe-react-native', () => ({

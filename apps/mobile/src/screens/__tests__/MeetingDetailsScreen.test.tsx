@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor, fireEvent } from '../..//test-utils';
+import { render, waitFor } from '../..//test-utils';
 // MeetingDetailsScreen is a default export.
 import MeetingDetailsScreen from '../MeetingDetailsScreen';
 import { NavigationContainer } from '@react-navigation/native';

@@ -3,10 +3,12 @@
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { theme } from '@/lib/theme';
+import { useRouter } from 'next/navigation';
 
 export default function UnauthenticatedCard() {
+  const router = useRouter();
   const handleLoginRedirect = () => {
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   return (

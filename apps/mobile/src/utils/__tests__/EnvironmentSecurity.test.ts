@@ -2,18 +2,7 @@
  * Tests for Environment Security Manager
  */
 
-import {
-  EnvironmentSecurity,
-  environmentSecurity,
-  getSecureEnv,
-  getTypedEnv,
-  getApiConfig,
-  getStripeConfig,
-  getGoogleMapsConfig,
-  getFeatureFlags,
-  SecurityConfig,
-  EnvironmentValidationResult,
-} from '../EnvironmentSecurity';
+import { EnvironmentSecurity, environmentSecurity, getSecureEnv, getTypedEnv, getApiConfig, getStripeConfig, getGoogleMapsConfig, getFeatureFlags } from '../EnvironmentSecurity';
 jest.mock('../../../config/supabase', () => ({
   supabase: {
     auth: {

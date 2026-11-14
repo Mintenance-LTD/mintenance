@@ -3,12 +3,7 @@
  */
 
 import { ErrorAnalytics } from '../ErrorAnalytics';
-import {
-  ErrorCategory,
-  ErrorSeverity,
-  ErrorOccurrence,
-  ErrorPattern,
-} from '../ErrorTypes';
+import { ErrorCategory, ErrorSeverity, ErrorOccurrence } from '../ErrorTypes';
 
 // Mock dependencies
 jest.mock('../../logger');

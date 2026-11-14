@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '../test-utils';
+import { render } from '../test-utils';
 import { View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -18,12 +18,7 @@ import {
 } from '../../navigation/hooks';
 
 // Import types
-import type {
-  RootStackParamList,
-  JobsStackParamList,
-  MessagingStackParamList,
-  ProfileStackParamList,
-} from '../../navigation/types';
+import type { JobsStackParamList, MessagingStackParamList, ProfileStackParamList } from '../../navigation/types';
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,

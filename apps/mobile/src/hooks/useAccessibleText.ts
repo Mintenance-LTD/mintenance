@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AccessibilityInfo, TextStyle } from 'react-native';
-import { scaledFontSize, theme } from '../theme';
+import { scaledFontSize } from '../theme';
 
 interface UseAccessibleTextOptions {
   maxScale?: number;

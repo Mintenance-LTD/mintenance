@@ -10,14 +10,7 @@
  * These screens live under the Profile > Account stack and the
  * Jobs stack (PaymentScreen when paying for a job).
  */
-import {
-  loginAsHomeowner,
-  loginAsContractor,
-  navigateToTab,
-  navigateToProfileSubScreen,
-  tapText,
-  waitForText,
-} from './helpers';
+import { loginAsHomeowner, loginAsContractor, navigateToTab, tapText, waitForText } from './helpers';
 
 describe('Payment Flow - Homeowner', () => {
   beforeAll(async () => {

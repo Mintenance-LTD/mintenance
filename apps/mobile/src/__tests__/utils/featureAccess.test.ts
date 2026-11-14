@@ -18,16 +18,7 @@
  *   admin / homeowner roles), getRemainingUsage, trackUsage,
  *   getUpgradeTiers, clear, and the public helpers.
  */
-import {
-  FeatureAccessManager,
-  featureAccess,
-  canPerformAction,
-  formatLimit,
-  getCategoryColor,
-  MOBILE_FEATURES,
-  TIER_PRICING,
-  type SubscriptionTier,
-} from '../../utils/featureAccess';
+import { FeatureAccessManager, featureAccess, canPerformAction, formatLimit, getCategoryColor, MOBILE_FEATURES, TIER_PRICING } from '../../utils/featureAccess';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 // Auto-mock mobileApiClient (picks up __mocks__/mobileApiClient.ts).

@@ -1,10 +1,4 @@
-import {
-  loginAsHomeowner,
-  loginAsContractor,
-  navigateToTab,
-  tapText,
-  waitForText,
-} from './helpers';
+import { loginAsHomeowner, loginAsContractor, navigateToTab, waitForText } from './helpers';
 
 describe('Tab Navigation', () => {
   beforeAll(async () => {

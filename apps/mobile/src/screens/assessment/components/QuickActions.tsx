@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons as Icon } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 

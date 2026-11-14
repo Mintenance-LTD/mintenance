@@ -1,9 +1,5 @@
 // Import the REAL MessagingService (not mocked) - we want to test the actual implementation
-import {
-  MessagingService,
-  Message,
-  MessageThread,
-} from '../../services/MessagingService';
+import { MessagingService } from '../../services/MessagingService';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({

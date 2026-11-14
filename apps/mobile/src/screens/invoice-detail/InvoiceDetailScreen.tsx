@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -42,46 +42,77 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   const { user } = useAuth();
   const toast = useToast();
   const { invoiceId } = route.params;
+  const accountId = user?.id;
+  const scope = useMemo(() => ({ accountId, invoiceId }), [accountId, invoiceId]);
+  const activeScope = useRef<typeof scope | null>(null);
+  const toastRef = useRef(toast);
+  const pendingAction = useRef<typeof scope | null>(null);
 
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [result, setResult] = useState<{
+    scope: typeof scope; invoice: Invoice | null; loading: boolean;
+  }>({ scope, invoice: null, loading: !!accountId });
+  // Hide the previous account/invoice immediately, before effects run.
+  const invoice = result.scope === scope ? result.invoice : null;
+  const loading = result.scope === scope ? result.loading : !!accountId;
+  const [refresh, setRefresh] = useState(0);
+  const [actionScope, setActionScope] = useState<typeof scope | null>(null);
+  const busy = actionScope === scope;
 
   useEffect(() => {
-    loadInvoice();
-  }, [invoiceId]);
+    toastRef.current = toast;
+  }, [toast]);
 
-  const loadInvoice = async () => {
-    if (!user) return;
+  useEffect(() => {
+    activeScope.current = scope;
+    return () => { activeScope.current = null; };
+  }, [scope]);
+
+  useEffect(() => {
+    let active = true;
+    setResult({ scope, invoice: null, loading: !!accountId });
+    if (accountId) {
+      void FinancialManagementService.getInvoices(accountId).then(invoices => {
+        if (active) setResult({ scope, invoice: invoices.find(inv => inv.id === invoiceId) ?? null, loading: false });
+      }).catch(() => {
+        if (active) {
+          toastRef.current.error('Failed to load invoice');
+          setResult({ scope, invoice: null, loading: false });
+        }
+      });
+    }
+    return () => { active = false; };
+  }, [accountId, invoiceId, refresh, scope]);
+
+  const runAction = async (action: () => Promise<unknown>, success: string, failure: string) => {
+    if (activeScope.current !== scope || pendingAction.current === scope) return;
+    pendingAction.current = scope;
+    setActionScope(scope);
     try {
-      const invoices = await FinancialManagementService.getInvoices(user.id);
-      const found = invoices.find((inv) => inv.id === invoiceId);
-      setInvoice(found ?? null);
+      await action();
+      if (activeScope.current !== scope) return;
+      toastRef.current.success(success);
+      setRefresh(value => value + 1);
     } catch {
-      toast.error('Failed to load invoice');
+      if (activeScope.current === scope) toastRef.current.error(failure);
     } finally {
-      setLoading(false);
+      if (pendingAction.current === scope) {
+        pendingAction.current = null;
+        if (activeScope.current === scope) setActionScope(null);
+      }
     }
   };
 
   const handleSendReminder = async () => {
-    if (!invoice || !user) return;
-    try {
-      // 2026-05-23 audit-24 P2: this used to call updateInvoiceStatus(
-      // 'sent') which on an already-sent invoice no-op'd because the
-      // server only fires email on draft→sent. The new
-      // sendInvoiceReminder helper sends a `reminder: true` PATCH that
-      // the API uses to re-fire the email + invoice_received
-      // notification regardless of current status.
-      await FinancialManagementService.sendInvoiceReminder(invoice.id);
-      toast.success('Reminder sent');
-      await loadInvoice();
-    } catch {
-      toast.error('Failed to send reminder');
-    }
+    if (!invoice || !accountId) return;
+    // The reminder endpoint sends a new notification even when already sent.
+    await runAction(
+      () => FinancialManagementService.sendInvoiceReminder(invoice.id),
+      'Reminder sent', 'Failed to send reminder'
+    );
   };
 
   const handleMarkPaid = () => {
-    if (!invoice || !user) return;
+    if (!invoice || !accountId || busy) return;
     Alert.alert(
       'Mark as Paid',
       `Mark invoice #${invoice.invoice_number} as paid?`,
@@ -90,17 +121,10 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
         {
           text: 'Mark Paid',
           onPress: async () => {
-            try {
-              await FinancialManagementService.updateInvoiceStatus(
-                invoice.id,
-                'paid',
-                user.id
-              );
-              toast.success('Invoice marked as paid');
-              await loadInvoice();
-            } catch {
-              toast.error('Failed to update invoice');
-            }
+            await runAction(
+              () => FinancialManagementService.updateInvoiceStatus(invoice.id, 'paid', accountId),
+              'Invoice marked as paid', 'Failed to update invoice'
+            );
           },
         },
       ]
@@ -280,6 +304,8 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
             <TouchableOpacity
               style={styles.reminderButton}
               onPress={handleSendReminder}
+              disabled={busy}
+              accessibilityState={{ disabled: busy, busy }}
             >
               <Ionicons name='mail-outline' size={18} color={me.ink2} />
               <Text style={styles.reminderButtonText}>Send Reminder</Text>
@@ -289,6 +315,8 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
             <TouchableOpacity
               style={styles.paidButton}
               onPress={handleMarkPaid}
+              disabled={busy}
+              accessibilityState={{ disabled: busy, busy }}
             >
               <Ionicons
                 name='checkmark-circle-outline'

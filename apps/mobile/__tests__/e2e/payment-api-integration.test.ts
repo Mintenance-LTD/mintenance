@@ -11,17 +11,7 @@
 import { PaymentService } from '../../src/services/PaymentService';
 import { supabase } from '../../src/config/supabase';
 import { config } from '../../src/config/environment';
-import {
-  MOCK_TEST_USER,
-  MOCK_TEST_JOB,
-  mockApiSuccess,
-  mockApiError,
-  mockAuthSession,
-  suppressConsoleLogs,
-  isValidPaymentMethodId,
-  isValidSetupIntentId,
-  isValidPaymentIntentId,
-} from './test-helpers';
+import { MOCK_TEST_JOB, mockApiSuccess, mockApiError, mockAuthSession, suppressConsoleLogs, isValidPaymentMethodId, isValidPaymentIntentId } from './test-helpers';
 
 // Mock dependencies
 jest.mock('../../src/config/supabase');

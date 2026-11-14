@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { Text, View, useWindowDimensions } from 'react-native';
+import { Text, View } from 'react-native';
 import { ResponsiveGrid, ResponsiveGridItem } from '../ResponsiveGrid';
 
 // Mock useResponsive hook

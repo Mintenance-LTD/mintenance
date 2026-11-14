@@ -10,15 +10,20 @@
  * `complianceHelpers.tsx` were split out of it earlier.
  */
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Wrench } from 'lucide-react';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 
 export function RenewalButton({ certId }: { certId: string }) {
   const [loading, setLoading] = useState(false);
+  const pending = useRef(false);
+  const router = useRouter();
 
   const handleRenew = async () => {
+    if (pending.current) return;
+    pending.current = true;
     setLoading(true);
     try {
       const res = await fetch(`/api/compliance/${certId}/renew`, {
@@ -30,15 +35,20 @@ export function RenewalButton({ certId }: { certId: string }) {
         toast.error(data.error || 'Failed to create renewal job');
         return;
       }
+      if (typeof data.jobId !== 'string' || !data.jobId.trim()) {
+        toast.error('The renewal job could not be opened. Please retry.');
+        return;
+      }
       if (data.alreadyExists) {
         toast('A renewal job already exists', { icon: 'ℹ️' });
       } else {
         toast.success('Renewal job created!');
       }
-      window.location.href = `/jobs/${data.jobId}`;
+      router.push(`/jobs/${encodeURIComponent(data.jobId)}`);
     } catch {
       toast.error('Failed to create renewal job');
     } finally {
+      pending.current = false;
       setLoading(false);
     }
   };

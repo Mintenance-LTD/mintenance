@@ -14,13 +14,7 @@
  * may still report "online". For full offline testing, use device airplane
  * mode on physical devices.
  */
-import {
-  loginAsHomeowner,
-  loginAsContractor,
-  navigateToTab,
-  tapText,
-  waitForText,
-} from './helpers';
+import { loginAsHomeowner, loginAsContractor, navigateToTab, waitForText } from './helpers';
 
 describe('Offline Mode - Network Disconnection', () => {
   beforeAll(async () => {
