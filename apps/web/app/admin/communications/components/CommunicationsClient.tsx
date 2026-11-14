@@ -209,9 +209,6 @@ export function CommunicationsClient({
     setEditingId(editingId === id ? null : id);
   };
 
-  const publishedCount = announcements.filter((a) => a.is_published).length;
-  const draftCount = announcements.filter((a) => !a.is_published).length;
-
   return (
     <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto'>
       {/* Page Header */}

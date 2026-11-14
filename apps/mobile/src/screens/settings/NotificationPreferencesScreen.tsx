@@ -144,8 +144,26 @@ function stripAlwaysOnFromDisabled(disabledTypes: string[]): string[] {
 }
 
 export const NotificationPreferencesScreen: React.FC = () => {
-  const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  return (
+    <NotificationPreferences
+      key={user?.id ?? 'signed-out'}
+      accountId={user?.id}
+    />
+  );
+};
+
+const NotificationPreferences: React.FC<{ accountId?: string }> = ({
+  accountId,
+}) => {
+  const insets = useSafeAreaInsets();
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -162,6 +180,10 @@ export const NotificationPreferencesScreen: React.FC = () => {
 
   useEffect(() => {
     let active = true;
+    if (!accountId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setLoadError(false);
     (async () => {
@@ -190,7 +212,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [attempt, user?.id]);
+  }, [attempt, accountId]);
 
   const toggleType = (type: string) => {
     // audit-71 P1: ALWAYS_ON types render as a static "Always on" pill
@@ -223,7 +245,14 @@ export const NotificationPreferencesScreen: React.FC = () => {
   };
 
   const save = async () => {
-    if (loading || loadError || saveInFlight.current) return;
+    if (
+      !accountId ||
+      !mounted.current ||
+      loading ||
+      loadError ||
+      saveInFlight.current
+    )
+      return;
     if (quietStartDraft && !HHMM.test(quietStartDraft)) {
       Alert.alert('Quiet hours', 'Use 24-hour time, e.g. 22:00');
       return;
@@ -256,6 +285,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
         quiet_hours_end: quietEnd || null,
         timezone: prefs.timezone || 'UTC',
       });
+      if (!mounted.current) return;
       setPrefs((p) => ({
         ...p,
         quiet_hours_start: quietStart || null,
@@ -263,15 +293,25 @@ export const NotificationPreferencesScreen: React.FC = () => {
       }));
       Alert.alert('Saved', 'Notification preferences updated.');
     } catch (err) {
+      if (!mounted.current) return;
       Alert.alert(
         'Save failed',
         err instanceof Error ? err.message : 'Please try again.'
       );
     } finally {
       saveInFlight.current = false;
-      setSaving(false);
+      if (mounted.current) setSaving(false);
     }
   };
+
+  if (!accountId) {
+    return (
+      <View style={styles.container}>
+        <MintScreenBackBar fallbackScreen='ProfileMain' />
+        <Text>Sign in to manage notification preferences.</Text>
+      </View>
+    );
+  }
 
   if (loading) {
     return (

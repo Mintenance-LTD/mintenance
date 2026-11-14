@@ -89,12 +89,13 @@ export const BookingStatusScreen: React.FC<{
   }, [accountId, accountRole]);
 
   useEffect(() => {
+    const requests = requestVersion;
     cancelling.current = false;
     setBookings([]);
     setSelectedBooking(null);
     setShowCancelModal(false);
     void loadBookings();
-    return () => { requestVersion.current++; };
+    return () => { requests.current++; };
   }, [loadBookings]);
 
   const handleCancelBooking = (booking: Booking) => {

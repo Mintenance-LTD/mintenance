@@ -103,8 +103,6 @@ export const POST = withApiHandler(
     }
     const body: GeocodeRequest = parsed.data;
     const hasAddress = !!body.address;
-    const hasCoordinates =
-      typeof body.lat === 'number' && typeof body.lng === 'number';
 
     // Try Google Maps first, fallback to Nominatim (OpenStreetMap)
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
