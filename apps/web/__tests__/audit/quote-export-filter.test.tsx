@@ -4,6 +4,40 @@ import { quotesCsv } from '@/app/contractor/(dashboard)/quotes/components/QuoteE
 import { MintEditorialJobsList } from '@/app/jobs/components/MintEditorialJobsList';
 
 afterEach(cleanup);
+it('honours an incoming category and excludes cancelled jobs from the active view', () => {
+  const common = {
+    budget: 10,
+    created_at: '2026-11-14',
+    category: 'gardening',
+  };
+  render(
+    <MintEditorialJobsList
+      scoped
+      initialCategory='gardening'
+      jobs={[
+        { ...common, id: 'a', title: 'Cancelled garden', status: 'cancelled' },
+        { ...common, id: 'b', title: 'Assigned garden', status: 'assigned' },
+        {
+          ...common,
+          id: 'c',
+          title: 'Tap repair',
+          status: 'assigned',
+          category: 'plumbing',
+        },
+      ]}
+    />
+  );
+  expect(screen.getByLabelText('Filter jobs by category')).toHaveValue(
+    'gardening'
+  );
+  expect(screen.queryByText('Tap repair')).toBeNull();
+  fireEvent.click(
+    screen.getByRole('button', { name: /Assigned \/ in progress/ })
+  );
+  expect(screen.getByText('Assigned garden')).toBeVisible();
+  expect(screen.queryByText('Cancelled garden')).toBeNull();
+  expect(screen.getByText('Assigned — work not started')).toBeVisible();
+});
 it('exports exact pence, escapes CSV text, and neutralizes spreadsheet formulas', () => {
   const csv = quotesCsv([
     {
