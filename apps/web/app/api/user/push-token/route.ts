@@ -67,11 +67,11 @@ export const DELETE = withApiHandler(
   { rateLimit: { maxRequests: 10 } },
   async (request, { user }) => {
     const body = await request.json();
-    const { pushToken } = body;
-
-    if (!pushToken) {
-      throw new BadRequestError('pushToken is required');
+    const parsed = pushTokenSchema.pick({ pushToken: true }).safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestError('Invalid push token data');
     }
+    const { pushToken } = parsed.data;
 
     const { error } = await serverSupabase
       .from('user_push_tokens')
@@ -84,6 +84,10 @@ export const DELETE = withApiHandler(
         service: 'push',
         userId: user.id,
       });
+      return NextResponse.json(
+        { error: 'Failed to remove push token; retry required' },
+        { status: 503 }
+      );
     }
 
     return NextResponse.json({ success: true });

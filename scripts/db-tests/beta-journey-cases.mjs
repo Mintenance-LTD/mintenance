@@ -46,6 +46,18 @@ export async function testBetaJourney(db) {
     '20261114221000_device_push_ownership.sql',
     '20261114222000_job_event_timestamps.sql',
   ]) {
+    if (file === '20261114221000_device_push_ownership.sql') {
+      // The CLI can apply one statement at a time without an enclosing transaction.
+      // Extended mode requires this lock/dedup/index operation to remain one statement.
+      await db.query({
+        text: await fs.readFile(
+          new URL('../../supabase/migrations/' + file, import.meta.url),
+          'utf8'
+        ),
+        queryMode: 'extended',
+      });
+      continue;
+    }
     await db.query('BEGIN');
     try {
       await db.query(
