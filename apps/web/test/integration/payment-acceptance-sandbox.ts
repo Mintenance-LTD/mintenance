@@ -160,7 +160,7 @@ export async function verifySandboxAcceptance(
         job_id: job.id,
         amount: 5,
         title: 'Synthetic agreed plumbing work',
-        additional_terms: {
+        terms: {
           materials_terms: 'Synthetic test: no real materials or work.',
           warranty_terms: 'Synthetic test: no additional contractual warranty.',
         },
