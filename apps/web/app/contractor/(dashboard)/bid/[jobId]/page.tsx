@@ -99,6 +99,23 @@ export default async function BidSubmissionPage2025({
     .eq('contractor_id', user.id)
     .single();
 
+  // Tax and line items live on the linked quote, not on the bid row.
+  let savedQuote = null;
+  if (existingBid?.quote_id) {
+    const { data, error } = await serverSupabase
+      .from('contractor_quotes')
+      .select('subtotal,tax_rate,line_items,terms')
+      .eq('id', existingBid.quote_id)
+      .eq('contractor_id', user.id)
+      .eq('job_id', job.id)
+      .maybeSingle();
+    if (error || !data)
+      throw new Error(
+        'Saved quote pricing is unavailable. Please retry before editing.'
+      );
+    savedQuote = data;
+  }
+
   // Resolve THIS contractor's effective fee rate with the same resolver
   // the escrow release charges with, so the bid preview quotes their real
   // rate instead of a hardcoded 5%. (2026-07-22 fee-consistency fix.)
@@ -129,12 +146,16 @@ export default async function BidSubmissionPage2025({
         existingBid={
           existingBid
             ? {
-                amount: existingBid.bid_amount || existingBid.amount,
+                amount:
+                  savedQuote?.subtotal ??
+                  existingBid.bid_amount ??
+                  existingBid.amount,
                 description:
                   existingBid.proposal_text || existingBid.description,
-                lineItems: existingBid.line_items || [],
-                taxRate: existingBid.tax_rate ?? 0,
-                terms: existingBid.terms || '',
+                lineItems:
+                  savedQuote?.line_items ?? existingBid.line_items ?? [],
+                taxRate: savedQuote?.tax_rate ?? existingBid.tax_rate ?? 0,
+                terms: savedQuote?.terms ?? existingBid.terms ?? '',
                 estimatedDuration: existingBid.estimated_duration || undefined,
                 proposedStartDate: existingBid.proposed_start_date
                   ? new Date(existingBid.proposed_start_date)

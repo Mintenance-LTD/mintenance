@@ -13,7 +13,7 @@ BEGIN
  INSERT INTO public.contractor_quotes(contractor_id,client_name,client_email,title,quote_number,subtotal,tax_rate,tax_amount,total_amount,line_items,notes) VALUES(k,'Synthetic customer','test@example.invalid','Test quote','ROLLBACK-'||gen_random_uuid(),100,0,0,100,'[]','PRIVATE NOTE MUST NOT LEAK') RETURNING id INTO q;
  INSERT INTO public.bids(job_id,contractor_id,amount,description,status,quote_id,warranty_months,materials_included) VALUES(j,k,100,'Synthetic bid','accepted',q,12,true) RETURNING id INTO b;
  INSERT INTO public.contracts(job_id,homeowner_id,contractor_id,title,description,amount,status,quote_id) VALUES(j,h,k,'Synthetic agreement','Test scope',100,'pending_contractor',q) RETURNING id INTO c;
- UPDATE public.contracts SET terms=jsonb_build_object('bid_id',b) WHERE id=c;
+ UPDATE public.contracts SET terms=jsonb_build_object('bid_id',b,'materials_terms','No materials for this test','warranty_terms','No additional contractual warranty for this test') WHERE id=c;
  IF public.contract_review_snapshot(c)::text LIKE '%PRIVATE NOTE%' THEN RAISE EXCEPTION 'Private quote notes leaked'; END IF;
  SELECT jsonb_build_object('termsVersion','2026-11-03','termsAccepted',true,'expectedUpdatedAt',updated_at,'expectedReviewToken',md5(public.contract_review_snapshot(c)::text),'earlyStartRequested',false,'fullPerformanceAcknowledged',false) INTO legal FROM public.contracts WHERE id=c;
  BEGIN PERFORM public.sign_contract_with_consent(c,h,NULL,NULL,NULL,legal-'termsAccepted'); RAISE EXCEPTION 'Missing acceptance allowed'; EXCEPTION WHEN check_violation THEN NULL; END;
@@ -63,6 +63,7 @@ BEGIN
  -- A customer may request an early start without the optional full-performance acknowledgement.
  INSERT INTO public.jobs(title,description,location,homeowner_id,contractor_id,status) VALUES('ROLLBACK early start','Synthetic test description','London',h,k,'assigned') RETURNING id INTO j;
  INSERT INTO public.contracts(job_id,homeowner_id,contractor_id,title,description,amount,status) VALUES(j,h,k,'Early-start agreement','Test scope',100,'pending_contractor') RETURNING id INTO c;
+ UPDATE public.contracts SET terms='{"materials_terms":"No materials required","warranty_terms":"No additional contractual warranty"}' WHERE id=c;
  SELECT jsonb_build_object('termsVersion','2026-11-03','termsAccepted',true,'expectedUpdatedAt',updated_at,'expectedReviewToken',md5(public.contract_review_snapshot(c)::text),'earlyStartRequested',false,'fullPerformanceAcknowledged',false) INTO legal FROM public.contracts WHERE id=c;
  PERFORM public.sign_contract_with_consent(c,k,NULL,NULL,NULL,legal);
  SELECT legal||jsonb_build_object('expectedUpdatedAt',updated_at,'expectedReviewToken',md5(public.contract_review_snapshot(c)::text),'earlyStartRequested',true) INTO legal FROM public.contracts WHERE id=c;
@@ -71,7 +72,7 @@ BEGIN
  IF NOT EXISTS(SELECT 1 FROM public.jobs WHERE id=j AND status='in_progress') THEN RAISE EXCEPTION 'Valid early start blocked'; END IF;
  -- Legacy review retains the original signatures and does not invent a formation date.
  INSERT INTO public.jobs(title,description,location,homeowner_id,contractor_id,status) VALUES('ROLLBACK legacy','Synthetic test description','London',h,k,'assigned') RETURNING id INTO j;
- INSERT INTO public.contracts(job_id,homeowner_id,contractor_id,title,description,amount,status,homeowner_signed_at,contractor_signed_at) VALUES(j,h,k,'Legacy agreement','Test scope',100,'accepted',now()-interval '1 month',now()-interval '1 month') RETURNING id INTO c;
+ INSERT INTO public.contracts(job_id,homeowner_id,contractor_id,title,description,amount,status,terms,homeowner_signed_at,contractor_signed_at) VALUES(j,h,k,'Legacy agreement','Test scope',100,'accepted','{"materials_terms":"Legacy materials terms","warranty_terms":"Legacy warranty terms"}',now()-interval '1 month',now()-interval '1 month') RETURNING id INTO c;
  SELECT legal||jsonb_build_object('expectedUpdatedAt',updated_at,'expectedReviewToken',md5(public.contract_review_snapshot(c)::text)) INTO legal FROM public.contracts WHERE id=c;
  BEGIN PERFORM public.review_legacy_cancellation(c,outsider,legal); RAISE EXCEPTION 'Outsider reviewed legacy agreement'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  PERFORM public.review_legacy_cancellation(c,h,legal);

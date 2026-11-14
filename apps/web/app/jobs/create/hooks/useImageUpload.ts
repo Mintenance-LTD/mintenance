@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
+import { clientErrorMessage } from '@/lib/errors/client-message';
 
 interface ImagePreview {
   file: File;
@@ -36,138 +38,135 @@ export function useImageUpload({
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Cleanup image previews on unmount
-  useEffect(() => {
-    return () => {
-      imagePreviews.forEach(({ preview }) => {
-        URL.revokeObjectURL(preview);
-      });
-    };
-  }, [imagePreviews]);
+  const previewsRef = useRef<ImagePreview[]>([]);
+  const uploadPending = useRef(false);
+  const selectionVersion = useRef(0);
+  useEffect(
+    () => () => {
+      previewsRef.current.forEach(({ preview }) =>
+        URL.revokeObjectURL(preview)
+      );
+    },
+    []
+  );
 
-  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+  const handleImageSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
 
-    // Validate file count
-    if (imagePreviews.length + files.length > maxImages) {
-      const errorMessage = `Maximum ${maxImages} photos allowed`;
-      if (onError) {
-        onError(errorMessage);
+      // Validate file count
+      if (imagePreviews.length + files.length > maxImages) {
+        const errorMessage = `Maximum ${maxImages} photos allowed`;
+        if (onError) {
+          onError(errorMessage);
+        }
+        return;
       }
-      return;
-    }
 
-    // Create previews
-    const newPreviews = files.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
+      // Create previews
+      const newPreviews = files.map((file) => ({
+        file,
+        preview: URL.createObjectURL(file),
+      }));
 
-    setImagePreviews(prev => [...prev, ...newPreviews]);
-  }, [imagePreviews.length, maxImages, onError]);
+      selectionVersion.current += 1;
+      previewsRef.current = [...previewsRef.current, ...newPreviews];
+      setImagePreviews(previewsRef.current);
+      setUploadedImages([]);
+      e.target.value = '';
+    },
+    [imagePreviews.length, maxImages, onError]
+  );
 
   const removeImage = useCallback((index: number) => {
-    setImagePreviews(prev => {
-      const removed = prev[index];
-      if (removed) {
-        URL.revokeObjectURL(removed.preview);
-      }
-      return prev.filter((_, i) => i !== index);
-    });
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    const removed = previewsRef.current[index];
+    if (removed) URL.revokeObjectURL(removed.preview);
+    previewsRef.current = previewsRef.current.filter((_, i) => i !== index);
+    selectionVersion.current += 1;
+    setImagePreviews(previewsRef.current);
+    setUploadedImages([]);
   }, []);
 
-  const uploadImages = useCallback(async (csrfToken?: string): Promise<string[]> => {
-    if (imagePreviews.length === 0) return [];
+  const uploadImages = useCallback(
+    async (_csrfToken?: string): Promise<string[]> => {
+      if (imagePreviews.length === 0) return [];
 
-    setIsUploading(true);
-    try {
-      // CRITICAL FIX: Fetch a fresh CSRF token right before upload to ensure cookie and header match
-      // The token from state might be stale if the cookie was updated by another request
-      let tokenToUse = csrfToken;
+      if (uploadPending.current)
+        throw new Error('Photos are still uploading. Please wait.');
+      uploadPending.current = true;
+      const version = selectionVersion.current;
+      setIsUploading(true);
       try {
-        const tokenResponse = await fetch('/api/csrf', {
-          method: 'GET',
-          credentials: 'include', // Important: include cookies
+        const headers = await getCsrfHeaders();
+
+        const formData = new FormData();
+        imagePreviews.forEach(({ file }) => {
+          formData.append('photos', file);
         });
-        if (tokenResponse.ok) {
-          const tokenData = await tokenResponse.json();
-          tokenToUse = tokenData.token;
-          
-          // Small delay to ensure cookie is processed by browser before next request
-          await new Promise(resolve => setTimeout(resolve, 50));
-        } else {
-          // Fallback to provided token if fetch fails
-          logger.warn('[Upload] Failed to fetch fresh CSRF token, using provided token');
+
+        const response = await fetch('/api/jobs/upload-photos', {
+          method: 'POST',
+          headers,
+          body: formData,
+          credentials: 'include', // CRITICAL: Include cookies (including CSRF cookie) in the request
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            clientErrorMessage(
+              errorData,
+              'Photos could not be uploaded. Please retry; your selected files are still here.'
+            )
+          );
         }
-      } catch (tokenError) {
-        // Fallback to provided token if fetch fails
-        logger.warn(`[Upload] Error fetching fresh CSRF token, using provided token: ${tokenError}`);
+
+        const data = await response.json();
+        const urls = Array.isArray(data.urls)
+          ? data.urls.filter(
+              (url: unknown) => typeof url === 'string' && url.length > 0
+            )
+          : [];
+        if (version !== selectionVersion.current)
+          throw new Error(
+            'The selected photos changed during upload. Please retry with your current selection.'
+          );
+        if (urls.length !== imagePreviews.length)
+          throw new Error(
+            'Some photos did not upload. Your selection is preserved; retry or remove the affected photos.'
+          );
+        setUploadedImages(urls);
+
+        return urls;
+      } catch (error) {
+        logger.error('Error uploading images', error, {
+          service: 'image-upload',
+        });
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Failed to upload images. Please try again.';
+
+        if (onError) {
+          onError(errorMessage);
+        }
+
+        throw new Error(errorMessage);
+      } finally {
+        uploadPending.current = false;
+        setIsUploading(false);
       }
-
-      if (!tokenToUse) {
-        throw new Error('CSRF token is required for image upload');
-      }
-
-      const formData = new FormData();
-      imagePreviews.forEach(({ file }) => {
-        formData.append('photos', file);
-      });
-
-      // Create headers - use the fresh token
-      const headers: Record<string, string> = {
-        'x-csrf-token': tokenToUse,
-      };
-      logger.info('[Upload] CSRF token present', { tokenPrefix: tokenToUse.substring(0, 10) + '...' });
-      logger.info('[Upload] Uploading photos', { photoCount: imagePreviews.length, headers: Object.keys(headers) });
-
-      const response = await fetch('/api/jobs/upload-photos', {
-        method: 'POST',
-        headers,
-        body: formData,
-        credentials: 'include', // CRITICAL: Include cookies (including CSRF cookie) in the request
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || 'Failed to upload images';
-        const errorDetails = errorData.details ? `\n\nDetails: ${errorData.details}` : '';
-        throw new Error(`${errorMessage}${errorDetails}`);
-      }
-
-      const data = await response.json();
-      const urls = data.urls || [];
-      setUploadedImages(urls);
-
-      // Warn user if some files failed to upload
-      if (data.warning && onError) {
-        onError(data.warning);
-      }
-
-      return urls;
-    } catch (error) {
-      logger.error('Error uploading images', error, {
-        service: 'image-upload',
-      });
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Failed to upload images. Please try again.';
-      
-      if (onError) {
-        onError(errorMessage);
-      }
-      
-      return [];
-    } finally {
-      setIsUploading(false);
-    }
-  }, [imagePreviews, onError]);
+    },
+    [imagePreviews, onError]
+  );
 
   const clearImages = useCallback(() => {
     imagePreviews.forEach(({ preview }) => {
       URL.revokeObjectURL(preview);
     });
+    previewsRef.current = [];
+    selectionVersion.current += 1;
     setImagePreviews([]);
     setUploadedImages([]);
   }, [imagePreviews]);
@@ -182,4 +181,3 @@ export function useImageUpload({
     clearImages,
   };
 }
-

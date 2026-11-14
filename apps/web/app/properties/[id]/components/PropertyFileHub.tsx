@@ -27,6 +27,7 @@ const KINDS = [
 ];
 const date = (value: string) =>
   new Date(value).toLocaleDateString('en-GB', {
+    timeZone: 'Europe/London',
     day: 'numeric',
     month: 'short',
     year: 'numeric',

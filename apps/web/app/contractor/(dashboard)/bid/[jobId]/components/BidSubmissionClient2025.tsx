@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Check } from 'lucide-react';
 import { fadeIn } from '@/lib/animations/variants';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';
@@ -28,12 +27,13 @@ import type {
 export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
   const { job, existingBid, platformFeeRate } = props || {};
   const router = useRouter();
-  const { user } = useCurrentUser();
   const [amount, setAmount] = useState(existingBid?.amount?.toString() || '');
   const [description, setDescription] = useState(
     existingBid?.description || ''
   );
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(
+    Boolean(existingBid?.lineItems?.length)
+  );
   const [lineItems, setLineItems] = useState<LineItem[]>(
     existingBid?.lineItems?.map((item, index) => ({
       ...item,
@@ -134,8 +134,8 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
         .reduce((s, i) => s + i.total, 0),
     [lineItems]
   );
-  const taxAmount = (subtotal * taxRate) / 100;
-  const totalAmount = subtotal + taxAmount;
+  const taxAmount = Math.round(subtotal * taxRate) / 100;
+  const totalAmount = Math.round((subtotal + taxAmount) * 100) / 100;
   // Tier-aware rate (decimal), resolved server-side and passed in.
   // formatPlatformFeePercent + platformFeeBreakdown are shared with the
   // job-detail view and mobile so the label and maths never diverge.
@@ -144,18 +144,11 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
     totalAmount,
     platformFeeRate
   );
-  // Basic-mode path: the "Pricing Breakdown" panel quotes off the raw
-  // entered amount (totalAmount is 0 with no line items).
-  const enteredBid = parseFloat(amount);
-  const enteredBreakdown = platformFeeBreakdown(
-    Number.isFinite(enteredBid) ? enteredBid : 0,
-    platformFeeRate
-  );
 
   useEffect(() => {
     if (lineItems.length > 0 && subtotal > 0) {
-      const newAmount = totalAmount.toFixed(2);
-      setAmount(current => current === newAmount ? current : newAmount);
+      const newAmount = subtotal.toFixed(2);
+      setAmount((current) => (current === newAmount ? current : newAmount));
     }
   }, [totalAmount, lineItems.length, subtotal]);
 
@@ -541,7 +534,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                           htmlFor='bid-amount'
                           className='block text-sm font-medium text-gray-700'
                         >
-                          Your Bid Amount (£) *
+                          Subtotal before VAT (£) *
                         </label>
                         <button
                           onClick={handleGetPricingSuggestion}
@@ -579,6 +572,12 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                         </span>
                         <input
                           id='bid-amount'
+                          disabled={lineItems.length > 0}
+                          title={
+                            lineItems.length > 0
+                              ? 'Edit the itemised breakdown to change this subtotal.'
+                              : undefined
+                          }
                           type='number'
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
@@ -610,34 +609,55 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                         <div className='space-y-3'>
                           <div className='flex justify-between items-center'>
                             <span className='text-sm text-gray-600'>
-                              Your bid
+                              Subtotal before VAT
                             </span>
                             <span className='text-sm font-medium text-gray-900'>
-                              £{parseFloat(amount).toFixed(2)}
+                              £{subtotal.toFixed(2)}
                             </span>
                           </div>
+                          <div className='flex justify-between items-center'>
+                            <label htmlFor='basic-tax-rate'>VAT rate (%)</label>
+                            <input
+                              id='basic-tax-rate'
+                              type='number'
+                              min='0'
+                              max='100'
+                              step='0.01'
+                              value={taxRate}
+                              onChange={(e) =>
+                                setTaxRate(Number(e.target.value))
+                              }
+                              className='w-24 border rounded p-2'
+                            />
+                          </div>
+                          <p>VAT: £{taxAmount.toFixed(2)}</p>
+                          <p className='font-semibold'>
+                            Customer total: £{totalAmount.toFixed(2)}
+                          </p>
                           <div className='flex justify-between items-center'>
                             <span className='text-sm text-gray-600'>
                               Platform fee ({platformFeePercentLabel})
                             </span>
                             <span className='text-sm font-medium text-rose-600'>
-                              -£{enteredBreakdown.platformFee.toFixed(2)}
+                              -£{platformFee.toFixed(2)}
                             </span>
                           </div>
                           <div className='pt-3 border-t border-gray-300'>
                             <div className='flex justify-between items-center'>
                               <span className='text-base font-semibold text-gray-900'>
-                                You&apos;ll receive
+                                Estimated contractor entitlement
                               </span>
                               <span className='text-lg font-bold text-emerald-600'>
-                                £{enteredBreakdown.netToContractor.toFixed(2)}
+                                £{youWillReceive.toFixed(2)}
                               </span>
                             </div>
                           </div>
                         </div>
                         <p className='text-xs text-gray-500 mt-4'>
-                          The platform fee covers payment processing, dispute
-                          resolution, and customer support.
+                          This is an estimate after the platform fee, not a
+                          completed payout. Card processing is charged to the
+                          platform; actual fees and bank payout status are
+                          recorded separately.
                         </p>
                       </div>
                     )}

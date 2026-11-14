@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
@@ -242,6 +243,7 @@ export async function savePushToken(
       platform,
     });
 
+    await AsyncStorage.setItem('mintenance.registeredPushToken', token);
     logger.info('Push token saved successfully', { userId });
     addBreadcrumb('Push token saved', 'info', {
       userId,
@@ -399,4 +401,19 @@ export async function sendBulkNotification(
     userCount: userIds.length,
     type,
   });
+}
+
+/** Unregister before clearing authentication so this device stops receiving private account alerts. */
+export async function unregisterDevicePushToken(): Promise<void> {
+  try {
+    const token = await AsyncStorage.getItem('mintenance.registeredPushToken');
+    if (token) {
+      await mobileApiClient.delete('/api/user/push-token', {
+        body: JSON.stringify({ pushToken: token }),
+      });
+      await AsyncStorage.removeItem('mintenance.registeredPushToken');
+    }
+  } finally {
+    await Notifications.dismissAllNotificationsAsync();
+  }
 }

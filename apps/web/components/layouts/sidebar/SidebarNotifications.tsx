@@ -13,11 +13,7 @@ export function useBadgeCounts() {
 
       if (badge === 'messages') return counts.messages || 0;
       if (badge === 'notifications') {
-        return (
-          (counts.connections || 0) +
-          (counts.quoteRequests || 0) +
-          (counts.bids || 0)
-        );
+        return counts.notifications || 0;
       }
       return null;
     },

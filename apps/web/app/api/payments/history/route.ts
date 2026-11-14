@@ -32,7 +32,7 @@ const selectFields = `
   cooling_off_ends_at,
   created_at,
   updated_at,
-  job:jobs!escrow_transactions_job_id_fkey(id, title, description),
+  job:jobs!escrow_transactions_job_id_fkey(id, title, description, status),
   payer:profile_directory!escrow_transactions_payer_id_fkey(first_name, last_name, company_name),
   payee:profile_directory!escrow_transactions_payee_id_fkey(first_name, last_name, company_name)
 `;
@@ -55,6 +55,7 @@ type EscrowRow = {
   updated_at: string;
   job?: {
     id?: string;
+    status?: string | null;
     title?: string | null;
     description?: string | null;
   } | null;
@@ -70,7 +71,10 @@ type EscrowRow = {
   } | null;
 };
 
-const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
+const mapEscrowRow = (
+  row: EscrowRow
+): EscrowTransaction & { jobStatus?: string } => ({
+  jobStatus: row.job?.status ?? undefined,
   id: row.id,
   jobId: row.job_id,
   payerId: row.payer_id,

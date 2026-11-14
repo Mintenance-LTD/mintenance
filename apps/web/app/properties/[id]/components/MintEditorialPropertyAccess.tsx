@@ -91,34 +91,40 @@ const EMERGENCY: [string, string][] = [
 ];
 
 interface SavedTrade {
+  id: string;
+  jobId: string;
+  lastTimestamp: number;
   name: string;
   category: string;
   jobs: number;
   last: string;
 }
 
-function deriveSavedTrades(jobs: JobItem[]): SavedTrade[] {
+export function deriveSavedTrades(jobs: JobItem[]): SavedTrade[] {
   const map = new Map<string, SavedTrade>();
-  jobs
-    .filter((j) => j.contractor)
-    .forEach((j) => {
-      const name = j.contractor as string;
-      const existing = map.get(name);
-      const lastDate = new Date(j.date);
-      const isNewer =
-        !existing ||
-        lastDate.getTime() >
-          new Date(existing.last.split(' · ')[1] || 0).getTime();
-      map.set(name, {
-        name,
-        category: j.category || 'General',
-        jobs: (existing?.jobs ?? 0) + 1,
-        last: isNewer
-          ? `${j.title} · ${lastDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`
-          : (existing?.last ??
-            `${j.title} · ${lastDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`),
-      });
+  for (const job of jobs) {
+    if (!job.contractorId || !job.contractor) continue;
+    const existing = map.get(job.contractorId);
+    const timestamp = Date.parse(job.date);
+    const newer = !existing || timestamp > existing.lastTimestamp;
+    map.set(job.contractorId, {
+      id: job.contractorId,
+      name: job.contractor,
+      category: job.category || 'General',
+      jobs: (existing?.jobs ?? 0) + 1,
+      jobId: newer ? job.id : existing.jobId,
+      lastTimestamp: newer ? timestamp : existing.lastTimestamp,
+      last: newer
+        ? job.title +
+          ' · ' +
+          new Date(job.date).toLocaleDateString('en-GB', {
+            month: 'short',
+            year: 'numeric',
+            timeZone: 'Europe/London',
+          })
+        : existing.last,
     });
+  }
   return [...map.values()].sort((a, b) => b.jobs - a.jobs);
 }
 
@@ -417,8 +423,9 @@ export function MintEditorialPropertyAccess({
             ))}
             <p className='pw-notice' style={{ marginTop: 16 }}>
               <Info size={18} />
-              These are directory contacts. Confirm the water supplier and
-              electricity network for this property.
+              These directory examples are not verified suppliers for this
+              property. Confirm the water supplier and electricity network for
+              this property.
             </p>
           </section>
           <section className='pw-card'>
@@ -426,7 +433,7 @@ export function MintEditorialPropertyAccess({
             {trades.length ? (
               trades.map((t) => (
                 <div
-                  key={t.name}
+                  key={t.id}
                   className='pw-stack'
                   style={{ padding: '12px 0' }}
                 >
@@ -444,9 +451,7 @@ export function MintEditorialPropertyAccess({
                   <div className='pw-actions'>
                     <Link
                       className='pw-btn pw-btn-small'
-                      href={
-                        '/messages?contractorName=' + encodeURIComponent(t.name)
-                      }
+                      href={'/messages?jobId=' + encodeURIComponent(t.jobId)}
                     >
                       Message
                     </Link>
@@ -455,8 +460,8 @@ export function MintEditorialPropertyAccess({
                       href={
                         '/jobs/create?property_id=' +
                         propertyId +
-                        '&contractor=' +
-                        encodeURIComponent(t.name)
+                        '&preferredContractor=' +
+                        encodeURIComponent(t.id)
                       }
                     >
                       Rebook

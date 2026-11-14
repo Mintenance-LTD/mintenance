@@ -105,7 +105,8 @@ export function MintEditorialPropertyTimeline({ jobs }: { jobs: JobItem[] }) {
           <p className='pw-notice'>
             <Info size={20} />
             Showing recorded creation events. Status labels reflect the current
-            job status.
+            job status. Documents, inspections, messages and payment events are
+            not included in this history.
           </p>
           {[...groups].map(([month, entries]) => (
             <div className='pw-timeline-group' key={month}>

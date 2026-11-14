@@ -1,3 +1,4 @@
+import { hasExplicitObligations } from '@/lib/services/contracts/explicit-obligations';
 /**
  * User Profile, Admin, Contract, Message, Property & Settings Validation Schemas
  */
@@ -160,7 +161,11 @@ export const createContractSchema = z
       .optional(),
     quote_id: z.string().uuid('Invalid quote ID').optional(),
   })
-  .strict();
+  .strict()
+  .refine((value) => hasExplicitObligations(value.terms), {
+    message: 'Enter explicit materials and warranty terms for this job.',
+    path: ['terms'],
+  });
 
 export const updateContractSchema = z
   .object({

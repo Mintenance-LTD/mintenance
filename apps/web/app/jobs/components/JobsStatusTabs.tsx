@@ -10,7 +10,8 @@ type FilterStatus =
   | 'completed'
   | 'draft'
   | 'awaiting_action'
-  | 'archived';
+  | 'archived'
+  | 'cancelled';
 
 interface JobsStatusTabsProps {
   activeTab: FilterStatus;

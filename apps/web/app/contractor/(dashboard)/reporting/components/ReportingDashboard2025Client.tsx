@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { reportingCsv } from '@/lib/contractor/reporting';
 import { formatMoney } from '@/lib/utils/currency';
 import {
   PoundSterling,
   Briefcase,
   Star,
   Users,
-  Clock,
   CheckCircle,
   Target,
   Award,
+  Clock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { KPICard } from './ReportingDashboard/KPICard';
@@ -22,12 +24,22 @@ import type { DateRange, ReportingAnalytics } from './ReportingDashboard/types';
 
 interface ReportingDashboard2025ClientProps {
   analytics: ReportingAnalytics;
+  period?: DateRange;
+  generatedAt?: string;
 }
 
 export function ReportingDashboard2025Client({
   analytics,
+  period = '30days',
+  generatedAt,
 }: ReportingDashboard2025ClientProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<DateRange>('30days');
+  const router = useRouter();
+  const [changingPeriod, startTransition] = useTransition();
+  const selectedPeriod = period;
+  const setSelectedPeriod = (next: DateRange) =>
+    startTransition(() =>
+      router.push('/contractor/reporting?period=' + encodeURIComponent(next))
+    );
   const [isLoading, setIsLoading] = useState(false);
 
   // Use real daily revenue data from props
@@ -40,7 +52,7 @@ export function ReportingDashboard2025Client({
     { status: 'Cancelled', count: analytics.cancelledJobs, color: '#EF4444' },
   ];
 
-  const topServicesData = analytics.jobsByCategory
+  const topServicesData = [...analytics.jobsByCategory]
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 6)
     .map((cat) => ({
@@ -57,16 +69,31 @@ export function ReportingDashboard2025Client({
       jobs: item.jobs,
     }));
 
-  const handleExport = async (format: 'csv' | 'pdf') => {
+  const handleExport = (format: 'csv' | 'pdf') => {
+    if (format === 'pdf') {
+      window.print();
+      return;
+    }
     setIsLoading(true);
-    toast.loading(`Preparing ${format.toUpperCase()} export...`);
-
-    // Simulate export delay
-    setTimeout(() => {
+    try {
+      const url = URL.createObjectURL(
+        new Blob([reportingCsv(analytics, selectedPeriod)], {
+          type: 'text/csv;charset=utf-8',
+        })
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'mintenance-report-' + selectedPeriod + '.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success('CSV download started.');
+    } catch {
+      toast.error('Could not create the report file. Please retry.');
+    } finally {
       setIsLoading(false);
-      toast.dismiss();
-      toast.success(`Report exported as ${format.toUpperCase()}!`);
-    }, 2000);
+    }
   };
 
   const handlePrint = () => {
@@ -77,10 +104,22 @@ export function ReportingDashboard2025Client({
   return (
     <div className='min-h-0 bg-gray-50'>
       {/* Clean Header */}
+      <p className='text-sm'>
+        Revenue means contractor entitlement released after platform fees, not
+        confirmed bank receipt. Job and bid rates use records created in the
+        selected period; payments use their release date. Boundaries are UTC;
+        chart dates are UK time.{' '}
+        {generatedAt
+          ? 'Generated ' +
+            new Date(generatedAt).toLocaleString('en-GB', {
+              timeZone: 'Europe/London',
+            })
+          : ''}
+      </p>
       <DashboardHeader
         selectedPeriod={selectedPeriod}
         setSelectedPeriod={setSelectedPeriod}
-        isLoading={isLoading}
+        isLoading={isLoading || changingPeriod}
         handlePrint={handlePrint}
         handleExport={handleExport}
       />
@@ -169,7 +208,7 @@ export function ReportingDashboard2025Client({
 
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
               <MetricCard
-                label='Quote Acceptance Rate'
+                label='Bid acceptance (submitted in period)'
                 value={
                   analytics.totalBids > 0
                     ? Math.round(
@@ -195,7 +234,7 @@ export function ReportingDashboard2025Client({
                 icon={<Target className='w-5 h-5' />}
               />
               <MetricCard
-                label='Customer Retention'
+                label='Repeat paying customers'
                 value={
                   analytics.totalClients > 0
                     ? Math.round(
@@ -207,13 +246,9 @@ export function ReportingDashboard2025Client({
                 color='text-blue-500'
                 icon={<Users className='w-5 h-5' />}
               />
-              <MetricCard
-                label='Response Time Score'
-                value={92}
-                max={100}
-                color='text-purple-500'
-                icon={<Clock className='w-5 h-5' />}
-              />
+              <p className='text-sm text-gray-500'>
+                Response time is not measured in this report.
+              </p>
             </div>
           </div>
 
@@ -227,13 +262,16 @@ export function ReportingDashboard2025Client({
                 <Clock className='w-5 h-5' />
                 <span>
                   Last updated:{' '}
-                  {new Date().toLocaleString('en-GB', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {generatedAt
+                    ? new Date(generatedAt).toLocaleString('en-GB', {
+                        timeZone: 'Europe/London',
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : 'Not recorded'}
                 </span>
               </div>
               <div className='flex items-center gap-2'>

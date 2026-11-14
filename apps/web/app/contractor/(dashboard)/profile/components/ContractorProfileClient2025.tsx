@@ -28,6 +28,7 @@ import type {
 } from './contractorProfileTypes';
 
 interface ContractorProfileClient2025Props {
+  initialTab?: 'overview' | 'portfolio';
   contractor: ContractorProfileData;
   skills: Array<{ skill_name: string; skill_icon?: string }>;
   reviews: ContractorReview[];
@@ -43,6 +44,7 @@ interface ContractorProfileClient2025Props {
 
 export function ContractorProfileClient2025({
   contractor,
+  initialTab = 'overview',
   skills,
   reviews,
   completedJobs,
@@ -71,7 +73,7 @@ export function ContractorProfileClient2025({
     | 'portfolio'
     | 'reviews'
     | 'certifications'
-  >('overview');
+  >(initialTab);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showAddSkillModal, setShowAddSkillModal] = useState(false);
   const [showAddPortfolioModal, setShowAddPortfolioModal] = useState(false);
@@ -391,7 +393,13 @@ export function ContractorProfileClient2025({
           </div>
         )}
 
-        {activeTab === 'portfolio' && <CompletedJobPortfolio jobs={completedJobs} contractorId={contractor.id} onUpload={handleUploadPhotos} />}
+        {activeTab === 'portfolio' && (
+          <CompletedJobPortfolio
+            jobs={completedJobs}
+            contractorId={contractor.id}
+            onUpload={handleUploadPhotos}
+          />
+        )}
 
         <ProfileTabPanels
           activeTab={activeTab}

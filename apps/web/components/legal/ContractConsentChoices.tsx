@@ -37,7 +37,10 @@ export function ContractConsentChoices({
       </p>
       <p>
         <Link href='/terms' target='_blank'>
-          Read customer terms ({CUSTOMER_TERMS_VERSION})
+          {homeowner
+            ? 'Read customer terms'
+            : 'Read platform terms and customer cancellation information'}{' '}
+          ({CUSTOMER_TERMS_VERSION})
         </Link>{' '}
         ·{' '}
         <a href='/legal/customer-terms-2026-11-03.txt' download>
@@ -52,7 +55,9 @@ export function ContractConsentChoices({
             onChange({ ...value, termsAccepted: e.target.checked })
           }
         />
-        I have read and accept the customer terms and this job agreement.
+        {homeowner
+          ? 'I have read and accept the customer terms and this job agreement.'
+          : 'I have reviewed the platform terms, the customer cancellation information, and the materials and warranty terms. I agree to carry out the work under this job agreement.'}
       </label>
       {homeowner && (
         <>

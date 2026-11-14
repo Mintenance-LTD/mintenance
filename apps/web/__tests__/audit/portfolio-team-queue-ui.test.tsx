@@ -89,7 +89,7 @@ it('requests a server-filtered first page and clears the previous editor', async
   await screen.findByText(/No follow-ups are assigned to you/);
   expect(screen.queryByText('Follow-up editor')).toBeNull();
   expect(fetcher).toHaveBeenLastCalledWith(
-    '/api/portfolio/queue?offset=0&limit=25&scope=mine',
+    '/api/portfolio/queue?offset=0&limit=25&scope=mine&sort=priority',
     expect.anything()
   );
 });
@@ -119,4 +119,27 @@ it('ignores a late previous-scope response', async () => {
   await screen.findByText(/No follow-ups are assigned to you/);
   resolve(response());
   await waitFor(() => expect(screen.queryByText('Fix tap')).toBeNull());
+});
+
+it('requests global priority and sort filters from the first page', async () => {
+  render(<Page />);
+  await screen.findByText('Fix tap');
+  fireEvent.change(screen.getByLabelText('Priority'), {
+    target: { value: '0' },
+  });
+  await waitFor(() =>
+    expect(fetcher).toHaveBeenLastCalledWith(
+      '/api/portfolio/queue?offset=0&limit=25&scope=team&priority=0&sort=priority',
+      expect.anything()
+    )
+  );
+  fireEvent.change(screen.getByLabelText('Sort by'), {
+    target: { value: 'due' },
+  });
+  await waitFor(() =>
+    expect(fetcher).toHaveBeenLastCalledWith(
+      '/api/portfolio/queue?offset=0&limit=25&scope=team&priority=0&sort=due',
+      expect.anything()
+    )
+  );
 });

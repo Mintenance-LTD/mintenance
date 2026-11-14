@@ -160,6 +160,10 @@ export async function verifySandboxAcceptance(
         job_id: job.id,
         amount: 5,
         title: 'Synthetic agreed plumbing work',
+        additional_terms: {
+          materials_terms: 'Synthetic test: no real materials or work.',
+          warranty_terms: 'Synthetic test: no additional contractual warranty.',
+        },
         description: 'Synthetic payment readiness agreement',
         contractor_company_name: 'Readiness Test Plumbing',
         contractor_license_registration: 'READINESS-TEST',

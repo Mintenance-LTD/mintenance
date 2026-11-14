@@ -57,6 +57,7 @@ export interface Bid {
   description?: string;
   status: string;
   created_at: string;
+  accepted_at?: string | null;
   contractor: Contractor;
   lineItems?: BidLineItem[];
   // 2026-05-13 BidCard upgrade — comparison axes the homeowner
@@ -216,7 +217,12 @@ export function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
             <div className='flex items-center gap-2 mb-1'>
               <h4 className='font-semibold text-gray-900'>{contractorName}</h4>
               {bid.contractor.admin_verified && (
-                <Shield className='w-4 h-4 text-teal-600' />
+                <span
+                  title='Account reviewed by a Mintenance administrator'
+                  aria-label='Admin reviewed'
+                >
+                  <Shield className='w-4 h-4 text-teal-600' />
+                </span>
               )}
             </div>
             {/* Rating + reviews line — shows quality signal alongside price

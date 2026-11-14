@@ -154,7 +154,8 @@ function NeedsYouCard({
       </h2>
       {resolved.length === 0 ? (
         <p className='t-body'>
-          You're all caught up. New bids and quotes will appear here.
+          No new bids or quotes here. Check tenant reports and the work queue
+          for other outstanding work.
         </p>
       ) : (
         <div className='col' style={{ gap: 12 }}>

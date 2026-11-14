@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -8,8 +8,16 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { theme } from '@/lib/theme';
+import { clientErrorMessage } from '@/lib/errors/client-message';
+import { getCsrfHeaders } from '@/lib/csrf-client';
+import {
+  ukDateTimeInput,
+  ukDateTimeToISO,
+  formatUKSchedule,
+} from '@/lib/scheduling/uk-date-time';
 
 interface JobSchedulingProps {
+  initialEditing?: boolean;
   jobId: string;
   userRole: 'homeowner' | 'contractor';
   userId: string;
@@ -26,70 +34,71 @@ export function JobScheduling({
   userRole,
   currentSchedule,
   contractStatus = 'none',
+  initialEditing = false,
 }: JobSchedulingProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialEditing);
+  const saveInFlight = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [startDate, setStartDate] = useState(
-    currentSchedule?.scheduled_start_date
-      ? new Date(currentSchedule.scheduled_start_date)
-          .toISOString()
-          .slice(0, 16)
-      : ''
+    ukDateTimeInput(currentSchedule?.scheduled_start_date)
   );
   const [endDate, setEndDate] = useState(
-    currentSchedule?.scheduled_end_date
-      ? new Date(currentSchedule.scheduled_end_date).toISOString().slice(0, 16)
-      : ''
+    ukDateTimeInput(currentSchedule?.scheduled_end_date)
   );
   const [durationHours, setDurationHours] = useState(
     currentSchedule?.scheduled_duration_hours?.toString() || ''
   );
 
   const handleSave = async () => {
+    if (saveInFlight.current) return;
     if (!startDate) {
       setError('Start date is required');
       return;
     }
 
+    saveInFlight.current = true;
     setIsSaving(true);
     setError(null);
 
     try {
       interface JobScheduleData {
         scheduled_start_date: string;
-        scheduled_end_date?: string;
+        scheduled_end_date?: string | null;
         scheduled_duration_hours?: number;
       }
 
       const scheduleData: JobScheduleData = {
-        scheduled_start_date: new Date(startDate).toISOString(),
+        scheduled_start_date: ukDateTimeToISO(startDate),
+        scheduled_end_date: endDate ? ukDateTimeToISO(endDate) : null,
       };
-
-      if (endDate) {
-        scheduleData.scheduled_end_date = new Date(endDate).toISOString();
-      }
 
       if (durationHours) {
         scheduleData.scheduled_duration_hours = parseInt(durationHours, 10);
       }
 
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch(`/api/jobs/${jobId}/schedule`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...csrfHeaders,
         },
         body: JSON.stringify(scheduleData),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to schedule job');
+        throw new Error(
+          clientErrorMessage(
+            data,
+            'Failed to schedule job. Your changes are still here; please retry.'
+          )
+        );
       }
 
-      const data = await response.json();
       setIsEditing(false);
       setSuccessMessage(
         'Job scheduled successfully! Both parties will be notified.'
@@ -104,56 +113,12 @@ export function JobScheduling({
       setError(err instanceof Error ? err.message : 'Failed to schedule job');
       setSuccessMessage(null);
     } finally {
+      saveInFlight.current = false;
       setIsSaving(false);
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Not scheduled';
-
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid date';
-
-      // Format consistently to avoid hydration mismatches
-      // Use manual formatting to ensure server and client produce identical output
-      const weekdays = [
-        'Sunday',
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-      ];
-      const months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ];
-
-      const weekday = weekdays[date.getDay()];
-      const day = date.getDate();
-      const month = months[date.getMonth()];
-      const year = date.getFullYear();
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-
-      // Always use the same format: "Sunday 28 December 2025 at 09:30" (no comma)
-      return `${weekday} ${day} ${month} ${year} at ${hours}:${minutes}`;
-    } catch {
-      return 'Invalid date';
-    }
-  };
+  const formatDate = formatUKSchedule;
 
   const hasSchedule = currentSchedule?.scheduled_start_date;
 
@@ -271,6 +236,11 @@ export function JobScheduling({
         )}
       </div>
 
+      <p className='text-sm text-gray-600 mb-4'>
+        Times are shown in UK time (GMT/BST). Agree changes with the other
+        party. This updates the appointment, not the dates or obligations in
+        your signed agreement.
+      </p>
       {error && (
         <Alert variant='destructive' className='mb-4'>
           <AlertCircle className='h-4 w-4' />

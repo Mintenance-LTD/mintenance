@@ -42,6 +42,19 @@ const contractFormSchema = z
     start_date: z.string().min(1, 'Start date is required'),
     end_date: z.string().min(1, 'End date is required'),
     terms: z.string().optional(),
+    materials_terms: z
+      .string()
+      .trim()
+      .min(1, 'Describe who supplies materials, or state that none are needed')
+      .max(2000),
+    warranty_terms: z
+      .string()
+      .trim()
+      .min(
+        1,
+        'State the warranty offered, or explicitly state that no additional warranty is offered'
+      )
+      .max(2000),
     contractor_company_name: z.string().min(2, 'Company name is required'),
     contractor_license_registration: z
       .string()
@@ -98,6 +111,8 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
       start_date: '',
       end_date: '',
       terms: '',
+      materials_terms: '',
+      warranty_terms: '',
       contractor_company_name: '',
       contractor_license_registration: '',
       contractor_license_type: '',
@@ -117,6 +132,8 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
       start_date: '',
       end_date: '',
       terms: '',
+      materials_terms: '',
+      warranty_terms: '',
       contractor_company_name: '',
       contractor_license_registration: '',
       contractor_license_type: '',
@@ -182,6 +199,9 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
           const existing = (data.contracts || [])[0];
           if (existing) {
             setExistingContractStatus(existing.status);
+            setValue('materials_terms', existing.terms?.materials_terms || '');
+            setValue('warranty_terms', existing.terms?.warranty_terms || '');
+            setValue('terms', existing.terms?.additional_terms || '');
             if (existing.amount && Number(existing.amount) > 0) {
               amount = Number(existing.amount);
             }
@@ -227,7 +247,13 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
         amount: amount,
         start_date: startDateObj.toISOString(),
         end_date: endDateObj.toISOString(),
-        terms: data.terms?.trim() || undefined,
+        terms: {
+          materials_terms: data.materials_terms.trim(),
+          warranty_terms: data.warranty_terms.trim(),
+          ...(data.terms?.trim()
+            ? { additional_terms: data.terms.trim() }
+            : {}),
+        },
         contractor_company_name: data.contractor_company_name.trim(),
         contractor_license_registration:
           data.contractor_license_registration.trim(),
@@ -470,6 +496,34 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
             </div>
           </div>
 
+          <div className='space-y-2'>
+            <Label htmlFor='materials_terms'>
+              Materials and supply responsibilities (required)
+            </Label>
+            <Textarea
+              id='materials_terms'
+              {...register('materials_terms')}
+              rows={3}
+              placeholder='Specify the materials and who supplies them, or state that no materials are needed.'
+            />
+            {errors.materials_terms && (
+              <p role='alert'>{errors.materials_terms.message}</p>
+            )}
+            <Label htmlFor='warranty_terms'>Warranty terms (required)</Label>
+            <Textarea
+              id='warranty_terms'
+              {...register('warranty_terms')}
+              rows={3}
+              placeholder='Describe any additional warranty, or state that none is offered.'
+            />
+            <p className='text-sm'>
+              No warranty is added automatically. These terms do not remove
+              statutory rights.
+            </p>
+            {errors.warranty_terms && (
+              <p role='alert'>{errors.warranty_terms.message}</p>
+            )}
+          </div>
           {/* Additional Terms */}
           <div className='border-b pb-3 mb-3 mt-6'>
             <h3 className='text-sm font-semibold text-gray-500 uppercase tracking-wide'>

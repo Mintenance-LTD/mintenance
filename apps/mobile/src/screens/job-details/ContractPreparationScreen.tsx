@@ -79,6 +79,8 @@ export const ContractPreparationScreen: React.FC<Props> = ({
   const [insuranceProvider, setInsuranceProvider] = useState('');
   const [insurancePolicyNumber, setInsurancePolicyNumber] = useState('');
   const [terms, setTerms] = useState('');
+  const [materialsTerms, setMaterialsTerms] = useState('');
+  const [warrantyTerms, setWarrantyTerms] = useState('');
 
   // Quote data (from accepted bid)
   const [quoteId, setQuoteId] = useState<string | null>(null);
@@ -193,6 +195,18 @@ export const ContractPreparationScreen: React.FC<Props> = ({
           if (c.contractor_license_type)
             setLicenseType(c.contractor_license_type);
           if (c.amount != null) setAmount(String(c.amount));
+          if (c.terms && typeof c.terms === 'object') {
+            setMaterialsTerms(
+              typeof c.terms.materials_terms === 'string'
+                ? c.terms.materials_terms
+                : ''
+            );
+            setWarrantyTerms(
+              typeof c.terms.warranty_terms === 'string'
+                ? c.terms.warranty_terms
+                : ''
+            );
+          }
           if (typeof c.terms === 'string') setTerms(c.terms);
           else if (typeof c.terms?.additional_terms === 'string')
             setTerms(c.terms.additional_terms);
@@ -242,6 +256,12 @@ export const ContractPreparationScreen: React.FC<Props> = ({
     if (!endDate) e.endDate = 'End date is required';
     if (startDate && endDate && endDate <= startDate)
       e.endDate = 'End date must be after start date';
+    if (!materialsTerms.trim())
+      e.materialsTerms =
+        'Describe materials and who supplies them, or state that none are needed';
+    if (!warrantyTerms.trim())
+      e.warrantyTerms =
+        'State the warranty offered, or explicitly state that none is offered';
     if (!companyName) e.companyName = 'Company name is required';
     if (!licenseNumber) e.licenseNumber = 'License number is required';
     return e;
@@ -253,6 +273,8 @@ export const ContractPreparationScreen: React.FC<Props> = ({
     endDate,
     companyName,
     licenseNumber,
+    materialsTerms,
+    warrantyTerms,
   ]);
 
   const handleSubmit = useCallback(async () => {
@@ -287,7 +309,11 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         contractor_license_type: licenseType || undefined,
         insurance_provider: insuranceProvider || undefined,
         insurance_policy_number: insurancePolicyNumber || undefined,
-        terms: terms.trim() ? { additional_terms: terms.trim() } : undefined,
+        terms: {
+          materials_terms: materialsTerms.trim(),
+          warranty_terms: warrantyTerms.trim(),
+          ...(terms.trim() ? { additional_terms: terms.trim() } : {}),
+        },
         quote_id: quoteId || undefined,
       });
       HapticService.success();
@@ -328,6 +354,8 @@ export const ContractPreparationScreen: React.FC<Props> = ({
     endDate,
     companyName,
     licenseNumber,
+    materialsTerms,
+    warrantyTerms,
     licenseType,
     insuranceProvider,
     insurancePolicyNumber,
@@ -573,6 +601,47 @@ export const ContractPreparationScreen: React.FC<Props> = ({
             }}
           />
 
+          <Text style={styles.sectionLabel}>Job-specific obligations</Text>
+          <Text style={styles.fieldLabel}>
+            Materials and supply responsibilities (required)
+          </Text>
+          <TextInput
+            accessibilityLabel='Materials and supply responsibilities'
+            style={[styles.input, styles.textArea]}
+            value={materialsTerms}
+            onChangeText={(value) => {
+              setMaterialsTerms(value);
+              markDirty();
+            }}
+            multiline
+            maxLength={2000}
+            editable={!isSigned}
+            placeholder='Specify materials and who supplies them, or state that none are needed.'
+          />
+          {errors.materialsTerms ? (
+            <Text accessibilityRole='alert'>{errors.materialsTerms}</Text>
+          ) : null}
+          <Text style={styles.fieldLabel}>Warranty terms (required)</Text>
+          <TextInput
+            accessibilityLabel='Warranty terms'
+            style={[styles.input, styles.textArea]}
+            value={warrantyTerms}
+            onChangeText={(value) => {
+              setWarrantyTerms(value);
+              markDirty();
+            }}
+            multiline
+            maxLength={2000}
+            editable={!isSigned}
+            placeholder='Describe any additional warranty, or state that none is offered.'
+          />
+          {errors.warrantyTerms ? (
+            <Text accessibilityRole='alert'>{errors.warrantyTerms}</Text>
+          ) : null}
+          <Text>
+            No warranty is added automatically. These terms do not remove
+            statutory rights.
+          </Text>
           {/* ADDITIONAL TERMS */}
           <Text style={styles.sectionLabel}>Additional Terms</Text>
           <Text style={styles.fieldLabel}>Terms & Conditions (Optional)</Text>

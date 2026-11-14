@@ -40,6 +40,7 @@ interface Transaction {
   updated_at: string;
   job_title?: string;
   job_id?: string;
+  job_status?: string;
   contractor_name?: string;
   contractor_id?: string;
   release_reason?: string;
@@ -67,6 +68,7 @@ interface PaymentData {
   createdAt: string;
   updatedAt: string;
   jobId?: string;
+  jobStatus?: string;
   payerId?: string;
   payeeId?: string;
   job?: { title: string; description?: string } | null;
@@ -163,6 +165,7 @@ export default function PaymentsPage2025() {
               updated_at: t.updated_at || t.updatedAt,
               job_title: jobTitle,
               job_id: t.job_id || t.jobId,
+              job_status: t.jobStatus,
               contractor_name: contractorName || undefined,
               contractor_id: t.contractor_id || t.payeeId,
               release_reason: t.release_reason,
@@ -186,6 +189,13 @@ export default function PaymentsPage2025() {
   }, [user]);
 
   const handleReleasePayment = async (transactionId: string) => {
+    if (
+      transactions.find((tx) => tx.id === transactionId)?.job_status !==
+      'completed'
+    ) {
+      toast.error('Payment can only be approved after the work is completed.');
+      return;
+    }
     if (!csrfToken) {
       toast.error('Security token not loaded. Please refresh.');
       return;

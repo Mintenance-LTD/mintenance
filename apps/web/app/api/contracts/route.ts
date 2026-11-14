@@ -1,3 +1,4 @@
+import { prepareExplicitObligations } from '@/lib/services/contracts/explicit-obligations';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger, JOB_STATUS, CONTRACT_STATUS } from '@mintenance/shared';
@@ -195,7 +196,9 @@ export const GET = withApiHandler(
         )
         .filter(Boolean);
       const bidById = new Map<string, Record<string, unknown>>(
-        (bids || []).map((b: Record<string, unknown>) => [b.id as string, b] as const)
+        (bids || []).map(
+          (b: Record<string, unknown>) => [b.id as string, b] as const
+        )
       );
       for (const row of needsFallback) {
         const bid = bidById.get(row.terms!.bid_id as string);
@@ -296,7 +299,7 @@ export const POST = withApiHandler(
       amount,
       start_date: start_date || null,
       end_date: end_date || null,
-      terms: {
+      terms: prepareExplicitObligations({
         ...(existingContract?.terms &&
         typeof existingContract.terms === 'object'
           ? existingContract.terms
@@ -304,7 +307,7 @@ export const POST = withApiHandler(
         ...(terms || {}),
         ...(insurance_provider ? { insurance_provider } : {}),
         ...(insurance_policy_number ? { insurance_policy_number } : {}),
-      },
+      }),
       contractor_company_name,
       contractor_license_registration,
       contractor_license_type: contractor_license_type || null,

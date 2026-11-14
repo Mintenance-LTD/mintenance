@@ -1127,6 +1127,11 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
                   contractor_id: contractorUser.id,
                   homeowner_id: homeownerUser.id,
                   status: 'pending_contractor',
+                  terms: {
+                    materials_terms: 'No materials required for this test.',
+                    warranty_terms:
+                      'No additional contractual warranty for this test.',
+                  },
                   title: 'Contract for Fix leaking tap',
                   contractor_signed_at: null,
                   homeowner_signed_at: null,
@@ -1143,6 +1148,11 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
                     contractor_id: contractorUser.id,
                     homeowner_id: homeownerUser.id,
                     status: 'pending_contractor',
+                    terms: {
+                      materials_terms: 'No materials required for this test.',
+                      warranty_terms:
+                        'No additional contractual warranty for this test.',
+                    },
                     title: 'Contract for Fix leaking tap',
                     contractor_signed_at: null,
                     homeowner_signed_at: null,

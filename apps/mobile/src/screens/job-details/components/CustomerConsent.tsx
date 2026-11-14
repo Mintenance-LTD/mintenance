@@ -67,10 +67,16 @@ export function CustomerConsent({
         onPress={() => setShow(true)}
         style={{ padding: 12 }}
       >
-        <Text>Read and save customer terms</Text>
+        <Text>
+          {homeowner
+            ? 'Read and save customer terms'
+            : 'Read platform terms and customer cancellation information'}
+        </Text>
       </Pressable>
       {choice(
-        'I have read and accept the customer terms and this job agreement.',
+        homeowner
+          ? 'I have read and accept the customer terms and this job agreement.'
+          : 'I have reviewed the platform terms, the customer cancellation information, and the materials and warranty terms. I agree to carry out the work under this job agreement.',
         value.termsAccepted,
         () => onChange({ ...value, termsAccepted: !value.termsAccepted })
       )}

@@ -47,6 +47,8 @@ interface Props {
    *  binary "contract accepted". Null when the party hasn't signed. */
   contractContractorSignedAt?: string | null;
   contractHomeownerSignedAt?: string | null;
+  escrowFundedAt?: string | null;
+  escrowReleasedAt?: string | null;
   escrowStatus: string | null | undefined;
   /** Row from the `building_assessments` table (or null). The
    *  `assessment_data` jsonb column carries the actual AI output —
@@ -69,6 +71,8 @@ export function MintEditorialJobDetailView({
   contractStatus,
   contractContractorSignedAt,
   contractHomeownerSignedAt,
+  escrowFundedAt,
+  escrowReleasedAt,
   escrowStatus,
   buildingAssessment,
   userId,
@@ -123,6 +127,8 @@ export function MintEditorialJobDetailView({
             contractStatus,
             contractContractorSignedAt,
             contractHomeownerSignedAt,
+            escrowFundedAt,
+            escrowReleasedAt,
             escrowStatus,
             bidCount,
             pendingBidCount,

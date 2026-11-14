@@ -36,6 +36,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
           return query;
         },
         order: () => query,
+        range: () => query,
         then: (
           resolve: (data: unknown) => unknown,
           reject: (error: unknown) => unknown

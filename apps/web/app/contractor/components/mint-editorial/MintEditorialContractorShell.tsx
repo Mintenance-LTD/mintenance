@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Search, Menu, X } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { MintEditorialContractorSidebar } from './MintEditorialContractorSidebar';
@@ -40,6 +41,7 @@ export function MintEditorialContractorShell({
   contentPadding = '28px 36px 140px',
 }: MintEditorialContractorShellProps) {
   const pathname = usePathname();
+  const [pageSearch, setPageSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   useEffect(() => {
     setDrawerOpen(false);
@@ -81,10 +83,69 @@ export function MintEditorialContractorShell({
           >
             {drawerOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
-          <div className='search-pill' style={{ width: 280 }}>
-            <Search size={15} strokeWidth={1.75} />
-            <span>Search jobs, customers, invoices</span>
-          </div>
+          <details style={{ position: 'relative' }}>
+            <summary className='search-pill' style={{ cursor: 'pointer' }}>
+              <Search size={15} /> Find a page
+            </summary>
+            <div
+              style={{
+                position: 'absolute',
+                zIndex: 50,
+                background: 'var(--me-surface, white)',
+                padding: 16,
+                minWidth: 230,
+                border: '1px solid var(--me-line)',
+              }}
+            >
+              <input
+                aria-label='Search contractor pages'
+                type='search'
+                value={pageSearch}
+                onChange={(event) => setPageSearch(event.target.value)}
+                placeholder='Jobs, customers, invoices…'
+              />
+              <nav aria-label='Matching pages'>
+                {[
+                  'Jobs',
+                  'Customers',
+                  'Invoices',
+                  'Quotes',
+                  'Reporting',
+                  'Portfolio',
+                ]
+                  .filter((label) =>
+                    label
+                      .toLowerCase()
+                      .includes(pageSearch.toLowerCase().trim())
+                  )
+                  .map((label) => (
+                    <Link
+                      key={label}
+                      href={'/contractor/' + label.toLowerCase()}
+                      style={{ display: 'block', padding: '10px 0' }}
+                      onClick={(event) => {
+                        event.currentTarget
+                          .closest('details')
+                          ?.removeAttribute('open');
+                        setPageSearch('');
+                      }}
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                {![
+                  'Jobs',
+                  'Customers',
+                  'Invoices',
+                  'Quotes',
+                  'Reporting',
+                  'Portfolio',
+                ].some((label) =>
+                  label.toLowerCase().includes(pageSearch.toLowerCase().trim())
+                ) && <p>No matching pages.</p>}
+              </nav>
+            </div>
+          </details>
           <MintEditorialContractorTopNav />
           <div style={{ flex: 1 }} />
           <NotificationBell href='/contractor/notifications' />

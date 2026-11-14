@@ -149,7 +149,7 @@ export function MintEditorialQuoteDetailView({
           <h1 className='t-h1' style={{ margin: 0 }}>
             Quote for{' '}
             <em style={{ color: 'var(--me-brand)', fontStyle: 'italic' }}>
-              {quote.title}
+              {quote.title.replace(/^(?:Quote for\s+)+/i, '')}
             </em>
           </h1>
           {quote.quote_number ? (

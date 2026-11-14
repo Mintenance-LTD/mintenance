@@ -93,7 +93,7 @@ export function QuotesStatsGrid({ stats }: StatsGridProps) {
         <div className='flex items-center justify-between'>
           <div>
             <p className='text-sm font-medium text-slate-600 mb-1'>
-              Acceptance Rate
+              Quote Acceptance Rate
             </p>
             <p className='text-3xl font-semibold text-teal-600'>
               {stats.acceptanceRate.toFixed(0)}%

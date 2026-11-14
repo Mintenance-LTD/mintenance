@@ -82,9 +82,12 @@ export function JobLifecycleTimeline({
   });
 
   // Step 5: Payment Secured
-  const paymentSecured = ['held', 'release_pending', 'released'].includes(
-    escrowStatus
-  );
+  const paymentSecured = [
+    'held',
+    'release_pending',
+    'released',
+    'completed',
+  ].includes(escrowStatus);
   const isPaymentStep = contractSigned && !paymentSecured;
   steps.push({
     label: 'Protected Payment',
@@ -99,7 +102,7 @@ export function JobLifecycleTimeline({
   const workStarted = ['in_progress', 'completed'].includes(jobStatus);
   const isWorkStep = jobStatus === 'assigned' && paymentSecured;
   steps.push({
-    label: 'Work In Progress',
+    label: isWorkStep ? 'Awaiting work start' : 'Work In Progress',
     status: isWorkStep ? 'current' : workStarted ? 'completed' : 'upcoming',
   });
 
@@ -131,7 +134,7 @@ export function JobLifecycleTimeline({
     escrowStatus === 'release_pending' &&
     !escrowReleased;
   steps.push({
-    label: releasing ? 'Releasing funds' : 'Approved & Paid',
+    label: releasing ? 'Releasing funds' : 'Funds released to contractor',
     status: escrowReleased ? 'completed' : releasing ? 'current' : 'upcoming',
   });
 
@@ -235,10 +238,10 @@ export function NextActionCard({
   } else if (
     jobStatus === 'assigned' &&
     contractStatus === 'accepted' &&
-    !['held', 'release_pending', 'released'].includes(escrowStatus)
+    !['held', 'release_pending', 'released', 'completed'].includes(escrowStatus)
   ) {
     message =
-      'Both parties have signed the contract. Make payment so your funds are held with Protected Payment and work can begin.';
+      'Both parties have signed the contract. Make payment to secure the funds. The signed agreement and cancellation period still govern when work may start.';
     ctaLabel = 'Make Payment';
     ctaHref = `/jobs/${jobId}/payment`;
     urgency = 'urgent';

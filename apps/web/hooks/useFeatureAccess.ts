@@ -50,7 +50,12 @@ export function useFeatureAccess() {
   );
   const [usage, setUsage] = useState<Map<string, FeatureUsage>>(new Map());
   const [loading, setLoading] = useState(true);
-  // supabase client is already imported at the top of the file
+  const [error, setError] = useState<string | null>(null);
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((value) => value + 1), []);
+  const pending =
+    userLoading || loading || (!!user && loadedUserId !== user.id);
 
   // Fetch subscription + usage via the server endpoint (Sprint 7 / 3.2).
   useEffect(() => {
@@ -61,10 +66,16 @@ export function useFeatureAccess() {
         user.role !== 'admin')
     ) {
       setLoading(false);
+      setLoadedUserId(user?.id ?? null);
+      setSubscription(null);
       return;
     }
 
     let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setSubscription(null);
+    setUsage(new Map());
     const load = async () => {
       try {
         const res = await fetch('/api/subscriptions/feature-access', {
@@ -75,7 +86,8 @@ export function useFeatureAccess() {
             status: res.status,
           });
           if (!cancelled) {
-            setSubscription({ tier: 'free', status: 'free' });
+            setSubscription(null);
+            setError('Your plan could not be checked. Please retry.');
             setUsage(new Map());
           }
           return;
@@ -97,11 +109,15 @@ export function useFeatureAccess() {
       } catch (err) {
         logger.error('[FeatureAccess] feature-access fetch failed', err);
         if (!cancelled) {
-          setSubscription({ tier: 'free', status: 'free' });
+          setSubscription(null);
+          setError('Your plan could not be checked. Please retry.');
           setUsage(new Map());
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoadedUserId(user.id);
+          setLoading(false);
+        }
       }
     };
 
@@ -109,7 +125,7 @@ export function useFeatureAccess() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, attempt]);
 
   /**
    * Check if user has access to a feature
@@ -139,6 +155,15 @@ export function useFeatureAccess() {
         };
       }
 
+      if (pending || error || !subscription || loadedUserId !== user?.id) {
+        return {
+          hasAccess: false,
+          limit: false,
+          requiresUpgrade: false,
+          upgradeTiers: [],
+          feature,
+        };
+      }
       const role = (user?.role || 'homeowner') as UserRole;
       const tier = subscription?.tier;
 
@@ -190,7 +215,7 @@ export function useFeatureAccess() {
         feature,
       };
     },
-    [user, subscription, usage]
+    [user, subscription, usage, pending, error, loadedUserId]
   );
 
   /**
@@ -300,7 +325,9 @@ export function useFeatureAccess() {
     // State
     user,
     subscription,
-    loading: userLoading || loading,
+    loading: pending,
+    error,
+    retry,
 
     // Methods
     hasAccess: checkAccess,

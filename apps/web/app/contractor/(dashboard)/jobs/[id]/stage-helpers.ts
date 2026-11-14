@@ -17,6 +17,7 @@ export type JobStage =
   | 'contract_preparing'
   | 'contract_pending'
   | 'awaiting_payment'
+  | 'waiting_to_start'
   | 'ready_to_start'
   | 'in_progress'
   | 'completed';
@@ -24,7 +25,8 @@ export type JobStage =
 export function determineStage(
   jobStatus: string,
   contractStatus: string,
-  escrowHeld: boolean
+  escrowHeld: boolean,
+  workStartAllowed = false
 ): JobStage {
   if (jobStatus === 'in_progress') return 'in_progress';
   if (jobStatus === 'completed') return 'completed';
@@ -32,7 +34,8 @@ export function determineStage(
     if (contractStatus === 'none') return 'contract_preparing';
     if (contractStatus === 'pending') return 'contract_pending';
     if (contractStatus === 'accepted' && !escrowHeld) return 'awaiting_payment';
-    if (contractStatus === 'accepted' && escrowHeld) return 'ready_to_start';
+    if (contractStatus === 'accepted' && escrowHeld)
+      return workStartAllowed ? 'ready_to_start' : 'waiting_to_start';
   }
   return 'contract_preparing';
 }
@@ -67,6 +70,14 @@ export function getStageConfig(stage: JobStage): StageConfig {
         subtitle:
           'Both parties have signed. The homeowner needs to deposit payment into escrow before work can begin.',
         accentColor: theme.colors.info,
+        icon: Clock,
+      };
+    case 'waiting_to_start':
+      return {
+        title: 'Waiting to start',
+        subtitle:
+          'Payment is secured. Check the cancellation period and contract requirements before work begins.',
+        accentColor: theme.colors.warning,
         icon: Clock,
       };
     case 'ready_to_start':

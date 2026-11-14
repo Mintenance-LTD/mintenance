@@ -60,71 +60,75 @@ export class AuthService {
       params: { email: userData.email, role: userData.role },
     };
 
-    const result = await ServiceErrorHandler.executeOperation(async () => {
-      if (!checkRateLimit('auth_register', userData.email)) {
-        throw new Error(
-          'Too many registration attempts. Please try again later.'
+    const result = await ServiceErrorHandler.executeOperation(
+      async () => {
+        if (!checkRateLimit('auth_register', userData.email)) {
+          throw new Error(
+            'Too many registration attempts. Please try again later.'
+          );
+        }
+
+        ServiceErrorHandler.validateRequired(userData.email, 'Email', context);
+        if (!validateEmailFormat(userData.email)) {
+          throw new Error('Please enter a valid email address');
+        }
+        ServiceErrorHandler.validateRequired(
+          userData.password,
+          'Password',
+          context
         );
-      }
-
-      ServiceErrorHandler.validateRequired(userData.email, 'Email', context);
-      if (!validateEmailFormat(userData.email)) {
-        throw new Error('Please enter a valid email address');
-      }
-      ServiceErrorHandler.validateRequired(
-        userData.password,
-        'Password',
-        context
-      );
-      const passwordResult = validatePasswordStrength(userData.password);
-      if (!passwordResult.valid) {
-        throw new Error(
-          passwordResult.message || 'Password does not meet requirements'
+        const passwordResult = validatePasswordStrength(userData.password);
+        if (!passwordResult.valid) {
+          throw new Error(
+            passwordResult.message || 'Password does not meet requirements'
+          );
+        }
+        ServiceErrorHandler.validateRequired(
+          userData.firstName,
+          'First name',
+          context
         );
-      }
-      ServiceErrorHandler.validateRequired(
-        userData.firstName,
-        'First name',
-        context
-      );
-      ServiceErrorHandler.validateRequired(
-        userData.lastName,
-        'Last name',
-        context
-      );
+        ServiceErrorHandler.validateRequired(
+          userData.lastName,
+          'Last name',
+          context
+        );
 
-      await assertPasswordNotBreached(userData.password);
+        await assertPasswordNotBreached(userData.password);
 
-      const { data, error } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
-        options: {
-          data: {
-            first_name: userData.firstName,
-            last_name: userData.lastName,
-            role: userData.role,
-            ...(userData.termsVersion && userData.termsAccepted === true
-              ? { terms_version: userData.termsVersion, terms_accepted: true }
-              : {}),
-            full_name: `${userData.firstName} ${userData.lastName}`,
-            // 2026-05-23: snake_case to match the trigger's
-            // raw_user_meta_data->>'phone' read.
-            ...(userData.phone ? { phone: userData.phone.trim() } : {}),
+        const { data, error } = await supabase.auth.signUp({
+          email: userData.email,
+          password: userData.password,
+          options: {
+            data: {
+              first_name: userData.firstName,
+              last_name: userData.lastName,
+              role: userData.role,
+              ...(userData.termsVersion && userData.termsAccepted === true
+                ? { terms_version: userData.termsVersion, terms_accepted: true }
+                : {}),
+              full_name: `${userData.firstName} ${userData.lastName}`,
+              // 2026-05-23: snake_case to match the trigger's
+              // raw_user_meta_data->>'phone' read.
+              ...(userData.phone ? { phone: userData.phone.trim() } : {}),
+            },
           },
-        },
-      });
+        });
 
-      if (error) {
-        throw authenticationError(error);
-      }
+        if (error) {
+          throw authenticationError(error);
+        }
 
-      // The handle_new_user trigger creates the profile row. The
-      // contractor-trial side-effect that web's /api/auth/register
-      // does is wired into performSignIn (auth-actions.ts) instead
-      // of here, because signUp may not yield a session immediately
-      // when email confirmation is required.
-      return data;
-    }, context, false);
+        // The handle_new_user trigger creates the profile row. The
+        // contractor-trial side-effect that web's /api/auth/register
+        // does is wired into performSignIn (auth-actions.ts) instead
+        // of here, because signUp may not yield a session immediately
+        // when email confirmation is required.
+        return data;
+      },
+      context,
+      false
+    );
 
     if (!result.success || !result.data) {
       throw result.error ?? new Error('Failed to sign up user');
@@ -145,19 +149,23 @@ export class AuthService {
       params: { email },
     };
 
-    const result = await ServiceErrorHandler.executeOperation(async () => {
-      ServiceErrorHandler.validateRequired(email, 'Email', context);
-      if (!validateEmailFormat(email)) {
-        throw new Error('Please enter a valid email address');
-      }
+    const result = await ServiceErrorHandler.executeOperation(
+      async () => {
+        ServiceErrorHandler.validateRequired(email, 'Email', context);
+        if (!validateEmailFormat(email)) {
+          throw new Error('Please enter a valid email address');
+        }
 
-      const { error } = await supabase.auth.resend({ type: 'signup', email });
-      if (error) {
-        throw authenticationError(error);
-      }
-      logger.info('[AUTH] Resent signup confirmation email');
-      return null;
-    }, context, false);
+        const { error } = await supabase.auth.resend({ type: 'signup', email });
+        if (error) {
+          throw authenticationError(error);
+        }
+        logger.info('[AUTH] Resent signup confirmation email');
+        return null;
+      },
+      context,
+      false
+    );
 
     if (!result.success) {
       throw new Error(result.error?.message || 'Failed to resend email');
@@ -175,47 +183,54 @@ export class AuthService {
       params: { email },
     };
 
-    const result = await ServiceErrorHandler.executeOperation(async () => {
-      if (!checkRateLimit('auth_login', email)) {
-        throw new Error(
-          'Too many login attempts. Please try again in 15 minutes.'
-        );
-      }
-
-      ServiceErrorHandler.validateRequired(email, 'Email', context);
-      ServiceErrorHandler.validateEmail(email, context);
-      ServiceErrorHandler.validateRequired(password, 'Password', context);
-
-      logger.info('Attempting login with Supabase...', {
-        email: email.replace(/(.{2}).+(@.+)/, '$1***$2'),
-        timestamp: new Date().toISOString(),
-      });
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        logger.error('❌ Supabase auth error:', error);
-        if (
-          error.message?.toLowerCase().includes('network request failed') ||
-          error.message?.toLowerCase().includes('fetch')
-        ) {
-          throw ServiceErrorHandler.handleNetworkError(error, context);
+    const result = await ServiceErrorHandler.executeOperation(
+      async () => {
+        if (!checkRateLimit('auth_login', email)) {
+          throw new Error(
+            'Too many login attempts. Please try again in 15 minutes.'
+          );
         }
-        throw authenticationError(error);
-      }
 
-      logger.info('✅ Supabase auth successful');
-      resetRateLimit('auth_login', email);
+        ServiceErrorHandler.validateRequired(email, 'Email', context);
+        ServiceErrorHandler.validateEmail(email, context);
+        ServiceErrorHandler.validateRequired(password, 'Password', context);
 
-      if (data.user) {
-        return resolveSignedInUser(data.user, data.session);
-      }
+        logger.info('Attempting login with Supabase...', {
+          email: email.replace(/(.{2}).+(@.+)/, '$1***$2'),
+          timestamp: new Date().toISOString(),
+        });
 
-      return data as unknown as { user: User | null; session: Session | null };
-    }, context, false);
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          logger.error('❌ Supabase auth error:', error);
+          if (
+            error.message?.toLowerCase().includes('network request failed') ||
+            error.message?.toLowerCase().includes('fetch')
+          ) {
+            throw ServiceErrorHandler.handleNetworkError(error, context);
+          }
+          throw authenticationError(error);
+        }
+
+        logger.info('✅ Supabase auth successful');
+        resetRateLimit('auth_login', email);
+
+        if (data.user) {
+          return resolveSignedInUser(data.user, data.session);
+        }
+
+        return data as unknown as {
+          user: User | null;
+          session: Session | null;
+        };
+      },
+      context,
+      false
+    );
 
     if (!result.success || !result.data) {
       throw result.error ?? new Error('Failed to sign in user');
@@ -224,6 +239,13 @@ export class AuthService {
   }
 
   static async signOut(): Promise<void> {
+    try {
+      const { unregisterDevicePushToken } =
+        await import('./notifications/NotificationPushSender');
+      await unregisterDevicePushToken();
+    } catch {
+      logger.warn('Device notification unregister failed during sign-out');
+    }
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }

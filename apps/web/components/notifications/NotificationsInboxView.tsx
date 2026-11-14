@@ -265,6 +265,11 @@ function NotificationRow({
           }}
         >
           <strong style={{ fontWeight: 600 }}>{notification.title}</strong>
+          {typeof notification.metadata?.paymentIntentId === 'string' && (
+            <span style={{ display: 'block', fontSize: 12 }}>
+              Payment attempt …{notification.metadata.paymentIntentId.slice(-8)}
+            </span>
+          )}
           {notification.message ? (
             <>
               {' — '}
@@ -347,8 +352,8 @@ export function NotificationsInboxView({
 
   const subtitle =
     counts.unread > 0
-      ? `${counts.unread} unread. We try not to ping unless it matters.`
-      : "You're all caught up. We try not to ping unless it matters.";
+      ? `${counts.unread} unread in this loaded view. The sidebar counts all unread notifications.`
+      : 'No unread notifications in this loaded view. Older notifications may appear in the sidebar total.';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>

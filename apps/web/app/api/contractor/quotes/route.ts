@@ -1,3 +1,4 @@
+import { collectRows } from '@/lib/db/collect-rows';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
@@ -41,16 +42,12 @@ export const GET = withApiHandler(
         'id, title, client_name, client_email, status, total_amount, subtotal, tax_amount, quote_date, created_at, updated_at, sent_at, valid_until, line_items, quote_number, template_id'
       )
       .eq('contractor_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id');
 
     if (status && status !== 'all') query = query.eq('status', status);
 
-    const { data: quotes, error } = await query;
-
-    if (error) {
-      logger.error('Error fetching quotes', error);
-      throw new InternalServerError('Failed to fetch quotes');
-    }
+    const quotes = await collectRows((from, to) => query.range(from, to));
 
     const transformedQuotes =
       quotes?.map((quote) => ({

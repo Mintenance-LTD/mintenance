@@ -108,14 +108,16 @@ export function MintEditorialQuotesView({
         <div className='kpi'>
           <div className='label'>Acceptance rate</div>
           <div className='num'>{stats.acceptanceRate.toFixed(0)}%</div>
-          <div className='sub'>Across all sent quotes</div>
+          <div className='sub'>Accepted ÷ all non-draft quotes; all time</div>
         </div>
         <div className='kpi'>
-          <div className='label'>Accepted revenue</div>
+          <div className='label'>Accepted quote value</div>
           <div className='num'>
             £{stats.acceptedAmount.toLocaleString('en-GB')}
           </div>
-          <div className='sub'>Pipeline secured</div>
+          <div className='sub'>
+            Accepted quotes; payment is tracked separately
+          </div>
         </div>
       </div>
 
@@ -176,9 +178,20 @@ export function MintEditorialQuotesView({
                 }}
               />
             </div>
-            <label className='row' style={{ gap: 8 }}>Status
-              <select aria-label='Filter quotes by status' value={activeFilter} onChange={event => onFilterChange(event.target.value as FilterTab)}>
-                {filterTabs.map(tab => <option key={tab.value} value={tab.value}>{tab.label}</option>)}
+            <label className='row' style={{ gap: 8 }}>
+              Status
+              <select
+                aria-label='Filter quotes by status'
+                value={activeFilter}
+                onChange={(event) =>
+                  onFilterChange(event.target.value as FilterTab)
+                }
+              >
+                {filterTabs.map((tab) => (
+                  <option key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </option>
+                ))}
               </select>
             </label>
             <QuoteExport quotes={filteredQuotes} loading={loading} />

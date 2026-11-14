@@ -377,6 +377,7 @@ export function TenantReportsClient({
                       href={{
                         pathname: '/jobs/create',
                         query: {
+                          is_rental_property: 'true',
                           property_id: selectedReport.properties.id,
                           category: selectedReport.category,
                           description: selectedReport.description,

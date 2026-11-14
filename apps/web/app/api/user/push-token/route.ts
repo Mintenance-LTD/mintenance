@@ -27,7 +27,7 @@ export const POST = withApiHandler(
 
     const { pushToken, platform } = parsed.data;
 
-    // Upsert the token (same user + same token = update timestamp)
+    // Atomically move this device token to the current account; other devices stay registered.
     const { error } = await serverSupabase.from('user_push_tokens').upsert(
       {
         user_id: user.id,
@@ -35,7 +35,7 @@ export const POST = withApiHandler(
         platform,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'user_id,push_token' }
+      { onConflict: 'push_token' }
     );
 
     if (error) {

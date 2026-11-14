@@ -40,7 +40,11 @@ export function initialFormDataFromParams(params: Params): JobFormData {
     title: params?.get('title') ?? '',
     description: params?.get('description') ?? '',
     location: params?.get('location') ?? '',
-    category: params?.get('category') ?? '',
+    category:
+      params?.get('category') === 'damp_mould'
+        ? 'damp'
+        : (params?.get('category') ?? ''),
+    is_rental_property: params?.get('is_rental_property') === 'true',
     urgency: pickUrgency(params?.get('urgency')),
     requiredSkills: [],
     property_id: params?.get('property_id') ?? '',
@@ -83,7 +87,9 @@ export function formDataPatchFromParams(
   const patch: Partial<JobFormData> = {};
   if (title) patch.title = title;
   if (description) patch.description = description;
-  if (category) patch.category = category;
+  if (category) patch.category = category === 'damp_mould' ? 'damp' : category;
+  if (params?.get('is_rental_property') === 'true')
+    patch.is_rental_property = true;
   if (location) patch.location = location;
   if (urgencyRaw && (ALLOWED_URGENCY as string[]).includes(urgencyRaw)) {
     patch.urgency = urgencyRaw as JobFormData['urgency'];

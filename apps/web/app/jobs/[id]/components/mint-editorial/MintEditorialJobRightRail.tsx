@@ -487,7 +487,7 @@ export function QuickActionsList({
     {
       label: 'Change scheduled date',
       Icon: Calendar,
-      href: `/jobs/${jobId}/edit#schedule`,
+      href: `/jobs/${jobId}/schedule`,
     },
     {
       label: 'Withdraw job posting',
