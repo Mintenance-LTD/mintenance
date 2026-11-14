@@ -24,29 +24,6 @@ export interface DerivedClient {
   relationship_status: 'active' | 'prospect' | 'inactive';
 }
 
-interface JobRecord {
-  id: string;
-  homeowner_id: string;
-  status: string;
-  title?: string;
-  created_at: string;
-  completed_at?: string;
-  budget?: number;
-  // 2026-05-23 audit: `final_price` does not exist on live jobs.
-  // Field removed from this client-only derived type. Revenue from
-  // /api/contractor/clients is now sourced from released escrow on
-  // the server, so consumers receive `total_revenue` already
-  // computed — this local deriver is the mobile-only fallback path.
-  homeowner?: {
-    id: string;
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-    phone?: string;
-    profile_image_url?: string;
-  };
-}
-
 export type FilterKey = 'all' | 'active' | 'prospect' | 'inactive';
 
 export const FILTERS: { key: FilterKey; label: string }[] = [
@@ -61,5 +38,3 @@ export const STATUS_DOT: Record<string, string> = {
   prospect: '#F59E0B',
   inactive: '#B0B0B0',
 };
-
-const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;

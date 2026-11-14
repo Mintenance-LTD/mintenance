@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -38,8 +38,25 @@ interface NominatimResult {
 }
 
 const EditProfileScreen: React.FC = () => {
+  const auth = useAuth();
+  return <ProfileEditor key={auth.user?.id ?? 'signed-out'} {...auth} />;
+};
+
+const ProfileEditor: React.FC<ReturnType<typeof useAuth>> = ({
+  user,
+  refreshUser,
+}) => {
   const navigation = useNavigation();
-  const { user, refreshUser } = useAuth();
+  const accountId = user?.id;
+  const active = useRef(true);
+  const saving = useRef(false);
+  const editedFields = useRef(new Set<string>());
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const [loading, setLoading] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
@@ -69,8 +86,8 @@ const EditProfileScreen: React.FC = () => {
 
   // Wrapped setters that flip the dirty flag — these are what the
   // section components call. The plain setters above remain available
-  // for pre-fill paths (the effect, reverse-geocode lookup) that
-  // shouldn't show the prompt.
+  // for initial profile hydration. Explicit location selections also
+  // mark their fields dirty so late hydration cannot replace them.
   const setFirstNameDirty = (v: string) => {
     setFirstName(v);
     markDirty();
@@ -84,24 +101,29 @@ const EditProfileScreen: React.FC = () => {
     markDirty();
   };
   const setBioDirty = (v: string) => {
+    editedFields.current.add('bio');
     setBio(v);
     markDirty();
   };
   const setAddressDirty = (v: string) => {
+    editedFields.current.add('address');
     setAddress(v);
     markDirty();
   };
   const setCityDirty = (v: string) => {
+    editedFields.current.add('city');
     setCity(v);
     markDirty();
   };
   const setPostcodeDirty = (v: string) => {
+    editedFields.current.add('postcode');
     setPostcode(v);
     markDirty();
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!accountId) return;
+    let current = true;
     (async () => {
       try {
         // Pre-fill via the canonical /api/users/profile endpoint.
@@ -118,21 +140,31 @@ const EditProfileScreen: React.FC = () => {
             postcode?: string | null;
           } | null;
         }>('/api/users/profile');
+        if (!current) return;
         const profile = response?.profile;
-        if (profile?.bio) setBio(profile.bio);
-        if (profile?.address) setAddress(profile.address);
-        if (profile?.city) setCity(profile.city);
-        if (profile?.postcode) setPostcode(profile.postcode);
+        if (profile?.bio && !editedFields.current.has('bio'))
+          setBio(profile.bio);
+        if (profile?.address && !editedFields.current.has('address'))
+          setAddress(profile.address);
+        if (profile?.city && !editedFields.current.has('city'))
+          setCity(profile.city);
+        if (profile?.postcode && !editedFields.current.has('postcode'))
+          setPostcode(profile.postcode);
       } catch (err) {
         // Non-critical — fields remain empty, user can type manually
-        logger.error('Failed to pre-fill profile fields', err);
+        if (current) logger.error('Failed to pre-fill profile fields', err);
       }
     })();
-  }, [user?.id]);
+    return () => {
+      current = false;
+    };
+  }, [accountId]);
   const handleUseMyLocation = async () => {
+    if (!active.current) return;
     try {
       setLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
+      if (!active.current) return;
       if (status !== 'granted') {
         Alert.alert(
           'Permission required',
@@ -143,31 +175,36 @@ const EditProfileScreen: React.FC = () => {
       const { coords } = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
+      if (!active.current) return;
       setGpsLat(coords.latitude);
       setGpsLng(coords.longitude);
 
       const res = await mobileApiClient.get<{ address?: GeoAddr }>(
         `/api/geocoding/reverse?lat=${coords.latitude}&lon=${coords.longitude}`
       );
+      if (!active.current) return;
       const addr = res.address;
       if (addr) {
         const line1 = [addr.house_number, addr.road].filter(Boolean).join(' ');
-        if (line1) setAddress(line1);
+        if (line1) setAddressDirty(line1);
         const cityVal = addr.city || addr.town || addr.village || '';
-        if (cityVal) setCity(cityVal);
-        if (addr.postcode) setPostcode(addr.postcode.toUpperCase());
+        if (cityVal) setCityDirty(cityVal);
+        if (addr.postcode) setPostcodeDirty(addr.postcode.toUpperCase());
       }
     } catch {
+      if (!active.current) return;
       Alert.alert(
         'Error',
         'Could not fetch your location. Please enter your address manually.'
       );
     } finally {
-      setLocating(false);
+      if (active.current) setLocating(false);
     }
   };
 
   const handleSave = async () => {
+    if (!active.current || saving.current) return;
+    saving.current = true;
     try {
       setLoading(true);
 
@@ -193,8 +230,10 @@ const EditProfileScreen: React.FC = () => {
             type: mime,
           } as unknown as Blob);
           await mobileApiClient.postFormData('/api/users/avatar', formData);
+          if (!active.current) return;
           photoUploaded = true;
         } catch (photoErr) {
+          if (!active.current) return;
           logger.error('Failed to upload profile photo', photoErr);
           Alert.alert(
             'Photo Upload Failed',
@@ -218,11 +257,13 @@ const EditProfileScreen: React.FC = () => {
           const results = await mobileApiClient.get<NominatimResult[]>(
             `/api/geocoding/search?q=${encodeURIComponent(q)}`
           );
+          if (!active.current) return;
           if (results?.[0]) {
             latitude = parseFloat(results[0].lat);
             longitude = parseFloat(results[0].lon);
           }
         } catch (geoErr) {
+          if (!active.current) return;
           // Geocoding failed — save address text without coordinates
           logger.error('Failed to geocode address for profile save', geoErr);
         }
@@ -259,6 +300,7 @@ const EditProfileScreen: React.FC = () => {
           user.id,
           filteredUpdates as Parameters<typeof AuthService.updateUserProfile>[1]
         );
+        if (!active.current) return;
       }
       // Refresh auth context so dashboard/header picks up name/phone /
       // avatar changes. Fires when either fields OR a photo were
@@ -266,26 +308,36 @@ const EditProfileScreen: React.FC = () => {
       // the header until the next app reload.
       if (user && (Object.keys(filteredUpdates).length > 0 || photoUploaded)) {
         await refreshUser();
+        if (!active.current) return;
         setHasEdits(false);
         Alert.alert('Success', 'Profile updated successfully!', [
           {
             text: 'OK',
             onPress: () => {
+              if (!active.current) return;
               allowExit();
-              navigation.dispatch({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
+              navigation.dispatch({
+                type: 'POP_TO',
+                payload: { name: 'ProfileMain' },
+              });
             },
           },
         ]);
       } else {
         allowExit();
-        navigation.dispatch({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
+        navigation.dispatch({
+          type: 'POP_TO',
+          payload: { name: 'ProfileMain' },
+        });
       }
     } catch (error) {
+      if (!active.current) return;
       const msg =
         error instanceof Error ? error.message : 'Failed to update profile';
       Alert.alert('Error', msg);
     } finally {
-      setLoading(false);
+      saving.current = false;
+      if (active.current) setLoading(false);
     }
   };
 
@@ -303,13 +355,16 @@ const EditProfileScreen: React.FC = () => {
         {
           text: 'Send Reset Link',
           onPress: async () => {
+            if (!active.current) return;
             try {
               await AuthService.resetPassword(email);
+              if (!active.current) return;
               Alert.alert(
                 'Email Sent',
                 'Check your inbox for the password reset link.'
               );
             } catch {
+              if (!active.current) return;
               Alert.alert(
                 'Error',
                 'Failed to send password reset email. Please try again.'
@@ -335,6 +390,7 @@ const EditProfileScreen: React.FC = () => {
 
   const handlePickPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!active.current) return;
     if (!permission.granted) {
       Alert.alert(
         'Permission required',
@@ -348,6 +404,7 @@ const EditProfileScreen: React.FC = () => {
       aspect: [1, 1],
       quality: 0.8,
     });
+    if (!active.current) return;
     if (!result.canceled && result.assets[0]?.uri) {
       setPhotoUri(result.assets[0].uri);
       markDirty();
@@ -361,7 +418,12 @@ const EditProfileScreen: React.FC = () => {
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.dispatch({ type: 'POP_TO', payload: { name: 'ProfileMain' } })}
+          onPress={() =>
+            navigation.dispatch({
+              type: 'POP_TO',
+              payload: { name: 'ProfileMain' },
+            })
+          }
           accessibilityRole='button'
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

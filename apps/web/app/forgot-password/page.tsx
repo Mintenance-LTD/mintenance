@@ -309,6 +309,9 @@ export default function ForgotPasswordPage() {
                     placeholder='you@home.uk'
                     autoComplete='email'
                     autoFocus
+                    // Do not accept edits before hydration registers the field.
+                    readOnly={csrfLoading}
+                    aria-busy={csrfLoading}
                     aria-invalid={!!errors.email}
                     aria-describedby={
                       errors.email ? 'forgot-email-error' : undefined

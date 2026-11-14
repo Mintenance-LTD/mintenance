@@ -110,10 +110,14 @@ export const ExpensesScreen: React.FC = () => {
   const { pendingDelete, snackbarOpacity, handleDelete, handleUndoDelete } =
     useUndoableDelete(fireDelete);
 
-  const expenses = data?.expenses ?? [];
-  const visibleExpenses = pendingDelete
-    ? expenses.filter((e) => e.id !== pendingDelete.id)
-    : expenses;
+  const expenses = useMemo(() => data?.expenses ?? [], [data?.expenses]);
+  const visibleExpenses = useMemo(
+    () =>
+      pendingDelete
+        ? expenses.filter((e) => e.id !== pendingDelete.id)
+        : expenses,
+    [expenses, pendingDelete]
+  );
   const filtered = useMemo(() => {
     if (filter === 'all') return visibleExpenses;
     return visibleExpenses.filter((e) => e.category === filter);

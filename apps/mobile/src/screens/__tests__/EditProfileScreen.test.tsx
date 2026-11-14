@@ -12,6 +12,9 @@
  */
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { Alert } from 'react-native';
+import EditProfileScreen from '../EditProfileScreen';
+import { logger } from '../../utils/logger';
 
 // ---- Navigation ---------------------------------------------------------
 const mockGoBack = jest.fn();
@@ -94,10 +97,7 @@ jest.mock('../../hooks/useUnsavedChanges', () => ({
 }));
 
 // ---- Alert --------------------------------------------------------------
-import { Alert } from 'react-native';
 const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
-import EditProfileScreen from '../EditProfileScreen';
 
 const HOMEOWNER = {
   id: 'user-1',
@@ -177,7 +177,6 @@ describe('EditProfileScreen — render + pre-fill', () => {
   });
 
   it('logs and stays blank when pre-fill request rejects', async () => {
-    const { logger } = require('../../utils/logger');
     mockApiGet.mockRejectedValueOnce(new Error('boom'));
     await setup();
     expect(logger.error).toHaveBeenCalledWith(
@@ -190,6 +189,119 @@ describe('EditProfileScreen — render + pre-fill', () => {
     mockUser = null;
     await setup();
     expect(mockApiGet).not.toHaveBeenCalled();
+  });
+});
+
+describe('EditProfileScreen — asynchronous account and edit safety', () => {
+  const deferred = <T,>() => {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((done) => {
+      resolve = done;
+    });
+    return { promise, resolve };
+  };
+
+  it('preserves typed fields while hydrating untouched fields', async () => {
+    const pending = deferred<{ profile: { bio: string; city: string } }>();
+    mockApiGet.mockReturnValueOnce(pending.promise);
+    const view = await setup();
+    fireEvent.changeText(
+      view.getByPlaceholderText('Tell contractors about your preferences...'),
+      'My new bio'
+    );
+    await act(async () => {
+      pending.resolve({ profile: { bio: 'Old bio', city: 'London' } });
+    });
+    expect(view.getByDisplayValue('My new bio')).toBeTruthy();
+    expect(view.getByDisplayValue('London')).toBeTruthy();
+    expect(view.queryByDisplayValue('Old bio')).toBeNull();
+  });
+
+  it('initializes the form when the signed-in account arrives after mount', async () => {
+    mockUser = null;
+    const view = await setup();
+    mockUser = { ...HOMEOWNER };
+    view.rerender(<EditProfileScreen />);
+    await flush();
+    expect(view.getByDisplayValue('Alice')).toBeTruthy();
+    expect(mockApiGet).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the old account and ignores its late profile response', async () => {
+    const pending = deferred<{ profile: { bio: string } }>();
+    mockApiGet.mockReturnValueOnce(pending.promise);
+    const view = await setup();
+    mockUser = { id: 'user-2', first_name: 'Bob', role: 'homeowner' };
+    view.rerender(<EditProfileScreen />);
+    await flush();
+    await act(async () => {
+      pending.resolve({ profile: { bio: 'Private old bio' } });
+    });
+    expect(view.getByDisplayValue('Bob')).toBeTruthy();
+    expect(view.queryByDisplayValue('Alice')).toBeNull();
+    expect(view.queryByDisplayValue('Private old bio')).toBeNull();
+  });
+
+  it('keeps edits and does not refetch when the same account object refreshes', async () => {
+    const view = await setup();
+    fireEvent.changeText(view.getByDisplayValue('Alice'), 'Edited name');
+    mockUser = { ...HOMEOWNER, first_name: 'Server name' };
+    view.rerender(<EditProfileScreen />);
+    await flush();
+    expect(view.getByDisplayValue('Edited name')).toBeTruthy();
+    expect(mockApiGet).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not save an old form after signing out during geocoding', async () => {
+    const pending = deferred<{ lat: string; lon: string }[]>();
+    mockApiGet
+      .mockResolvedValueOnce({ profile: { address: '1 Main St' } })
+      .mockReturnValueOnce(pending.promise);
+    const view = await setup();
+    fireEvent.press(view.getByText('Save'));
+    await flush();
+    mockUser = null;
+    view.rerender(<EditProfileScreen />);
+    await act(async () => {
+      pending.resolve([{ lat: '51.5', lon: '-0.1' }]);
+    });
+    expect(mockUpdateUserProfile).not.toHaveBeenCalled();
+    expect(mockRefreshUser).not.toHaveBeenCalled();
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(view.queryByDisplayValue('1 Main St')).toBeNull();
+  });
+
+  it('prevents duplicate saves before the loading render', async () => {
+    const pending = deferred<void>();
+    mockUpdateUserProfile.mockReturnValueOnce(pending.promise);
+    const view = await setup();
+    const save = view.getByLabelText('Save profile changes').props.onPress;
+    act(() => {
+      save();
+      save();
+    });
+    expect(mockUpdateUserProfile).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      pending.resolve();
+    });
+  });
+
+  it('does not navigate from a previous account success dialog', async () => {
+    const view = await setup();
+    fireEvent.press(view.getByText('Save'));
+    await flush();
+    const buttons = alertSpy.mock.calls.find(
+      ([title]) => title === 'Success'
+    )?.[2];
+    const confirm = buttons?.find((button) => button.text === 'OK')?.onPress;
+    expect(confirm).toBeDefined();
+    mockUser = { id: 'user-2', role: 'homeowner' };
+    view.rerender(<EditProfileScreen />);
+    await flush();
+    act(() => {
+      confirm?.();
+    });
+    expect(mockDispatch).not.toHaveBeenCalled();
   });
 });
 
@@ -250,7 +362,6 @@ describe('EditProfileScreen — field edits + dirty state', () => {
   });
 
   it('saves address text without coords when geocode search fails', async () => {
-    const { logger } = require('../../utils/logger');
     mockApiGet.mockReset();
     mockApiGet
       .mockResolvedValueOnce({ profile: null })
@@ -305,7 +416,10 @@ describe('EditProfileScreen — save success / loading / empty / error', () => {
     const buttons = alertSpy.mock.calls.find((c) => c[0] === 'Success')![2]!;
     act(() => buttons[0].onPress());
     expect(mockAllowExit).toHaveBeenCalled();
-    expect(mockDispatch).toHaveBeenCalledWith({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'POP_TO',
+      payload: { name: 'ProfileMain' },
+    });
   });
 
   it('shows Saving… label while save in flight', async () => {
@@ -356,7 +470,10 @@ describe('EditProfileScreen — save success / loading / empty / error', () => {
     await waitFor(() => expect(mockAllowExit).toHaveBeenCalled());
     expect(mockUpdateUserProfile).not.toHaveBeenCalled();
     expect(mockRefreshUser).not.toHaveBeenCalled();
-    expect(mockDispatch).toHaveBeenCalledWith({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'POP_TO',
+      payload: { name: 'ProfileMain' },
+    });
   });
 
   it('shows Error alert with message when save throws', async () => {
@@ -385,7 +502,10 @@ describe('EditProfileScreen — save success / loading / empty / error', () => {
     fireEvent.press(getByText('Save'));
     await waitFor(() => expect(mockAllowExit).toHaveBeenCalled());
     expect(mockUpdateUserProfile).not.toHaveBeenCalled();
-    expect(mockDispatch).toHaveBeenCalledWith({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'POP_TO',
+      payload: { name: 'ProfileMain' },
+    });
   });
 });
 
@@ -433,7 +553,6 @@ describe('EditProfileScreen — avatar photo upload', () => {
 
   it('continues save and alerts when photo upload fails (non-fatal)', async () => {
     mockPostFormData.mockRejectedValueOnce(new Error('upload-fail'));
-    const { logger } = require('../../utils/logger');
     const { getAllByText, getByText, getByDisplayValue } = await setup();
     fireEvent.press(getAllByText('Change Photo')[0]);
     await waitFor(() => expect(mockLaunchImageLibrary).toHaveBeenCalled());
@@ -620,7 +739,10 @@ describe('EditProfileScreen — navigation actions', () => {
   it('top-bar back button calls goBack', async () => {
     const { getByLabelText } = await setup();
     fireEvent.press(getByLabelText('Go back'));
-    expect(mockDispatch).toHaveBeenCalledWith({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'POP_TO',
+      payload: { name: 'ProfileMain' },
+    });
   });
 
   it('delete-account routes to DeleteAccount screen', async () => {

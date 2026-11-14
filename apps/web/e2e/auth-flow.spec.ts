@@ -248,9 +248,28 @@ test.describe('Authentication Flow', () => {
     });
 
     test('shows success message after submitting email', async ({ page }) => {
-      await page.goto('/auth/forgot-password');
+      // Hold client scripts so the server-rendered form cannot silently accept
+      // an email that react-hook-form resets when hydration finally runs.
+      let releaseScripts!: () => void;
+      const scriptsReady = new Promise<void>((resolve) => {
+        releaseScripts = resolve;
+      });
+      await page.route(/\/_next\/static\/.*\.js(?:\?.*)?$/, async (route) => {
+        await scriptsReady;
+        await route.continue();
+      });
+      try {
+        await page.goto('/auth/forgot-password', { waitUntil: 'commit' });
+        await expect(page.getByLabel(/email/i)).toHaveAttribute('readonly', '');
+        await expect(
+          page.getByRole('button', { name: /reset password|send reset link/i })
+        ).toBeDisabled();
+      } finally {
+        releaseScripts();
+      }
 
       await page.getByLabel(/email/i).fill('user@example.com');
+      await expect(page.getByLabel(/email/i)).toHaveValue('user@example.com');
       await page
         .getByRole('button', { name: /reset password|send reset link/i })
         .click();

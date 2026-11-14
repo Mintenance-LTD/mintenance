@@ -10,8 +10,6 @@
 
 import { NavigationProp } from '@react-navigation/native';
 import { useHaptics } from '../../../utils/haptics';
-import { me } from '../../../design-system/mint-editorial';
-
 
 type AnyNavigation = NavigationProp<Record<string, object | undefined>>;
 
@@ -126,28 +124,6 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
       screen: 'HelpCenter',
     });
   };
-}
-
-/**
- * Custom hook for Home navigation
- */
-
-
-/**
- * Navigation route definitions for type safety
- */
-
-
-/**
- * Quick action definitions for the dashboard
- */
-interface QuickAction {
-  id: string;
-  title: string;
-  subtitle?: string;
-  icon: string;
-  color: string;
-  action: () => void;
 }
 
 /**
