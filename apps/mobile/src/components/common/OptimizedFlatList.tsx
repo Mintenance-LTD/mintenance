@@ -1,7 +1,12 @@
 import React, { useCallback, useMemo } from 'react';
 import { logger } from '@mintenance/shared';
-import { FlatList, FlatListProps, StyleSheet, Platform, ListRenderItem, ViewToken } from 'react-native';
-import { theme } from '../../theme';
+import {
+  FlatList,
+  FlatListProps,
+  Platform,
+  ListRenderItem,
+  ViewToken,
+} from 'react-native';
 
 /**
  * OptimizedFlatList - Performance-optimized FlatList for mintenance mobile app
@@ -165,21 +170,17 @@ function OptimizedFlatListComponent<T = unknown>(
   ]);
 
   // Log performance metrics in debug mode
+  const dataLength = data?.length;
   React.useEffect(() => {
-    if (debugPerformance && data) {
+    if (debugPerformance && dataLength !== undefined) {
       logger.info('[OptimizedFlatList] Mounted with:', {
-        dataLength: data.length,
+        dataLength,
         estimatedItemSize,
         ...platformOptimizations,
         service: 'ui',
       });
     }
-  }, [
-    debugPerformance,
-    data?.length,
-    estimatedItemSize,
-    platformOptimizations,
-  ]);
+  }, [debugPerformance, dataLength, estimatedItemSize, platformOptimizations]);
 
   return (
     <FlatList
@@ -225,13 +226,3 @@ export function useOptimizedRenderItem<T>(
     deps
   );
 }
-
-// Helper to create memoized item separators
-
-
-const styles = StyleSheet.create({
-  separator: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-  },
-});

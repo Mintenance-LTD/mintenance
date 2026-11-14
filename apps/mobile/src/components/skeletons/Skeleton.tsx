@@ -181,16 +181,6 @@ export const SkeletonGroup: React.FC<SkeletonGroupProps> = ({
 };
 
 /**
- * Pre-built skeleton for text content
- */
-interface SkeletonTextProps extends Omit<SkeletonProps, 'width' | 'height'> {
-  lines?: number;
-  lineHeight?: number;
-}
-
-
-
-/**
  * Pre-built skeleton for avatars
  */
 interface SkeletonAvatarProps extends Omit<
@@ -208,15 +198,6 @@ export const SkeletonAvatar: React.FC<SkeletonAvatarProps> = ({
     <Skeleton width={size} height={size} borderRadius={size / 2} {...props} />
   );
 };
-
-/**
- * Pre-built skeleton for buttons
- */
-interface SkeletonButtonProps extends Omit<SkeletonProps, 'width' | 'height'> {
-  size?: 'sm' | 'md' | 'lg';
-}
-
-
 
 /**
  * Pre-built skeleton for images

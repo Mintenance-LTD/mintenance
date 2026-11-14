@@ -164,13 +164,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   );
 };
 
-interface ThemeModeSelectorProps {
-  style?: ViewStyle;
-  testID?: string;
-}
-
-
-
 const styles = StyleSheet.create({
   buttonContent: {
     flexDirection: 'row',

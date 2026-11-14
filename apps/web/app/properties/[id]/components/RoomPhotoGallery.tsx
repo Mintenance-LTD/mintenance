@@ -58,11 +58,12 @@ function RoomPhotos({ propertyId }: RoomPhotoGalleryProps) {
   }, [propertyId]);
 
   useEffect(() => {
+    const requests = requestId;
     mounted.current = true;
     void fetchPhotos();
     return () => {
       mounted.current = false;
-      requestId.current++;
+      requests.current++;
     };
   }, [fetchPhotos]);
 
