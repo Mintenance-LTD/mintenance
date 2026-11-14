@@ -15,7 +15,9 @@ export async function submitAndVerifyBid(
   await page.goto(`/contractor/bid/${id}`);
   await expect(page).not.toHaveURL(/\/login/);
   // The simple quote adds the default 20% VAT: £150.50 + £30.10 = £180.60.
-  await page.getByLabel(/bid amount/i).fill('150.50');
+  await page.getByLabel(/subtotal before VAT/i).fill('150.50');
+  await page.getByLabel(/VAT rate/i).fill('20');
+  await expect(page.getByText('Customer total: £180.60')).toBeVisible();
   const description =
     'Synthetic audit proposal: qualified plumber will repair the leaking tap, including replacement parts and workmanship.';
   await page.getByLabel(/proposal description/i).fill(description);
