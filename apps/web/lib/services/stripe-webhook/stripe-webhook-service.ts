@@ -13,6 +13,7 @@ import {
 import { rateLimiter } from '@/lib/rate-limiter';
 import { getClientIp } from '@/lib/request-ip';
 import { StripeWebhookEventHandler } from './stripe-webhook-event-handler';
+import { readWebhookBody } from './read-webhook-body';
 
 interface IdempotencyResultRow {
   is_duplicate?: boolean;
@@ -38,7 +39,6 @@ export class StripeWebhookService {
         return rateLimitResponse;
       }
 
-      const body = await request.text();
       const signature = request.headers.get('stripe-signature');
 
       if (!signature) {
@@ -62,6 +62,7 @@ export class StripeWebhookService {
       }
 
       const stripe = this.getStripeInstance();
+      const body = await readWebhookBody(request);
       const event = this.constructEvent(stripe, body, signature, webhookSecret);
 
       // A valid signature proves origin, not the correct payment environment.

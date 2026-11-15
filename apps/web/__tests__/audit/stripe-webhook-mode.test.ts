@@ -57,3 +57,19 @@ it('verifies the signature before trusting the event mode', async () => {
   expect(m.rpc).not.toHaveBeenCalled();
   expect(m.handler).not.toHaveBeenCalled();
 });
+
+it('rejects oversized signed-header requests before signature parsing or database work', async () => {
+  const req = request();
+  req.headers.set('content-length', String(1024 * 1024 + 1));
+  expect((await StripeWebhookService.getInstance().handleRequest(req)).status).toBe(413);
+  expect(m.construct).not.toHaveBeenCalled();
+  expect(m.rpc).not.toHaveBeenCalled();
+});
+
+it('rejects absent signatures without consuming the request body', async () => {
+  const req = request();
+  req.headers.delete('stripe-signature');
+  expect((await StripeWebhookService.getInstance().handleRequest(req)).status).toBe(400);
+  expect(req.bodyUsed).toBe(false);
+  expect(m.rpc).not.toHaveBeenCalled();
+});

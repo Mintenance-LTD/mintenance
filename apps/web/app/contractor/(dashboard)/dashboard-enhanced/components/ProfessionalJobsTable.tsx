@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import Link from 'next/link';
 import { Briefcase, Search, ArrowRight } from 'lucide-react';
 import { formatMoney } from '@/lib/utils/currency';
@@ -42,6 +44,7 @@ function formatStatus(status: string) {
 export function ProfessionalJobsTable({
   recentJobs,
 }: ProfessionalJobsTableProps) {
+  const router = useRouter();
   return (
     <section className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
       <div className='p-6 border-b border-slate-200'>
@@ -106,7 +109,7 @@ export function ProfessionalJobsTable({
                   key={job.id}
                   className='hover:bg-slate-50 transition-colors cursor-pointer'
                   onClick={() => {
-                    window.location.href = `/contractor/jobs/${job.id}`;
+                    router.push(`/contractor/jobs/${job.id}`);
                   }}
                 >
                   <td className='py-4 px-6'>
@@ -135,7 +138,7 @@ export function ProfessionalJobsTable({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.location.href = `/contractor/jobs/${job.id}`;
+                        router.push(`/contractor/jobs/${job.id}`);
                       }}
                       className='inline-flex items-center gap-1 text-xs font-semibold text-teal-600 hover:text-teal-700 transition-colors'
                     >
