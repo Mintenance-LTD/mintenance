@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import React, { useEffect, useState } from 'react';
 import {
   SubscriptionPlanDetails,
@@ -50,6 +52,7 @@ export function SubscriptionClient({
   plans,
   earlyAccess = false,
 }: SubscriptionClientProps) {
+  const router = useRouter();
   const [currentSubscription, setCurrentSubscription] = useState(subscription);
   const [isLoading, setIsLoading] = useState(false);
   const { csrfToken, loading: csrfLoading } = useCSRF();
@@ -112,7 +115,7 @@ export function SubscriptionClient({
       if (data.clientSecret && data.requiresPayment) {
         // Redirect to checkout page to complete payment
         if (typeof window !== 'undefined') {
-          window.location.href = `/contractor/subscription/checkout?clientSecret=${encodeURIComponent(data.clientSecret)}&subscriptionId=${encodeURIComponent(data.stripeSubscriptionId)}&planType=${encodeURIComponent(planType)}`;
+          router.push(`/contractor/subscription/checkout?clientSecret=${encodeURIComponent(data.clientSecret)}&subscriptionId=${encodeURIComponent(data.stripeSubscriptionId)}&planType=${encodeURIComponent(planType)}`);
         }
         return;
       } else {

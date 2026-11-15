@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import React from 'react';
 import { DashboardOnboarding } from '@/components/onboarding/OnboardingWrapper';
 import { useQuery } from '@tanstack/react-query';
@@ -32,6 +34,7 @@ import type {
 export function DashboardWithAirbnbSearch({
   data,
 }: DashboardWithAirbnbSearchProps) {
+  const router = useRouter();
   const {
     homeowner,
     properties = [],
@@ -304,7 +307,7 @@ export function DashboardWithAirbnbSearch({
                   <Briefcase className='w-12 h-12 text-gray-300 mx-auto mb-3' />
                   <p className='text-gray-600 mb-4'>No active jobs</p>
                   <button
-                    onClick={() => (window.location.href = '/jobs/create')}
+                    onClick={() => (router.push('/jobs/create'))}
                     className='inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
                   >
                     <Plus className='w-4 h-4' />

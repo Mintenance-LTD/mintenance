@@ -61,18 +61,6 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import { me } from '../../design-system/mint-editorial';
 
-interface BusinessProfileBundle {
-  profile: {
-    company_name: string | null;
-    business_address: string | null;
-    license_number: string | null;
-    license_type: string | null;
-    license_expiry: string | null;
-    verification_status: string | null;
-  } | null;
-  insurance: { provider: string | null; policy_number: string | null } | null;
-  license: { name: string | null; number: string | null } | null;
-}
 import { styles } from './ContractorVerificationScreen.styles';
 import {
   INITIAL_FORM,
@@ -85,6 +73,19 @@ import {
   type ProfileRow,
   type VerificationData,
 } from './ContractorVerificationScreen.helpers';
+
+interface BusinessProfileBundle {
+  profile: {
+    company_name: string | null;
+    business_address: string | null;
+    license_number: string | null;
+    license_type: string | null;
+    license_expiry: string | null;
+    verification_status: string | null;
+  } | null;
+  insurance: { provider: string | null; policy_number: string | null } | null;
+  license: { name: string | null; number: string | null } | null;
+}
 
 interface VerificationScreenProps {
   // navigate added so the soft-deprecation banner can deep-link to
@@ -105,39 +106,22 @@ export const ContractorVerificationScreen: React.FC<
   const [isVerified, setIsVerified] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const userId = user?.id;
   useEffect(() => {
-    // AuthContext resolves `user` asynchronously from SecureStore.
-    // Running on `[]` alone meant `checkVerificationStatus` short-circuited
-    // at the `!user?.id` guard on cold-mount and never re-ran, leaving
-    // the form blank even when `profiles.company_name` was populated.
-    // Key on `user.id` so the fetch fires exactly once as soon as the
-    // auth session is resolved.
-    if (!user?.id) return;
-    void checkVerificationStatus();
-  }, [user?.id]);
+    let cancelled = false;
+    setFormData(INITIAL_FORM);
+    setIsVerified(false);
+    if (!userId) return;
 
-  const checkVerificationStatus = async (): Promise<void> => {
-    if (!user?.id) return;
-    try {
-      // Single fetch via the consolidated business-profile endpoint.
-      // Server does the joined read; client just maps to the form.
-      const bundle = await mobileApiClient.get<BusinessProfileBundle>(
-        '/api/contractor/business-profile'
-      );
-      const profile = (bundle.profile ?? null) as ProfileRow | null;
-      if (!profile) return;
-
-      if (profile.verification_status === 'verified') {
-        setIsVerified(true);
-      }
-
-      // Only populate the form when there's ANY data to show — avoids
-      // stomping an empty form on a fresh user.
-      if (
-        profile.company_name ||
-        profile.business_address ||
-        profile.license_number
-      ) {
+    const hydrate = async () => {
+      try {
+        const bundle = await mobileApiClient.get<BusinessProfileBundle>(
+          '/api/contractor/business-profile'
+        );
+        if (cancelled) return;
+        const profile = (bundle.profile ?? null) as ProfileRow | null;
+        if (!profile) return;
+        setIsVerified(profile.verification_status === 'verified');
         setFormData({
           companyName: profile.company_name ?? '',
           businessAddress: profile.business_address ?? '',
@@ -145,16 +129,17 @@ export const ContractorVerificationScreen: React.FC<
           licenseType: normalizeLicenseType(profile.license_type),
           licenseExpiry: parseLegacyExpiry(profile.license_expiry),
         });
+      } catch (err) {
+        if (cancelled) return;
+        logger.warn('ContractorVerification: failed to hydrate existing status', {
+          userId,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
-    } catch (err) {
-      // Non-fatal — the screen renders an empty form so a fresh user
-      // can still submit verification. Telemetry only.
-      logger.warn('ContractorVerification: failed to hydrate existing status', {
-        userId: user.id,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  };
+    };
+    void hydrate();
+    return () => { cancelled = true; };
+  }, [userId]);
 
   const handleDateChange = (
     event: DateTimePickerEvent,

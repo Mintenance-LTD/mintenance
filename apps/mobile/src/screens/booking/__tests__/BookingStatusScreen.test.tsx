@@ -60,8 +60,9 @@ describe('BookingStatusScreen request and cancellation safety', () => {
     expect(screen.getByText('Confirm cancellation')).toBeTruthy();
     expect(Alert.alert).toHaveBeenCalledWith('Unable to cancel booking', expect.any(String));
     mockCancel.mockResolvedValue(undefined);
-    fireEvent.press(screen.getByText('Confirm cancellation'));
-    await waitFor(() => expect(screen.queryByText('Confirm cancellation')).toBeNull());
+    await act(async () => { fireEvent.press(screen.getByText('Confirm cancellation')); });
+    expect(mockCancel).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText('Confirm cancellation')).toBeNull();
     expect(screen.queryByText('Kitchen repair')).toBeNull();
   });
 

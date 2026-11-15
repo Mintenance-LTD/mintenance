@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import React from 'react';
 import { ContractorPageWrapper } from '../../../components/ContractorPageWrapper';
 import { JobCard } from '@/components/cards/JobCard';
@@ -63,6 +65,7 @@ interface ContractorDashboardFixedProps {
 export function ContractorDashboardFixed({
   data,
 }: ContractorDashboardFixedProps) {
+  const router = useRouter();
   const { contractor, metrics, recentJobs, notifications } = data;
 
   const calculateResponseRate = () => {
@@ -283,7 +286,7 @@ export function ContractorDashboardFixed({
                       homeownerName={job.homeowner}
                       homeownerAvatarUrl={`https://ui-avatars.com/api/?name=${encodeURIComponent(job.homeowner)}&background=14b8a6&color=fff`}
                       onClick={(id) => {
-                        window.location.href = `/jobs/${id}`;
+                        router.push(`/jobs/${id}`);
                       }}
                     />
                   ))}
@@ -320,7 +323,7 @@ export function ContractorDashboardFixed({
                       key={job.id}
                       className='p-4 rounded-lg border border-gray-200 hover:border-teal-500 hover:shadow-sm transition-all cursor-pointer'
                       onClick={() => {
-                        window.location.href = `/contractor/jobs/${job.id}`;
+                        router.push(`/contractor/jobs/${job.id}`);
                       }}
                     >
                       <div className='flex items-start gap-3'>
