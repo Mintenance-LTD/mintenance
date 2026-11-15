@@ -19,6 +19,13 @@ change below is live. Code changes in this follow-up require merge and deploymen
 - [x] Dashboard/job/subscription navigation uses the Next.js client router.
 - [x] Full lint: 210 web / 1,121 mobile warnings, zero errors. Warning ceilings reduced
   to these counts so CI rejects regressions. Both type checks passed.
+- [x] Local regression verification: 5,950 web and 12,706 mobile cases passed across
+  full runs and targeted reruns; 87 snapshots passed. Two web cases are skipped.
+  Windows junction tests required a rerun outside the filesystem sandbox. The
+  booking retry test now awaits its asynchronous update and checks both attempts.
+- [x] Aikido scanned 13 changed source/test/manifest files with zero findings.
+- [x] Repeated all ten anonymous public-domain and relay rejection checks successfully.
+- [ ] PR #1495 CI completion (including browser journeys).
 - [ ] Merge and deploy this follow-up, then repeat public endpoint checks.
 - [ ] Verify a fresh signed provider delivery on that release. Historical delivery
   is evidence of the existing path, not a fresh-release test. No live payment or
