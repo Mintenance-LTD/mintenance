@@ -147,7 +147,7 @@ export function ReportingLinksClient({
         <h1 className='text-2xl font-bold text-gray-900'>Reporting Links</h1>
         <p className='mt-1 text-gray-500'>
           Create shareable links for tenants to report maintenance issues
-          anonymously.
+          without creating an account.
         </p>
       </div>
 

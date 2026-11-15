@@ -176,6 +176,7 @@ export function HomeownerSubscriptionClient({
   }, [success]);
 
   const currentTier: TierKey = useMemo(() => {
+    if (data?.earlyAccess?.eligible) return 'agency';
     if (!data?.subscription) return 'free';
     const pt = data.subscription.planType;
     if (pt === 'landlord') return 'landlord';

@@ -51,13 +51,18 @@ function statusBadge(status: string, bidsCount: number) {
   if (s === 'posted' || s === 'pending') {
     return <span className='badge badge-warn'>Awaiting bids</span>;
   }
-  if (s === 'in_progress' || s === 'assigned') {
+  if (s === 'assigned') {
+    return (
+      <span className='badge badge-info'>Assigned — work not started</span>
+    );
+  }
+  if (s === 'in_progress') {
     return <span className='badge badge-info'>In progress</span>;
   }
   if (s === 'completed') {
     return (
       <span className='badge badge-ok'>
-        <Check size={11} strokeWidth={2.5} /> Approved
+        <Check size={11} strokeWidth={2.5} /> Completed
       </span>
     );
   }

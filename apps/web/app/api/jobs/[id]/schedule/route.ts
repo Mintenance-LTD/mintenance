@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -8,6 +7,7 @@ import {
   ForbiddenError,
   NotFoundError,
   BadRequestError,
+  ConflictError,
 } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -17,7 +17,7 @@ interface ScheduleUpdateData {
   scheduled_start_date: string;
   updated_at: string;
   scheduled_end_date?: string | null;
-  scheduled_duration_hours?: number;
+  scheduled_duration_hours?: number | null;
 }
 
 const scheduleSchema = z
@@ -46,7 +46,9 @@ export const POST = withApiHandler(
     // Verify job exists and user has permission
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, payer_user_id, contractor_id, status, title')
+      .select(
+        'id, homeowner_id, payer_user_id, contractor_id, status, title, scheduled_end_date, updated_at'
+      )
       .eq('id', jobId)
       .single();
 
@@ -64,11 +66,28 @@ export const POST = withApiHandler(
       throw new ForbiddenError('Not authorized to schedule this job');
     }
 
-    if (['completed', 'cancelled'].includes(job.status))
-      throw new BadRequestError('Closed jobs cannot be rescheduled');
+    if (!['assigned', 'in_progress'].includes(job.status))
+      throw new BadRequestError('Only active assigned jobs can be scheduled');
+    const { data: agreement, error: agreementError } = await serverSupabase
+      .from('contracts')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('status', 'accepted')
+      .not('contractor_signed_at', 'is', null)
+      .not('homeowner_signed_at', 'is', null)
+      .maybeSingle();
+    if (agreementError) throw new Error('Unable to confirm signed agreement');
+    if (!agreement)
+      throw new BadRequestError(
+        'Both parties must sign the agreement before scheduling'
+      );
+    const effectiveEnd =
+      scheduled_end_date === undefined
+        ? job.scheduled_end_date
+        : scheduled_end_date;
     if (
-      scheduled_end_date &&
-      Date.parse(scheduled_end_date) <= Date.parse(scheduled_start_date)
+      effectiveEnd &&
+      Date.parse(effectiveEnd) <= Date.parse(scheduled_start_date)
     )
       throw new BadRequestError('End time must be after the start time');
 
@@ -83,6 +102,7 @@ export const POST = withApiHandler(
     const updateData: ScheduleUpdateData = {
       scheduled_start_date: scheduled_start_date,
       updated_at: new Date().toISOString(),
+      scheduled_duration_hours: scheduled_duration_hours ?? null,
     };
 
     if (scheduled_end_date !== undefined) {
@@ -92,10 +112,14 @@ export const POST = withApiHandler(
       updateData.scheduled_duration_hours = scheduled_duration_hours;
     }
 
-    const { error: updateError } = await serverSupabase
+    const { data: saved, error: updateError } = await serverSupabase
       .from('jobs')
       .update(updateData)
-      .eq('id', jobId);
+      .eq('id', jobId)
+      .eq('status', job.status)
+      .eq('updated_at', job.updated_at)
+      .select('id')
+      .maybeSingle();
 
     if (updateError) {
       logger.error('Error updating job schedule', updateError, {
@@ -105,6 +129,11 @@ export const POST = withApiHandler(
       });
       throw updateError;
     }
+
+    if (!saved)
+      throw new ConflictError(
+        'The job changed while you were scheduling. Reload and review the latest dates.'
+      );
 
     // Create notifications for both parties
     const otherPartyId =
@@ -134,7 +163,8 @@ export const POST = withApiHandler(
         NotificationService.createNotification({
           userId: user.id,
           title: `${jobLabel} scheduled for ${formattedDate}`,
-          message: `Added to your calendar. You'll get a reminder the day before.`,
+          message:
+            'The job window is updated in your calendar. Individual visits and signed agreement dates are unchanged.',
           type: 'job_scheduled',
           actionUrl:
             user.role === 'contractor'
@@ -164,39 +194,6 @@ export const POST = withApiHandler(
         }
       );
       // Don't fail the request
-    }
-
-    // Schedule reminder notifications (24 hours and 1 hour before)
-    const startDateObj = new Date(scheduled_start_date);
-    const reminder24h = new Date(startDateObj.getTime() - 24 * 60 * 60 * 1000);
-    const reminder1h = new Date(startDateObj.getTime() - 60 * 60 * 1000);
-
-    // Get schedule suggestions from SchedulingAgent
-    // Run asynchronously to avoid blocking the response
-    SchedulingAgent.suggestOptimalSchedule(jobId, {
-      jobId,
-      userId: user.id,
-    }).catch((error) => {
-      logger.error('Error getting schedule suggestions', error, {
-        service: 'schedule',
-        jobId,
-      });
-    });
-
-    // Note: These should be handled by a cron job that checks for notifications with future created_at dates
-    // and sends them at the appropriate time. For MVP, we'll log them but note they need a scheduler.
-    try {
-      logger.info('Reminder notifications scheduled', {
-        service: 'jobs',
-        jobId,
-        reminder24h: reminder24h.toISOString(),
-        reminder1h: reminder1h.toISOString(),
-      });
-    } catch (reminderError) {
-      logger.error('Failed to schedule reminders', reminderError, {
-        service: 'jobs',
-        jobId,
-      });
     }
 
     return NextResponse.json({

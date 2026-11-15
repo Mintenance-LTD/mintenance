@@ -7,6 +7,7 @@
  * main /settings page. See /settings/accessibility for the same fix.
  */
 
+import { getCurrentUserFromCookies } from '@/lib/auth';
 import type { Metadata } from 'next';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { NotificationPreferencesForm } from './components/NotificationPreferencesForm';
@@ -15,7 +16,8 @@ export const metadata: Metadata = {
   title: 'Notification settings | Mintenance',
 };
 
-export default function NotificationSettingsPage() {
+export default async function NotificationSettingsPage() {
+  const user = await getCurrentUserFromCookies();
   return (
     <HomeownerPageWrapper className='me-legacy-fit'>
       <div className='max-w-3xl mx-auto px-6 py-10'>
@@ -27,7 +29,7 @@ export default function NotificationSettingsPage() {
             Choose how and when Mintenance reaches you.
           </p>
         </header>
-        <NotificationPreferencesForm />
+        <NotificationPreferencesForm role={user?.role} />
       </div>
     </HomeownerPageWrapper>
   );

@@ -41,6 +41,13 @@ export function CurrentPlanCard({
       <h2 className='text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4'>
         Current Plan
       </h2>
+      {earlyAccessEligible && (
+        <p className='mb-4 text-sm text-teal-800'>
+          Agency features are included through early access. Any paid
+          subscription below is shown separately for billing management; no
+          upgrade is needed for Agency features.
+        </p>
+      )}
 
       {subscription ? (
         <CurrentPlanBody
@@ -54,9 +61,13 @@ export function CurrentPlanCard({
       ) : (
         <div className='flex items-center justify-between'>
           <div>
-            <h3 className='text-xl font-bold text-gray-900'>Free Plan</h3>
+            <h3 className='text-xl font-bold text-gray-900'>
+              {earlyAccessEligible ? 'Agency — early access' : 'Free Plan'}
+            </h3>
             <p className='text-sm text-gray-500 mt-1'>
-              Core features for managing your home
+              {earlyAccessEligible
+                ? 'Agency features included during early access'
+                : 'Core features for managing your home'}
             </p>
           </div>
           <span className='rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600'>

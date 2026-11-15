@@ -28,6 +28,7 @@ interface HireAgainBannerProps {
 }
 
 interface ContractorSummary {
+  name?: string | null;
   first_name?: string | null;
   last_name?: string | null;
   company_name?: string | null;
@@ -36,6 +37,7 @@ interface ContractorSummary {
 function displayName(c: ContractorSummary | null): string {
   if (!c) return 'your previous contractor';
   if (c.company_name) return c.company_name;
+  if (c.name) return c.name;
   const parts = [c.first_name, c.last_name].filter(Boolean);
   return parts.length > 0 ? parts.join(' ') : 'your previous contractor';
 }
@@ -48,6 +50,8 @@ export function HireAgainBanner({
 
   useEffect(() => {
     if (!preferredContractorId) return;
+    setContractor(null);
+    setLoaded(false);
     let cancelled = false;
     const load = async () => {
       try {
@@ -58,9 +62,8 @@ export function HireAgainBanner({
         const data = await res.json();
         if (cancelled) return;
         setContractor({
-          first_name: data?.first_name ?? null,
-          last_name: data?.last_name ?? null,
-          company_name: data?.company_name ?? null,
+          name: data?.contractor?.name ?? null,
+          company_name: data?.contractor?.company_name ?? null,
         });
       } catch (err) {
         logger.warn('Failed to fetch preferred contractor summary', {
@@ -114,7 +117,7 @@ export function HireAgainBanner({
           }}
         >
           {loaded
-            ? 'They&apos;ll be notified first when you post this job. Other contractors can still bid.'
+            ? "They'll receive an invitation when you post this job. Other contractors can still bid."
             : 'Loading contractor details…'}
         </div>
       </div>

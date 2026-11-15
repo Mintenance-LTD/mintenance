@@ -171,10 +171,16 @@ export function computeNextStep(
       body: 'View payment details for the confirmed refund.',
     };
   }
+  if (jobStatus === 'cancelled') {
+    return {
+      title: 'Job cancelled',
+      body: 'This job is closed. Check payment details for any refund.',
+    };
+  }
   if (jobStatus === 'posted' && bidCount === 0) {
     return {
       title: 'Waiting for bids',
-      body: 'Verified local tradespeople usually respond within 24-48h. We will notify you when bids come in.',
+      body: 'We will notify you when bids arrive. Response times depend on local contractor availability.',
     };
   }
 
@@ -208,6 +214,13 @@ export function computeNextStep(
       body: 'Your contractor will upload "after" photos when finished. You will then approve the work to release payment.',
     };
   }
+  if (jobStatus === 'assigned' && isEscrowFunded(escrowStatus)) {
+    return {
+      title: 'Assigned — work not started',
+      body: 'Payment is secured. Check the agreed schedule and cancellation requirements before work begins.',
+      cta: { label: 'View schedule', href: `/jobs/${jobId}/schedule` },
+    };
+  }
 
   if (jobStatus === 'completed' && !completionConfirmed) {
     return {
@@ -231,7 +244,7 @@ export function computeNextStep(
   // Fallback — shouldn't fire unless a status combo we did not plan for
   // turns up. Stay neutral rather than claim a state we can't prove.
   return {
-    title: 'In progress',
-    body: 'This job is moving forward. Check back later for updates.',
+    title: 'Check job details',
+    body: 'Review the current agreement, schedule and payment status for this job.',
   };
 }

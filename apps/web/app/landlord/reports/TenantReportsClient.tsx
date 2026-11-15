@@ -129,7 +129,8 @@ export function TenantReportsClient({
       <div className='mb-8'>
         <h1 className='text-2xl font-bold text-gray-900'>Tenant Reports</h1>
         <p className='mt-1 text-gray-500'>
-          Maintenance issues reported by tenants via anonymous reporting links.
+          Maintenance issues reported by tenants via reporting links that need
+          no account.
         </p>
       </div>
 

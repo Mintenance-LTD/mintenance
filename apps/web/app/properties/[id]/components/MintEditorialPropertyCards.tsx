@@ -57,11 +57,23 @@ export const formatGBP = (n: number) =>
   new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(n);
 
 export function fullAddress(p: PropertyShape): string {
-  return [p.address, p.city, p.postcode].filter(Boolean).join(', ');
+  const parts: string[] = [];
+  for (const part of [p.address, p.city, p.postcode]) {
+    const value = part?.trim();
+    if (!value) continue;
+    const normalize = (text: string) =>
+      text.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (
+      !parts.some((existing) => normalize(existing).includes(normalize(value)))
+    )
+      parts.push(value);
+  }
+  return parts.join(', ');
 }
 
 function StatTile({

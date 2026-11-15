@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 /**
  * Landing top navigation — Direction A · Mint Editorial.
@@ -37,6 +38,14 @@ function LeafMark({ size = 22 }: { size?: number }) {
 }
 
 export function LandingNavigation() {
+  const { user, loading } = useCurrentUser();
+  const accountHref = user
+    ? user.role === 'contractor'
+      ? '/contractor/dashboard-enhanced'
+      : user.role === 'admin'
+        ? '/admin/dashboard'
+        : '/dashboard'
+    : '/login';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -134,7 +143,7 @@ export function LandingNavigation() {
           style={{ display: 'flex', gap: 8, alignItems: 'center' }}
         >
           <Link
-            href='/login'
+            href={accountHref}
             style={{
               padding: '8px 14px',
               borderRadius: 'var(--me-radius-btn)',
@@ -144,7 +153,7 @@ export function LandingNavigation() {
               textDecoration: 'none',
             }}
           >
-            Sign in
+            {loading ? 'Account' : user ? 'Dashboard' : 'Sign in'}
           </Link>
           <Link
             href='/register'
@@ -229,11 +238,11 @@ export function LandingNavigation() {
             </Link>
           ))}
           <Link
-            href='/login'
+            href={accountHref}
             onClick={() => setIsMobileMenuOpen(false)}
             style={{ ...linkStyle, display: 'block', padding: '12px 0' }}
           >
-            Sign in
+            {loading ? 'Account' : user ? 'Dashboard' : 'Sign in'}
           </Link>
           <Link
             href='/register'

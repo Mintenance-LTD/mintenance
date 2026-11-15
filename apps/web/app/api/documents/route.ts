@@ -19,7 +19,7 @@ export const GET = withApiHandler(
   { roles: ['homeowner'], csrf: false },
   async (_req, { user }) => {
     // 1. Fetch contracts where this user is the homeowner
-    const { data: contracts } = await serverSupabase
+    const { data: contracts, error: contractError } = await serverSupabase
       .from('contracts')
       .select(
         `
@@ -33,6 +33,7 @@ export const GET = withApiHandler(
       .neq('status', 'draft')
       .order('created_at', { ascending: false });
 
+    if (contractError) throw new Error('Unable to load contracts');
     const contractDocs = (contracts || []).map((c: Record<string, unknown>) => {
       const contractor = c.contractor as {
         first_name?: string;
@@ -75,11 +76,12 @@ export const GET = withApiHandler(
     });
 
     // 2. Fetch bids on homeowner's jobs
-    const { data: jobs } = await serverSupabase
+    const { data: jobs, error: jobError } = await serverSupabase
       .from('jobs')
       .select('id, title')
       .eq('homeowner_id', user.id);
 
+    if (jobError) throw new Error('Unable to load document jobs');
     const jobIds = (jobs || []).map((j: { id: string }) => j.id);
     const jobTitleMap = new Map(
       (jobs || []).map((j: { id: string; title: string }) => [j.id, j.title])
@@ -87,7 +89,7 @@ export const GET = withApiHandler(
 
     let bidDocs: Array<Record<string, unknown>> = [];
     if (jobIds.length > 0) {
-      const { data: bids } = await serverSupabase
+      const { data: bids, error: bidError } = await serverSupabase
         .from('bids')
         .select(
           `
@@ -98,6 +100,7 @@ export const GET = withApiHandler(
         .in('job_id', jobIds)
         .order('created_at', { ascending: false });
 
+      if (bidError) throw new Error('Unable to load bid documents');
       bidDocs = (bids || []).map((b: Record<string, unknown>) => {
         const contractor = b.contractor as {
           first_name?: string;
@@ -127,24 +130,38 @@ export const GET = withApiHandler(
     }
 
     // 3. Fetch escrow/payment records
-    const { data: escrows } = await serverSupabase
+    const { data: escrows, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
-      .select('id, job_id, amount, status, created_at, updated_at')
+      .select(
+        'id, job_id, amount, status, created_at, funded_at, updated_at, payee:profiles!payee_id(first_name,last_name,company_name)'
+      )
       .eq('payer_id', user.id)
       .order('created_at', { ascending: false });
 
-    const paymentDocs = (escrows || []).map((e: Record<string, unknown>) => ({
-      id: `payment-${e.id}`,
-      type: 'payment' as const,
-      name: `Payment for ${jobTitleMap.get(e.job_id as string) || 'Job'}`,
-      status: e.status as string,
-      amount: nullableAmount(e.amount),
-      job_id: e.job_id as string,
-      job_title: jobTitleMap.get(e.job_id as string) || 'Job',
-      created_at: e.created_at as string,
-      updated_at: e.updated_at as string,
-      href: `/payments`,
-    }));
+    if (escrowError) throw new Error('Unable to load payment documents');
+    const paymentDocs = (escrows || []).map((e: Record<string, unknown>) => {
+      const payee = (Array.isArray(e.payee) ? e.payee[0] : e.payee) as {
+        first_name?: string;
+        last_name?: string;
+        company_name?: string;
+      } | null;
+      return {
+        id: `payment-${e.id}`,
+        type: 'payment' as const,
+        name: `Payment for ${jobTitleMap.get(e.job_id as string) || 'Job'}`,
+        status: e.status as string,
+        amount: nullableAmount(e.amount),
+        job_id: e.job_id as string,
+        job_title: jobTitleMap.get(e.job_id as string) || 'Job',
+        contractor_name:
+          payee?.company_name ||
+          [payee?.first_name, payee?.last_name].filter(Boolean).join(' ') ||
+          'Contractor not recorded',
+        created_at: (e.funded_at || e.created_at) as string,
+        updated_at: e.updated_at as string,
+        href: `/payments?jobId=${e.job_id}&paymentId=${e.id}`,
+      };
+    });
 
     return NextResponse.json({
       documents: [...contractDocs, ...bidDocs, ...paymentDocs],

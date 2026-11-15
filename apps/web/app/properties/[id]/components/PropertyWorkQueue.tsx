@@ -125,7 +125,7 @@ export function PropertyWorkQueue({
                     {j.status === 'posted'
                       ? 'Review bids'
                       : j.status === 'assigned'
-                        ? 'Review agreement & payment'
+                        ? 'View schedule & next steps'
                         : j.status === 'in_progress'
                           ? 'Check progress'
                           : j.status === 'completed'

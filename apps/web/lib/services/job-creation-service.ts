@@ -1,3 +1,4 @@
+import { createJobOnce } from './jobs/create-job-once';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateURLs } from '@/lib/security/url-validation';
 import { logger } from '@mintenance/shared';
@@ -109,7 +110,8 @@ export class JobCreationService {
 
   async createJob(
     user: Pick<User, 'id' | 'role'>,
-    payload: JobCreationPayload
+    payload: JobCreationPayload,
+    retry?: { requestId: string; fingerprint: string }
   ): Promise<JobDetail> {
     this.enforcePhotoRequirement(user.id, payload);
     await this.validatePhotoUrls(user.id, payload);
@@ -139,11 +141,23 @@ export class JobCreationService {
     //      bias (defence-in-depth for property-less submissions).
     await this.resolveJobCoordinates(insertPayload);
 
-    const jobRow = await this.insertJob(user.id, insertPayload);
+    const atomic = retry
+      ? await createJobOnce(
+          user.id,
+          retry.requestId,
+          retry.fingerprint,
+          insertPayload,
+          payload.photoUrls || []
+        )
+      : null;
+    if (atomic && !atomic.created) return mapRowToJobDetail(atomic.job);
+    const jobRow =
+      atomic?.job || (await this.insertJob(user.id, insertPayload));
 
     await this.updateSeriousBuyerScore(user.id, jobRow.id, payload);
     try {
-      await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
+      if (!atomic)
+        await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
     } catch (attachmentError) {
       await this.rollbackFailedJobCreation(user.id, jobRow.id);
       throw attachmentError;

@@ -77,6 +77,7 @@ interface BuildingAssessmentData {
 }
 
 interface SubmitJobOptions {
+  submissionId?: string;
   formData: JobFormData;
   photoUrls: string[];
   csrfToken: string;
@@ -107,6 +108,7 @@ interface SubmitJobResult {
  * Submit job creation request to API
  */
 export async function submitJob({
+  submissionId,
   formData,
   photoUrls,
   csrfToken,
@@ -232,6 +234,7 @@ export async function submitJob({
       credentials: 'include', // Ensure cookies are sent
       headers: {
         'Content-Type': 'application/json',
+        ...(submissionId ? { 'x-job-submission-id': submissionId } : {}),
         'x-csrf-token': tokenToUse, // Use the fresh token
       },
       body: JSON.stringify(requestBody),

@@ -291,7 +291,9 @@ export function MintEditorialJobTimeline({
       hasRealTs: false,
       icon: <Sparkles size={14} strokeWidth={1.75} />,
       title: 'You approved the work',
-      meta: 'Payment will release after the cooling-off period and final checks.',
+      meta: ['released', 'completed'].includes(lifecycle.escrowStatus ?? '')
+        ? 'Approval recorded; payment has been released. Bank receipt is separate.'
+        : 'Approval recorded. Check payment details for the current release status.',
       tone: 'brand',
     });
   }

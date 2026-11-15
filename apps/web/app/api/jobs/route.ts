@@ -1,3 +1,4 @@
+import { fingerprintRequest } from '@/lib/idempotency';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createJobRequestSchema } from '@mintenance/api-contracts';
@@ -212,7 +213,16 @@ export const POST = withApiHandler(
       // Hire-Again loop signal — pure UUID, no sanitisation needed
       preferred_contractor_id,
     };
-    const job = await JobCreationService.getInstance().createJob(user, payload);
+    const requestId = request.headers.get('x-job-submission-id');
+    if (requestId && !z.uuid().safeParse(requestId).success)
+      throw new BadRequestError('Invalid job submission ID');
+    const service = JobCreationService.getInstance();
+    const job = requestId
+      ? await service.createJob(user, payload, {
+          requestId,
+          fingerprint: fingerprintRequest(payload),
+        })
+      : await service.createJob(user, payload);
 
     logger.info('Job created successfully', {
       service: 'jobs',

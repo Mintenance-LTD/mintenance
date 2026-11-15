@@ -1,6 +1,7 @@
 'use client';
 import { theme } from '@/lib/theme';
 
+import { appointmentLocalTime } from '@/lib/utils/appointment-local-time';
 import { useState } from 'react';
 import { CalendarHeader } from './CalendarHeader';
 import { CalendarDay, type CalendarEvent } from './CalendarDay';
@@ -38,15 +39,13 @@ export function Calendar({ events = [] }: { events: CalendarEvent[] }) {
   );
   const forDate = (date: Date) =>
     events.filter((event) => {
+      if (!Number.isFinite(new Date(event.date).getTime())) return false;
       // Date-only scheduling values must retain their intended calendar day.
-      const parts =
-        typeof event.date === 'string'
-          ? event.date.slice(0, 10).split('-').map(Number)
-          : [
-              event.date.getFullYear(),
-              event.date.getMonth() + 1,
-              event.date.getDate(),
-            ];
+      const value =
+        typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date)
+          ? event.date
+          : appointmentLocalTime(new Date(event.date)).date;
+      const parts = value.split('-').map(Number);
       return (
         parts[0] === date.getFullYear() &&
         parts[1] === date.getMonth() + 1 &&

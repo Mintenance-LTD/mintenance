@@ -9,7 +9,7 @@ import { MintEditorialReportingLinks } from './MintEditorialReportingLinks';
 export const metadata: Metadata = {
   title: 'Reporting Links | Mintenance',
   description:
-    'Manage anonymous maintenance reporting links for your properties.',
+    'Manage maintenance reporting links that need no tenant account for your properties.',
 };
 
 export default async function ReportingLinksPage() {

@@ -40,17 +40,24 @@ interface Prefs {
 // Must stay in sync with the `type` values used by
 // NotificationService.createNotification() call sites.
 const KNOWN_TYPES: Array<{ type: string; label: string }> = [
-  { type: 'job_nearby', label: 'New jobs posted near you' },
+  {
+    type: 'win_back',
+    label: 'Return-to-Mintenance marketing (requires email consent)',
+  },
+  {
+    type: 'job_nearby',
+    label: 'Local job opportunities (contractor accounts)',
+  },
   { type: 'bid_received', label: 'New bids received' },
   { type: 'quote_amendment_update', label: 'Quote amendment updates' },
-  { type: 'bid_accepted', label: 'Your bid was accepted' },
+  { type: 'bid_accepted', label: 'Bid acceptance updates' },
   { type: 'contract_signed', label: 'Contract signed' },
   { type: 'payment', label: 'Payment updates' },
   { type: 'escrow_released', label: 'Payment released' },
   { type: 'escrow_auto_released', label: 'Auto-release on 7-day timeout' },
   { type: 'job_completed', label: 'Job completed' },
   { type: 'property_followup', label: 'Property follow-ups assigned to you' },
-  { type: 'changes_requested', label: 'Homeowner requested changes' },
+  { type: 'changes_requested', label: 'Requested changes to work' },
   { type: 'message_received', label: 'New messages' },
   { type: 'cashflow_digest', label: 'Weekly cash-flow digest (Fridays)' },
 ];
@@ -84,7 +91,7 @@ function trimTime(v: string | null): string {
   return v.length >= 5 ? v.slice(0, 5) : v;
 }
 
-export function NotificationPreferencesForm() {
+export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -281,7 +288,12 @@ export function NotificationPreferencesForm() {
           contractor arrival alerts cannot be muted by event type.
         </p>
         <div className='space-y-2'>
-          {KNOWN_TYPES.filter((t) => !protectedTypes.has(t.type)).map((t) => (
+          {KNOWN_TYPES.filter(
+            (t) =>
+              !protectedTypes.has(t.type) &&
+              (role !== 'homeowner' ||
+                !['job_nearby', 'cashflow_digest'].includes(t.type))
+          ).map((t) => (
             <label
               key={t.type}
               className='flex items-center justify-between py-1.5'

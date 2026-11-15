@@ -57,6 +57,7 @@ export interface BuildingAssessmentData {
 }
 
 export const SERVICE_CATEGORIES = [
+  { label: 'Damp & mould', value: 'damp', icon: 'droplets' },
   { label: 'Plumbing', value: 'plumbing', icon: 'droplets' },
   { label: 'Electrical', value: 'electrical', icon: 'zap' },
   { label: 'Heating & Gas', value: 'heating', icon: 'flame' },

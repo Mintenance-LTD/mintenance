@@ -266,6 +266,7 @@ export function DetailsStep({
                 key={category.value}
                 type='button'
                 data-testid={`category-${category.value}`}
+                aria-pressed={active}
                 onClick={() =>
                   setFormData((prev) => ({
                     ...prev,

@@ -7,7 +7,7 @@ import {
   paymentAmounts,
   summarizePayments,
 } from '@/lib/payments/payment-amounts';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { LoadingSpinner } from '@/components/ui';
@@ -99,6 +99,9 @@ interface PaymentData {
 
 export default function PaymentsPage2025() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const scopedJobId = searchParams.get('jobId');
+  const scopedPaymentId = searchParams.get('paymentId');
   const { user, loading: loadingUser } = useCurrentUser();
   const { csrfToken } = useCSRF();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -320,7 +323,14 @@ export default function PaymentsPage2025() {
   // `refunded`. The previous filter put `release_pending` rows into
   // neither bucket so they silently disappeared from the stats and
   // the filter menu both.
-  const filteredTransactions = transactions.filter((t) => {
+  const scopedTransactions = transactions.filter(
+    (t) =>
+      (!scopedJobId || t.job_id === scopedJobId) &&
+      (!scopedPaymentId || t.id === scopedPaymentId)
+  );
+  const filteredTransactions = scopedTransactions.filter((t) => {
+    if (scopedJobId && t.job_id !== scopedJobId) return false;
+    if (scopedPaymentId && t.id !== scopedPaymentId) return false;
     let matchesStatus = true;
     if (filter === 'pending') {
       matchesStatus = t.status === 'pending' || t.status === 'held';
@@ -352,7 +362,7 @@ export default function PaymentsPage2025() {
   // transactions.length, or the total and its caption disagree whenever a
   // pending row exists (e.g. £2.52 across 2 held rows shown as "3").
   const { totalPaid, paidTransactionCount, inEscrowAmount, refundedAmount } =
-    summarizePayments(transactions);
+    summarizePayments(scopedTransactions);
   // The "Protected" stat card previously showed pre-charge `pending`
   // rows — money that hadn't actually hit Mintenance's escrow yet. Now
   // it reflects the real "held in escrow by the platform" total:
@@ -426,6 +436,22 @@ export default function PaymentsPage2025() {
         )}
 
         <PaymentsHeader onExport={handleExport} />
+        {(scopedJobId || scopedPaymentId) && (
+          <p className='my-4' role='status'>
+            Showing{' '}
+            {scopedPaymentId
+              ? 'the selected payment'
+              : 'payments for the selected job'}
+            .{' '}
+            <button
+              type='button'
+              className='underline'
+              onClick={() => router.push('/payments')}
+            >
+              Show all payments
+            </button>
+          </p>
+        )}
 
         <PaymentsStatsCards
           totalPaid={totalPaid}

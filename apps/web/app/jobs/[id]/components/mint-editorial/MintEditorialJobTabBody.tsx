@@ -248,7 +248,10 @@ export function MintEditorialJobTabBody({
             See the escrow status and any released funds for this job on the
             Payments page.
           </p>
-          <Link href='/payments' className='btn btn-secondary btn-sm'>
+          <Link
+            href={`/payments?jobId=${job.id}`}
+            className='btn btn-secondary btn-sm'
+          >
             View payments →
           </Link>
         </div>
