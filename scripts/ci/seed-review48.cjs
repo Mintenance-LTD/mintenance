@@ -13,7 +13,7 @@ exports.seedReview48 = async function (db, users, env) {
       owner_id: users.homeowner,
       property_name: 'Synthetic review property',
       address: 'Synthetic Street, London',
-      property_type: 'house',
+      property_type: 'residential',
     })
   );
   env.E2E_REVIEW_PROPERTY_ID = property;
