@@ -32,6 +32,7 @@ export interface PropertyWithCompliance {
   id: string;
   property_name: string;
   address: string;
+  applicability?: Record<string, import('./ApplicabilityForm').Applicability>;
   certMap: Record<string, ComplianceCert | null>;
   additionalCerts: ComplianceCert[];
   overallStatus: string;
@@ -45,4 +46,5 @@ export interface ComplianceSummary {
   expiringCount: number;
   expiredCount: number;
   missingCount: number;
+  unassessedCount?: number;
 }

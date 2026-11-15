@@ -7,7 +7,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
-import { Bot, CheckCircle, Activity, TrendingUp, DollarSign, Calendar, Shield, MessageSquare, RefreshCw } from 'lucide-react';
+import {
+  Bot,
+  CheckCircle,
+  Activity,
+  TrendingUp,
+  DollarSign,
+  Calendar,
+  Shield,
+  MessageSquare,
+  RefreshCw,
+} from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import toast from 'react-hot-toast';
 
@@ -31,7 +41,7 @@ const AGENT_CONFIGS = [
     description: 'Automatically accept high-quality bids',
     icon: CheckCircle,
     color: 'green',
-    requiredLevel: 'moderate' as const
+    requiredLevel: 'moderate' as const,
   },
   {
     id: 'PricingAgent',
@@ -39,7 +49,7 @@ const AGENT_CONFIGS = [
     description: 'AI-powered pricing recommendations',
     icon: DollarSign,
     color: 'blue',
-    requiredLevel: 'minimal' as const
+    requiredLevel: 'minimal' as const,
   },
   {
     id: 'SchedulingAgent',
@@ -47,7 +57,7 @@ const AGENT_CONFIGS = [
     description: 'Optimize appointment scheduling',
     icon: Calendar,
     color: 'purple',
-    requiredLevel: 'moderate' as const
+    requiredLevel: 'moderate' as const,
   },
   {
     id: 'NotificationAgent',
@@ -55,7 +65,7 @@ const AGENT_CONFIGS = [
     description: 'Intelligent notification timing',
     icon: MessageSquare,
     color: 'orange',
-    requiredLevel: 'minimal' as const
+    requiredLevel: 'minimal' as const,
   },
   {
     id: 'DisputeResolutionAgent',
@@ -63,7 +73,7 @@ const AGENT_CONFIGS = [
     description: 'AI-assisted dispute mediation',
     icon: Shield,
     color: 'red',
-    requiredLevel: 'full' as const
+    requiredLevel: 'full' as const,
   },
   {
     id: 'JobStatusAgent',
@@ -71,7 +81,7 @@ const AGENT_CONFIGS = [
     description: 'Automatic job status updates',
     icon: Activity,
     color: 'cyan',
-    requiredLevel: 'moderate' as const
+    requiredLevel: 'moderate' as const,
   },
   {
     id: 'PredictiveAgent',
@@ -79,15 +89,19 @@ const AGENT_CONFIGS = [
     description: 'Predict job demand and pricing',
     icon: TrendingUp,
     color: 'indigo',
-    requiredLevel: 'full' as const
-  }
+    requiredLevel: 'full' as const,
+  },
 ];
 
 const AUTOMATION_LEVELS = [
   { value: 'none', label: 'Off', description: 'No automation' },
-  { value: 'minimal', label: 'Basic', description: 'Essential automation only' },
+  {
+    value: 'minimal',
+    label: 'Basic',
+    description: 'Essential automation only',
+  },
   { value: 'moderate', label: 'Standard', description: 'Balanced automation' },
-  { value: 'full', label: 'Full', description: 'Maximum automation' }
+  { value: 'full', label: 'Full', description: 'Maximum automation' },
 ];
 
 export function AgentAutomationPanel() {
@@ -95,7 +109,7 @@ export function AgentAutomationPanel() {
   const [settings, setSettings] = useState<AutomationSettings>({
     enableAutomation: false,
     automationLevel: 'none',
-    agents: {}
+    agents: {},
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -107,7 +121,7 @@ export function AgentAutomationPanel() {
   const fetchAutomationSettings = async () => {
     try {
       const response = await fetch('/api/agents/settings', {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -124,9 +138,14 @@ export function AgentAutomationPanel() {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
-      const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
-      if (csrfToken) await new Promise(r => setTimeout(r, 50));
+      const csrfRes = await fetch('/api/csrf', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const { token: csrfToken } = csrfRes.ok
+        ? await csrfRes.json()
+        : { token: '' };
+      if (csrfToken) await new Promise((r) => setTimeout(r, 50));
 
       const response = await fetch('/api/agents/settings', {
         method: 'POST',
@@ -135,7 +154,7 @@ export function AgentAutomationPanel() {
           'x-csrf-token': csrfToken,
         },
         credentials: 'include',
-        body: JSON.stringify(settings)
+        body: JSON.stringify(settings),
       });
 
       if (response.ok) {
@@ -152,23 +171,23 @@ export function AgentAutomationPanel() {
   };
 
   const toggleAgent = (agentId: string) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       agents: {
         ...prev.agents,
         [agentId]: {
           ...prev.agents[agentId],
-          enabled: !prev.agents[agentId]?.enabled
-        }
-      }
+          enabled: !prev.agents[agentId]?.enabled,
+        },
+      },
     }));
   };
 
   const setAutomationLevel = (level: string) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       automationLevel: level as AutomationSettings['automationLevel'],
-      enableAutomation: level !== 'none'
+      enableAutomation: level !== 'none',
     }));
   };
 
@@ -181,35 +200,45 @@ export function AgentAutomationPanel() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
-        <div className="space-y-3">
-          <div className="h-20 bg-gray-200 rounded"></div>
-          <div className="h-20 bg-gray-200 rounded"></div>
-          <div className="h-20 bg-gray-200 rounded"></div>
+      <div className='bg-white rounded-lg shadow-sm p-6 animate-pulse'>
+        <div className='h-8 bg-gray-200 rounded w-48 mb-4'></div>
+        <div className='space-y-3'>
+          <div className='h-20 bg-gray-200 rounded'></div>
+          <div className='h-20 bg-gray-200 rounded'></div>
+          <div className='h-20 bg-gray-200 rounded'></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Bot className="w-6 h-6 text-white" />
+    <div className='bg-white rounded-lg shadow-sm border border-gray-200'>
+      <div className='p-6'>
+        <div className='flex items-center justify-between mb-6'>
+          <div className='flex items-center gap-3'>
+            <div className='w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center'>
+              <Bot className='w-6 h-6 text-white' />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">AI Agent Automation</h3>
-              <p className="text-sm text-gray-500">Control how AI agents assist you</p>
+              <h3 className='text-lg font-semibold text-gray-900'>
+                AI Agent Automation
+              </h3>
+              <p className='text-sm text-gray-500'>
+                Control how AI agents assist you
+              </p>
             </div>
           </div>
           <button
-            onClick={() => setSettings(prev => ({
-              ...prev,
-              enableAutomation: !prev.enableAutomation
-            }))}
+            type='button'
+            role='switch'
+            aria-label='Enable AI automation'
+            aria-checked={settings.enableAutomation}
+            onClick={() =>
+              setSettings((prev) => ({
+                ...prev,
+                enableAutomation: !prev.enableAutomation,
+              }))
+            }
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
               settings.enableAutomation ? 'bg-indigo-600' : 'bg-gray-200'
             }`}
@@ -223,14 +252,16 @@ export function AgentAutomationPanel() {
         </div>
 
         {/* Automation Level */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+        <div className='mb-6'>
+          <label className='block text-sm font-medium text-gray-700 mb-3'>
             Automation Level
           </label>
-          <div className="grid grid-cols-4 gap-2">
-            {AUTOMATION_LEVELS.map(level => (
+          <div className='grid grid-cols-4 gap-2'>
+            {AUTOMATION_LEVELS.map((level) => (
               <button
                 key={level.value}
+                type='button'
+                aria-pressed={settings.automationLevel === level.value}
                 onClick={() => setAutomationLevel(level.value)}
                 disabled={!settings.enableAutomation && level.value !== 'none'}
                 className={`p-3 rounded-lg border-2 transition-all ${
@@ -243,16 +274,18 @@ export function AgentAutomationPanel() {
                     : ''
                 }`}
               >
-                <div className="text-sm font-medium">{level.label}</div>
-                <div className="text-xs text-gray-500 mt-1">{level.description}</div>
+                <div className='text-sm font-medium'>{level.label}</div>
+                <div className='text-xs text-gray-500 mt-1'>
+                  {level.description}
+                </div>
               </button>
             ))}
           </div>
         </div>
 
         {/* Agent Controls */}
-        <div className="space-y-3">
-          {AGENT_CONFIGS.map(agent => {
+        <div className='space-y-3'>
+          {AGENT_CONFIGS.map((agent) => {
             const Icon = agent.icon;
             const isAvailable = isAgentAvailable(agent.requiredLevel);
             const isEnabled = settings.agents[agent.id]?.enabled;
@@ -265,48 +298,60 @@ export function AgentAutomationPanel() {
                   isEnabled
                     ? 'border-green-200 bg-green-50'
                     : 'border-gray-200 bg-white'
-                } ${
-                  !isAvailable ? 'opacity-50' : ''
-                }`}
+                } ${!isAvailable ? 'opacity-50' : ''}`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 bg-${agent.color}-100 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                <div className='flex items-start justify-between'>
+                  <div className='flex items-start gap-3'>
+                    <div
+                      className={`w-10 h-10 bg-${agent.color}-100 rounded-lg flex items-center justify-center flex-shrink-0`}
+                    >
                       <Icon className={`w-5 h-5 text-${agent.color}-600`} />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900">{agent.name}</h4>
+                    <div className='flex-1'>
+                      <div className='flex items-center gap-2'>
+                        <h4 className='font-medium text-gray-900'>
+                          {agent.name}
+                        </h4>
                         {!isAvailable && (
-                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                          <span className='text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full'>
                             Requires {agent.requiredLevel}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">{agent.description}</p>
+                      <p className='text-sm text-gray-600 mt-1'>
+                        {agent.description}
+                      </p>
 
                       {agentData?.lastAction && (
-                        <div className="mt-2 text-xs text-gray-500">
+                        <div className='mt-2 text-xs text-gray-500'>
                           Last action: {agentData.lastAction}
                           {agentData.lastActionTime && (
-                            <span className="ml-2">
-                              ({new Date(agentData.lastActionTime).toLocaleString()})
+                            <span className='ml-2'>
+                              (
+                              {new Date(
+                                agentData.lastActionTime
+                              ).toLocaleString()}
+                              )
                             </span>
                           )}
                         </div>
                       )}
 
                       {agentData?.confidence !== undefined && (
-                        <div className="mt-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">Confidence:</span>
-                            <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-xs">
+                        <div className='mt-2'>
+                          <div className='flex items-center gap-2'>
+                            <span className='text-xs text-gray-500'>
+                              Confidence:
+                            </span>
+                            <div className='flex-1 bg-gray-200 rounded-full h-2 max-w-xs'>
                               <div
-                                className="bg-indigo-600 h-2 rounded-full"
-                                style={{ width: `${agentData.confidence * 100}%` }}
+                                className='bg-indigo-600 h-2 rounded-full'
+                                style={{
+                                  width: `${agentData.confidence * 100}%`,
+                                }}
                               />
                             </div>
-                            <span className="text-xs font-medium text-gray-700">
+                            <span className='text-xs font-medium text-gray-700'>
                               {Math.round(agentData.confidence * 100)}%
                             </span>
                           </div>
@@ -316,6 +361,10 @@ export function AgentAutomationPanel() {
                   </div>
 
                   <button
+                    type='button'
+                    role='switch'
+                    aria-label={agent.name}
+                    aria-checked={Boolean(isEnabled)}
                     onClick={() => toggleAgent(agent.id)}
                     disabled={!isAvailable || !settings.enableAutomation}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -339,18 +388,18 @@ export function AgentAutomationPanel() {
         </div>
 
         {/* Save Button */}
-        <div className="mt-6 flex items-center justify-between">
+        <div className='mt-6 flex items-center justify-between'>
           <button
             onClick={fetchAutomationSettings}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            className='px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900'
           >
-            <RefreshCw className="w-4 h-4 inline-block mr-2" />
+            <RefreshCw className='w-4 h-4 inline-block mr-2' />
             Refresh
           </button>
           <button
             onClick={saveSettings}
             disabled={saving}
-            className="px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className='px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed'
           >
             {saving ? 'Saving...' : 'Save Settings'}
           </button>

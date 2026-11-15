@@ -32,8 +32,15 @@ export function GuideHub({
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(initialGuide ?? null);
   const guides = guidesForPersona(persona);
-  const current = guides.find((g) => g.id === selected) ?? guides[0];
-  const nextGuide = guides[guides.findIndex((g) => g.id === current?.id) + 1];
+  const matchingGuides = guides.filter((g) =>
+    `${g.title} ${g.steps.join(' ')}`
+      .toLowerCase()
+      .includes(search.trim().toLowerCase())
+  );
+  const current =
+    matchingGuides.find((g) => g.id === selected) ?? matchingGuides[0];
+  const nextGuide =
+    matchingGuides[matchingGuides.findIndex((g) => g.id === current?.id) + 1];
   return (
     <main
       data-theme='mint-editorial'
@@ -101,6 +108,18 @@ export function GuideHub({
             userId={userId}
           />
         )}
+        {!matchingGuides.length && (
+          <p role='status'>
+            No guides match this search. Try another phrase or{' '}
+            <Link
+              href={`/faq?q=${encodeURIComponent(search)}`}
+              className='underline'
+            >
+              search the Help Centre
+            </Link>
+            .
+          </p>
+        )}
         {nextGuide && (
           <button
             type='button'
@@ -111,24 +130,18 @@ export function GuideHub({
           </button>
         )}
         <div className='grid gap-3 sm:grid-cols-2'>
-          {guides
-            .filter((g) =>
-              `${g.title} ${g.steps.join(' ')}`
-                .toLowerCase()
-                .includes(search.toLowerCase())
-            )
-            .map((g) => (
-              <button
-                key={g.id}
-                type='button'
-                aria-pressed={selected === g.id}
-                className='rounded-xl border border-[var(--me-line)] bg-[var(--me-surface)] p-4 text-left focus-visible:outline-2 focus-visible:outline-[var(--me-brand)]'
-                onClick={() => setSelected(g.id)}
-              >
-                <span className='font-semibold'>{g.title}</span>
-                <span className='mt-1 block text-sm'>{g.steps[0]}</span>
-              </button>
-            ))}
+          {matchingGuides.map((g) => (
+            <button
+              key={g.id}
+              type='button'
+              aria-pressed={selected === g.id}
+              className='rounded-xl border border-[var(--me-line)] bg-[var(--me-surface)] p-4 text-left focus-visible:outline-2 focus-visible:outline-[var(--me-brand)]'
+              onClick={() => setSelected(g.id)}
+            >
+              <span className='font-semibold'>{g.title}</span>
+              <span className='mt-1 block text-sm'>{g.steps[0]}</span>
+            </button>
+          ))}
         </div>
         <p className='text-sm'>
           Reading a guide marks the guidance as read. It does not mark your

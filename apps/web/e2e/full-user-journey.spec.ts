@@ -1,3 +1,4 @@
+import { registerReview48Journeys } from './helpers/review48-journeys';
 /**
  * Full User Journey E2E Test: Homeowner & Contractor Flow
  *
@@ -11,6 +12,7 @@
 
 import { test, expect } from './fixtures';
 import { submitAndVerifyBid } from './helpers/bid-journey';
+import { ukDateTimeInput } from '../lib/scheduling/uk-date-time';
 import {
   loginAsHomeowner,
   establishSessionInContext,
@@ -213,3 +215,65 @@ test.describe('Subscription Status API', () => {
     expect(response.status()).toBe(200);
   });
 });
+
+for (const role of ['homeowner', 'contractor'] as const) {
+  test(`${role} sees the visit and saves a job window without changing the signed agreement`, async ({
+    page,
+  }) => {
+    const jobId = process.env[`E2E_REVIEW_${role.toUpperCase()}_JOB_ID`];
+    expect(jobId, 'Disposable review fixture must be seeded').toBeTruthy();
+    expect(await establishSessionInContext(page, TEST_USERS[role])).toBe(true);
+    await page.goto('/scheduling');
+    await expect(
+      page.getByText(`Synthetic visit ${role} (Visit 11:00–15:00 UK)`).first()
+    ).toBeVisible();
+    const beforeResponse = await page.request.get(
+      `/api/contracts?job_id=${jobId}`
+    );
+    expect(beforeResponse.ok()).toBe(true);
+    const before = (await beforeResponse.json()).contracts[0];
+    await page.goto(`/jobs/${jobId}/schedule`);
+    const start = new Date(
+      Date.parse(process.env.E2E_REVIEW_START!) + 2 * 86400000
+    ).toISOString();
+    const end = new Date(
+      Date.parse(process.env.E2E_REVIEW_END!) + 2 * 86400000
+    ).toISOString();
+    await page.getByLabel('Start Date & Time *').fill(ukDateTimeInput(start));
+    await page.getByLabel('End Date & Time').fill(ukDateTimeInput(end));
+    const saved = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/api/jobs/${jobId}/schedule`) &&
+        response.request().method() === 'POST'
+    );
+    await page.getByRole('button', { name: 'Save Schedule' }).click();
+    expect((await saved).ok()).toBe(true);
+    const current = await page.request.get(`/api/jobs/${jobId}/schedule`);
+    expect(current.ok()).toBe(true);
+    expect(Date.parse((await current.json()).scheduled_start_date)).toBe(
+      Date.parse(start)
+    );
+    const afterResponse = await page.request.get(
+      `/api/contracts?job_id=${jobId}`
+    );
+    expect(afterResponse.ok()).toBe(true);
+    const after = (await afterResponse.json()).contracts[0];
+    expect([after.start_date, after.end_date, after.terms]).toEqual([
+      before.start_date,
+      before.end_date,
+      before.terms,
+    ]);
+    await page.goto('/scheduling');
+    await expect(
+      page.getByText(`Synthetic visit ${role} (Visit 11:00–15:00 UK)`).first()
+    ).toBeVisible();
+    await page.goto('/faq');
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Main navigation' })
+        .getByRole('link', { name: 'Dashboard', exact: true })
+    ).toBeVisible();
+  });
+}
+
+registerReview48Journeys();

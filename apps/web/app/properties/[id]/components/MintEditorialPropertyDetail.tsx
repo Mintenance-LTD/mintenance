@@ -1,4 +1,5 @@
 'use client';
+import { PropertyActivityFeed } from './PropertyActivityFeed';
 import { PropertyFileHub } from './PropertyFileHub';
 import './property-workspace.css';
 import { PropertyMaintenanceWorkspace } from './PropertyMaintenanceWorkspace';
@@ -29,10 +30,10 @@ import {
   MintEditorialPropertyDocuments,
   type PropertyCertificateRecord,
 } from './MintEditorialPropertyDocuments';
-import { MintEditorialPropertyTimeline } from './MintEditorialPropertyTimeline';
 import { MintEditorialPropertyAccess } from './MintEditorialPropertyAccess';
 import { type PropertySchedule } from './MintEditorialPropertyMaintenancePlan';
 import {
+  fullAddress,
   PhotoHero,
   PropertyDetailsCard,
   PropertyHeader,
@@ -189,8 +190,7 @@ export function MintEditorialPropertyDetail({
               }
             </h1>
             <p>
-              {property.name} ·{' '}
-              {[property.address, property.city].filter(Boolean).join(', ')}
+              {property.name} · {fullAddress(property)}
             </p>
           </header>
         )}
@@ -263,7 +263,7 @@ export function MintEditorialPropertyDetail({
           ) : null}
 
           {activeTab === 'timeline' ? (
-            <MintEditorialPropertyTimeline jobs={jobs} />
+            <PropertyActivityFeed key={property.id} propertyId={property.id} />
           ) : null}
 
           {activeTab === 'access' ? (

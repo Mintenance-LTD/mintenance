@@ -63,13 +63,13 @@ export async function fetchJobsWithRelations(
         )
       `
       )
-      .eq('homeowner_id', userId)
+      .or(`homeowner_id.eq.${userId},payer_user_id.eq.${userId}`)
       .is('archived_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
       logger.error('Error fetching homeowner jobs:', error);
-      return [];
+      throw new Error('Unable to load scheduled jobs');
     }
 
     return (data || []) as JobWithRelations[];
@@ -105,6 +105,7 @@ export async function fetchJobsWithRelations(
 
     if (assignedError) {
       logger.error('Error fetching assigned jobs:', assignedError);
+      throw new Error('Unable to load scheduled jobs');
     }
 
     // Get jobs where contractor has bids

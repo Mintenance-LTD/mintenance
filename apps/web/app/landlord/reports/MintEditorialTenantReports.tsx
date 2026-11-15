@@ -203,7 +203,8 @@ export function MintEditorialTenantReports({
       <div className='col' style={{ gap: 4, marginBottom: 22 }}>
         <h1 className='t-h1'>Tenant Reports</h1>
         <p className='t-body'>
-          Maintenance issues reported by tenants via anonymous reporting links.
+          Maintenance issues reported by tenants via reporting links that need
+          no account.
         </p>
       </div>
 
@@ -229,7 +230,7 @@ export function MintEditorialTenantReports({
           title={filter === 'all' ? 'No reports yet' : `No ${filter} reports`}
           body={
             filter === 'all'
-              ? 'Share a reporting link with your tenants so they can flag maintenance issues anonymously.'
+              ? 'Share a reporting link with your tenants so they can flag maintenance issues without creating an account.'
               : 'Switch to a different filter to see reports.'
           }
           cta={

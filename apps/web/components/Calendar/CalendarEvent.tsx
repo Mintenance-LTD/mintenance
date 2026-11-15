@@ -9,6 +9,7 @@ export interface CalendarEvent {
   date: Date | string;
   type: 'job' | 'maintenance' | 'inspection';
   status?: string;
+  href?: string;
 }
 
 interface CalendarEventProps {
@@ -29,6 +30,7 @@ export function CalendarEvent({ event, eventColor }: CalendarEventProps) {
     event.id.startsWith('job-scheduled-') ||
     event.id.startsWith('appointment-') ||
     (!event.id.includes('-') && !event.id.startsWith('maintenance-'));
+  const href = event.href || (isJobEvent && jobId ? `/jobs/${jobId}` : null);
 
   // Skip posted job events as they're shown as badge
   if (event.id.startsWith('job-posted-')) {
@@ -39,15 +41,15 @@ export function CalendarEvent({ event, eventColor }: CalendarEventProps) {
     <button
       type='button'
       onClick={() => {
-        if (isJobEvent && jobId) {
-          router.push(`/jobs/${jobId}`);
+        if (href) {
+          router.push(href);
         }
       }}
-      disabled={!isJobEvent || !jobId}
+      disabled={!href}
       onKeyDown={(e) => {
-        if (isJobEvent && jobId && (e.key === 'Enter' || e.key === ' ')) {
+        if (href && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault();
-          router.push(`/jobs/${jobId}`);
+          router.push(href);
         }
       }}
       style={{

@@ -122,6 +122,7 @@ async function main() {
     if (jobError)
       throw new Error('Synthetic job setup failed: ' + jobError.message);
   }
+  await require('./seed-review48.cjs').seedReview48(db, userIds, env);
   const output = process.env.GITHUB_ENV || 'output/e2e-stack/runtime.json';
   if (process.env.GITHUB_ENV) {
     for (const [name, value] of Object.entries(env)) {

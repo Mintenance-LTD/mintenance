@@ -81,7 +81,7 @@ export function JobsGrid({
             variant='illustrated'
             icon='briefcase'
             title='Post your first maintenance job'
-            description='Get matched with local contractors in your area. Create a detailed job listing and typically receive bids within 24–48 hours.'
+            description='Create a detailed job listing and compare bids from local contractors. Responses depend on trade and availability.'
             actionLabel='Create Your First Job'
             onAction={() => router.push('/jobs/create')}
             secondaryActionLabel='Browse contractors'

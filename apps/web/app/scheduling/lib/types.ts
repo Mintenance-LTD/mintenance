@@ -8,6 +8,7 @@ export interface CalendarEvent {
   date: Date | string;
   type: 'job' | 'maintenance' | 'inspection';
   status?: string;
+  href?: string;
 }
 
 export interface JobWithContract {

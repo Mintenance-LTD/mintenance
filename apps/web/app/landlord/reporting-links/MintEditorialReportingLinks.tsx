@@ -132,7 +132,7 @@ export function MintEditorialReportingLinks({
         <h1 className='t-h1'>Reporting Links</h1>
         <p className='t-body'>
           Create shareable links so tenants can report maintenance issues
-          anonymously.
+          without creating an account.
         </p>
       </div>
 

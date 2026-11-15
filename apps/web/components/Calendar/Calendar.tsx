@@ -1,6 +1,7 @@
 'use client';
 import { theme } from '@/lib/theme';
 
+import { appointmentLocalTime } from '@/lib/utils/appointment-local-time';
 import { useState } from 'react';
 import { CalendarHeader } from './CalendarHeader';
 import { CalendarDay, type CalendarEvent } from './CalendarDay';
@@ -22,8 +23,11 @@ const dateLabel = (date: Date) =>
     year: 'numeric',
   });
 
+const ukToday = () =>
+  new Date(appointmentLocalTime(new Date()).date + 'T12:00:00');
+
 export function Calendar({ events = [] }: { events: CalendarEvent[] }) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(ukToday);
   const [view, setView] = useState<'month' | 'week' | 'day'>('month');
   const start = new Date(
     currentDate.getFullYear(),
@@ -38,15 +42,13 @@ export function Calendar({ events = [] }: { events: CalendarEvent[] }) {
   );
   const forDate = (date: Date) =>
     events.filter((event) => {
+      if (!Number.isFinite(new Date(event.date).getTime())) return false;
       // Date-only scheduling values must retain their intended calendar day.
-      const parts =
-        typeof event.date === 'string'
-          ? event.date.slice(0, 10).split('-').map(Number)
-          : [
-              event.date.getFullYear(),
-              event.date.getMonth() + 1,
-              event.date.getDate(),
-            ];
+      const value =
+        typeof event.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.date)
+          ? event.date
+          : appointmentLocalTime(new Date(event.date)).date;
+      const parts = value.split('-').map(Number);
       return (
         parts[0] === date.getFullYear() &&
         parts[1] === date.getMonth() + 1 &&
@@ -73,7 +75,7 @@ export function Calendar({ events = [] }: { events: CalendarEvent[] }) {
       : view === 'day'
         ? dateLabel(currentDate)
         : `${dateLabel(days[0])} – ${dateLabel(days[6])}`;
-  const today = new Date().toDateString();
+  const today = ukToday().toDateString();
   return (
     <section
       aria-label='Schedule calendar'
@@ -92,7 +94,7 @@ export function Calendar({ events = [] }: { events: CalendarEvent[] }) {
         label={label}
         view={view}
         onViewChange={setView}
-        onToday={() => setCurrentDate(new Date())}
+        onToday={() => setCurrentDate(ukToday())}
         onPreviousMonth={() => move(-1)}
         onNextMonth={() => move(1)}
       />

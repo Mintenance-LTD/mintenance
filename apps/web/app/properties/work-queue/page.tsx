@@ -17,6 +17,7 @@ interface Item {
   status: string;
   next_action: string;
   due_at: string | null;
+  due_label?: string;
   can_open_job: boolean;
   can_manage_followup: boolean;
   assigned_to: string | null;
@@ -275,11 +276,17 @@ export default function PropertyWorkQueuePage() {
                   </p>
                   <div className={styles.next}>
                     <Clock3 size={16} />
-                    <strong>{item.next_action}</strong>
+                    <strong>
+                      {item.kind === 'job' &&
+                      item.status === 'assigned' &&
+                      !item.next_action.startsWith('Awaiting ')
+                        ? 'View schedule and current next steps'
+                        : item.next_action}
+                    </strong>
                     {item.due_at && (
                       <span>
                         {' '}
-                        ·{' '}
+                        · {item.due_label || 'Due / follow-up'}:{' '}
                         {new Date(item.due_at).toLocaleDateString('en-GB', {
                           day: 'numeric',
                           month: 'short',

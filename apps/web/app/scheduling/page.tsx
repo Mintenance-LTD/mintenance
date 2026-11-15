@@ -9,6 +9,7 @@ export const metadata: Metadata = {
     'Manage your maintenance job schedule, appointments, and upcoming events in one place.',
 };
 import { unstable_cache } from 'next/cache';
+import { fetchCalendarAppointments } from '@/lib/queries/calendar-appointments';
 import {
   fetchJobsWithRelations,
   fetchContractsForJobs,
@@ -16,6 +17,7 @@ import {
 } from '@/lib/queries/scheduling';
 import {
   transformJobsToEvents,
+  transformAppointmentsToEvents,
   transformMeetingsToEvents,
   transformRecurringSchedulesToEvents,
   combineAndSortEvents,
@@ -35,12 +37,10 @@ export default async function SchedulingPage2025() {
   }
 
   // Fetch jobs
-  const jobs = await unstable_cache(
-    async () =>
-      fetchJobsWithRelations(user.id, user.role as 'homeowner' | 'contractor'),
-    [`jobs-${user.id}-${user.role}`],
-    { revalidate: 60 }
-  )();
+  const [jobs, visits] = await Promise.all([
+    fetchJobsWithRelations(user.id, user.role),
+    fetchCalendarAppointments(user.id, user.role),
+  ]);
 
   // For contractors, fetch viewed jobs and bids
   let viewedJobIds: Set<string> = new Set();
@@ -142,7 +142,7 @@ export default async function SchedulingPage2025() {
   // Combine all events
   const allEvents = combineAndSortEvents(
     jobEvents,
-    appointmentEvents,
+    [...appointmentEvents, ...transformAppointmentsToEvents(visits, user.role)],
     maintenanceEvents
   );
 

@@ -7,7 +7,8 @@ export const formatGBP = (n: number) =>
   new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(n);
 
 export const initials = (name: string) =>

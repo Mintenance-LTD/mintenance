@@ -69,7 +69,8 @@ export function PhotosStep({
           drag and drop
         </p>
         <p style={{ margin: 0, fontSize: 13, color: 'var(--me-ink-3)' }}>
-          PNG, JPG, JPEG up to 10MB (max 10 photos)
+          PNG, JPG, JPEG up to 10MB (max 10 photos). Large photos are resized
+          for upload.
         </p>
         <input
           id='photo-upload'
@@ -85,7 +86,7 @@ export function PhotosStep({
       {imagePreviews.length > 0 && (
         <div>
           <h3 className='t-h4' style={{ marginBottom: 12 }}>
-            Uploaded photos ({imagePreviews.length}/10)
+            Selected photos ({imagePreviews.length}/10)
           </h3>
           <div
             style={{

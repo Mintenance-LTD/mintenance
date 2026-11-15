@@ -17,11 +17,12 @@ export const CERT_LABELS: Record<string, string> = {
 };
 
 export const CERT_DESCRIPTIONS: Record<string, string> = {
-  gas_safety: 'Annual gas safety check by Gas Safe engineer',
-  eicr: 'Electrical Installation Condition Report (every 5 years)',
-  epc: 'Energy Performance Certificate (valid 10 years)',
-  smoke_alarm: 'Working smoke alarms on every floor',
-  co_detector: 'CO detector in rooms with solid fuel appliance',
+  gas_safety: 'Gas safety certificate and recorded expiry',
+  eicr: 'Electrical Installation Condition Report; use the expiry recorded by your assessor',
+  epc: 'Energy Performance Certificate and recorded expiry',
+  smoke_alarm: 'Record smoke alarm checks and your applicability assessment',
+  co_detector:
+    'Record carbon monoxide detector checks and your applicability assessment',
 };
 
 export function daysUntil(dateStr: string | null): number | null {
@@ -59,15 +60,18 @@ export function statusIcon(status: string) {
 export function overallBadge(status: string) {
   switch (status) {
     case 'green':
-      return { label: 'Compliant', className: 'bg-green-100 text-green-800' };
+      return {
+        label: 'Records up to date',
+        className: 'bg-green-100 text-green-800',
+      };
     case 'amber':
       return {
-        label: 'Action Needed',
+        label: 'Review records',
         className: 'bg-amber-100 text-amber-800',
       };
     case 'red':
       return {
-        label: 'Non-Compliant',
+        label: 'Expired records',
         className: 'bg-red-100 text-red-800',
       };
     default:

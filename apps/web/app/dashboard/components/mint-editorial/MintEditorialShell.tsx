@@ -3,7 +3,8 @@ import { PropertyViewSwitcher } from '@/components/properties/PropertyViewSwitch
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { Menu, Search, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import { HomeownerPageFinder } from './HomeownerPageFinder';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { MintEditorialSidebar } from './MintEditorialSidebar';
 import { MintEditorialTopNav } from './MintEditorialTopNav';
@@ -118,10 +119,7 @@ export function MintEditorialShell({
               <Menu size={18} strokeWidth={1.9} />
             )}
           </button>
-          <div className='search-pill' style={{ width: 280 }}>
-            <Search size={15} strokeWidth={1.75} />
-            <span>Search jobs, contractors, invoices</span>
-          </div>
+          <HomeownerPageFinder />
           <MintEditorialTopNav />
           <div style={{ flex: 1 }} />
           <PropertyViewSwitcher />

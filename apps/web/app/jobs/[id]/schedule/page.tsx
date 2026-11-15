@@ -36,7 +36,13 @@ export default async function JobSchedulePage({
   if (contractError) throw new Error('Unable to verify the agreement');
   return (
     <main className='max-w-3xl mx-auto p-6'>
-      <Link href={`/jobs/${id}`}>Back to job</Link>
+      <Link
+        href={
+          user.role === 'contractor' ? `/contractor/jobs/${id}` : `/jobs/${id}`
+        }
+      >
+        Back to job
+      </Link>
       <h1 className='text-2xl font-semibold my-4'>
         Change schedule: {job.title}
       </h1>

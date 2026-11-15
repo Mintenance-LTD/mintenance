@@ -211,7 +211,7 @@ export function ProfileSection({
               Location
             </h3>
             <p className='t-body' style={{ margin: '0 0 18px' }}>
-              Your location helps us match you with nearby jobs and homeowners.
+              Your location helps us find relevant local services and work.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

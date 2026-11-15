@@ -3,6 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '@mintenance/shared';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import {
+  preparePhotoUpload,
+  photoUploadBatches,
+} from '../utils/prepare-photo-upload';
 import { clientErrorMessage } from '@/lib/errors/client-message';
 
 interface ImagePreview {
@@ -100,45 +104,58 @@ export function useImageUpload({
       try {
         const headers = await getCsrfHeaders();
 
-        const formData = new FormData();
-        imagePreviews.forEach(({ file }) => {
-          formData.append('photos', file);
-        });
+        const prepared: File[] = [];
+        for (const { file } of imagePreviews)
+          prepared.push(await preparePhotoUpload(file));
+        const allUrls: string[] = [];
+        for (const batch of photoUploadBatches(prepared)) {
+          if (version !== selectionVersion.current)
+            throw new Error(
+              'The selected photos changed during upload. Please retry with your current selection.'
+            );
+          const formData = new FormData();
+          batch.forEach((file) => formData.append('photos', file));
 
-        const response = await fetch('/api/jobs/upload-photos', {
-          method: 'POST',
-          headers,
-          body: formData,
-          credentials: 'include', // CRITICAL: Include cookies (including CSRF cookie) in the request
-        });
+          const response = await fetch('/api/jobs/upload-photos', {
+            method: 'POST',
+            headers,
+            body: formData,
+            credentials: 'include', // CRITICAL: Include cookies (including CSRF cookie) in the request
+          });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            clientErrorMessage(
-              errorData,
-              'Photos could not be uploaded. Please retry; your selected files are still here.'
-            )
-          );
+          if (response.status === 413)
+            throw new Error(
+              'This photo upload is too large. Please try a smaller photo; your details are still here.'
+            );
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+              clientErrorMessage(
+                errorData,
+                'Photos could not be uploaded. Please retry; your selected files are still here.'
+              )
+            );
+          }
+
+          const data = await response.json();
+          const urls = Array.isArray(data.urls)
+            ? data.urls.filter(
+                (url: unknown) => typeof url === 'string' && url.length > 0
+              )
+            : [];
+          if (version !== selectionVersion.current)
+            throw new Error(
+              'The selected photos changed during upload. Please retry with your current selection.'
+            );
+          if (urls.length !== batch.length)
+            throw new Error(
+              'Some photos did not upload. Your selection is preserved; retry or remove the affected photos.'
+            );
+          allUrls.push(...urls);
         }
+        setUploadedImages(allUrls);
 
-        const data = await response.json();
-        const urls = Array.isArray(data.urls)
-          ? data.urls.filter(
-              (url: unknown) => typeof url === 'string' && url.length > 0
-            )
-          : [];
-        if (version !== selectionVersion.current)
-          throw new Error(
-            'The selected photos changed during upload. Please retry with your current selection.'
-          );
-        if (urls.length !== imagePreviews.length)
-          throw new Error(
-            'Some photos did not upload. Your selection is preserved; retry or remove the affected photos.'
-          );
-        setUploadedImages(urls);
-
-        return urls;
+        return allUrls;
       } catch (error) {
         logger.error('Error uploading images', error, {
           service: 'image-upload',

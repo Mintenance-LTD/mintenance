@@ -1,5 +1,6 @@
 'use client';
 
+import { appointmentLocalTime } from '@/lib/utils/appointment-local-time';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Calendar as CalendarIcon, Clock, MapPin, User } from 'lucide-react';
@@ -37,16 +38,19 @@ export function SchedulingClient2025({ events }: SchedulingClient2025Props) {
     (e) => e.type === 'maintenance'
   ).length;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const nextWeek = new Date();
-  nextWeek.setDate(today.getDate() + 7);
+  const todayKey = appointmentLocalTime(new Date()).date;
+  const nextWeekKey = new Date(
+    Date.parse(todayKey + 'T12:00:00Z') + 7 * 86400000
+  )
+    .toISOString()
+    .slice(0, 10);
 
   const upcomingEvents = events
     .filter((event) => {
       const eventDate =
         typeof event.date === 'string' ? new Date(event.date) : event.date;
-      return eventDate >= today && eventDate <= nextWeek;
+      const key = appointmentLocalTime(eventDate).date;
+      return key >= todayKey && key <= nextWeekKey;
     })
     .sort((a, b) => {
       const dateA = typeof a.date === 'string' ? new Date(a.date) : a.date;
@@ -101,10 +105,10 @@ export function SchedulingClient2025({ events }: SchedulingClient2025Props) {
         </div>
       </div>
       <div className='kpi'>
-        <div className='label'>Jobs</div>
+        <div className='label'>Job milestones</div>
         <div className='num'>{jobCount}</div>
         <div className='sub'>
-          <span>scheduled work</span>
+          <span>job starts and ends</span>
         </div>
       </div>
       <div className='kpi'>
@@ -199,6 +203,7 @@ export function SchedulingClient2025({ events }: SchedulingClient2025Props) {
                         }}
                       >
                         {eventDate.toLocaleDateString('en-GB', {
+                          timeZone: 'Europe/London',
                           weekday: 'short',
                         })}
                       </div>
@@ -209,7 +214,10 @@ export function SchedulingClient2025({ events }: SchedulingClient2025Props) {
                           lineHeight: 1,
                         }}
                       >
-                        {eventDate.getDate()}
+                        {new Intl.DateTimeFormat('en-GB', {
+                          timeZone: 'Europe/London',
+                          day: 'numeric',
+                        }).format(eventDate)}
                       </div>
                     </div>
                     <div
@@ -268,7 +276,7 @@ export function SchedulingClient2025({ events }: SchedulingClient2025Props) {
       <div className='bg-white rounded-xl p-4 border border-gray-200'>
         <div className='flex items-center gap-2 mb-2'>
           <Clock className='w-5 h-5 text-blue-600' />
-          <p className='text-gray-600 text-sm font-medium'>Jobs</p>
+          <p className='text-gray-600 text-sm font-medium'>Job milestones</p>
         </div>
         <p className='text-2xl font-semibold text-gray-900'>{jobCount}</p>
       </div>
@@ -332,6 +340,7 @@ export function SchedulingClient2025({ events }: SchedulingClient2025Props) {
                       <CalendarIcon className='w-4 h-4' />
                       <span>
                         {eventDate.toLocaleDateString('en-GB', {
+                          timeZone: 'Europe/London',
                           month: 'short',
                           day: 'numeric',
                         })}

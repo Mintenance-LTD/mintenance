@@ -8,6 +8,7 @@ import { logger } from '@mintenance/shared';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
+import { useJobDraft } from './hooks/useJobDraft';
 import { useImageUpload } from './hooks/useImageUpload';
 import { useBuildingAssessment } from './hooks/useBuildingAssessment';
 import { HireAgainBanner } from './components/HireAgainBanner';
@@ -17,10 +18,7 @@ import {
   type JobFormData,
 } from './utils/validation';
 import { submitJob } from './utils/submitJob';
-import {
-  initialFormDataFromParams,
-  formDataPatchFromParams,
-} from './utils/url-prefill';
+import { initialFormDataFromParams } from './utils/url-prefill';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -108,6 +106,12 @@ export default function CreateJobPage2025() {
     initialFormDataFromParams(searchParams)
   );
 
+  const draft = useJobDraft(
+    user?.id,
+    searchParams?.toString() || '',
+    formData,
+    setFormData
+  );
   const [properties, setProperties] = useState<Property[]>([]);
   // Start loading=true so the first render shows "Loading…" instead of flashing
   // "No properties found" before the /api/properties fetch resolves (the
@@ -131,13 +135,7 @@ export default function CreateJobPage2025() {
     },
   });
 
-  // Prefill from URL on soft-navigations (Mint AI dock, deep-links).
-  // Initial state already captured the params on mount; this effect
-  // covers later URL changes that don't remount the page.
-  useEffect(() => {
-    const patch = formDataPatchFromParams(searchParams);
-    if (patch) setFormData((prev) => ({ ...prev, ...patch }));
-  }, [searchParams]);
+  // The account-scoped draft hook also handles URL context changes.
 
   useEffect(() => {
     if (user && user.role === 'homeowner') {
@@ -178,11 +176,15 @@ export default function CreateJobPage2025() {
                 (p: Property) => p.id === urlPropertyId
               );
               if (selectedProperty) {
-                setFormData((prev) => ({
-                  ...prev,
-                  property_id: urlPropertyId,
-                  location: selectedProperty.address || prev.location,
-                }));
+                setFormData((prev) =>
+                  prev.property_id && prev.property_id !== urlPropertyId
+                    ? prev
+                    : {
+                        ...prev,
+                        property_id: urlPropertyId,
+                        location: selectedProperty.address || prev.location,
+                      }
+                );
               }
             }
           }
@@ -326,7 +328,7 @@ export default function CreateJobPage2025() {
           // retry or explicitly remove the photos first.
           logger.error('[Submit] Image upload failed', uploadError);
           toast.error(
-            'Photo upload failed. Please try again, or remove the photos to post without them.'
+            'Photo upload failed. Your details are still here. Please retry or select another photo.'
           );
           setIsSubmitting(false);
           return;
@@ -334,6 +336,7 @@ export default function CreateJobPage2025() {
       }
 
       const result = await submitJob({
+        submissionId: draft.submissionId(),
         formData,
         photoUrls: imageUrls,
         csrfToken: csrfToken || '',
@@ -354,6 +357,7 @@ export default function CreateJobPage2025() {
         throw new Error(result.error || 'Failed to post job');
       }
 
+      draft.complete();
       toast.success('Job posted successfully!');
       router.push(`/jobs/${result.jobId}`);
     } catch (error) {
@@ -475,6 +479,12 @@ export default function CreateJobPage2025() {
                 searchParams?.get('preferredContractor') ?? null
               }
             />
+            {draft.restored && (
+              <p role='status' className='mb-4 text-sm'>
+                Saved job details restored. Re-select your photos before
+                submitting.
+              </p>
+            )}
             <ProgressBar currentStep={currentStep} steps={STEPS} />
 
             {/* Main Card */}

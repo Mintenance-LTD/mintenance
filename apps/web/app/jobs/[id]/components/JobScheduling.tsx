@@ -100,9 +100,7 @@ export function JobScheduling({
       }
 
       setIsEditing(false);
-      setSuccessMessage(
-        'Job scheduled successfully! Both parties will be notified.'
-      );
+      setSuccessMessage('Job schedule saved. Check the updated dates below.');
       setError(null);
 
       // Refresh the page to show updated schedule after a short delay
@@ -238,8 +236,9 @@ export function JobScheduling({
 
       <p className='text-sm text-gray-600 mb-4'>
         Times are shown in UK time (GMT/BST). Agree changes with the other
-        party. This updates the appointment, not the dates or obligations in
-        your signed agreement.
+        party. This updates the job start and end window. Individual visits are
+        managed separately in Scheduling. The dates and obligations in your
+        signed agreement remain unchanged.
       </p>
       {error && (
         <Alert variant='destructive' className='mb-4'>

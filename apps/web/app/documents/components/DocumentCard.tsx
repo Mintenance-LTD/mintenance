@@ -144,16 +144,12 @@ function statusBadge(
 
 function relativeDate(iso: string): string {
   const date = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const day = 86_400_000;
-  const days = Math.floor(diffMs / day);
-  if (days < 1) return 'Today';
-  if (days < 2) return 'Yesterday';
-  if (days < 7) return `${days}d ago`;
+  if (!Number.isFinite(date.getTime())) return 'Date not recorded';
   return date.toLocaleDateString('en-GB', {
+    timeZone: 'Europe/London',
     day: 'numeric',
     month: 'short',
+    year: 'numeric',
   });
 }
 
@@ -296,7 +292,12 @@ export function DocumentCard({ doc }: DocumentCardProps) {
                 lineHeight: 1,
               }}
             >
-              {doc.amount != null ? `£${doc.amount}` : '—'}
+              {doc.amount != null
+                ? new Intl.NumberFormat('en-GB', {
+                    style: 'currency',
+                    currency: 'GBP',
+                  }).format(doc.amount)
+                : '—'}
             </span>
             <ArrowRight size={16} strokeWidth={1.75} />
           </div>

@@ -3,7 +3,18 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { exportToPDFAdvanced } from '@/lib/utils/exportUtils';
-import { Shield, ShieldAlert, ShieldCheck, ShieldX, Upload, ChevronDown, ChevronUp, HelpCircle, Building2, FileText } from 'lucide-react';
+import {
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+  ShieldX,
+  Upload,
+  ChevronDown,
+  ChevronUp,
+  HelpCircle,
+  Building2,
+  FileText,
+} from 'lucide-react';
 import {
   CERT_LABELS,
   CERT_DESCRIPTIONS,
@@ -15,7 +26,11 @@ import {
 
 // Types live in `./compliance-types.ts` (Slice 4 added room link).
 // Types live in `./compliance-types.ts` (Slice 4 added room link).
-import type { PropertyWithCompliance, ComplianceSummary } from './compliance-types';
+import type {
+  PropertyWithCompliance,
+  ComplianceSummary,
+} from './compliance-types';
+import { ApplicabilityForm } from './ApplicabilityForm';
 import { CertificateFormModal } from './CertificateFormModal';
 import { RenewalButton } from './RenewalButton';
 
@@ -130,6 +145,12 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
         </div>
       )}
 
+      <p className='mb-4 text-sm text-slate-600'>
+        Applicability depends on the property and its use. Record your
+        assessment below; these records are not a legal compliance
+        certification. {summary.unassessedCount || 0} categories have not been
+        assessed.
+      </p>
       {/* Summary Cards */}
       {isMintEditorial ? (
         <div
@@ -176,8 +197,8 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
             <div className='sub'>
               <span>
                 {summary.expiredCount + summary.missingCount > 0
-                  ? 'action required'
-                  : "you're covered"}
+                  ? 'review applicable records'
+                  : 'no recorded overdue items'}
               </span>
             </div>
           </div>
@@ -265,7 +286,7 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
                     {badge.label}
                   </span>
                   <span className='text-sm text-gray-500'>
-                    {property.certCount}/5
+                    {property.certCount} records
                   </span>
                   {isExpanded ? (
                     <ChevronUp className='w-5 h-5 text-gray-400' />
@@ -362,7 +383,7 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
                           ) : (
                             <div className='mt-2'>
                               <p className='text-xs text-gray-400 mb-3'>
-                                No certificate uploaded
+                                No certificate record
                               </p>
                               <button
                                 type='button'
@@ -376,10 +397,17 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
                                 className='inline-flex items-center gap-1 text-xs px-2 py-1 bg-white rounded border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors'
                               >
                                 <Upload className='w-3 h-3' />
-                                Upload Certificate
+                                Add certificate record
                               </button>
                             </div>
                           )}
+                          <ApplicabilityForm
+                            key={`${property.id}:${type}:${property.applicability?.[type]?.decision}:${property.applicability?.[type]?.reason}`}
+                            propertyId={property.id}
+                            certType={type}
+                            label={label}
+                            initial={property.applicability?.[type]}
+                          />
                         </div>
                       );
                     })}

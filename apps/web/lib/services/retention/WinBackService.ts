@@ -1,5 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { escapeHtml } from '@/lib/email-templates';
+import { winBackRecipient } from './win-back-eligibility';
 import { EmailService } from '@/lib/email-service';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
@@ -12,7 +14,8 @@ const WIN_BACK_COOLDOWN_DAYS = 30;
 /** Max users to re-engage per cron run (split across roles) */
 const BATCH_LIMIT = 100;
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+const BASE_URL =
+  process.env.NEXT_PUBLIC_APP_URL || 'https://www.mintenance.co.uk';
 
 type UserRole = 'homeowner' | 'contractor';
 
@@ -45,20 +48,21 @@ function buildHomeownerHtml(firstName: string): string {
     </div>
     <div class="content">
       <p>Hi ${firstName},</p>
-      <p>It's been a while since we last saw you on Mintenance. Your home deserves the best care — and we're here to help.</p>
+      <p>If you have maintenance to arrange, you can return to Mintenance at any time. Your home deserves the best care — and we're here to help.</p>
       <div class="highlight">
         <strong>What's waiting for you:</strong>
         <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-          <li>Verified, rated contractors ready to quote</li>
-          <li>Secure escrow payments — you only pay when satisfied</li>
+          <li>Compare contractor profiles and reviews</li>
+          <li>Sign the agreement, fund Protected Payment, then review completed work before release checks</li>
           <li>Photo proof of completed work before release</li>
         </ul>
       </div>
-      <p>Post a job in under 2 minutes and get your first bids within hours.</p>
+      <p>Post a job when you are ready. Bids depend on local contractor availability.</p>
       <a href="${BASE_URL}/jobs/create" class="button">Post a Job Now</a>
     </div>
     <div class="footer">
       <p>© ${new Date().getFullYear()} Mintenance. All rights reserved.</p>
+      <p><a href="${BASE_URL}/settings/notifications">Manage email preferences</a></p>
       <p>Questions? <a href="mailto:support@mintenance.co.uk" style="color: #6b7280;">support@mintenance.co.uk</a></p>
     </div>
   </div>
@@ -84,16 +88,16 @@ function buildContractorHtml(firstName: string): string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>Jobs Are Waiting for You</h1>
+      <h1>Return to Mintenance</h1>
     </div>
     <div class="content">
       <p>Hi ${firstName},</p>
-      <p>We noticed you haven't been on Mintenance recently. Homeowners in your area are actively posting jobs that match your skills — don't let them go to your competitors.</p>
+      <p>Browse current opportunities when you are available for work. Listings depend on your location and trade.</p>
       <div class="highlight">
         <strong>Why come back now?</strong>
         <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-          <li>New jobs posted daily across all categories</li>
-          <li>Secure escrow — guaranteed payment for completed work</li>
+          <li>Browse current job listings</li>
+          <li>Protected Payment, subject to the agreement and release checks</li>
           <li>Build your reputation with verified reviews</li>
         </ul>
       </div>
@@ -102,6 +106,7 @@ function buildContractorHtml(firstName: string): string {
     </div>
     <div class="footer">
       <p>© ${new Date().getFullYear()} Mintenance. All rights reserved.</p>
+      <p><a href="${BASE_URL}/settings/notifications">Manage email preferences</a></p>
       <p>Questions? <a href="mailto:support@mintenance.co.uk" style="color: #6b7280;">support@mintenance.co.uk</a></p>
     </div>
   </div>
@@ -134,7 +139,10 @@ export class WinBackService {
       .in('role', ['homeowner', 'contractor'])
       .is('deleted_at', null)
       .eq('onboarding_completed', true)
+      .lte('created_at', dormancyCutoff)
       .not('email', 'is', null)
+      .contains('notification_preferences', { marketingEmails: true })
+      .order('id')
       .limit(BATCH_LIMIT * 6);
 
     if (profileError || !profiles || profiles.length === 0) {
@@ -144,26 +152,36 @@ export class WinBackService {
       return [];
     }
 
-    const contractorIds = profiles.filter((p) => p.role === 'contractor').map((p) => p.id);
-    const homeownerIds = profiles.filter((p) => p.role === 'homeowner').map((p) => p.id);
+    const contractorIds = profiles
+      .filter((p) => p.role === 'contractor')
+      .map((p) => p.id);
+    const homeownerIds = profiles
+      .filter((p) => p.role === 'homeowner')
+      .map((p) => p.id);
 
     // Step 2a: Contractors active in last 30 days (placed a bid)
-    const { data: activeBids } = await serverSupabase
+    const { data: activeBids, error: bidsError } = await serverSupabase
       .from('bids')
       .select('contractor_id')
       .in('contractor_id', contractorIds)
       .gte('created_at', dormancyCutoff);
 
-    const activeContractorIds = new Set((activeBids || []).map((b) => b.contractor_id));
+    if (bidsError) throw new Error('Win-back bid activity unavailable');
+    const activeContractorIds = new Set(
+      (activeBids || []).map((b) => b.contractor_id)
+    );
 
     // Step 2b: Homeowners active in last 30 days (posted a job)
-    const { data: activeJobs } = await serverSupabase
+    const { data: activeJobs, error: jobsError } = await serverSupabase
       .from('jobs')
       .select('homeowner_id')
       .in('homeowner_id', homeownerIds)
       .gte('created_at', dormancyCutoff);
 
-    const activeHomeownerIds = new Set((activeJobs || []).map((j) => j.homeowner_id));
+    if (jobsError) throw new Error('Win-back job activity unavailable');
+    const activeHomeownerIds = new Set(
+      (activeJobs || []).map((j) => j.homeowner_id)
+    );
 
     // Step 3: Build dormant list
     const dormant = profiles.filter((p) => {
@@ -179,24 +197,38 @@ export class WinBackService {
     const dormantIds = dormant.map((u) => u.id);
 
     // Step 4: Dedup — skip users already re-engaged within the cooldown window
-    const { data: recentWinBacks } = await serverSupabase
+    const { data: recentWinBacks, error: historyError } = await serverSupabase
       .from('notifications')
       .select('user_id')
       .in('user_id', dormantIds)
       .eq('type', 'win_back')
       .gte('created_at', cooldownCutoff);
 
-    const recentlyContactedIds = new Set((recentWinBacks || []).map((n) => n.user_id));
+    if (historyError) throw new Error('Win-back history unavailable');
+    const recentlyContactedIds = new Set(
+      (recentWinBacks || []).map((n) => n.user_id)
+    );
 
-    return dormant
-      .filter((u) => !recentlyContactedIds.has(u.id))
-      .slice(0, BATCH_LIMIT) as DormantUser[];
+    const { data: attempts, error: attemptsError } = await serverSupabase
+      .from('win_back_deliveries')
+      .select('user_id')
+      .in('user_id', dormantIds)
+      .gte('attempted_at', cooldownCutoff);
+    if (attemptsError) throw new Error('Win-back delivery history unavailable');
+    for (const attempt of attempts || [])
+      recentlyContactedIds.add(attempt.user_id);
+    return dormant.filter(
+      (u) => !recentlyContactedIds.has(u.id)
+    ) as DormantUser[];
   }
 
   /**
    * Send win-back email + in-app notification to all qualifying dormant users.
    */
-  static async sendWinBackCampaign(): Promise<{ sent: number; failed: number }> {
+  static async sendWinBackCampaign(): Promise<{
+    sent: number;
+    failed: number;
+  }> {
     const dormantUsers = await this.getDormantUsers();
 
     if (dormantUsers.length === 0) {
@@ -207,9 +239,20 @@ export class WinBackService {
     let sent = 0;
     let failed = 0;
 
+    let attempted = 0;
     for (const user of dormantUsers) {
+      if (attempted >= BATCH_LIMIT) break;
       try {
-        const firstName = user.first_name || 'there';
+        const recipient = await winBackRecipient(user.id);
+        if (!recipient) continue;
+        const { data: claimed, error: claimError } = await serverSupabase.rpc(
+          'claim_win_back_delivery',
+          { p_user_id: user.id }
+        );
+        if (claimError) throw new Error('Win-back delivery claim unavailable');
+        if (!claimed) continue;
+        attempted++;
+        const firstName = escapeHtml(user.first_name || 'there');
         const isContractor = user.role === 'contractor';
 
         const html = isContractor
@@ -217,36 +260,54 @@ export class WinBackService {
           : buildHomeownerHtml(firstName);
 
         const subject = isContractor
-          ? 'Jobs are waiting — come back to Mintenance'
+          ? 'Explore current opportunities on Mintenance'
           : 'We miss you — your home deserves the best care';
 
         const actionUrl = isContractor ? '/contractor/jobs' : '/jobs/create';
 
         // Email channel (returns false on failure, does not throw)
-        await EmailService.sendEmail({ to: user.email, subject, html });
-
-        // In-app channel — the notification row is also our dedup record.
-        // If this returns null the dedup write failed; count as failed to prevent duplicate emails.
-        const notifId = await NotificationService.createNotification({
-          userId: user.id,
-          title: isContractor ? 'Jobs are waiting for your bids' : 'We miss you on Mintenance!',
-          message: isContractor
-            ? 'New jobs in your area are ready for quotes. Come back and start bidding.'
-            : 'Post a job today and get quotes from verified contractors within hours.',
-          type: 'win_back',
-          actionUrl,
+        const delivered = await EmailService.sendEmail({
+          to: recipient,
+          subject,
+          html,
         });
-
-        if (notifId === null) {
-          logger.error('Win-back dedup write failed — marking as failed to prevent duplicate email', {
+        const { error: checkpointError } = await serverSupabase
+          .from('win_back_deliveries')
+          .update({ status: delivered ? 'sent' : 'failed' })
+          .eq('user_id', user.id)
+          .eq('status', 'sending');
+        if (checkpointError)
+          logger.error('Win-back delivery checkpoint requires review', {
             service: 'win-back',
             userId: user.id,
           });
+        if (!delivered) {
           failed++;
           continue;
         }
-
         sent++;
+
+        // Optional in-app copy. The durable delivery claim prevents repeat email sends.
+        try {
+          await NotificationService.createNotification({
+            userId: user.id,
+            title: isContractor
+              ? 'Explore current job listings'
+              : 'We miss you on Mintenance!',
+            message: isContractor
+              ? 'Check current listings for work that suits your trade and availability.'
+              : 'Post a job when you need help and compare any bids that arrive.',
+            type: 'win_back',
+            inAppOnly: true,
+            actionUrl,
+          });
+        } catch (error) {
+          logger.warn('Win-back email accepted, but in-app copy failed', {
+            service: 'win-back',
+            userId: user.id,
+            error,
+          });
+        }
       } catch (error) {
         logger.error('Failed to send win-back to user', error, {
           service: 'win-back',

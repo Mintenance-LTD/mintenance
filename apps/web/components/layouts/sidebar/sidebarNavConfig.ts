@@ -148,7 +148,7 @@ export function useNavSections(
             icon: Bell,
             badge: 'notifications',
           },
-          { label: 'Profile', href: '/profile', icon: User, shortcut: 'g p' },
+
           {
             label: 'Subscription',
             href: '/homeowner/subscription',

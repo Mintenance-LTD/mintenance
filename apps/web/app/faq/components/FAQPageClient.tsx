@@ -113,7 +113,7 @@ export default function FAQPageClient() {
       id: '3',
       question: 'How long does contractor approval take?',
       answer:
-        "Our admin team aims to review new contractor submissions within 2–3 business days. The review covers the business details, declared credentials, and insurance information collected at signup. You'll receive an email once the review is complete and you can start bidding on jobs.",
+        "Our admin team reviews new contractor submissions; timing depends on the information needed and review workload. The review covers the business details, declared credentials, and insurance information collected at signup. You'll receive an email once the review is complete and you can start bidding on jobs.",
       category: 'getting-started',
     },
 
@@ -122,7 +122,7 @@ export default function FAQPageClient() {
       id: '4',
       question: 'How does payment protection work?',
       answer:
-        "We use Protected Payment to guard both parties. When a homeowner accepts a bid, the payment is held securely by Mintenance. The contractor completes the work, the homeowner approves it, and then funds are released to the contractor. If there's a dispute, our team helps resolve it fairly.",
+        "We use Protected Payment to guard both parties. After accepting a bid, both parties sign the contract. The homeowner then separately funds Protected Payment before work starts, subject to the agreement and cancellation requirements. The contractor completes the work, the homeowner approves it, and then funds are released to the contractor. If there's a dispute, our team helps resolve it fairly.",
       category: 'payments',
     },
     {
@@ -143,7 +143,7 @@ export default function FAQPageClient() {
       id: '7',
       question: 'How long does it take to receive payment as a contractor?',
       answer:
-        'Once the homeowner approves the completed work, funds are typically released to your account within 2-3 business days. You can track all payment statuses in your contractor dashboard under the "Payments" section.',
+        'After work approval, release remains subject to the applicable waiting period and final checks. Transfer to the contractor and arrival in their bank account are separate steps; check the payment and payout statuses for updates. You can track all payment statuses in your contractor dashboard under the "Payments" section.',
       category: 'payments',
     },
     {
@@ -159,14 +159,14 @@ export default function FAQPageClient() {
       id: '9',
       question: 'How do I post a job as a homeowner?',
       answer:
-        'Click "Post a Job", describe your project in detail, add photos if available, set your budget and timeline, and specify your location. Our AI will then match you with suitable contractors in your area who can bid on your project.',
+        'Click "Post a Job", describe your project in detail, add at least one photo as required by the job form, set your budget and timeline, and specify your location. Our AI will then match you with suitable contractors in your area who can bid on your project.',
       category: 'jobs',
     },
     {
       id: '10',
       question: 'How many bids will I receive?',
       answer:
-        "This varies based on job type, location, and budget. Most jobs receive 3-8 bids within 48 hours. Popular job types in busy areas may get more. You can always adjust your job description or budget if you're not getting enough interest.",
+        "This varies based on job type, location, and budget. Bid numbers and response times depend on local contractor availability; neither is guaranteed. You can always adjust your job description or budget if you're not getting enough interest.",
       category: 'jobs',
     },
     {
@@ -187,7 +187,7 @@ export default function FAQPageClient() {
       id: '13',
       question: 'What happens after I accept a bid?',
       answer:
-        'Once you accept a bid, the payment is held with Protected Payment, you can message the contractor directly, schedule a site visit or start date, and track project progress through milestones. The contractor will keep you updated throughout the project.',
+        'Accepting a bid opens messaging and contract preparation. Both parties sign, then the homeowner separately funds Protected Payment. Confirm visit times and the work schedule before work begins. The contractor will keep you updated throughout the project.',
       category: 'jobs',
     },
 
@@ -210,7 +210,7 @@ export default function FAQPageClient() {
       id: '16',
       question: "What if a contractor doesn't show up?",
       answer:
-        "This is rare, but if it happens, contact us immediately. We'll reach out to the contractor and if they can't provide a valid reason, we'll help you find a replacement quickly. Protected Payment keeps your money held until work begins, so you're fully covered.",
+        'This is rare, but if it happens, contact us immediately. We can review the situation with both parties and explain the available next steps. Check the current payment status and contact support to discuss cancellation or a refund.',
       category: 'safety',
     },
     {

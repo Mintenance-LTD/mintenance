@@ -435,6 +435,7 @@ export function MintEditorialJobDetail({
 
           {selectedBid ? (
             <HowPaymentWorksCard
+              escrowStatus={lifecycle.escrowStatus}
               escrowDisplay={formatGBP(selectedBid.amount)}
               contractorFirstName={
                 selectedBid.contractor.first_name ||
@@ -444,6 +445,7 @@ export function MintEditorialJobDetail({
             />
           ) : (
             <HowPaymentWorksCard
+              escrowStatus={lifecycle.escrowStatus}
               escrowDisplay={
                 job.budget > 0 ? formatGBP(job.budget) : 'your funds'
               }

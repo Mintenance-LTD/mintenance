@@ -48,6 +48,8 @@ try {
   await db.connect();
   connected = true;
   await testBetaJourney(db);
+  const { testReview48 } = await import('./review48-cases.mjs');
+  await testReview48(db, config);
 } finally {
   if (connected) await db.end();
   if (started) await cluster.stop();

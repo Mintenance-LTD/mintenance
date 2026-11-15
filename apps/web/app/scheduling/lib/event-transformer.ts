@@ -4,6 +4,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { ukDateTimeToISO } from '@/lib/scheduling/uk-date-time';
 import type {
   CalendarEvent,
   JobWithContract,
@@ -85,10 +86,14 @@ export function transformJobsToEvents(
       // Add start date event
       jobEvents.push({
         id: `appointment-${job.id}`,
-        title: scheduledTitle,
+        title: `${scheduledTitle} (Job start)`,
         date: scheduledDate.toISOString(),
         type: 'job',
         status: job.status,
+        href:
+          userRole === 'contractor'
+            ? `/contractor/jobs/${job.id}`
+            : `/jobs/${job.id}`,
       });
 
       // If there's an end date, also add it (optional - for multi-day jobs)
@@ -100,13 +105,21 @@ export function transformJobsToEvents(
         ) {
           jobEvents.push({
             id: `appointment-end-${job.id}`,
-            title: `${scheduledTitle} (End)`,
+            title: `${scheduledTitle} (Job end)`,
             date: endDate.toISOString(),
             type: 'job',
             status: job.status,
+            href:
+              userRole === 'contractor'
+                ? `/contractor/jobs/${job.id}`
+                : `/jobs/${job.id}`,
           });
         }
-      } else if (contract?.end_date && isContractAccepted) {
+      } else if (
+        !job.scheduled_start_date &&
+        contract?.end_date &&
+        isContractAccepted
+      ) {
         const endDate = new Date(contract.end_date);
         if (
           !isNaN(endDate.getTime()) &&
@@ -114,10 +127,14 @@ export function transformJobsToEvents(
         ) {
           jobEvents.push({
             id: `appointment-end-${job.id}`,
-            title: `${scheduledTitle} (End)`,
+            title: `${scheduledTitle} (Job end)`,
             date: endDate.toISOString(),
             type: 'job',
             status: job.status,
+            href:
+              userRole === 'contractor'
+                ? `/contractor/jobs/${job.id}`
+                : `/jobs/${job.id}`,
           });
         }
       }
@@ -125,6 +142,47 @@ export function transformJobsToEvents(
   });
 
   return jobEvents;
+}
+
+/** Persisted UK visit slots, not inferred from contract dates or default hours. */
+export function transformAppointmentsToEvents(
+  appointments: Array<{
+    id: string;
+    title: string;
+    job_id: string | null;
+    appointment_date: string;
+    start_time: string;
+    end_time: string;
+    status: string;
+  }>,
+  role: 'homeowner' | 'contractor'
+): CalendarEvent[] {
+  return appointments.flatMap((appointment) => {
+    if (!['scheduled', 'confirmed', 'rescheduled'].includes(appointment.status))
+      return [];
+    try {
+      const date = ukDateTimeToISO(
+        `${appointment.appointment_date}T${appointment.start_time.slice(0, 5)}`
+      );
+      return [
+        {
+          id: `visit-${appointment.id}`,
+          title: `${appointment.title} (Visit ${appointment.start_time.slice(0, 5)}–${appointment.end_time.slice(0, 5)} UK)`,
+          date,
+          type: 'inspection' as const,
+          status: appointment.status,
+          href: appointment.job_id
+            ? `${role === 'contractor' ? '/contractor' : ''}/jobs/${appointment.job_id}`
+            : '/appointments',
+        },
+      ];
+    } catch {
+      logger.warn('Invalid visit time omitted from calendar', {
+        appointmentId: appointment.id,
+      });
+      return [];
+    }
+  });
 }
 
 /**

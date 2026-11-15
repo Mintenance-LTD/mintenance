@@ -383,9 +383,11 @@ export function AccessSharedCard({
 }
 
 export function HowPaymentWorksCard({
+  escrowStatus,
   escrowDisplay,
   contractorFirstName,
 }: {
+  escrowStatus?: string | null;
   escrowDisplay: string;
   contractorFirstName: string;
 }) {
@@ -400,9 +402,11 @@ export function HowPaymentWorksCard({
   // steps so the numbered sequence reads as the actual flow.
   const steps = [
     'You accept the bid · contract drafted to sign',
-    `Both sign · ${escrowDisplay} held in escrow before work starts`,
+    `Both sign · you then fund ${escrowDisplay} into Protected Payment before work starts`,
     'Work is done · you confirm completion in-app',
-    `We release payment to ${contractorFirstName} after the cooling-off period and final checks`,
+    ['released', 'completed'].includes(escrowStatus || '')
+      ? `Payment has been released to ${contractorFirstName}. Bank arrival is tracked separately.`
+      : `Payment release to ${contractorFirstName} depends on the current agreement and release checks`,
   ];
   return (
     <div
@@ -488,6 +492,7 @@ export function QuickActionsList({
       label: 'Change scheduled date',
       Icon: Calendar,
       href: `/jobs/${jobId}/schedule`,
+      hide: status !== 'assigned',
     },
     {
       label: 'Withdraw job posting',
