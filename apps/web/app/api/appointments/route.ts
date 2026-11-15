@@ -41,7 +41,7 @@ export const GET = withApiHandler(
       .select(
         `
         id, title, appointment_date, start_time, end_time,
-        location_type, location_address, status, notes, client_id, client_response,
+        location_type, location_address, video_call_url, status, notes, client_id, client_response,
         contractor:profiles!contractor_id(id, first_name, last_name),
         client:profiles!client_id(id, first_name, last_name),
         job:jobs!job_id(id, title, status)
@@ -125,6 +125,7 @@ export const GET = withApiHandler(
           time: apt.start_time,
           endTime: apt.end_time,
           locationType: apt.location_type,
+          videoCallUrl: apt.video_call_url,
           locationAddress: apt.location_address,
           status: apt.status,
           clientResponse: apt.client_response,

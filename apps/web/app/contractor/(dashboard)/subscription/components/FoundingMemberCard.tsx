@@ -77,8 +77,9 @@ export function FoundingMemberCard() {
             }}
           >
             <li>
-              <strong>5% platform fee</strong> per completed job (lowest rate on
-              the platform)
+              <strong>5% platform fee</strong> per completed job, with a 50p
+              minimum capped at the payment amount. Stripe processing is paid by
+              Mintenance.
             </li>
             <li>Unlimited jobs &amp; unlimited active jobs</li>
             <li>Priority support &amp; advanced analytics</li>

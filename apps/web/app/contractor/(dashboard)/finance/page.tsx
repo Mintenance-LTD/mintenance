@@ -1,5 +1,10 @@
 'use client';
 
+import { transformPayments } from './_components/transaction-data';
+import {
+  HELD_ESCROW_STATUSES,
+  type ContractorFinancialSummary,
+} from '@/lib/contractor/financial-summary';
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -12,63 +17,23 @@ import { RevenueChart } from './_components/RevenueChart';
 import { TransactionsTable } from './_components/TransactionsTable';
 import { BankAccountSection } from './_components/BankAccountSection';
 import { PricingModal } from './_components/PricingModal';
-import type { Transaction, EscrowTransaction } from './_components/types';
+import type { Transaction } from './_components/types';
 
-function transformPayments(payments: EscrowTransaction[]): Transaction[] {
-  return payments.map((p: EscrowTransaction) => {
-    let mappedStatus: Transaction['status'] = p.status;
-    if (p.status === 'released' || p.status === 'completed') {
-      mappedStatus = 'released';
-    } else if (p.status === 'held' || p.status === 'release_pending') {
-      mappedStatus = 'held';
-    } else if (p.status === 'pending') {
-      mappedStatus = 'pending';
-    } else if (p.status === 'refunded') {
-      mappedStatus = 'refunded';
-    }
-
-    const jobTitle = p.job?.title || 'Payment';
-    const clientName = p.payer
-      ? `${p.payer.first_name || ''} ${p.payer.last_name || ''}`.trim() ||
-        'Client'
-      : 'Unknown';
-
-    // Real fees are only stored once escrow is released. Before that we
-    // have no truthful breakdown, so we surface the gross amount and flag
-    // the fees as not-yet-finalized rather than fabricating a flat rate.
-    const feesFinalized = p.contractorPayout != null || p.platformFee != null;
-    const platformFee = p.platformFee ?? 0;
-    const processingFee = p.stripeProcessingFee ?? 0;
-    const amount = Number(p.amount) || 0;
-    const netAmount = feesFinalized
-      ? (p.contractorPayout ?? amount - platformFee)
-      : amount;
-
-    return {
-      id: p.id,
-      jobId: p.jobId || p.job_id || '',
-      jobTitle,
-      client: clientName,
-      amount,
-      status: mappedStatus,
-      date:
-        (mappedStatus === 'released' ? p.releasedAt : null) ||
-        p.createdAt ||
-        p.created_at ||
-        '',
-      platformFee,
-      processingFee,
-      netAmount,
-      feesFinalized,
-    };
-  });
-}
-
-async function fetchTransactions(): Promise<Transaction[]> {
-  const response = await fetch('/api/payments/history');
-  if (!response.ok) throw new Error('Failed to fetch');
-  const { payments } = await response.json();
-  return transformPayments(payments);
+async function fetchTransactions() {
+  const [history, summaryResponse] = await Promise.all([
+    fetch('/api/payments/history?limit=50&direction=received'),
+    fetch('/api/contractor/finance-summary'),
+  ]);
+  if (!history.ok || !summaryResponse.ok)
+    throw new Error('Failed to fetch finance');
+  const [{ payments }, summary] = await Promise.all([
+    history.json(),
+    summaryResponse.json() as Promise<ContractorFinancialSummary>,
+  ]);
+  return {
+    transactions: transformPayments(payments, summary.feeRate),
+    summary,
+  };
 }
 
 export default function ContractorFinancePage2025() {
@@ -81,17 +46,14 @@ export default function ContractorFinancePage2025() {
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
-  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>(
-    'month'
-  );
 
   const {
-    data: transactions = [],
+    data: financeData,
     isLoading: loading,
     error,
     refetch,
-  } = useQuery<Transaction[]>({
-    queryKey: ['contractor', 'finance', 'transactions'],
+  } = useQuery({
+    queryKey: ['contractor', user?.id, 'finance', 'transactions'],
     queryFn: fetchTransactions,
     enabled: !!user,
     meta: {
@@ -101,67 +63,16 @@ export default function ContractorFinancePage2025() {
     },
   });
 
-  // Calculate stats
-  const thisMonthRevenue = transactions
-    .filter((t) => {
-      const date = new Date(t.date);
-      const now = new Date();
-      return (
-        date.getMonth() === now.getMonth() &&
-        date.getFullYear() === now.getFullYear() &&
-        (t.status === 'released' || t.status === 'completed')
-      );
-    })
-    .reduce((sum, t) => sum + t.netAmount, 0);
-
-  const pendingPayouts = transactions
-    .filter((t) => t.status === 'held')
-    .reduce((sum, t) => sum + t.netAmount, 0);
-
-  const allTimeRevenue = transactions
-    .filter((t) => t.status === 'released' || t.status === 'completed')
-    .reduce((sum, t) => sum + t.netAmount, 0);
-
-  const releasedCount = transactions.filter(
-    (t) => t.status === 'released' || t.status === 'completed'
-  ).length;
-  const avgJobValue = releasedCount > 0 ? allTimeRevenue / releasedCount : 0;
-
-  // Generate revenue chart data (last 6 months)
-  const revenueChartData = useMemo(() => {
-    const months = [];
-    const now = new Date();
-
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthName = date.toLocaleDateString('en-GB', { month: 'short' });
-
-      const revenue = transactions
-        .filter((t) => {
-          const tDate = new Date(t.date);
-          return (
-            tDate.getMonth() === date.getMonth() &&
-            tDate.getFullYear() === date.getFullYear() &&
-            (t.status === 'released' || t.status === 'completed')
-          );
-        })
-        .reduce((sum, t) => sum + t.netAmount, 0);
-
-      months.push({
-        month: monthName,
-        revenue: Math.round(revenue * 100) / 100,
-        jobs: transactions.filter((t) => {
-          const tDate = new Date(t.date);
-          return (
-            tDate.getMonth() === date.getMonth() &&
-            tDate.getFullYear() === date.getFullYear()
-          );
-        }).length,
-      });
-    }
-
-    return months;
-  }, [transactions]);
+  const transactions = useMemo(
+    () => financeData?.transactions ?? [],
+    [financeData]
+  );
+  const summary = financeData?.summary;
+  const thisMonthRevenue = summary?.thisMonthRevenue ?? 0;
+  const pendingPayouts = summary?.pendingPayouts ?? 0;
+  const allTimeRevenue = summary?.allTimeRevenue ?? 0;
+  const avgJobValue = summary?.avgJobValue ?? 0;
+  const revenueChartData = summary?.monthlyRevenue ?? [];
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((transaction) => {
@@ -175,7 +86,9 @@ export default function ContractorFinancePage2025() {
         filterStatus === 'all' ||
         (filterStatus === 'pending' &&
           (transaction.status === 'pending' ||
-            transaction.status === 'held')) ||
+            (HELD_ESCROW_STATUSES as readonly string[]).includes(
+              transaction.status
+            ))) ||
         (filterStatus === 'completed' &&
           (transaction.status === 'completed' ||
             transaction.status === 'released'));
@@ -202,7 +115,7 @@ export default function ContractorFinancePage2025() {
       'Client',
       'Gross (£)',
       'Platform fee (£)',
-      'Processing fee (£)',
+      'Platform-paid processing fee (£)',
       'Net payout (£)',
       'Fees finalized',
       'Status',
@@ -376,11 +289,7 @@ export default function ContractorFinancePage2025() {
             avgJobValue={avgJobValue}
           />
 
-          <RevenueChart
-            revenueChartData={revenueChartData}
-            timeRange={timeRange}
-            setTimeRange={setTimeRange}
-          />
+          <RevenueChart revenueChartData={revenueChartData} />
 
           <TransactionsTable
             filteredTransactions={filteredTransactions}

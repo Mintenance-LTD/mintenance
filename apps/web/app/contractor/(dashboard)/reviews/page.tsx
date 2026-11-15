@@ -225,7 +225,9 @@ export default function ContractorReviewsPage() {
             <div className='flex flex-col justify-center'>
               <div className='flex items-baseline gap-2 mb-4'>
                 <span className='text-6xl font-bold text-gray-900'>
-                  {stats.averageRating.toFixed(1)}
+                  {stats.totalReviews > 0
+                    ? stats.averageRating.toFixed(1)
+                    : 'No ratings in this period'}
                 </span>
                 <Star className='w-10 h-10 fill-amber-400 text-amber-400' />
               </div>

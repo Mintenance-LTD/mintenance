@@ -14,7 +14,12 @@ interface AgentSettings {
   enableAutomation: boolean;
   automationLevel: 'none' | 'minimal' | 'moderate' | 'full';
   agents: {
-    [key: string]: { enabled: boolean; confidence: number; lastAction?: string; lastActionTime?: string; };
+    [key: string]: {
+      enabled: boolean;
+      confidence: number;
+      lastAction?: string;
+      lastActionTime?: string;
+    };
   };
 }
 
@@ -23,13 +28,13 @@ const DEFAULT_SETTINGS: AgentSettings = {
   automationLevel: 'none',
   agents: {
     BidAcceptanceAgent: { enabled: false, confidence: 0.85 },
-    PricingAgent: { enabled: false, confidence: 0.90 },
-    SchedulingAgent: { enabled: false, confidence: 0.80 },
+    PricingAgent: { enabled: false, confidence: 0.9 },
+    SchedulingAgent: { enabled: false, confidence: 0.8 },
     NotificationAgent: { enabled: true, confidence: 0.95 },
     DisputeResolutionAgent: { enabled: false, confidence: 0.75 },
     JobStatusAgent: { enabled: false, confidence: 0.88 },
-    PredictiveAgent: { enabled: false, confidence: 0.70 }
-  }
+    PredictiveAgent: { enabled: false, confidence: 0.7 },
+  },
 };
 
 const agentSettingSchema = z.object({
@@ -55,7 +60,9 @@ export const GET = withApiHandler({}, async (_req, { user }) => {
     .single();
 
   if (fetchError || !existingSettings) {
-    logger.info('Returning default agent settings for user', { userId: user.id });
+    logger.info('Returning default agent settings for user', {
+      userId: user.id,
+    });
     return NextResponse.json(DEFAULT_SETTINGS);
   }
 
@@ -69,7 +76,7 @@ export const GET = withApiHandler({}, async (_req, { user }) => {
   const settings: AgentSettings = {
     enableAutomation: existingSettings.enable_automation ?? false,
     automationLevel: existingSettings.automation_level ?? 'none',
-    agents: existingSettings.agents ?? {}
+    agents: existingSettings.agents ?? {},
   };
 
   if (recentActions) {
@@ -82,6 +89,10 @@ export const GET = withApiHandler({}, async (_req, { user }) => {
     }
   }
 
+  settings.agents = {
+    ...settings.agents,
+    BidAcceptanceAgent: { enabled: false, confidence: 0 },
+  };
   return NextResponse.json(settings);
 });
 
@@ -93,12 +104,16 @@ export const POST = withApiHandler({}, async (req, { user }) => {
     throw new BadRequestError('Invalid settings format');
   }
 
+  settings.agents = {
+    ...settings.agents,
+    BidAcceptanceAgent: { enabled: false, confidence: 0 },
+  };
   const dbSettings = {
     user_id: user.id,
     enable_automation: settings.enableAutomation,
     automation_level: settings.automationLevel,
     agents: settings.agents,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
 
   const { error: upsertError } = await serverSupabase
@@ -110,34 +125,53 @@ export const POST = withApiHandler({}, async (req, { user }) => {
     throw new InternalServerError('Failed to save settings');
   }
 
-  const bidAcceptEnabled = settings.enableAutomation && settings.agents?.BidAcceptanceAgent?.enabled === true;
+  const bidAcceptEnabled = false;
   const { error: preferencesError } = await serverSupabase
     .from('automation_preferences')
     .upsert(
-    { user_id: user.id, auto_accept_bids: bidAcceptEnabled, updated_at: new Date().toISOString() },
-    { onConflict: 'user_id' }
-  );
+      {
+        user_id: user.id,
+        auto_accept_bids: bidAcceptEnabled,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
 
   if (preferencesError) {
-    logger.error('Failed to synchronize automation preferences', preferencesError);
+    logger.error(
+      'Failed to synchronize automation preferences',
+      preferencesError
+    );
     throw new InternalServerError('Failed to save automation preferences');
   }
 
-  const { error: auditError } = await serverSupabase.from('agent_decisions').insert({
-    user_id: user.id, agent_name: 'SettingsManager',
-    context: { previous_level: settings.automationLevel },
-    decision: 'settings_updated',
-    action: `Automation ${settings.enableAutomation ? 'enabled' : 'disabled'}`,
-    confidence: 1.0,
-    metadata: { automation_level: settings.automationLevel, enabled_agents: Object.entries(settings.agents).filter(([_, config]) => config.enabled).map(([name]) => name) }
-  });
+  const { error: auditError } = await serverSupabase
+    .from('agent_decisions')
+    .insert({
+      user_id: user.id,
+      agent_name: 'SettingsManager',
+      context: { previous_level: settings.automationLevel },
+      decision: 'settings_updated',
+      action: `Automation ${settings.enableAutomation ? 'enabled' : 'disabled'}`,
+      confidence: 1.0,
+      metadata: {
+        automation_level: settings.automationLevel,
+        enabled_agents: Object.entries(settings.agents)
+          .filter(([_, config]) => config.enabled)
+          .map(([name]) => name),
+      },
+    });
 
   if (auditError) {
     logger.error('Failed to record agent settings audit event', auditError);
     throw new InternalServerError('Failed to record settings change');
   }
 
-  logger.info('Agent settings updated', { userId: user.id, automationEnabled: settings.enableAutomation, level: settings.automationLevel });
+  logger.info('Agent settings updated', {
+    userId: user.id,
+    automationEnabled: settings.enableAutomation,
+    level: settings.automationLevel,
+  });
 
   return NextResponse.json({ success: true });
 });

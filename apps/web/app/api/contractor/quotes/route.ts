@@ -1,3 +1,4 @@
+import { effectiveQuoteStatus } from '@/lib/quotes/quote-status';
 import { collectRows } from '@/lib/db/collect-rows';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -36,7 +37,7 @@ export const GET = withApiHandler(
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
-    let query = serverSupabase
+    const query = serverSupabase
       .from('current_contractor_quotes')
       .select(
         'id, title, client_name, client_email, status, total_amount, subtotal, tax_amount, quote_date, created_at, updated_at, sent_at, valid_until, line_items, quote_number, template_id'
@@ -45,9 +46,37 @@ export const GET = withApiHandler(
       .order('created_at', { ascending: false })
       .order('id');
 
-    if (status && status !== 'all') query = query.eq('status', status);
-
-    const quotes = await collectRows((from, to) => query.range(from, to));
+    const storedQuotes = await collectRows((from, to) => query.range(from, to));
+    const bidStatuses = new Map<string, string>();
+    for (let offset = 0; offset < storedQuotes.length; offset += 500) {
+      const ids = storedQuotes.slice(offset, offset + 500).map((q) => q.id);
+      const bids = await collectRows<{ quote_id: string; status: string }>(
+        (from, to) =>
+          serverSupabase
+            .from('bids')
+            .select('quote_id, status')
+            .eq('contractor_id', user.id)
+            .in('quote_id', ids)
+            .order('updated_at')
+            .order('id')
+            .range(from, to)
+      );
+      for (const bid of bids)
+        if (bidStatuses.get(bid.quote_id) !== 'accepted')
+          bidStatuses.set(bid.quote_id, bid.status);
+    }
+    const quotes = storedQuotes
+      .map((q) => ({
+        ...q,
+        status: effectiveQuoteStatus(q, bidStatuses.get(q.id)),
+      }))
+      .filter(
+        (q) =>
+          !status ||
+          status === 'all' ||
+          q.status === status ||
+          (status === 'declined' && q.status === 'rejected')
+      );
 
     const transformedQuotes =
       quotes?.map((quote) => ({
@@ -59,15 +88,7 @@ export const GET = withApiHandler(
         amount: parseFloat(quote.total_amount || '0'),
         createdDate: quote.quote_date || quote.created_at,
         sentDate: quote.sent_at,
-        expiryDate:
-          quote.valid_until ||
-          (quote.quote_date
-            ? new Date(
-                new Date(quote.quote_date).getTime() + 30 * 24 * 60 * 60 * 1000
-              )
-                .toISOString()
-                .split('T')[0]
-            : null),
+        expiryDate: quote.valid_until ?? null,
         items: Array.isArray(quote.line_items) ? quote.line_items.length : 0,
         quoteNumber: quote.quote_number,
         templateUsed: quote.template_id,
@@ -96,6 +117,7 @@ export const GET = withApiHandler(
       total: quotes?.length || 0,
       draft: quotes?.filter((q) => q.status === 'draft').length || 0,
       sent: quotes?.filter((q) => q.status === 'sent').length || 0,
+      expired: quotes.filter((q) => q.status === 'expired').length,
       accepted: quotes?.filter((q) => q.status === 'accepted').length || 0,
       declined:
         quotes?.filter(

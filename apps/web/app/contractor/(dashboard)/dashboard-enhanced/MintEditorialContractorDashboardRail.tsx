@@ -60,10 +60,10 @@ export function MintEditorialContractorDashboardRail({
   // tip on every render.
   const aiTip =
     metrics.completionRate >= 90 && metrics.completedJobs >= 3
-      ? `Your completion rate is ${Math.round(metrics.completionRate)}% — top 20% of contractors. Homeowners notice.`
+      ? `Your completion rate is ${Math.round(metrics.completionRate)}%. Keep customers informed as work progresses.`
       : metrics.pendingEscrowAmount > 0
-        ? `${formatMoney(metrics.pendingEscrowAmount)} ready to release once you confirm completion on ${metrics.pendingEscrowCount} ${metrics.pendingEscrowCount === 1 ? 'job' : 'jobs'}.`
-        : 'Keep your response time under an hour during business hours — homeowners who get a fast reply book 3× more often.';
+        ? `${formatMoney(metrics.pendingEscrowAmount)} held in escrow before fees. ${PAYMENT_RELEASE_COPY.summary} ${PAYMENT_RELEASE_COPY.details}`
+        : 'Reply promptly during business hours and give homeowners a clear next step.';
 
   return (
     <div className='col' style={{ gap: 18 }}>
@@ -209,7 +209,8 @@ export function MintEditorialContractorDashboardRail({
           >
             {formatMoney(metrics.pendingEscrowAmount)} is held in escrow across{' '}
             {metrics.pendingEscrowCount} active{' '}
-            {metrics.pendingEscrowCount === 1 ? 'job' : 'jobs'}. {PAYMENT_RELEASE_COPY.details}
+            {metrics.pendingEscrowCount === 1 ? 'job' : 'jobs'}.{' '}
+            {PAYMENT_RELEASE_COPY.details}
           </p>
         </div>
       ) : (

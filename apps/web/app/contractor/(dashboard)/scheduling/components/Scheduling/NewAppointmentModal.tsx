@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapPin, Video, Phone, X } from 'lucide-react';
 import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
 import type { NewAppointmentForm } from './types';
@@ -18,12 +18,32 @@ export function NewAppointmentModal({
   onClose,
   onSave,
 }: NewAppointmentModalProps) {
+  const [jobs, setJobs] = useState<
+    Array<{ id: string; title: string; homeowner_name?: string }>
+  >([]);
+  const [jobError, setJobError] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/api/contractor/my-jobs?status=all', { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error('Jobs unavailable');
+        return response.json();
+      })
+      .then((data) => setJobs(data.jobs ?? []))
+      .catch(() => {
+        if (!controller.signal.aborted) setJobError(true);
+      });
+    return () => controller.abort();
+  }, []);
   return (
     <div
       className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50'
       onClick={onClose}
     >
       <MotionDiv
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='new-appointment-title'
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         onClick={(e) => e.stopPropagation()}
@@ -31,10 +51,14 @@ export function NewAppointmentModal({
       >
         <div className='p-8'>
           <div className='flex items-center justify-between mb-6'>
-            <h3 className='text-2xl font-bold text-slate-900'>
+            <h3
+              id='new-appointment-title'
+              className='text-2xl font-bold text-slate-900'
+            >
               New Appointment
             </h3>
             <button
+              aria-label='Close appointment form'
               onClick={onClose}
               className='p-2 hover:bg-slate-100 rounded-xl transition-colors'
             >
@@ -43,6 +67,56 @@ export function NewAppointmentModal({
           </div>
 
           <div className='space-y-6'>
+            <div>
+              <label htmlFor='appointment-job'>
+                Linked job / client (optional)
+              </label>
+              <select
+                id='appointment-job'
+                className='w-full border rounded-xl p-3'
+                value={newAppt.jobId || ''}
+                onChange={(event) => {
+                  const job = jobs.find(
+                    (item) => item.id === event.target.value
+                  );
+                  setNewAppt({
+                    ...newAppt,
+                    jobId: job?.id,
+                    clientName: job?.homeowner_name || '',
+                  });
+                }}
+              >
+                <option value=''>Standalone appointment</option>
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title}
+                    {job.homeowner_name ? ' — ' + job.homeowner_name : ''}
+                  </option>
+                ))}
+              </select>
+              {jobError && (
+                <p role='alert'>
+                  Jobs could not be loaded. Close and reopen this form to retry.
+                </p>
+              )}
+            </div>
+            {newAppt.locationType === 'remote' && (
+              <div>
+                <label htmlFor='appointment-video'>
+                  Video call link (HTTPS)
+                </label>
+                <input
+                  id='appointment-video'
+                  type='url'
+                  className='w-full border rounded-xl p-3'
+                  placeholder='https://…'
+                  value={newAppt.videoCallUrl || ''}
+                  onChange={(event) =>
+                    setNewAppt({ ...newAppt, videoCallUrl: event.target.value })
+                  }
+                />
+              </div>
+            )}
             <div>
               <label className='block text-sm font-semibold text-slate-900 mb-2'>
                 Title *

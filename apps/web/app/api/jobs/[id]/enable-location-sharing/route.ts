@@ -1,3 +1,4 @@
+import { assertJobTravelAllowed } from '@/lib/contractor/job-travel';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
@@ -39,6 +40,8 @@ export const POST = withApiHandler(
         'Not authorized to enable location sharing for this job'
       );
     }
+
+    if (enabled) await assertJobTravelAllowed(jobId, user.id);
 
     if (!enabled) {
       await serverSupabase

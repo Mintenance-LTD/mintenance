@@ -9,6 +9,9 @@ interface Category {
 }
 
 interface ExpenseFormModalProps {
+  jobId: string;
+  jobs: Array<{ id: string; title: string; homeowner_name?: string }>;
+  onJobIdChange: (id: string) => void;
   onClose: () => void;
   onSubmit: () => void;
   submitting: boolean;
@@ -33,6 +36,9 @@ interface ExpenseFormModalProps {
 }
 
 export function ExpenseFormModal({
+  jobId,
+  jobs,
+  onJobIdChange,
   onClose,
   onSubmit,
   submitting,
@@ -86,6 +92,32 @@ export function ExpenseFormModal({
             />
           </div>
 
+          <div>
+            <label
+              htmlFor='expense-job'
+              className='block text-sm font-medium mb-2'
+            >
+              Linked job / client (optional)
+            </label>
+            <select
+              id='expense-job'
+              value={jobId}
+              onChange={(event) => onJobIdChange(event.target.value)}
+              className='w-full border rounded-lg p-3'
+            >
+              <option value=''>General business expense</option>
+              {jobs.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.title}
+                  {job.homeowner_name ? ' — ' + job.homeowner_name : ''}
+                </option>
+              ))}
+            </select>
+            <p className='text-sm text-gray-500'>
+              Billable is a bookkeeping flag; it does not charge the customer or
+              add this expense to an invoice.
+            </p>
+          </div>
           <div className='grid grid-cols-2 gap-4'>
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-1'>

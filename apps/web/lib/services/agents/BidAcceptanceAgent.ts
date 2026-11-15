@@ -1,3 +1,4 @@
+import { AUTOMATIC_BID_ACCEPTANCE_ENABLED } from './bid-acceptance-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getContractorRatingStats } from '@/lib/services/reviews/contractor-rating';
@@ -17,9 +18,10 @@ export class BidAcceptanceAgent {
     bidId: string,
     jobId: string,
     homeownerId: string,
-    context?: AgentContext
+    _context?: AgentContext
   ): Promise<AgentResult | null> {
     try {
+      if (!AUTOMATIC_BID_ACCEPTANCE_ENABLED) return null;
       // Check if homeowner has auto-accept enabled
       const autoAcceptEnabled = await AutomationPreferencesService.isEnabled(
         homeownerId,

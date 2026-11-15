@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMoney } from '@/lib/utils/currency';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import {
@@ -233,6 +234,7 @@ export default function MarketingToolsPage() {
             icon={<Briefcase className='w-6 h-6 text-teal-600' />}
             iconBg='bg-teal-100'
             label='Jobs Completed'
+            sub='All-time assigned jobs'
             value={stats.completedJobs}
           />
           <StatCard
@@ -251,14 +253,14 @@ export default function MarketingToolsPage() {
             iconBg='bg-blue-100'
             label='Bid Win Rate'
             value={`${stats.winRate}%`}
-            sub={`${stats.acceptedBids} won of ${stats.totalBids} bids`}
+            sub={`${stats.acceptedBids} accepted / ${stats.totalBids} bids submitted in the last 6 months`}
           />
           <StatCard
             icon={<PoundSterling className='w-6 h-6 text-emerald-600' />}
             iconBg='bg-emerald-100'
             label='Total Earned'
-            value={`\u00A3${(stats.totalEarnings / 100).toLocaleString('en-GB', { minimumFractionDigits: 0 })}`}
-            sub='Escrow released'
+            value={formatMoney(stats.totalEarnings)}
+            sub='All-time net from released payments'
           />
         </MotionDiv>
 
@@ -361,10 +363,9 @@ export default function MarketingToolsPage() {
                   }}
                 />
                 <b>Mint AI · </b>
-                You need {reviewsToTopRated} more review
-                {reviewsToTopRated === 1 ? '' : 's'} to unlock the &ldquo;Top
-                rated&rdquo; badge in your area — boosts your bid visibility by
-                ~38%.
+                Ask customers for honest reviews after completed jobs. Reviews
+                help customers assess your work; they do not guarantee
+                visibility or new jobs.
               </div>
             )}
           </MotionDiv>

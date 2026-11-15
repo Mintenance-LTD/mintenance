@@ -1,4 +1,5 @@
 'use client';
+import { appointmentTime } from '@/lib/scheduling/appointment-display';
 
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -60,16 +61,32 @@ export function CalendarView({
             </button>
           </div>
           <div className='flex items-center gap-2'>
-            <button type='button' aria-label={`Previous ${view}`} onClick={() => setSelectedDate(moveCalendar(selectedDate, view, -1))} className='p-2 hover:bg-slate-100 rounded-xl transition-all'>
+            <button
+              type='button'
+              aria-label={`Previous ${view}`}
+              onClick={() =>
+                setSelectedDate(moveCalendar(selectedDate, view, -1))
+              }
+              className='p-2 hover:bg-slate-100 rounded-xl transition-all'
+            >
               <ChevronLeft className='w-5 h-5 text-slate-700' />
             </button>
             <span className='px-4 py-2 text-sm font-semibold text-slate-900 min-w-[140px] text-center'>
-              {view === 'week' ? `${days[0].toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${days[6].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : selectedDate.toLocaleDateString('en-GB', {
-                month: 'long',
-                year: 'numeric',
-              })}
+              {view === 'week'
+                ? `${days[0].toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${days[6].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                : selectedDate.toLocaleDateString('en-GB', {
+                    month: 'long',
+                    year: 'numeric',
+                  })}
             </span>
-            <button type='button' aria-label={`Next ${view}`} onClick={() => setSelectedDate(moveCalendar(selectedDate, view, 1))} className='p-2 hover:bg-slate-100 rounded-xl transition-all'>
+            <button
+              type='button'
+              aria-label={`Next ${view}`}
+              onClick={() =>
+                setSelectedDate(moveCalendar(selectedDate, view, 1))
+              }
+              className='p-2 hover:bg-slate-100 rounded-xl transition-all'
+            >
               <ChevronRight className='w-5 h-5 text-slate-700' />
             </button>
           </div>
@@ -89,13 +106,20 @@ export function CalendarView({
         {days.map((currentDate) => {
           const key = dateKey(currentDate);
           const isToday = key === todayKey;
-          const isCurrentMonth = currentDate.getMonth() === selectedDate.getMonth();
-          const dayAppointments = appointments.filter(apt => apt.date === key && apt.status !== 'cancelled');
+          const isCurrentMonth =
+            currentDate.getMonth() === selectedDate.getMonth();
+          const dayAppointments = appointments.filter(
+            (apt) => apt.date === key && apt.status !== 'cancelled'
+          );
 
           return (
             <div
               key={key}
-              aria-label={currentDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+              aria-label={currentDate.toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
               className='min-h-[90px] p-2 bg-white'
             >
               <div
@@ -116,7 +140,11 @@ export function CalendarView({
                       key={apt.id}
                       className='px-2 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs truncate font-medium border border-teal-100'
                     >
-                      <span title={`${apt.time} · ${apt.title}`}>{apt.time} · {apt.title}</span>
+                      <span
+                        title={`${appointmentTime(apt.time, apt.endTime)} · ${apt.title}`}
+                      >
+                        {appointmentTime(apt.time, apt.endTime)} · {apt.title}
+                      </span>
                     </div>
                   ))}
                   {dayAppointments.length > 2 && (

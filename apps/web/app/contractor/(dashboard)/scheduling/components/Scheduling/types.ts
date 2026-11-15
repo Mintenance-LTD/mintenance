@@ -4,6 +4,8 @@ export interface Appointment {
   client: string;
   date: string;
   time: string;
+  endTime?: string;
+  videoCallUrl?: string;
   duration: string;
   location?: string;
   type: 'onsite' | 'remote' | 'phone';
@@ -17,6 +19,8 @@ export interface AppointmentApiResponse {
   client: string;
   date: string;
   time?: string;
+  endTime?: string;
+  videoCallUrl?: string;
   duration?: string;
   location?: string;
   type?: 'onsite' | 'remote' | 'phone';
@@ -42,6 +46,8 @@ export interface AvailabilitySlot {
 }
 
 export interface NewAppointmentForm {
+  jobId?: string;
+  videoCallUrl?: string;
   title: string;
   clientName: string;
   clientEmail: string;

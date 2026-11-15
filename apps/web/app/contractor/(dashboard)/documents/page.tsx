@@ -309,11 +309,10 @@ export default function DocumentManagementPage() {
   // View document inline in a new tab (PDFs render in browser; images/docs open)
   const handleView = (doc: Document) => {
     if (doc.is_contract && doc.contract_id) {
-      window.open(
-        `/api/contracts/${doc.contract_id}/pdf`,
-        '_blank',
-        'noopener,noreferrer'
-      );
+      const preview = document.createElement('a');
+      preview.href = `/api/contracts/${doc.contract_id}/pdf`;
+      preview.click();
+      toast('Opening contract PDF…');
       return;
     }
     const documentUrl = safeNavigationUrl(doc.public_url);

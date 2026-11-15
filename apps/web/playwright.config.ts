@@ -109,7 +109,8 @@ export default defineConfig({
     // Contractor authenticated tests
     {
       name: 'contractor',
-      testMatch: /authenticated-contractor-flow\.spec\.ts/,
+      testMatch:
+        /authenticated-contractor-flow\.spec\.ts|contractor-review34\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // Load pre-authenticated contractor state

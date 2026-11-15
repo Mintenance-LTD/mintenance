@@ -1,3 +1,5 @@
+import { loadContractorFinancialSummary } from '@/lib/contractor/load-financial-summary';
+import { collectRows } from '@/lib/db/collect-rows';
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -19,7 +21,8 @@ export const GET = withApiHandler(
       reviewCountResult,
       bidsResult,
       jobsResult,
-      earningsResult,
+      financialSummary,
+      completedCountResult,
       messagesResult,
       postsResult,
     ] = await Promise.all([
@@ -47,31 +50,34 @@ export const GET = withApiHandler(
         .eq('reviewee_id', userId),
 
       // All bids (for win rate + monthly trend)
-      supabase
-        .from('bids')
-        .select('id, status, amount, created_at')
-        .eq('contractor_id', userId)
-        .gte('created_at', sixMonthsISO),
+      collectRows((from, to) =>
+        supabase
+          .from('bids')
+          .select('id, status, amount, created_at')
+          .eq('contractor_id', userId)
+          .gte('created_at', sixMonthsISO)
+          .order('id')
+          .range(from, to)
+      ).then((data) => ({ data, error: null })),
 
       // Jobs assigned to this contractor — limited to last 6 months for trend/breakdown.
       // completed_jobs count comes from profile.total_jobs_completed (all-time) instead.
+      collectRows((from, to) =>
+        supabase
+          .from('jobs')
+          .select('id, category, status, completed_at, created_at')
+          .eq('contractor_id', userId)
+          .gte('created_at', sixMonthsISO)
+          .order('id')
+          .range(from, to)
+      ).then((data) => ({ data, error: null })),
+
+      loadContractorFinancialSummary(userId),
       supabase
         .from('jobs')
-        .select('id, category, status, completed_at, created_at')
+        .select('id', { count: 'exact', head: true })
         .eq('contractor_id', userId)
-        .gte('created_at', sixMonthsISO)
-        .limit(200),
-
-      // Escrow earnings — cap at 500 rows; sum is all we need.
-      // Note: contractor is the payee in escrow_transactions; table has no contractor_id column.
-      // Terminal released escrows are stored as 'completed' (the release paths
-      // write 'completed', not 'released'); match both so earnings aren't £0.
-      supabase
-        .from('escrow_transactions')
-        .select('amount, updated_at')
-        .eq('payee_id', userId)
-        .in('status', ['released', 'completed'])
-        .limit(500),
+        .eq('status', 'completed'),
 
       // Message threads where contractor is a participant (inquiries proxy)
       // Note: messages table uses thread-based model; no recipient_id column.
@@ -89,12 +95,24 @@ export const GET = withApiHandler(
         .limit(10),
     ]);
 
+    if (
+      [
+        profileResult,
+        reviewsResult,
+        reviewCountResult,
+        bidsResult,
+        jobsResult,
+        messagesResult,
+        postsResult,
+        completedCountResult,
+      ].some((result) => result.error)
+    )
+      throw new Error('Marketing data could not be loaded. Please retry.');
     const profile = profileResult.data;
     const reviews = reviewsResult.data || [];
     const totalReviews = reviewCountResult.count || 0;
     const bids = bidsResult.data || [];
     const jobs = jobsResult.data || [];
-    const earnings = earningsResult.data || [];
     const totalMessages = messagesResult.count || 0;
     const posts = postsResult.data || [];
 
@@ -105,10 +123,10 @@ export const GET = withApiHandler(
       totalBids > 0 ? Math.round((acceptedBids / totalBids) * 100) : 0;
 
     // Calculate earnings
-    const totalEarnings = earnings.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const totalEarnings = financialSummary.allTimeRevenue;
 
     // Calculate completed jobs
-    const completedJobs = jobs.filter((j) => j.status === 'completed').length;
+    const completedJobs = completedCountResult.count ?? 0;
 
     // Monthly trend (last 6 months)
     const monthlyTrend = buildMonthlyTrend(bids, jobs);
@@ -129,7 +147,7 @@ export const GET = withApiHandler(
         skills: profile?.skills || [],
       },
       stats: {
-        completedJobs: profile?.total_jobs_completed || completedJobs,
+        completedJobs,
         totalBids,
         acceptedBids,
         winRate,

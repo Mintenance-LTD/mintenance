@@ -195,7 +195,7 @@ export const GET = withApiHandler(
       // Get jobs where contractor has placed a bid
       const { data: bids, error: bidsError } = await serverSupabase
         .from('bids')
-        .select('job_id')
+        .select('job_id, status')
         .eq('contractor_id', user.id);
 
       if (bidsError) {
@@ -228,7 +228,10 @@ export const GET = withApiHandler(
 
       return NextResponse.json({
         jobs: await attachSignedPhotos(
-          (jobs || []).map((job: JobApiResponse) => transformJob(job)),
+          (jobs || []).map((job: JobApiResponse) => ({
+            ...transformJob(job),
+            bid_status: bids?.find((b) => b.job_id === job.id)?.status,
+          })),
           user.id
         ),
       });

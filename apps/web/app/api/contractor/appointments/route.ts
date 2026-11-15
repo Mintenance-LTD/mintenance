@@ -37,6 +37,16 @@ const createAppointmentSchema = z
       .optional()
       .or(emptyToUndefined),
     locationAddress: z.string().max(500).optional().or(emptyToUndefined),
+    videoCallUrl: z
+      .string()
+      .url()
+      .max(2000)
+      .refine(
+        (value) => value.startsWith('https://'),
+        'Use an HTTPS video link'
+      )
+      .optional()
+      .or(emptyToUndefined),
     jobId: z.string().uuid().optional().or(emptyToUndefined),
     notes: z.string().max(5000).optional().or(emptyToUndefined),
   })
@@ -56,10 +66,23 @@ export const GET = withApiHandler(
     const daysAhead = Number(searchParams.get('daysAhead') || '30');
     const rangeStart = searchParams.get('startDate');
     const rangeEnd = searchParams.get('endDate');
-    const validDate = (value: string | null): value is string => !!value && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
-    if (!Number.isInteger(daysAhead) || daysAhead < 1 || daysAhead > 366) throw new BadRequestError('Invalid daysAhead');
-    if ((rangeStart || rangeEnd) && (!validDate(rangeStart) || !validDate(rangeEnd) || rangeEnd < rangeStart || Date.parse(rangeEnd) - Date.parse(rangeStart) > 62 * 86400000)) {
-      throw new BadRequestError('Provide a valid date range of at most 63 days');
+    const validDate = (value: string | null): value is string =>
+      !!value &&
+      /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+      Number.isFinite(Date.parse(value)) &&
+      new Date(value).toISOString().slice(0, 10) === value;
+    if (!Number.isInteger(daysAhead) || daysAhead < 1 || daysAhead > 366)
+      throw new BadRequestError('Invalid daysAhead');
+    if (
+      (rangeStart || rangeEnd) &&
+      (!validDate(rangeStart) ||
+        !validDate(rangeEnd) ||
+        rangeEnd < rangeStart ||
+        Date.parse(rangeEnd) - Date.parse(rangeStart) > 62 * 86400000)
+    ) {
+      throw new BadRequestError(
+        'Provide a valid date range of at most 63 days'
+      );
     }
     const status = searchParams.get('status');
 
@@ -86,12 +109,16 @@ export const GET = withApiHandler(
       `
       )
       .eq('contractor_id', user.id)
-      .gte('appointment_date', rangeStart || new Date().toISOString().split('T')[0])
+      .gte(
+        'appointment_date',
+        rangeStart || new Date().toISOString().split('T')[0]
+      )
       .lte(
         'appointment_date',
-        rangeEnd || new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split('T')[0]
+        rangeEnd ||
+          new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0]
       )
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
@@ -115,7 +142,11 @@ export const GET = withApiHandler(
       appointments
         ?.filter((apt) => {
           const job = Array.isArray(apt.job) ? apt.job[0] : apt.job;
-          return !!rangeStart || !job || !['completed', 'cancelled'].includes(job.status);
+          return (
+            !!rangeStart ||
+            !job ||
+            !['completed', 'cancelled'].includes(job.status)
+          );
         })
         .map((apt) => ({
           id: apt.id,
@@ -130,7 +161,8 @@ export const GET = withApiHandler(
           endTime: apt.end_time,
           duration: apt.duration_minutes ? `${apt.duration_minutes}m` : '60m',
           location: apt.location_address,
-          type: apt.location_type,
+          type: apt.location_type === 'video' ? 'remote' : apt.location_type,
+          videoCallUrl: apt.video_call_url,
           status: apt.status,
           jobTitle: apt.job?.title,
           jobId: apt.job?.id,
@@ -161,6 +193,7 @@ export const POST = withApiHandler(
       endTime,
       locationType,
       locationAddress,
+      videoCallUrl,
       jobId,
       notes,
     } = validation.data;
@@ -234,7 +267,10 @@ export const POST = withApiHandler(
         appointment_date: appointmentDate,
         start_time: startTime,
         end_time: endTime,
-        location_type: locationType || 'onsite',
+        location_type:
+          locationType === 'remote' ? 'video' : locationType || 'onsite',
+        video_call_url:
+          locationType === 'remote' ? (videoCallUrl ?? null) : null,
         location_address: locationAddress,
         job_id: jobId || null,
         notes,

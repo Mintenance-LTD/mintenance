@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import {
+  formatJobBudget,
+  requirementLines,
+} from '@/lib/contractor/bid-details';
 import { useRouter } from 'next/navigation';
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 import toast from 'react-hot-toast';
@@ -25,7 +29,7 @@ interface Job {
   id: string;
   title: string;
   description?: string;
-  budget: string | number;
+  budget?: string | number | null;
   status: string;
   category?: string;
   created_at: string;
@@ -40,7 +44,7 @@ interface Job {
     start_date?: string;
     end_date?: string;
   };
-  requirements?: string[];
+  requirements?: unknown;
   photos?: string[];
   view_count?: number;
   bid_count?: number;
@@ -50,8 +54,8 @@ interface Job {
 interface Homeowner {
   id: string;
   first_name: string;
-  last_name: string;
-  email: string;
+  last_name?: string;
+  email?: string;
   profile_image_url?: string;
   created_at: string;
   phone?: string;
@@ -301,11 +305,7 @@ export function JobDetailsClient({
                     <div className='col' style={{ gap: 2 }}>
                       <span className='t-meta'>Budget</span>
                       <span style={{ fontSize: 16, fontWeight: 600 }}>
-                        {formatCurrency(
-                          typeof job.budget === 'number'
-                            ? job.budget
-                            : parseFloat(String(job.budget))
-                        )}
+                        {formatJobBudget(job.budget)}
                       </span>
                     </div>
                   </div>
@@ -410,11 +410,7 @@ export function JobDetailsClient({
                     <div>
                       <p className='text-sm text-gray-600'>Budget</p>
                       <p className='text-lg font-semibold text-gray-900'>
-                        {formatCurrency(
-                          typeof job.budget === 'number'
-                            ? job.budget
-                            : parseFloat(String(job.budget))
-                        )}
+                        {formatJobBudget(job.budget)}
                       </p>
                     </div>
                   </div>
@@ -470,62 +466,20 @@ export function JobDetailsClient({
                 {job.description || 'No description provided.'}
               </p>
 
-              {job.requirements && (
+              {requirementLines(job.requirements).length > 0 && (
                 <div className='mt-6'>
                   <h3 className='text-lg font-semibold text-gray-900 mb-3'>
                     Requirements
                   </h3>
                   <ul className='space-y-2'>
-                    {(() => {
-                      const requirements = job.requirements;
-
-                      // Safe check for split function - avoid using 'in' operator on primitives
-                      const hasSplitMethod = (val: unknown): val is string => {
-                        if (typeof val !== 'string') return false;
-                        try {
-                          // Test if split method exists and is callable
-                          const testString = String(val);
-                          return typeof testString.split === 'function';
-                        } catch {
-                          return false;
-                        }
-                      };
-
-                      // Handle various types of requirements
-                      if (Array.isArray(requirements)) {
-                        return requirements;
-                      }
-
-                      if (hasSplitMethod(requirements)) {
-                        try {
-                          // Double-check before calling split - convert to string to ensure it's a primitive
-                          const reqString = String(requirements);
-                          if (typeof reqString.split === 'function') {
-                            return reqString
-                              .split('\n')
-                              .filter((req: string) => req.trim() !== '');
-                          } else {
-                            // Fallback if split somehow doesn't exist
-                            return [reqString];
-                          }
-                        } catch {
-                          // Fallback: treat as single requirement
-                          return [String(requirements)];
-                        }
-                      }
-
-                      // Handle other types (object, number, etc.)
-                      if (requirements !== null && requirements !== undefined) {
-                        return [String(requirements)];
-                      }
-
-                      return [];
-                    })().map((req: string, index: number) => (
-                      <li key={index} className='flex items-start gap-2'>
-                        <CheckCircle className='w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5' />
-                        <span className='text-gray-700'>{req}</span>
-                      </li>
-                    ))}
+                    {requirementLines(job.requirements).map(
+                      (req: string, index: number) => (
+                        <li key={index} className='flex items-start gap-2'>
+                          <CheckCircle className='w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5' />
+                          <span className='text-gray-700'>{req}</span>
+                        </li>
+                      )
+                    )}
                   </ul>
                 </div>
               )}

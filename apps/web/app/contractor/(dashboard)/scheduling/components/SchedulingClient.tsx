@@ -41,7 +41,9 @@ export function SchedulingClient(_props: SchedulingClientProps) {
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingAvailability, setSavingAvailability] = useState(false);
-  const [calendarAppointments, setCalendarAppointments] = useState<Appointment[]>([]);
+  const [calendarAppointments, setCalendarAppointments] = useState<
+    Appointment[]
+  >([]);
   const [calendarError, setCalendarError] = useState(false);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarRefresh, setCalendarRefresh] = useState(0);
@@ -53,14 +55,23 @@ export function SchedulingClient(_props: SchedulingClientProps) {
     const controller = new AbortController();
     setCalendarLoading(true);
     setCalendarError(false);
-    fetch('/api/contractor/appointments?' + new URLSearchParams({ startDate: rangeStart, endDate: rangeEnd }), { signal: controller.signal })
-      .then(async response => {
+    fetch(
+      '/api/contractor/appointments?' +
+        new URLSearchParams({ startDate: rangeStart, endDate: rangeEnd }),
+      { signal: controller.signal }
+    )
+      .then(async (response) => {
         if (!response.ok) throw new Error('Calendar unavailable');
         const data = await response.json();
-        if (!controller.signal.aborted) setCalendarAppointments(data.appointments ?? []);
+        if (!controller.signal.aborted)
+          setCalendarAppointments(data.appointments ?? []);
       })
-      .catch(() => { if (!controller.signal.aborted) setCalendarError(true); })
-      .finally(() => { if (!controller.signal.aborted) setCalendarLoading(false); });
+      .catch(() => {
+        if (!controller.signal.aborted) setCalendarError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCalendarLoading(false);
+      });
     return () => controller.abort();
   }, [rangeStart, rangeEnd, calendarRefresh]);
 
@@ -88,6 +99,7 @@ export function SchedulingClient(_props: SchedulingClientProps) {
       setNewAppt((prev) => ({
         ...prev,
         clientName: clientName,
+        jobId: jobId || undefined,
         title: jobId ? `Meeting for Job #${jobId}` : 'Project Discussion',
         notes: jobId ? `Related to Job #${jobId}` : '',
       }));
@@ -109,6 +121,8 @@ export function SchedulingClient(_props: SchedulingClientProps) {
         client: apt.client,
         date: apt.date,
         time: apt.time?.substring(0, 5) || '09:00', // Format HH:MM
+        endTime: apt.endTime,
+        videoCallUrl: apt.videoCallUrl,
         duration: apt.duration || '60m',
         location: apt.location,
         type: apt.type || 'onsite',
@@ -129,7 +143,7 @@ export function SchedulingClient(_props: SchedulingClientProps) {
       if (!response.ok) throw new Error('Failed to fetch stats');
 
       const data = await response.json();
-      setStats(prev => data.stats || prev);
+      setStats((prev) => data.stats || prev);
     } catch (error) {
       logger.error('Error loading stats:', error, { service: 'ui' });
       throw error;
@@ -182,10 +196,14 @@ export function SchedulingClient(_props: SchedulingClientProps) {
     } catch (error) {
       logger.error('Error loading data', error, { service: 'ui' });
       toast.error('Failed to load scheduling data');
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }, [loadAppointments, loadStats, loadAvailability]);
 
-  useEffect(() => { void loadData(); }, [loadData]);
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const handleNewAppointment = () => {
     setShowNewAppointmentModal(true);
@@ -246,7 +264,7 @@ export function SchedulingClient(_props: SchedulingClientProps) {
 
       // Reload data
       await loadData();
-      setCalendarRefresh(value => value + 1);
+      setCalendarRefresh((value) => value + 1);
     } catch (error: unknown) {
       logger.error('Error creating appointment:', error, { service: 'ui' });
       toast.error(
@@ -309,8 +327,17 @@ export function SchedulingClient(_props: SchedulingClientProps) {
 
   const today = new Date();
   const todayDate = dateKey(today);
-  const nextWeek = dateKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7));
-  const upcomingAppointments = appointments.filter(apt => apt.date >= todayDate && apt.date < nextWeek && ['scheduled', 'confirmed'].includes(apt.status)).slice(0, 5);
+  const nextWeek = dateKey(
+    new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7)
+  );
+  const upcomingAppointments = appointments
+    .filter(
+      (apt) =>
+        apt.date >= todayDate &&
+        apt.date < nextWeek &&
+        ['scheduled', 'confirmed'].includes(apt.status)
+    )
+    .slice(0, 5);
 
   // Hydration-safe theme detection — hooks must run unconditionally
   // so this lives above the loading early-return.
@@ -394,14 +421,26 @@ export function SchedulingClient(_props: SchedulingClientProps) {
 
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
           <div className='lg:col-span-2'>
-            {calendarError && <p role='alert'>Calendar could not be loaded. <button type='button' onClick={() => setCalendarRefresh(value => value + 1)}>Retry</button></p>}
+            {calendarError && (
+              <p role='alert'>
+                Calendar could not be loaded.{' '}
+                <button
+                  type='button'
+                  onClick={() => setCalendarRefresh((value) => value + 1)}
+                >
+                  Retry
+                </button>
+              </p>
+            )}
             {calendarLoading && <p role='status'>Loading appointments…</p>}
             <CalendarView
               selectedDate={selectedDate}
               view={view}
               setView={setView}
               setSelectedDate={setSelectedDate}
-              appointments={calendarError || calendarLoading ? [] : calendarAppointments}
+              appointments={
+                calendarError || calendarLoading ? [] : calendarAppointments
+              }
             />
           </div>
           <div>

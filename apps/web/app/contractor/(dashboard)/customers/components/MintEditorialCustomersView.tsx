@@ -290,7 +290,11 @@ export function MintEditorialCustomersView({
           sub={kpis.newLeads === 0 ? undefined : 'pending first reply'}
         />
         <KpiTile label='Quotes out' value={kpis.quotesOut.toString()} />
-        <KpiTile label='Active jobs' value={kpis.activeJobs.toString()} />
+        <KpiTile
+          label='Active jobs'
+          value={kpis.activeJobs.toString()}
+          sub='All current customer relationships; assigned or in progress'
+        />
         <KpiTile
           label='Pipeline value'
           value={formatCurrency(kpis.pipelineValue)}

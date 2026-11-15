@@ -62,9 +62,11 @@ export function useQuotesData() {
 
   const stats = useMemo(() => {
     const total = quotes.length;
-    const pending = quotes.filter((q) => q.status === 'sent').length;
+    const pending = quotes.filter((q) =>
+      ['sent', 'viewed'].includes(q.status)
+    ).length;
     const pendingAmount = quotes
-      .filter((q) => q.status === 'sent')
+      .filter((q) => ['sent', 'viewed'].includes(q.status))
       .reduce((sum, q) => sum + q.amount, 0);
     const accepted = quotes.filter((q) => q.status === 'accepted').length;
     const acceptedAmount = quotes
@@ -88,6 +90,7 @@ export function useQuotesData() {
       filtered = filtered.filter(
         (q) =>
           q.status === activeFilter ||
+          (activeFilter === 'sent' && q.status === 'viewed') ||
           (activeFilter === 'declined' && q.status === 'rejected')
       );
     }
@@ -104,6 +107,11 @@ export function useQuotesData() {
   }, [quotes, activeFilter, searchQuery]);
 
   const filterTabs: { value: FilterTab; label: string; count: number }[] = [
+    {
+      value: 'expired',
+      label: 'Expired',
+      count: quotes.filter((q) => q.status === 'expired').length,
+    },
     { value: 'all', label: 'All Quotes', count: quotes.length },
     {
       value: 'draft',
@@ -113,7 +121,7 @@ export function useQuotesData() {
     {
       value: 'sent',
       label: 'Sent',
-      count: quotes.filter((q) => q.status === 'sent').length,
+      count: quotes.filter((q) => ['sent', 'viewed'].includes(q.status)).length,
     },
     {
       value: 'accepted',

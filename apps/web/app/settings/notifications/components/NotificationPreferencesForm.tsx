@@ -54,7 +54,10 @@ const KNOWN_TYPES: Array<{ type: string; label: string }> = [
   { type: 'contract_signed', label: 'Contract signed' },
   { type: 'payment', label: 'Payment updates' },
   { type: 'escrow_released', label: 'Payment released' },
-  { type: 'escrow_auto_released', label: 'Auto-release on 7-day timeout' },
+  {
+    type: 'escrow_auto_released',
+    label: 'Eligible automatic payment releases (after all release checks)',
+  },
   { type: 'job_completed', label: 'Job completed' },
   { type: 'property_followup', label: 'Property follow-ups assigned to you' },
   { type: 'changes_requested', label: 'Requested changes to work' },
@@ -193,7 +196,10 @@ export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
         <h2 className='text-lg font-semibold text-gray-900 mb-4'>Channels</h2>
         <p className='text-sm text-gray-500 mb-4'>
           These controls apply to supported push and in-app notifications. Email
-          delivery is not controlled by this form.
+          delivery is not controlled by this form. Event preferences choose
+          which in-app and push updates you receive; they do not grant marketing
+          email consent. Marketing emails also require your separate email
+          consent in account settings.
         </p>
         {(
           [
