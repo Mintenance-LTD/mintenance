@@ -95,6 +95,7 @@ const mockProperties = [
 describe('CreateJobPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     vi.mocked(useRouter).mockReturnValue(mockRouter);
     vi.mocked(useCurrentUser).mockReturnValue({
       user: mockUser,
@@ -201,7 +202,7 @@ describe('CreateJobPage', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Uploaded photos \(1\/10\)/)
+          screen.getByText(/Selected photos \(1\/10\)/)
         ).toBeInTheDocument();
       });
     });
@@ -223,7 +224,7 @@ describe('CreateJobPage', () => {
       });
       await user.click(removeButton);
 
-      expect(screen.queryByText(/Uploaded photos/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Selected photos/)).not.toBeInTheDocument();
     });
   });
 
@@ -383,6 +384,7 @@ describe('CreateJobPage', () => {
 describe('QuickJobPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     vi.mocked(useRouter).mockReturnValue(mockRouter);
     vi.mocked(useCurrentUser).mockReturnValue({
       user: mockUser,
@@ -514,7 +516,7 @@ async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
   await user.upload(input, file);
 
   await waitFor(() => {
-    expect(screen.getByText(/Uploaded photos/)).toBeInTheDocument();
+    expect(screen.getByText(/Selected photos/)).toBeInTheDocument();
   });
 
   const nextButton = screen.getByText('Next');
