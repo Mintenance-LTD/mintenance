@@ -75,7 +75,10 @@ test.describe('Authenticated Contractor Flow', () => {
     await expect(page.getByLabel(/subtotal before VAT/i)).toBeVisible({
       timeout: 5000,
     });
-    await expect(page.getByLabel(/VAT rate/i)).toBeVisible();
+    // The pricing breakdown appears once a positive subtotal is entered.
+    await page.getByLabel(/subtotal before VAT/i).fill('2');
+    await expect(page.getByLabel(/VAT rate/i)).toHaveValue('20');
+    await expect(page.getByText('Customer total: £2.40')).toBeVisible();
     await expect(page.getByLabel(/proposal description/i)).toBeVisible();
     await expect(page.getByLabel(/estimated duration/i)).toBeVisible();
     await expect(page.getByLabel(/proposed start date/i)).toBeVisible();
