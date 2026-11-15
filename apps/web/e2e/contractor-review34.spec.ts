@@ -129,10 +129,10 @@ test('contractor page finder includes finance and documents have an accessible s
   await expect(
     page.getByRole('textbox', { name: 'Search documents' })
   ).toBeVisible();
+  await page.locator('summary').filter({ hasText: 'Find a page' }).click();
   const finder = page.getByRole('searchbox', {
     name: 'Search contractor pages',
   });
-  await finder.locator('xpath=ancestor::details').locator('summary').click();
   await finder.fill('finance');
   await page
     .getByRole('navigation', { name: 'Matching pages' })

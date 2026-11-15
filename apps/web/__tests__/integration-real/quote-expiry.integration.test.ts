@@ -24,6 +24,7 @@ it('rejects an expired quote atomically and permits acceptance only after a vali
         contractor_id: contractor.id,
         title: 'Synthetic expiry check',
         client_name: 'Synthetic owner',
+        client_email: owner.email,
         total_amount: 200,
         status: 'sent',
         valid_until: '2020-01-01',
