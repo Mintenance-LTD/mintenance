@@ -20,7 +20,9 @@ test('finance, marketing and dashboard use the same contractor earnings definiti
   expect(marketing.stats.totalEarnings).toBe(summary.allTimeRevenue);
   await page.goto('/contractor/finance');
   await expect(
-    page.getByText('Lifetime net earnings', { exact: true })
+    page
+      .locator('#main-content')
+      .getByText('Lifetime net earnings', { exact: true })
   ).toBeVisible();
   // The payout-onboarding banner and Next's route announcer are valid alerts.
   await expect(
@@ -31,14 +33,20 @@ test('finance, marketing and dashboard use the same contractor earnings definiti
     currency: 'GBP',
   }).format(summary.allTimeRevenue);
   await expect(
-    page.locator('.kpi').filter({ hasText: 'Lifetime net earnings' })
+    page
+      .locator('#main-content .kpi')
+      .filter({ hasText: 'Lifetime net earnings' })
   ).toContainText(earnings);
   await page.goto('/contractor/dashboard-enhanced');
   await expect(
-    page.getByText('Lifetime net earnings', { exact: true })
+    page
+      .locator('#main-content')
+      .getByText('Lifetime net earnings', { exact: true })
   ).toBeVisible();
   await expect(
-    page.locator('.kpi').filter({ hasText: 'Lifetime net earnings' })
+    page
+      .locator('#main-content .kpi')
+      .filter({ hasText: 'Lifetime net earnings' })
   ).toContainText(earnings);
   expect(await establishSessionInContext(page, TEST_USERS.homeowner)).toBe(
     true
