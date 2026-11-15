@@ -269,7 +269,7 @@ export async function handlePaymentIntentSucceeded(
     // R6 #5 deferred: tell every stakeholder the job is funded. This is
     // where the 'payment_secured' canonical event fires — homeowner,
     // payer (landlord), contractor, and tenants (on rental properties)
-    // all learn escrow is held and work can start.
+    // all learn escrow is held; the contract still governs when work may start.
     try {
       const { notifyStakeholders } =
         await import('@/lib/services/notifications/JobStakeholderNotifier');
@@ -279,13 +279,13 @@ export async function handlePaymentIntentSucceeded(
         type: 'payment_secured',
         titleFor: (role) =>
           role === 'contractor'
-            ? 'Payment secured — you can start'
+            ? 'Payment secured — review start conditions'
             : role === 'tenant'
               ? 'Your repair is funded'
               : 'Payment secured in escrow',
         messageFor: (role) => {
           if (role === 'contractor')
-            return 'The homeowner has funded this job. Payment is held in escrow until you complete the work.';
+            return 'The homeowner has funded this job. Check the signed agreement, cancellation period and job start conditions before beginning work. Payment remains held until the release conditions are met.';
           if (role === 'tenant')
             return 'The contractor can now schedule a visit. You’ll get another update when they start on site.';
           if (role === 'payer')
@@ -346,7 +346,13 @@ export async function handlePaymentIntentFailed(
           homeownerId,
           'Payment Failed',
           'Your payment could not be processed. Please try again or use a different payment method.',
-          'payment_failed'
+          'payment_failed',
+          `/jobs/${jobId}`,
+          {
+            jobId,
+            paymentIntentId: paymentIntent.id,
+            paymentId: escrowTransaction.id,
+          }
         );
       }
     }
@@ -415,16 +421,25 @@ export async function handlePaymentIntentRequiresAction(
   });
 
   try {
+    const existing = await lookupEscrowForTerminalEvent(
+      paymentIntent.id,
+      'payment_intent.requires_action'
+    );
+    if (existing === 'blocked') return;
     const homeownerId =
-      paymentIntent.metadata?.payerId || paymentIntent.metadata?.homeownerId;
-    const jobId = paymentIntent.metadata?.jobId;
+      existing?.payer_id ||
+      paymentIntent.metadata?.payerId ||
+      paymentIntent.metadata?.homeownerId;
+    const jobId = existing?.job_id || paymentIntent.metadata?.jobId;
 
     if (homeownerId) {
       await sendNotification(
         homeownerId,
         'Payment Requires Action',
         'Your payment requires additional verification (3D Secure). Please return to the payment page to complete authentication.',
-        'payment_requires_action'
+        'payment_requires_action',
+        jobId ? `/jobs/${jobId}` : '/payments',
+        { jobId, paymentIntentId: paymentIntent.id, paymentId: existing?.id }
       );
     }
 

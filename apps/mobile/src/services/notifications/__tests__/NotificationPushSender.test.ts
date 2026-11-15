@@ -19,18 +19,23 @@
 
 import {
   savePushToken,
+  unregisterDevicePushToken,
   sendPushNotification,
   sendBulkNotification,
   initializePushNotifications,
 } from '../NotificationPushSender';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
+const mockDelete = jest.fn();
+const mockDismiss = jest.fn();
 const mockPost = jest.fn();
 const mockGet = jest.fn();
 const mockPatch = jest.fn();
 jest.mock('../../../utils/mobileApiClient', () => ({
   __esModule: true,
   mobileApiClient: {
+    delete: (...args: unknown[]) => mockDelete(...args),
     post: (...args: unknown[]) => mockPost(...args),
     get: (...args: unknown[]) => mockGet(...args),
     patch: (...args: unknown[]) => mockPatch(...args),
@@ -50,6 +55,7 @@ const mockGetDevicePushTokenAsync = jest.fn();
 const mockSetNotificationChannelAsync = jest.fn();
 jest.mock('expo-notifications', () => ({
   __esModule: true,
+  dismissAllNotificationsAsync: () => mockDismiss(),
   getPermissionsAsync: (...a: unknown[]) => mockGetPermissionsAsync(...a),
   requestPermissionsAsync: (...a: unknown[]) =>
     mockRequestPermissionsAsync(...a),
@@ -224,4 +230,29 @@ describe('initializePushNotifications', () => {
     });
     expect(token).toBeNull();
   });
+});
+
+it('unregisters the saved device token before dismissing account notifications', async () => {
+  (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(
+    'ExponentPushToken[abc]'
+  );
+  mockDelete.mockResolvedValueOnce({ success: true });
+  await unregisterDevicePushToken();
+  expect(mockDelete).toHaveBeenCalledWith('/api/user/push-token', {
+    body: JSON.stringify({ pushToken: 'ExponentPushToken[abc]' }),
+  });
+  expect(AsyncStorage.removeItem).toHaveBeenCalledWith(
+    'mintenance.registeredPushToken'
+  );
+  expect(mockDismiss).toHaveBeenCalled();
+});
+
+it('dismisses visible account alerts even if unregister fails offline, retaining the token for retry', async () => {
+  (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(
+    'ExponentPushToken[abc]'
+  );
+  mockDelete.mockRejectedValueOnce(new Error('offline'));
+  await expect(unregisterDevicePushToken()).rejects.toThrow('offline');
+  expect(mockDismiss).toHaveBeenCalled();
+  expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
 });

@@ -7,6 +7,7 @@ import { apiClient, type ApiClientError } from '@/lib/api/browser-client';
 
 interface NotificationCounts {
   messages: number;
+  notifications?: number;
   connections?: number;
   quoteRequests?: number;
   bids?: number;

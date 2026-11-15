@@ -1,9 +1,12 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MintEditorialTransactionList } from '@/app/payments/components/MintEditorialTransactionList';
 const mocks = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 it('labels a disputed payment and opens its exact dispute without offering release or refund', () => {
   const onViewReceipt = vi.fn();
   render(
@@ -36,3 +39,33 @@ it('labels a disputed payment and opens its exact dispute without offering relea
   );
   expect(onViewReceipt).not.toHaveBeenCalled();
 });
+
+it.each(['assigned', 'in_progress', undefined, 'completed'])(
+  'only offers release for a completed job (%s)',
+  (jobStatus) => {
+    render(
+      <MintEditorialTransactionList
+        transactions={[
+          {
+            id: 'escrow',
+            amount: 100,
+            status: 'held',
+            type: 'escrow',
+            created_at: '2026-11-14',
+            updated_at: '2026-11-14',
+            job_status: jobStatus,
+          },
+        ]}
+        loading={false}
+        filter='all'
+        userRole='homeowner'
+        onReleasePayment={vi.fn()}
+        onRequestRefund={vi.fn()}
+        onViewReceipt={vi.fn()}
+      />
+    );
+    expect(
+      screen.queryAllByRole('button', { name: /Approve.*Release/ }).length > 0
+    ).toBe(jobStatus === 'completed');
+  }
+);

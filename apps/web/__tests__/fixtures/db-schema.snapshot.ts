@@ -1,4 +1,6 @@
 /**
+ * Timestamp column additions regenerated from isolated PostgreSQL migration checks
+ * on 2026-11-14 (20261114222000_job_event_timestamps). Other live column lists unchanged.
  * GENERATED schema snapshot — DO NOT hand-edit column lists.
  *
  * Column names for the tables referenced by EMBEDDED Supabase selects
@@ -40,7 +42,7 @@ export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
     'appointment_date,cancellation_reason,cancelled_at,client_email,client_id,client_response,client_response_at,client_name,client_phone,completed_at,contractor_id,created_at,description,duration_minutes,end_time,id,job_id,location_address,location_type,notes,reminder_sent,reminder_sent_at,start_time,status,title,updated_at,video_call_url'.split(
       ','
     ),
-  bids: 'amount,bid_to_budget_ratio,competitiveness_score,contractor_id,created_at,description,estimated_duration_days,expires_at,has_itemization,id,itemization_quality_score,job_id,labor_breakdown,line_items,materials_breakdown,materials_included,message,other_costs_breakdown,pricing_recommendation_id,proposed_start_date,quote_id,rejection_reason,status,suggested_price_range,tax_rate,terms,updated_at,warranty_months,was_price_recommended,within_typical_range'.split(
+  bids: 'accepted_at,amount,bid_to_budget_ratio,competitiveness_score,contractor_id,created_at,description,estimated_duration_days,expires_at,has_itemization,id,itemization_quality_score,job_id,labor_breakdown,line_items,materials_breakdown,materials_included,message,other_costs_breakdown,pricing_recommendation_id,proposed_start_date,quote_id,rejection_reason,status,suggested_price_range,tax_rate,terms,updated_at,warranty_months,was_price_recommended,within_typical_range'.split(
     ','
   ),
   contracts:
@@ -56,7 +58,7 @@ export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
       ','
     ),
   escrow_transactions:
-    'admin_approved_at,admin_hold_at,admin_hold_by,admin_hold_reason,admin_hold_status,amount,auto_approval_date,auto_release_date,auto_release_enabled,before_after_comparison_score,contractor_payout,cooling_off_ends_at,created_at,currency,description,dispute_priority,dispute_window_ends_at,escalation_level,fee_hold_reason,fee_transfer_id,fee_transfer_status,fee_transferred_at,geolocation_verified,homeowner_approval,homeowner_approval_at,homeowner_inspection_at,homeowner_inspection_completed,id,job_id,mediation_completed_at,mediation_mediator_id,mediation_outcome,mediation_requested,mediation_requested_at,mediation_requested_by,mediation_scheduled_at,mediation_status,metadata,payee_id,payer_id,payment_intent_id,payment_type,photo_quality_passed,photo_verification_score,photo_verification_status,platform_fee,reconciliation_id,refunded_at,release_blocked_reason,release_reason,released_at,risk_hold_extended,risk_hold_reason,sla_deadline,status,stripe_charge_id,stripe_checkout_session_id,stripe_processing_fee,timestamp_verified,transfer_attempted_at,transfer_id,trust_score,updated_at'.split(
+    'admin_approved_at,admin_hold_at,admin_hold_by,admin_hold_reason,admin_hold_status,amount,auto_approval_date,auto_release_date,auto_release_enabled,before_after_comparison_score,contractor_payout,cooling_off_ends_at,created_at,currency,description,dispute_priority,dispute_window_ends_at,escalation_level,fee_hold_reason,fee_transfer_id,fee_transfer_status,fee_transferred_at,funded_at,geolocation_verified,homeowner_approval,homeowner_approval_at,homeowner_inspection_at,homeowner_inspection_completed,id,job_id,mediation_completed_at,mediation_mediator_id,mediation_outcome,mediation_requested,mediation_requested_at,mediation_requested_by,mediation_scheduled_at,mediation_status,metadata,payee_id,payer_id,payment_intent_id,payment_type,photo_quality_passed,photo_verification_score,photo_verification_status,platform_fee,reconciliation_id,refunded_at,release_blocked_reason,release_reason,released_at,risk_hold_extended,risk_hold_reason,sla_deadline,status,stripe_charge_id,stripe_checkout_session_id,stripe_processing_fee,timestamp_verified,transfer_attempted_at,transfer_id,trust_score,updated_at'.split(
       ','
     ),
   jobs: 'access_info,archived_at,assigned_at,budget,budget_max,budget_min,category,city,completed_at,completion_confirmed_at,completion_confirmed_by_homeowner,contractor_id,created_at,deleted_at,description,embedding,embedding_model,embedding_updated_at,end_date,flexible_timeline,homeowner_id,id,image_analysis_metadata,is_rental_property,latitude,location,longitude,payer_user_id,payment_status,photos,postcode,priority,property_id,require_itemized_bids,required_skills,requirements,scheduled_duration_hours,scheduled_end_date,scheduled_start_date,serious_buyer_score,show_budget_to_contractors,start_date,started_at,status,subcategory,tenancy_metadata,title,updated_at,urgency'.split(

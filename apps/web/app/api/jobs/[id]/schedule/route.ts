@@ -16,14 +16,14 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 interface ScheduleUpdateData {
   scheduled_start_date: string;
   updated_at: string;
-  scheduled_end_date?: string;
+  scheduled_end_date?: string | null;
   scheduled_duration_hours?: number;
 }
 
 const scheduleSchema = z
   .object({
     scheduled_start_date: z.string().datetime(),
-    scheduled_end_date: z.string().datetime().optional(),
+    scheduled_end_date: z.string().datetime().nullable().optional(),
     scheduled_duration_hours: z.number().int().positive().optional(),
   })
   .strict();
@@ -64,6 +64,14 @@ export const POST = withApiHandler(
       throw new ForbiddenError('Not authorized to schedule this job');
     }
 
+    if (['completed', 'cancelled'].includes(job.status))
+      throw new BadRequestError('Closed jobs cannot be rescheduled');
+    if (
+      scheduled_end_date &&
+      Date.parse(scheduled_end_date) <= Date.parse(scheduled_start_date)
+    )
+      throw new BadRequestError('End time must be after the start time');
+
     // Verify date is in the future
     const startDate = new Date(scheduled_start_date);
     const now = new Date();
@@ -77,7 +85,7 @@ export const POST = withApiHandler(
       updated_at: new Date().toISOString(),
     };
 
-    if (scheduled_end_date) {
+    if (scheduled_end_date !== undefined) {
       updateData.scheduled_end_date = scheduled_end_date;
     }
     if (scheduled_duration_hours) {
@@ -104,6 +112,7 @@ export const POST = withApiHandler(
     const formattedDate = new Date(scheduled_start_date).toLocaleDateString(
       'en-GB',
       {
+        timeZone: 'Europe/London',
         weekday: 'long',
         year: 'numeric',
         month: 'long',

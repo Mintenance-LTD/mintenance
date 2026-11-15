@@ -493,7 +493,7 @@ const nextConfig = {
       },
       {
         source: '/contractor/portfolio',
-        destination: '/contractor/profile',
+        destination: '/contractor/profile?tab=portfolio',
         permanent: true,
       },
 

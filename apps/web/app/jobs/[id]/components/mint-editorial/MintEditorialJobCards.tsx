@@ -116,7 +116,11 @@ export function statusBadge(status: string) {
   if (s === 'posted' || s === 'pending') {
     return <span className='badge badge-warn'>Awaiting bids</span>;
   }
-  if (s === 'assigned' || s === 'in_progress') {
+  if (s === 'assigned')
+    return (
+      <span className='badge badge-info'>Assigned — work not started</span>
+    );
+  if (s === 'in_progress') {
     return <span className='badge badge-info'>In progress</span>;
   }
   if (s === 'completed') {

@@ -1,3 +1,4 @@
+import { hasExplicitObligations } from '@/lib/services/contracts/explicit-obligations';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger, CONTRACT_STATUS } from '@mintenance/shared';
@@ -91,7 +92,7 @@ export const POST = withApiHandler(
     const { data: contract, error: contractError } = await serverSupabase
       .from('contracts')
       .select(
-        'id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at, start_date, end_date'
+        'id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at, start_date, end_date, terms'
       )
       .eq('id', contractId)
       .single();
@@ -158,6 +159,16 @@ export const POST = withApiHandler(
           }
           throw new BadRequestError(
             'This contract is no longer awaiting a signature.'
+          );
+        }
+
+        if (
+          !contract.contractor_signed_at &&
+          !contract.homeowner_signed_at &&
+          !hasExplicitObligations(contract.terms)
+        ) {
+          throw new BadRequestError(
+            'The contractor must prepare explicit materials and warranty terms before either party signs.'
           );
         }
 

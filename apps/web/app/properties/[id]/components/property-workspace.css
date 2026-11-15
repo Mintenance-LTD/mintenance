@@ -104,6 +104,9 @@
 .property-workspace .pw-tabs {
   display: flex;
   gap: 12px;
+  max-width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
   overflow-x: auto;
   border-bottom: 1px solid var(--pw-line);
   scrollbar-width: thin;

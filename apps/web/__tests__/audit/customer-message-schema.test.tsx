@@ -137,6 +137,8 @@ vi.mock('@/lib/api/supabaseServer', () => ({
         },
         eq: () => q,
         not: () => q,
+        in: () => q,
+        range: () => q,
         or: (filter: string) => {
           entry.filter = filter;
           return q;
@@ -171,9 +173,6 @@ beforeEach(() => {
 it('queries canonical read state with bilateral contractor scope and bounded previews', async () => {
   const page = await Page();
   expect(s.queries).toEqual([
-    expect.objectContaining({
-      filter: 'sender_id.eq.contractor,receiver_id.eq.contractor',
-    }),
     {
       projection: 'id, sender_id, receiver_id, content, created_at, read',
       filter:
@@ -207,18 +206,16 @@ it.each(['default', 'mint-editorial'])(
     s.theme = theme;
     s.empty = true;
     render(await Page());
-    expect(s.queries).toHaveLength(1);
+    expect(s.queries).toHaveLength(0);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   }
 );
 
 it.each([
   ['default', 'recent', false],
-  ['default', 'discovery', false],
   ['mint-editorial', 'recent', false],
-  ['mint-editorial', 'discovery', false],
   ['default', 'recent', true],
-  ['mint-editorial', 'discovery', true],
+  ['mint-editorial', 'recent', true],
 ] as const)(
   'shows unavailable instead of zero/empty success (%s, %s, transport=%s)',
   async (theme, fail, transport) => {
@@ -239,16 +236,6 @@ it.each([
     expect(JSON.stringify(s.warn.mock.calls)).not.toContain('sensitive');
   }
 );
-
-it('does not treat failed discovery with no customers as a successful empty inbox', async () => {
-  s.empty = true;
-  s.fail = 'discovery';
-  render(await Page());
-  expect(s.queries).toHaveLength(1);
-  expect(screen.getByRole('status')).toHaveTextContent(
-    'temporarily unavailable'
-  );
-});
 
 it.each(['', 'homeowner', 'admin'])(
   'rejects unauthenticated/non-contractor reads (%s)',

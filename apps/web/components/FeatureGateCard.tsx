@@ -18,7 +18,13 @@ export function FeatureGateCard({
   title,
   description,
 }: FeatureGateCardProps) {
-  const { hasAccess: checkAccess, loading, getFeature } = useFeatureAccess();
+  const {
+    hasAccess: checkAccess,
+    loading,
+    error,
+    retry,
+    getFeature,
+  } = useFeatureAccess();
 
   const result = checkAccess(featureId);
   const feature = getFeature(featureId);
@@ -35,6 +41,16 @@ export function FeatureGateCard({
       </div>
     );
   }
+
+  if (error)
+    return (
+      <div role='alert' className='p-4 border rounded-xl'>
+        <p>{error}</p>
+        <button type='button' onClick={retry} className='mt-2 underline'>
+          Retry plan check
+        </button>
+      </div>
+    );
 
   if (result.hasAccess) {
     return <>{children}</>;

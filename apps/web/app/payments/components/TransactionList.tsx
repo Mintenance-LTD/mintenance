@@ -35,6 +35,7 @@ interface Transaction {
   updated_at: string;
   job_title?: string;
   job_id?: string;
+  job_status?: string;
   contractor_name?: string;
   contractor_id?: string;
   release_reason?: string;
@@ -266,22 +267,24 @@ export function TransactionList({
                   {transaction.status === 'held' &&
                     userRole === 'homeowner' && (
                       <>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onReleasePayment(transaction.id);
-                          }}
-                          title={
-                            transaction.homeowner_approval
-                              ? undefined
-                              : 'Approves the work and releases payment now, waiving the 48-hour cooling-off period'
-                          }
-                          className='px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors'
-                        >
-                          {transaction.homeowner_approval
-                            ? 'Release'
-                            : 'Approve & Release'}
-                        </button>
+                        {transaction.job_status === 'completed' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onReleasePayment(transaction.id);
+                            }}
+                            title={
+                              transaction.homeowner_approval
+                                ? undefined
+                                : 'Approves the work and releases payment now, waiving the 48-hour cooling-off period'
+                            }
+                            className='px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors'
+                          >
+                            {transaction.homeowner_approval
+                              ? 'Release'
+                              : 'Approve & Release'}
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

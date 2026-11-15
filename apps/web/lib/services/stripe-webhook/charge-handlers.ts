@@ -287,7 +287,7 @@ export async function handleChargeSucceeded(
  */
 export async function handleChargeFailed(
   charge: Stripe.Charge,
-  sendNotification: SendNotificationFn
+  _sendNotification: SendNotificationFn
 ): Promise<void> {
   logger.info('Charge failed webhook received', {
     service: 'stripe-webhook',
@@ -314,20 +314,8 @@ export async function handleChargeFailed(
     );
     if (!escrowTransaction) return;
 
-    const homeownerId =
-      escrowTransaction?.payer_id ||
-      charge.metadata?.payerId ||
-      charge.metadata?.homeownerId;
-    if (homeownerId) {
-      const reason = charge.failure_message || 'Your card was declined';
-      await sendNotification(
-        homeownerId,
-        'Payment Failed',
-        `${reason}. Please try again with a different payment method.`,
-        'payment_failed'
-      );
-    }
-
+    // payment_intent.payment_failed owns the user alert. Stripe also emits
+    // charge.failed for the same attempt; sending from both duplicates alerts.
     logger.info('Charge failure processed', {
       service: 'stripe-webhook',
       chargeId: charge.id,

@@ -1,4 +1,8 @@
 'use client';
+import {
+  fetchThreadMessages,
+  type Message,
+} from '@/lib/messages/thread-messages';
 import { fetchAllMessageThreads } from '@/lib/messages/fetch-threads';
 
 import React, { useState, useEffect, Suspense } from 'react';
@@ -32,31 +36,6 @@ interface Conversation {
   };
   jobTitle?: string;
   unreadCount: number;
-}
-
-interface Message {
-  id: string;
-  sender_id: string;
-  content: string;
-  message_type?: string;
-  attachment_url?: string;
-  created_at: string;
-  read: boolean;
-}
-
-interface ApiMessageResponse {
-  id: string;
-  senderId?: string;
-  sender_id?: string;
-  content?: string;
-  messageText?: string;
-  messageType?: string;
-  message_type?: string;
-  attachmentUrl?: string;
-  attachment_url?: string;
-  createdAt?: string;
-  created_at?: string;
-  read?: boolean;
 }
 
 interface Participant {
@@ -109,34 +88,6 @@ async function fetchThreads(userId: string): Promise<Conversation[]> {
       unreadCount: thread.unreadCount || 0,
     };
   });
-}
-
-async function fetchThreadMessages(threadId: string): Promise<Message[]> {
-  const response = await fetch(`/api/messages/threads/${threadId}/messages`);
-  if (!response.ok) throw new Error('Failed to fetch messages');
-
-  const data = await response.json();
-  const messages = (data.messages || []).map(
-    (msg: ApiMessageResponse): Message => ({
-      id: msg.id,
-      sender_id: msg.senderId || msg.sender_id || '',
-      content: msg.content || msg.messageText || '',
-      message_type: msg.messageType || msg.message_type || 'text',
-      attachment_url: msg.attachmentUrl || msg.attachment_url || undefined,
-      created_at: msg.createdAt || msg.created_at || '',
-      read: msg.read !== undefined ? msg.read : true,
-    })
-  );
-
-  // Mark as read (fire-and-forget)
-  fetch(`/api/messages/threads/${threadId}/read`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  }).catch(() => {
-    /* silent */
-  });
-
-  return messages;
 }
 
 export default function MessagesPage2025() {
@@ -204,7 +155,29 @@ function MessagesPageContent() {
     Message[]
   >({
     queryKey: ['messages', 'thread', selectedConversation?.id],
-    queryFn: () => fetchThreadMessages(selectedConversation!.id),
+    queryFn: () =>
+      fetchThreadMessages(selectedConversation!.id, () => {
+        const threadId = selectedConversation!.id;
+        queryClient.setQueryData<Conversation[]>(
+          ['messages', 'threads', user?.id],
+          (old) =>
+            old?.map((item) =>
+              item.id === threadId
+                ? {
+                    ...item,
+                    unreadCount: 0,
+                    lastMessage: { ...item.lastMessage, read: true },
+                  }
+                : item
+            )
+        );
+        setSelectedConversation((current) =>
+          current?.id === threadId ? { ...current, unreadCount: 0 } : current
+        );
+        void queryClient.invalidateQueries({
+          queryKey: ['notifications', 'counts'],
+        });
+      }),
     enabled: !!selectedConversation,
     meta: {
       onError: () => {

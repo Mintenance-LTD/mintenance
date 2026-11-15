@@ -130,6 +130,7 @@ function JobDetailsCard({
               }}
             >
               {new Date(scheduledStartDate).toLocaleDateString('en-GB', {
+                timeZone: 'Europe/London',
                 weekday: 'short',
                 year: 'numeric',
                 month: 'short',

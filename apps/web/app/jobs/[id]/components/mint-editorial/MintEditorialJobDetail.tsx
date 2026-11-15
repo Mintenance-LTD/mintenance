@@ -68,6 +68,8 @@ interface LifecycleData {
    *  signing events. Null while unsigned. */
   contractContractorSignedAt?: string | null;
   contractHomeownerSignedAt?: string | null;
+  escrowFundedAt?: string | null;
+  escrowReleasedAt?: string | null;
   escrowStatus?: string | null;
   bidCount: number;
   pendingBidCount: number;

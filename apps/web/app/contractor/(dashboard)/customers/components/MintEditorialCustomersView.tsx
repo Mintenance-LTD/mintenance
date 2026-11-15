@@ -31,7 +31,7 @@ export interface CustomerRecord {
   lastJobDate: string | null;
   /** Postcode of latest job, used as "Property" cell */
   property: string | null;
-  /** Lifetime value — sum of completed-job budgets for this contractor↔homeowner pair */
+  /** Gross released payments for this contractor and customer, before fees */
   ltv: number;
   /** Current relationship stage with this contractor */
   stage: CustomerStage;
@@ -414,7 +414,7 @@ export function MintEditorialCustomersView({
                     width: 90,
                   }}
                 >
-                  LTV
+                  Released payments
                 </th>
                 <th
                   style={{

@@ -15,7 +15,12 @@ export const metadata: Metadata = {
     'View and edit your contractor profile, skills, reviews, and portfolio on Mintenance.',
 };
 
-export default async function ContractorProfilePage2025() {
+export default async function ContractorProfilePage2025({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab } = await searchParams;
   const user = await getCurrentUserFromCookies();
 
   if (!user || user.role !== 'contractor') {
@@ -173,6 +178,8 @@ export default async function ContractorProfilePage2025() {
           </Link>
         </div>
         <ContractorProfileClient2025
+          key={tab === 'portfolio' ? 'portfolio' : 'overview'}
+          initialTab={tab === 'portfolio' ? 'portfolio' : 'overview'}
           contractor={{
             id: contractor?.id || user.id,
             first_name: contractor?.first_name,

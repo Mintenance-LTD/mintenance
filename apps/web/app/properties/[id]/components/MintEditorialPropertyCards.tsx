@@ -41,6 +41,7 @@ export interface JobItem {
   title: string;
   status: string;
   contractor: string | null;
+  contractorId?: string | null;
   amount: number;
   date: string;
   category: string;

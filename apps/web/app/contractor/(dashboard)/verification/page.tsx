@@ -83,7 +83,8 @@ export default function ContractorVerificationPage() {
   const [steps, setSteps] = useState<VerificationStep[]>(
     STEPS_CONFIG.map((s) => ({ ...s, status: 'not_started' }))
   );
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   // Hydration-safe theme detection — Phase-4 contractor port pattern.
   const [isMintEditorial, setIsMintEditorial] = useState(false);
   useEffect(() => {
@@ -95,11 +96,13 @@ export default function ContractorVerificationPage() {
 
   // Fetch real verification documents from the database
   const fetchVerificationDocs = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
     try {
       const res = await fetch('/api/contractor/documents', {
         credentials: 'include',
       });
-      if (!res.ok) return;
+      if (!res.ok) throw new Error('Could not load verification documents');
       const data = await res.json();
       const docs: VerificationDoc[] = data.documents || [];
 
@@ -119,7 +122,7 @@ export default function ContractorVerificationPage() {
         })
       );
     } catch {
-      // silently fail — page will show "not started" for all
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -195,8 +198,29 @@ export default function ContractorVerificationPage() {
       ? Math.round((approvedRequired / totalRequired) * 100)
       : 0;
 
+  if (loading)
+    return (
+      <ContractorPageWrapper>
+        <p role='status'>Loading document review status…</p>
+      </ContractorPageWrapper>
+    );
+  if (loadError)
+    return (
+      <ContractorPageWrapper>
+        <p role='alert'>Document status could not be loaded.</p>
+        <button type='button' onClick={fetchVerificationDocs}>
+          Retry
+        </button>
+      </ContractorPageWrapper>
+    );
   return (
     <ContractorPageWrapper>
+      <p className='mb-4 text-sm'>
+        Account review:{' '}
+        {user?.admin_verified ? 'Admin reviewed' : 'No admin approval recorded'}
+        . The progress below measures documents uploaded and reviewed in this
+        centre; it does not measure account approval or guarantee workmanship.
+      </p>
       {/* Hero Header — canonical .t-h1 + brand-soft icon tile + mint
           progress bar when Mint Editorial is on. */}
       {isMintEditorial ? (
@@ -240,7 +264,7 @@ export default function ContractorVerificationPage() {
               style={{ alignItems: 'center', marginBottom: 8 }}
             >
               <span style={{ fontSize: 14, fontWeight: 600 }}>
-                Verification progress
+                Required document review progress
               </span>
               <span style={{ fontSize: 14, fontWeight: 700 }}>
                 {overallProgress}%

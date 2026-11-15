@@ -337,7 +337,9 @@ describe('handlePaymentIntentFailed', () => {
       VALID_UUID,
       'Payment Failed',
       expect.stringContaining('payment could not be processed'),
-      'payment_failed'
+      'payment_failed',
+      `/jobs/${JOB_ID}`,
+      { jobId: JOB_ID, paymentIntentId: pi.id, paymentId: ESCROW_ID }
     );
   });
 
@@ -708,12 +710,7 @@ describe('out-of-order event guards', () => {
       'apply_payment_intent_state',
       expect.objectContaining({ p_outcome: 'failed' })
     );
-    expect(mockNotify).toHaveBeenCalledWith(
-      VALID_UUID,
-      'Payment Failed',
-      expect.any(String),
-      'payment_failed'
-    );
+    expect(mockNotify).not.toHaveBeenCalled();
   });
 
   it("redelivered payment_intent.payment_failed on an already-'failed' escrow is idempotent (no crash, no guard trip)", async () => {

@@ -213,6 +213,10 @@ const homeownerUser = {
 };
 
 const pendingContract = {
+  terms: {
+    materials_terms: 'No materials required.',
+    warranty_terms: 'No additional warranty offered.',
+  },
   id: 'contract-1',
   job_id: 'job-1',
   contractor_id: 'contractor-1',
@@ -422,6 +426,25 @@ describe('POST /api/contracts/[id]/accept', () => {
   });
 
   // ---- Cannot sign a draft contract ----
+  it('rejects inherited materials and warranty defaults before signing', async () => {
+    setupContractMocks({
+      contractData: {
+        ...pendingContract,
+        terms: { materials_included: true, warranty_months: 12 },
+      },
+    });
+    const { POST } = await import('@/app/api/contracts/[id]/accept/route');
+    const res = await POST(
+      createPostRequest('http://localhost/api/contracts/contract-1/accept'),
+      segmentData('contract-1')
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.message).toContain(
+      'explicit materials and warranty'
+    );
+    expect(mocks.supabaseRpc).not.toHaveBeenCalled();
+  });
+
   it('should return 400 when contract is in draft status', async () => {
     setupContractMocks({
       contractData: { ...pendingContract, status: 'draft' },

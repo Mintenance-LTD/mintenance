@@ -18,7 +18,6 @@ const dateRanges: Array<{ value: DateRange; label: string }> = [
   { value: '3months', label: 'Last 3 Months' },
   { value: '6months', label: 'Last 6 Months' },
   { value: 'year', label: 'This Year' },
-  { value: 'custom', label: 'Custom Range' },
 ];
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
@@ -74,7 +73,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               disabled={isLoading}
             >
               <Download size={14} strokeWidth={1.75} />
-              Export PDF
+              Print / save PDF
             </button>
           </div>
         </div>

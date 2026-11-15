@@ -136,7 +136,12 @@ interface MintEditorialJobDetailViewProps {
   escrowHeld: boolean;
   escrowStatus: string;
   escrowId: string | null;
-  paymentAmounts?: { gross: number; fee: number | null; net: number | null };
+  paymentAmounts?: {
+    gross: number;
+    fee: number | null;
+    net: number | null;
+    processing?: number | null;
+  };
   jobPhotoUrls: string[];
   existingBeforePhotosCount?: number;
   buildingAssessment: unknown;
@@ -189,7 +194,6 @@ function statusLabel(status: string | null): string {
 export function MintEditorialJobDetailView({
   job,
   homeowner,
-  contract,
   property,
   propertyContacts,
   contractStatus,
@@ -547,6 +551,7 @@ export function MintEditorialJobDetailView({
           {/* Contract summary (when signed) */}
           {currentStage !== 'contract_pending' &&
             (currentStage === 'awaiting_payment' ||
+              currentStage === 'waiting_to_start' ||
               currentStage === 'ready_to_start' ||
               currentStage === 'in_progress' ||
               currentStage === 'completed') && (
@@ -567,6 +572,7 @@ export function MintEditorialJobDetailView({
 
           {/* Scheduling */}
           {(currentStage === 'awaiting_payment' ||
+            currentStage === 'waiting_to_start' ||
             currentStage === 'ready_to_start' ||
             currentStage === 'in_progress') && (
             <JobScheduling
@@ -574,10 +580,8 @@ export function MintEditorialJobDetailView({
               userRole='contractor'
               userId={userId}
               currentSchedule={{
-                scheduled_start_date:
-                  job.scheduled_start_date || contract?.start_date || null,
-                scheduled_end_date:
-                  job.scheduled_end_date || contract?.end_date || null,
+                scheduled_start_date: job.scheduled_start_date ?? null,
+                scheduled_end_date: job.scheduled_end_date ?? null,
                 scheduled_duration_hours: job.scheduled_duration_hours || null,
               }}
               contractStatus={
@@ -595,6 +599,7 @@ export function MintEditorialJobDetailView({
               had to wait for escrow to even prepare the trip
               tracking. */}
           {(currentStage === 'awaiting_payment' ||
+            currentStage === 'waiting_to_start' ||
             currentStage === 'ready_to_start' ||
             currentStage === 'in_progress') && (
             <div
@@ -995,7 +1000,9 @@ export function MintEditorialJobDetailView({
                 <div className='col' style={{ gap: 8 }}>
                   <div className='between'>
                     <span className='t-meta'>
-                      {paymentAmounts ? 'Funded amount' : 'Job amount'}
+                      {paymentAmounts
+                        ? 'Customer payment amount'
+                        : 'Job amount'}
                     </span>
                     <span style={{ fontSize: 13, fontWeight: 500 }}>
                       {formatGbp(budgetNum)}
@@ -1026,7 +1033,9 @@ export function MintEditorialJobDetailView({
                     className='between'
                   >
                     <span style={{ fontSize: 13, fontWeight: 700 }}>
-                      Net to you
+                      {hasRecordedAmounts
+                        ? 'Recorded contractor entitlement'
+                        : 'Estimated contractor entitlement'}
                     </span>
                     <span
                       style={{
@@ -1039,6 +1048,19 @@ export function MintEditorialJobDetailView({
                     </span>
                   </div>
                 </div>
+                <p className='t-meta'>
+                  Customer payment funds the job. Stripe processing is a
+                  separate platform charge:{' '}
+                  {paymentAmounts?.processing != null
+                    ? formatGbp(paymentAmounts.processing)
+                    : 'not yet recorded here'}
+                  . It is not an extra deduction from this displayed
+                  entitlement. The platform balance and a bank payout are
+                  separate amounts.
+                </p>
+                <Link href='/contractor/payouts' className='t-meta'>
+                  Check transfer and bank payout status
+                </Link>
                 <p
                   className='t-meta'
                   style={{

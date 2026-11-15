@@ -10,6 +10,7 @@ export interface BidWithContractor {
   amount?: number;
   description?: string;
   created_at: string;
+  accepted_at?: string | null;
   contractor_id: string;
   quote_id?: string;
   // 2026-05-13 BidCard upgrade: comparison axes beyond price. Homeowners need
@@ -72,6 +73,7 @@ export function formatBidsForClient(bids: BidWithContractor[]) {
     description: bid.description,
     status: bid.status,
     created_at: bid.created_at,
+    accepted_at: bid.accepted_at ?? null,
     quote_id: bid.quote_id,
     estimatedDurationDays: bid.estimated_duration_days ?? null,
     proposedStartDate: bid.proposed_start_date ?? null,

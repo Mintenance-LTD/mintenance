@@ -182,6 +182,7 @@ export default async function PropertyDetailPage({
       title: job.title,
       status: job.status,
       contractor,
+      contractorId: acceptedBid?.contractor_id ?? null,
       amount: parseFloat(job.budget) || 0,
       // Pass the raw ISO timestamp down. Consumers either format it at
       // render time (Jobs tab, recent-jobs card, CSV export) or parse it

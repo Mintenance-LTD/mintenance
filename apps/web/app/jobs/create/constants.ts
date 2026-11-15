@@ -22,6 +22,7 @@ export const VALIDATION = {
 
 // Job Categories
 export const JOB_CATEGORIES = [
+  { value: 'damp', label: 'Damp & mould', icon: 'droplets' },
   { value: 'plumbing', label: 'Plumbing', icon: 'droplets' },
   { value: 'electrical', label: 'Electrical', icon: 'zap' },
   { value: 'heating', label: 'Heating & Gas', icon: 'flame' },

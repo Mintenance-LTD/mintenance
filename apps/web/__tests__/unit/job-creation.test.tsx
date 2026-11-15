@@ -34,6 +34,9 @@ vi.mock('next/navigation', async (importOriginal) => {
 });
 vi.mock('@/hooks/useCurrentUser');
 vi.mock('@/lib/hooks/useCSRF');
+vi.mock('@/lib/csrf-client', () => ({
+  getCsrfHeaders: vi.fn(async () => ({ 'x-csrf-token': 'fresh-token' })),
+}));
 vi.mock('@/app/jobs/create/utils/submitJob');
 vi.mock('@mintenance/shared', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@mintenance/shared')>()),
@@ -100,11 +103,16 @@ describe('CreateJobPage', () => {
     vi.mocked(useCSRF).mockReturnValue({ csrfToken: 'test-token' });
 
     // Mock fetch for properties - must include ok/status for Response checks
-    global.fetch = vi.fn(() =>
+    global.fetch = vi.fn((url) =>
       Promise.resolve({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ properties: mockProperties }),
+        json: () =>
+          Promise.resolve(
+            String(url).includes('/upload-photos')
+              ? { urls: ['https://example.invalid/leak.jpg'] }
+              : { properties: mockProperties }
+          ),
       })
     ) as any;
   });
@@ -316,7 +324,7 @@ describe('CreateJobPage', () => {
               category: 'plumbing',
               property_id: PROP_HOUSE_ID,
             }),
-            photoUrls: [],
+            photoUrls: ['https://example.invalid/leak.jpg'],
             csrfToken: 'test-token',
           })
         );

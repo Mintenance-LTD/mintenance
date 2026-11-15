@@ -122,7 +122,16 @@ export function PropertyWorkQueue({
                 </td>
                 <td>
                   <Link className='pw-btn pw-btn-small' href={`/jobs/${j.id}`}>
-                    View job <ArrowRight size={15} />
+                    {j.status === 'posted'
+                      ? 'Review bids'
+                      : j.status === 'assigned'
+                        ? 'Review agreement & payment'
+                        : j.status === 'in_progress'
+                          ? 'Check progress'
+                          : j.status === 'completed'
+                            ? 'Review completion'
+                            : 'View job'}{' '}
+                    <ArrowRight size={15} />
                   </Link>
                 </td>
               </tr>

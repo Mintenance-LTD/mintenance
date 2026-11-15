@@ -1,331 +1,69 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import {
+  collectReportRows,
+  contractorReport,
+  reportingPeriod,
+} from '@/lib/contractor/reporting';
 import { ReportingDashboard2025Client } from './components/ReportingDashboard2025Client';
-import { redirect } from 'next/navigation';
-
-export const metadata: Metadata = {
-  title: 'Reporting & Analytics | Mintenance',
-  description:
-    'View your business analytics, revenue trends, job statistics, and performance metrics on Mintenance.',
-};
-
-export default async function ContractorReportingPage2025() {
+export const metadata: Metadata = { title: 'Business analytics | Mintenance' };
+export default async function ContractorReportingPage2025({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
   const user = await getCurrentUserFromCookies();
-
-  if (!user || user.role !== 'contractor') {
-    redirect('/login');
-  }
-
-  // Fetch contractor analytics data in parallel
-  const [jobsResult, bidsResult, paymentsResult, reviewsResult] =
-    await Promise.all([
+  if (!user || user.role !== 'contractor') redirect('/login');
+  const period = reportingPeriod((await searchParams).period);
+  const [jobs, bids, payments, reviews] = await Promise.all([
+    collectReportRows((from, to) =>
       serverSupabase
         .from('jobs')
         .select(
-          'id, title, category, budget, status, created_at, completed_at, homeowner_id'
+          'id, category, status, homeowner_id, created_at, homeowner:profiles!homeowner_id(first_name,last_name)'
         )
-        .eq('contractor_id', user.id),
+        .eq('contractor_id', user.id)
+        .order('id')
+        .range(from, to)
+    ),
+    collectReportRows((from, to) =>
       serverSupabase
         .from('bids')
-        .select('id, amount, status, created_at')
-        .eq('contractor_id', user.id),
+        .select('id,status,created_at')
+        .eq('contractor_id', user.id)
+        .order('id')
+        .range(from, to)
+    ),
+    collectReportRows((from, to) =>
       serverSupabase
         .from('escrow_transactions')
-        .select(
-          'id, amount, contractor_payout, platform_fee, status, released_at, job_id'
-        )
+        .select('id,job_id,amount,contractor_payout,platform_fee,released_at')
         .eq('payee_id', user.id)
-        .in('status', ['released', 'completed']),
+        .in('status', ['released', 'completed'])
+        .order('id')
+        .range(from, to)
+    ),
+    collectReportRows((from, to) =>
       serverSupabase
         .from('reviews')
-        .select('id, rating, comment, created_at')
-        .eq('reviewee_id', user.id),
-    ]);
-
-  if (
-    [jobsResult, bidsResult, paymentsResult, reviewsResult].some(
-      (result) => result.error
-    )
-  ) {
-    throw new Error('Could not load reporting data. Please retry.');
-  }
-  const jobs = jobsResult.data || [];
-  const bids = bidsResult.data || [];
-  const payments = (paymentsResult.data || []).map((row) => ({
-    ...row,
-    created_at: row.released_at,
-    amount: Number(
-      row.contractor_payout ??
-        Number(row.amount) - Number(row.platform_fee ?? 0)
+        .select('id,rating,created_at')
+        .eq('reviewee_id', user.id)
+        .order('id')
+        .range(from, to)
     ),
-  }));
-  const reviews = reviewsResult.data || [];
-
-  // Calculate metrics
-  const totalJobs = jobs.length;
-  const completedJobs = jobs.filter((j) => j.status === 'completed').length;
-  const activeJobs = jobs.filter(
-    (j) => j.status === 'in_progress' || j.status === 'assigned'
-  ).length;
-  const pendingJobs = jobs.filter(
-    (j) => j.status === 'posted' || j.status === 'pending'
-  ).length;
-  const cancelledJobs = jobs.filter((j) => j.status === 'cancelled').length;
-  const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const averageJobValue = completedJobs > 0 ? totalRevenue / completedJobs : 0;
-
-  // Calculate customer satisfaction from reviews
-  const customerSatisfaction =
-    reviews.length > 0
-      ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
-      : 0;
-
-  // Jobs by category
-  const categoryMap = new Map<string, { count: number; revenue: number }>();
-  jobs.forEach((job) => {
-    const category = job.category || 'Other';
-    const existing = categoryMap.get(category) || { count: 0, revenue: 0 };
-    const jobPayments = payments.filter((p) => p.job_id === job.id);
-    const jobRevenue = jobPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    categoryMap.set(category, {
-      count: existing.count + 1,
-      revenue: existing.revenue + jobRevenue,
-    });
-  });
-
-  const jobsByCategory = Array.from(categoryMap.entries()).map(
-    ([category, data]) => ({
-      category,
-      count: data.count,
-      revenue: data.revenue,
-    })
-  );
-
-  // Revenue by month (last 12 months)
+  ]);
   const now = new Date();
-  const monthsMap = new Map<string, { revenue: number; jobs: number }>();
-
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthKey = date.toLocaleDateString('en-GB', {
-      month: 'short',
-      year: 'numeric',
-    });
-    monthsMap.set(monthKey, { revenue: 0, jobs: 0 });
-  }
-
-  payments.forEach((payment) => {
-    const date = new Date(payment.created_at);
-    const monthKey = date.toLocaleDateString('en-GB', {
-      month: 'short',
-      year: 'numeric',
-    });
-    if (monthsMap.has(monthKey)) {
-      const existing = monthsMap.get(monthKey)!;
-      monthsMap.set(monthKey, {
-        revenue: existing.revenue + (payment.amount || 0),
-        jobs: existing.jobs + 1,
-      });
-    }
-  });
-
-  const revenueByMonth = Array.from(monthsMap.entries()).map(
-    ([month, data]) => ({
-      month,
-      revenue: data.revenue,
-      jobs: data.jobs,
-    })
-  );
-
-  // Get unique client count and top clients.
-  // 2026-05-23: per-client revenue used to sum `jobs.budget`, which
-  // is NULL for every job posted under the open-bidding model. That
-  // made every client's revenue read as £0 on the chart. Switched to
-  // joining the released escrow records and summing the actual paid
-  // amount the contractor received. Matches the same source-of-truth
-  // used by the monthly chart above (which reads from `payments`).
-  const clientJobsResult = await serverSupabase
-    .from('jobs')
-    .select(
-      `id, homeowner_id, status,
-       homeowner:profiles!homeowner_id(first_name, last_name),
-       escrow_transactions(amount, contractor_payout, platform_fee, status)`
-    )
-    .eq('contractor_id', user.id)
-    .eq('status', 'completed');
-
-  const uniqueClients = new Set(
-    (clientJobsResult.data || []).map((j) => j.homeowner_id)
-  ).size;
-
-  // Calculate top clients by revenue using released escrow amounts.
-  if (clientJobsResult.error) throw new Error('Could not load client report');
-  const clientRevenueMap = new Map<
-    string,
-    { name: string; revenue: number; jobs: number }
-  >();
-  (clientJobsResult.data || []).forEach((job) => {
-    const homeowner = Array.isArray(job.homeowner)
-      ? job.homeowner[0]
-      : job.homeowner;
-    if (!job.homeowner_id || !homeowner) return;
-
-    // Sum across any escrow rows the job has — protects against
-    // split disbursements (rare; one job, two partial releases).
-    const escrowRows = Array.isArray(job.escrow_transactions)
-      ? job.escrow_transactions
-      : job.escrow_transactions
-        ? [job.escrow_transactions]
-        : [];
-    const realised = escrowRows.reduce<number>((acc, tx) => {
-      const t = tx as {
-        amount?: number | string | null;
-        contractor_payout?: number | string | null;
-        platform_fee?: number | string | null;
-        status?: string;
-      };
-      if (t?.status === 'released' || t?.status === 'completed') {
-        return (
-          acc +
-          Number(
-            t.contractor_payout ??
-              Number(t.amount ?? 0) - Number(t.platform_fee ?? 0)
-          )
-        );
-      }
-      return acc;
-    }, 0);
-
-    const clientName =
-      `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim();
-    const existing = clientRevenueMap.get(job.homeowner_id) || {
-      name: clientName,
-      revenue: 0,
-      jobs: 0,
-    };
-    clientRevenueMap.set(job.homeowner_id, {
-      name: clientName,
-      revenue: existing.revenue + realised,
-      jobs: existing.jobs + 1,
-    });
-  });
-
-  const topClients = Array.from(clientRevenueMap.values())
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5);
-
-  // Calculate daily revenue for last 7 days
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  const dailyRevenueMap = new Map<string, { revenue: number; jobs: number }>();
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-  // Initialize last 7 days
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dayName = dayNames[date.getDay()];
-    dailyRevenueMap.set(dayName, { revenue: 0, jobs: 0 });
-  }
-
-  // Aggregate daily revenue
-  payments
-    .filter(
-      (payment) =>
-        payment.created_at && payment.created_at >= sevenDaysAgo.toISOString()
-    )
-    .forEach((payment) => {
-      const date = new Date(payment.created_at);
-      const dayName = dayNames[date.getDay()];
-      const existing = dailyRevenueMap.get(dayName) || { revenue: 0, jobs: 0 };
-      dailyRevenueMap.set(dayName, {
-        revenue: existing.revenue + (payment.amount || 0),
-        jobs: existing.jobs + 1,
-      });
-    });
-
-  const dailyRevenue = Array.from(dailyRevenueMap.entries()).map(
-    ([day, data]) => ({
-      date: day,
-      revenue: data.revenue,
-      jobs: data.jobs,
-    })
-  );
-
-  // Calculate percentage changes (compare to previous period)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const sixtyDaysAgo = new Date();
-  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-  const currentPeriodPayments = payments.filter(
-    (p) => new Date(p.created_at) >= thirtyDaysAgo
-  );
-  const previousPeriodPayments = payments.filter((p) => {
-    const date = new Date(p.created_at);
-    return date >= sixtyDaysAgo && date < thirtyDaysAgo;
-  });
-
-  const currentRevenue = currentPeriodPayments.reduce(
-    (sum, p) => sum + (p.amount || 0),
-    0
-  );
-  const previousRevenue = previousPeriodPayments.reduce(
-    (sum, p) => sum + (p.amount || 0),
-    0
-  );
-  const revenueChange =
-    previousRevenue > 0
-      ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
-      : 0;
-
-  const currentJobs = jobs.filter(
-    (j) => new Date(j.created_at) >= thirtyDaysAgo
-  ).length;
-  const previousJobs = jobs.filter((j) => {
-    const date = new Date(j.created_at);
-    return date >= sixtyDaysAgo && date < thirtyDaysAgo;
-  }).length;
-  const jobsChange =
-    previousJobs > 0 ? ((currentJobs - previousJobs) / previousJobs) * 100 : 0;
-
-  // Bid statistics
-  const totalBids = bids.length;
-  const acceptedBids = bids.filter((b) => b.status === 'accepted').length;
-  const winRate = totalBids > 0 ? (acceptedBids / totalBids) * 100 : 0;
-
   return (
     <ReportingDashboard2025Client
-      analytics={{
-        totalJobs,
-        completedJobs,
-        activeJobs,
-        pendingJobs,
-        cancelledJobs,
-        totalRevenue,
-        totalClients: uniqueClients,
-        activeClients: uniqueClients, // Simplified - could be calculated more precisely
-        averageJobValue,
-        customerSatisfaction,
-        jobsByCategory,
-        revenueByMonth,
-        topClients,
-        totalBids,
-        acceptedBids,
-        winRate,
-        dailyRevenue,
-        revenueChange,
-        jobsChange,
-        avgValueChange:
-          previousRevenue > 0 && previousJobs > 0
-            ? ((averageJobValue - previousRevenue / previousJobs) /
-                (previousRevenue / previousJobs)) *
-              100
-            : 0,
-        satisfactionChange: 0, // Would need historical reviews data
-      }}
+      analytics={contractorReport(
+        { jobs, bids, payments, reviews },
+        period,
+        now
+      )}
+      period={period}
+      generatedAt={now.toISOString()}
     />
   );
 }

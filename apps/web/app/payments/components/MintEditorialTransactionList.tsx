@@ -33,6 +33,7 @@ interface Transaction {
   updated_at: string;
   job_title?: string;
   job_id?: string;
+  job_status?: string;
   contractor_name?: string;
   contractor_id?: string;
   release_reason?: string;
@@ -227,21 +228,23 @@ export function MintEditorialTransactionList({
             >
               {tx.status === 'held' && userRole === 'homeowner' ? (
                 <>
-                  <button
-                    type='button'
-                    className='btn btn-primary btn-sm'
-                    title={
-                      tx.homeowner_approval
-                        ? undefined
-                        : 'Approves the work and releases payment now, waiving the 48-hour cooling-off period'
-                    }
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onReleasePayment(tx.id);
-                    }}
-                  >
-                    {tx.homeowner_approval ? 'Release' : 'Approve & Release'}
-                  </button>
+                  {tx.job_status === 'completed' && (
+                    <button
+                      type='button'
+                      className='btn btn-primary btn-sm'
+                      title={
+                        tx.homeowner_approval
+                          ? undefined
+                          : 'Approves the work and releases payment now, waiving the 48-hour cooling-off period'
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReleasePayment(tx.id);
+                      }}
+                    >
+                      {tx.homeowner_approval ? 'Release' : 'Approve & Release'}
+                    </button>
+                  )}
                   <button
                     type='button'
                     className='btn btn-secondary btn-sm'

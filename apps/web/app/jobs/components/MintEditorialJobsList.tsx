@@ -26,6 +26,8 @@ interface JobListItem {
 
 interface Props {
   jobs: JobListItem[];
+  initialCategory?: string;
+  scoped?: boolean;
 }
 
 function CategoryThumb({ category }: { category?: string }) {
@@ -59,13 +61,17 @@ function statusBadge(status: string) {
   if (s === 'posted' || s === 'pending') {
     return <span className='badge badge-warn'>Awaiting bids</span>;
   }
-  if (s === 'in_progress' || s === 'assigned') {
+  if (s === 'assigned')
+    return (
+      <span className='badge badge-info'>Assigned — work not started</span>
+    );
+  if (s === 'in_progress') {
     return <span className='badge badge-info'>In progress</span>;
   }
   if (s === 'completed') {
     return (
       <span className='badge badge-ok'>
-        <Check size={11} strokeWidth={2.5} /> Approved
+        <Check size={11} strokeWidth={2.5} /> Completed
       </span>
     );
   }
@@ -101,25 +107,30 @@ const TABS: { id: Tab; label: string; match: (s: string) => boolean }[] = [
   },
   {
     id: 'active',
-    label: 'In progress',
+    label: 'Assigned / in progress',
     match: (s) => s === 'in_progress' || s === 'assigned',
   },
   { id: 'done', label: 'Done', match: (s) => s === 'completed' },
 ];
 
-export function MintEditorialJobsList({ jobs }: Props) {
+export function MintEditorialJobsList({
+  jobs,
+  initialCategory = 'all',
+  scoped = false,
+}: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('all');
-  const [category, setCategory] = useState('all');
+  const [category, setCategory] = useState(initialCategory);
   const categories = useMemo(
     () =>
       [
         ...new Set(
-          jobs
-            .map((job) => job.category)
-            .filter((value): value is string => !!value)
+          [
+            ...jobs.map((job) => job.category),
+            initialCategory !== 'all' ? initialCategory : undefined,
+          ].filter((value): value is string => !!value)
         ),
       ].sort(),
-    [jobs]
+    [jobs, initialCategory]
   );
 
   const counts = useMemo(
@@ -141,7 +152,13 @@ export function MintEditorialJobsList({ jobs }: Props) {
   // Split visible jobs into "active-ish" (everything except completed) and
   // "recently completed" — matches the design's two grouped sections.
   const isCompleted = (s: string) => s.toLowerCase() === 'completed';
-  const activeGroup = visible.filter((j) => !isCompleted(j.status));
+  const activeGroup = visible.filter(
+    (j) =>
+      !isCompleted(j.status) && !['cancelled', 'canceled'].includes(j.status)
+  );
+  const closedGroup = visible.filter((j) =>
+    ['cancelled', 'canceled'].includes(j.status)
+  );
   const doneGroup = visible.filter((j) => isCompleted(j.status));
 
   return (
@@ -201,13 +218,17 @@ export function MintEditorialJobsList({ jobs }: Props) {
           style={{ padding: '56px 24px', textAlign: 'center' }}
         >
           <p className='t-body' style={{ marginBottom: 12 }}>
-            {activeTab === 'all' && category === 'all'
+            {!scoped && activeTab === 'all' && category === 'all'
               ? 'No jobs yet. Post your first one and local tradespeople will respond.'
               : 'No jobs match this filter.'}
           </p>
-          {activeTab === 'all' && category === 'all' ? (
+          {!scoped && activeTab === 'all' && category === 'all' ? (
             <Link href='/jobs/create' className='btn btn-primary'>
               <Plus size={14} strokeWidth={2} /> Post your first job
+            </Link>
+          ) : scoped ? (
+            <Link href='/jobs' className='btn btn-secondary'>
+              See all jobs
             </Link>
           ) : (
             <button
@@ -261,6 +282,17 @@ export function MintEditorialJobsList({ jobs }: Props) {
                 </Link>
               ))}
             </>
+          )}
+          {closedGroup.length > 0 && (
+            <section aria-label='Cancelled jobs'>
+              <div className='me-list-section'>Cancelled</div>
+              {closedGroup.map((job) => (
+                <Link className='job-row' href={`/jobs/${job.id}`} key={job.id}>
+                  <span>{job.title}</span>
+                  {statusBadge(job.status)}
+                </Link>
+              ))}
+            </section>
           )}
           {doneGroup.length > 0 && (
             <>

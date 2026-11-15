@@ -124,6 +124,7 @@ export default async function JobDetailPage2025({
       description,
       status,
       created_at,
+      accepted_at,
       contractor_id,
       quote_id,
       estimated_duration_days,
@@ -180,7 +181,7 @@ export default async function JobDetailPage2025({
       .single(),
     serverSupabase
       .from('escrow_transactions')
-      .select('id, status')
+      .select('id, status, funded_at, released_at')
       .eq('job_id', resolvedParams.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -389,6 +390,8 @@ export default async function JobDetailPage2025({
           contractContractorSignedAt={contract?.contractor_signed_at ?? null}
           contractHomeownerSignedAt={contract?.homeowner_signed_at ?? null}
           escrowStatus={escrowStatus}
+          escrowFundedAt={escrowTransaction?.funded_at ?? null}
+          escrowReleasedAt={escrowTransaction?.released_at ?? null}
           buildingAssessment={buildingAssessment}
           userId={user.id}
         />

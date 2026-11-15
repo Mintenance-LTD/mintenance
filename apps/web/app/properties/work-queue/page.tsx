@@ -10,6 +10,7 @@ import { ClipboardList, ArrowRight, Clock3 } from 'lucide-react';
 interface Item {
   id: string;
   kind: string;
+  urgency: number;
   property_id: string;
   property_name: string;
   title: string;
@@ -23,6 +24,7 @@ interface Item {
   assignment_status: 'assigned' | 'unassigned' | 'needs_reassignment';
 }
 interface Queue {
+  properties?: { id: string; name: string }[];
   items: Item[];
   total: number;
   overdue: number;
@@ -37,6 +39,22 @@ export default function PropertyWorkQueuePage() {
   const [data, setData] = useState<Queue | null>(null);
   const [error, setError] = useState('');
   const [scope, setScope] = useState('team');
+  const [filters, setFilters] = useState({
+    property: '',
+    priority: '',
+    person: '',
+    sort: 'priority',
+  });
+  const [personDraft, setPersonDraft] = useState('');
+  const [properties, setProperties] = useState<{ id: string; name: string }[]>(
+    []
+  );
+  const updateFilter = (key: keyof typeof filters, value: string) => {
+    setFilters((previous) => ({ ...previous, [key]: value }));
+    setOffset(0);
+    setEditing(null);
+    setData(null);
+  };
   useEffect(() => {
     const controller = new AbortController();
     setData(null);
@@ -45,7 +63,14 @@ export default function PropertyWorkQueuePage() {
       controller.abort();
       setError('Loading took too long. Please retry.');
     }, 15000);
-    fetch(`/api/portfolio/queue?offset=${offset}&limit=25&scope=${scope}`, {
+    const params = new URLSearchParams({
+      offset: String(offset),
+      limit: '25',
+      scope,
+    });
+    for (const [key, value] of Object.entries(filters))
+      if (value) params.set(key, value);
+    fetch('/api/portfolio/queue?' + params, {
       signal: controller.signal,
       cache: 'no-store',
     })
@@ -70,6 +95,7 @@ export default function PropertyWorkQueuePage() {
             'Your selected queue could not be confirmed. Please retry.'
           );
         setData(value);
+        setProperties(value.properties ?? []);
       })
       .catch((reason) => {
         if (!controller.signal.aborted) setError(reason.message);
@@ -79,7 +105,7 @@ export default function PropertyWorkQueuePage() {
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [offset, attempt, scope]);
+  }, [offset, attempt, scope, filters]);
   return (
     <OperationsPage
       compact
@@ -119,6 +145,69 @@ export default function PropertyWorkQueuePage() {
         Mine shows follow-ups assigned to you. Unassigned includes items needing
         reassignment. Property access still applies to every view.
       </p>
+      <div className='flex flex-wrap gap-4 mb-5'>
+        <label>
+          Property
+          <select
+            className='block min-h-11 rounded border p-2'
+            value={filters.property}
+            onChange={(event) => updateFilter('property', event.target.value)}
+          >
+            <option value=''>All accessible properties</option>
+            {properties.map((property) => (
+              <option key={property.id} value={property.id}>
+                {property.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Priority
+          <select
+            className='block min-h-11 rounded border p-2'
+            value={filters.priority}
+            onChange={(event) => updateFilter('priority', event.target.value)}
+          >
+            <option value=''>All priorities</option>
+            <option value='0'>Priority / overdue</option>
+            <option value='1'>Needs attention</option>
+            <option value='2'>Upcoming / routine</option>
+          </select>
+        </label>
+        <label>
+          Sort by
+          <select
+            className='block min-h-11 rounded border p-2'
+            value={filters.sort}
+            onChange={(event) => updateFilter('sort', event.target.value)}
+          >
+            <option value='priority'>Priority, then due date</option>
+            <option value='due'>Due date</option>
+            <option value='property'>Property</option>
+            <option value='person'>Responsible person</option>
+          </select>
+        </label>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            updateFilter('person', personDraft.trim());
+          }}
+        >
+          <label>
+            Responsible person
+            <input
+              className='block min-h-11 rounded border p-2'
+              type='search'
+              maxLength={100}
+              value={personDraft}
+              onChange={(event) => setPersonDraft(event.target.value)}
+            />
+          </label>
+          <button type='submit' className='underline'>
+            Apply person filter
+          </button>
+        </form>
+      </div>
       {error ? (
         <div role='alert' className={styles.error}>
           {error}{' '}
@@ -168,7 +257,12 @@ export default function PropertyWorkQueuePage() {
                     </span>
                     <div className={styles.content}>
                       <p className={styles.meta}>
-                        {item.property_name} · {item.kind}
+                        {item.property_name} · {item.kind} ·{' '}
+                        {item.urgency === 0
+                          ? 'Priority / overdue'
+                          : item.urgency === 1
+                            ? 'Needs attention'
+                            : 'Upcoming / routine'}
                       </p>
                       <h2>{item.title}</h2>
                     </div>

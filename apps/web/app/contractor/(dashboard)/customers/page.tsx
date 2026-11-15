@@ -2,6 +2,8 @@ import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { collectRows } from '@/lib/db/collect-rows';
+import { getReleasedCustomerPayments } from '@/lib/contractor/customer-payments';
 import { logger } from '@mintenance/shared';
 import { CustomersTable } from './components/CustomersTable';
 import { MessagesSidebar } from './components/MessagesSidebar';
@@ -36,21 +38,6 @@ interface JobRow {
   completed_at: string | null;
   homeowner_id: string | null;
   homeowner?: CustomerData | CustomerData[];
-}
-
-interface BidRow {
-  // bids has NO homeowner_id column (select-schema audit 2026-08-02) —
-  // the homeowner is reached through the bid's job.
-  job?:
-    | { homeowner?: CustomerData | CustomerData[] }
-    | Array<{ homeowner?: CustomerData | CustomerData[] }>;
-}
-
-interface MessageRow {
-  sender_id: string;
-  receiver_id: string;
-  sender?: CustomerData | CustomerData[];
-  receiver?: CustomerData | CustomerData[];
 }
 
 interface QuoteRow {
@@ -95,65 +82,48 @@ export default async function CustomersPage() {
 
   // Fetch all customers (homeowners the contractor has worked with) plus
   // the enriched data needed for LTV / stage / star aggregates.
-  const [jobsData, bidsData, messagesData, quotesData, reviewsData] =
-    await Promise.all([
+  const [jobsData, quotesData, reviewsData] = await Promise.all([
+    collectRows((from, to) =>
       serverSupabase
         .from('jobs')
         .select(
           'id, title, status, budget, postcode, city, created_at, completed_at, homeowner_id, homeowner:homeowner_id (id, first_name, last_name, profile_image_url, email)'
         )
         .eq('contractor_id', user.id)
-        .not('homeowner_id', 'is', null),
-      // bids has no homeowner_id — reach the homeowner via the bid's job.
-      // !inner drops bids whose job is missing; a null homeowner on the
-      // job is guarded at consumption.
-      serverSupabase
-        .from('bids')
-        .select(
-          'job:jobs!inner(homeowner:profiles!homeowner_id (id, first_name, last_name, profile_image_url, email))'
-        )
-        .eq('contractor_id', user.id),
-      loadMessages(
-        serverSupabase
-          .from('messages')
-          .select(
-            'sender_id, receiver_id, sender:sender_id (id, first_name, last_name, profile_image_url, email), receiver:receiver_id (id, first_name, last_name, profile_image_url, email)'
-          )
-          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      ),
+        .not('homeowner_id', 'is', null)
+        .order('id')
+        .range(from, to)
+    ).then((data) => ({ data, error: null })),
+    collectRows((from, to) =>
       serverSupabase
         .from('current_contractor_quotes')
         .select('status, total_amount, client_email')
-        .eq('contractor_id', user.id),
+        .eq('contractor_id', user.id)
+        .order('id')
+        .range(from, to)
+    ).then((data) => ({ data, error: null })),
+    collectRows((from, to) =>
       serverSupabase
         .from('reviews')
         .select('rating, reviewer_id')
-        .eq('reviewee_id', user.id),
-    ]);
+        .eq('reviewee_id', user.id)
+        .order('id')
+        .range(from, to)
+    ).then((data) => ({ data, error: null })),
+  ]);
 
-  // Combine and deduplicate customers
+  if (jobsData.error) throw new Error('Customer job history unavailable');
+  const releasedByJob = await getReleasedCustomerPayments(
+    user.id,
+    (jobsData.data ?? []).map((job) => job.id)
+  );
+
+  // Only assigned jobs establish access to customer contact information.
   const customerMap = new Map<string, CustomerData>();
 
   ((jobsData.data || []) as JobRow[]).forEach((job) => {
     const homeowner = unwrap(job.homeowner);
     if (homeowner?.id) customerMap.set(homeowner.id, homeowner);
-  });
-
-  ((bidsData.data || []) as BidRow[]).forEach((bid) => {
-    const job = unwrap(bid.job);
-    const homeowner = unwrap(job?.homeowner);
-    if (homeowner?.id) customerMap.set(homeowner.id, homeowner);
-  });
-
-  ((messagesData.data || []) as MessageRow[]).forEach((message) => {
-    if (message.sender_id !== user.id && message.receiver_id !== user.id)
-      return;
-    const sender = unwrap(message.sender);
-    const receiver = unwrap(message.receiver);
-    const otherUser = message.sender_id === user.id ? receiver : sender;
-    if (otherUser?.id && otherUser.id !== user.id) {
-      customerMap.set(otherUser.id, otherUser);
-    }
   });
 
   const customers = Array.from(customerMap.values()).map((c) => ({
@@ -181,7 +151,7 @@ export default async function CustomersPage() {
             .order('created_at', { ascending: false })
             .limit(100)
         );
-  const messagesAvailable = messagesData.available && recentResult.available;
+  const messagesAvailable = recentResult.available;
   const customerIdSet = new Set(customerIds);
   // Defense in depth before serializing message content to a client component.
   const recentMessages = (recentResult.data || []).filter(
@@ -260,10 +230,10 @@ export default async function CustomersPage() {
       const cQuotes = quotesByEmail.get(c.email.toLowerCase()) ?? [];
       const cReviews = reviewsByReviewer.get(c.id) ?? [];
 
-      // LTV = sum of completed-job budgets
-      const ltv = cJobs
-        .filter((j) => j.status === 'completed')
-        .reduce((sum, j) => sum + (Number(j.budget) || 0), 0);
+      const ltv = cJobs.reduce(
+        (sum, job) => sum + (releasedByJob.get(job.id) ?? 0),
+        0
+      );
 
       // Last job — most recent by completed_at or created_at
       const sortedJobs = [...cJobs].sort((a, b) => {

@@ -1,3 +1,4 @@
+import { annotatePaymentAlerts } from './payment-alerts';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@mintenance/shared';
 import { isSocialNotificationType } from '@mintenance/types';
@@ -97,9 +98,13 @@ export async function fetchNotificationFeed(
     }
 
     const rows = (data as NotificationRow[] | null) || [];
-    return rows
-      .filter((row) => !isSocialNotificationType(row.type))
-      .map<FeedNotification>(toFeedNotification);
+    return annotatePaymentAlerts(
+      db,
+      userId,
+      rows
+        .filter((row) => !isSocialNotificationType(row.type))
+        .map<FeedNotification>(toFeedNotification)
+    );
   }
 
   // 2026-05-02 audit follow-up (review pass 5): the default (non-history)
@@ -138,7 +143,11 @@ export async function fetchNotificationFeed(
     })
     .slice(0, limit);
 
-  return filtered.map<FeedNotification>(toFeedNotification);
+  return annotatePaymentAlerts(
+    db,
+    userId,
+    filtered.map<FeedNotification>(toFeedNotification)
+  );
 }
 
 function toFeedNotification(row: NotificationRow): FeedNotification {

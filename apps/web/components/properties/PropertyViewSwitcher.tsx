@@ -62,6 +62,8 @@ export function PropertyViewSwitcher() {
               key={option.value}
               type='button'
               aria-pressed={view === option.value}
+              aria-label={option.label}
+              aria-describedby={`${id}-${option.value}-description`}
               onClick={() => {
                 setView(option.value);
                 setOpen(false);
@@ -69,7 +71,15 @@ export function PropertyViewSwitcher() {
               }}
               className='flex min-h-11 w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm font-semibold hover:bg-teal-50 focus-visible:outline focus-visible:outline-2'
             >
-              {option.label}
+              <span>
+                <span className='block'>{option.label}</span>
+                <span
+                  id={`${id}-${option.value}-description`}
+                  className='mt-1 block text-xs font-normal text-gray-600'
+                >
+                  {option.description}
+                </span>
+              </span>
               {view === option.value && <Check size={16} aria-hidden='true' />}
             </button>
           ))}

@@ -1,3 +1,4 @@
+import { workStartRestriction } from '@/lib/services/contracts/work-start';
 import { verifyEscrowFunding } from '@/lib/services/payment/EscrowFundingService';
 /**
  * POST /api/jobs/:id/start
@@ -109,26 +110,19 @@ export const POST = withApiHandler(
           );
         }
 
-        if (contract.cancellation_requested_at)
-          throw new BadRequestError(
-            'A cancellation notice needs support review before work can start'
-          );
-        if (!contract.cancellation_deadline)
-          throw new BadRequestError(
-            'This older agreement needs cancellation-information review. Contact support before starting work.'
-          );
-        if (Date.now() < Date.parse(contract.cancellation_deadline)) {
+        let earlyStartRequested = false;
+        if (Date.now() < Date.parse(contract.cancellation_deadline ?? '')) {
           const { data: consent, error: consentError } = await serverSupabase
             .from('contract_consents')
             .select('early_start_requested')
             .eq('contract_id', contract.id)
             .eq('signer_role', 'homeowner')
             .maybeSingle();
-          if (consentError || !consent?.early_start_requested)
-            throw new BadRequestError(
-              'The customer has not requested an early start. Wait until the cancellation deadline.'
-            );
+          earlyStartRequested =
+            !consentError && consent?.early_start_requested === true;
         }
+        const restriction = workStartRestriction(contract, earlyStartRequested);
+        if (restriction) throw new BadRequestError(restriction);
 
         // 5. Verify escrow payment is funded (user-scoped read)
         const { data: escrow } = await userDb

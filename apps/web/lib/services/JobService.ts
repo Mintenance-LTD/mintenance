@@ -97,7 +97,8 @@ export class JobService {
   }
 
   static async getJobsByHomeowner(
-    _homeownerId: string
+    _homeownerId: string,
+    filters: { propertyId?: string; category?: string } = {}
   ): Promise<
     (Job & {
       photos?: string[];
@@ -110,18 +111,33 @@ export class JobService {
     })[]
   > {
     try {
-      const { jobs } = await api<{
-        jobs: (JobSummary & {
-          photos?: string[];
-          location?: string;
-          budget?: number;
-          description?: string;
-          category?: string;
-          homeownerName?: string;
-          contractorName?: string;
-        })[];
-      }>(`/api/jobs?limit=50`);
-      return jobs.map(mapSummaryToJob) as (Job & {
+      const collected: JobSummary[] = [];
+      let cursor: string | undefined;
+      const seen = new Set<string>();
+      do {
+        const params = new URLSearchParams({ limit: '50' });
+        if (filters.propertyId) params.set('propertyId', filters.propertyId);
+        if (filters.category) params.set('category', filters.category);
+        if (cursor) params.set('cursor', cursor);
+        const { jobs, nextCursor } = await api<{
+          nextCursor?: string;
+          jobs: (JobSummary & {
+            photos?: string[];
+            location?: string;
+            budget?: number;
+            description?: string;
+            category?: string;
+            homeownerName?: string;
+            contractorName?: string;
+          })[];
+        }>(`/api/jobs?${params.toString()}`);
+        collected.push(...jobs);
+        if (nextCursor && seen.has(nextCursor))
+          throw new Error('Job pagination did not advance');
+        if (nextCursor) seen.add(nextCursor);
+        cursor = nextCursor;
+      } while (cursor);
+      return collected.map(mapSummaryToJob) as (Job & {
         photos?: string[];
         location?: string;
         budget?: number;
@@ -132,7 +148,7 @@ export class JobService {
       })[];
     } catch (error) {
       logger.error('Job service error fetching homeowner jobs', error);
-      return [];
+      throw error;
     }
   }
 

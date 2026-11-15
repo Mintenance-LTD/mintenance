@@ -39,6 +39,8 @@ interface LifecycleData {
   contractStatus?: string | null;
   contractContractorSignedAt?: string | null;
   contractHomeownerSignedAt?: string | null;
+  escrowFundedAt?: string | null;
+  escrowReleasedAt?: string | null;
   escrowStatus?: string | null;
   bidCount?: number;
   pendingBidCount?: number;
@@ -262,6 +264,8 @@ export function MintEditorialJobTabBody({
             contractStatus: lifecycle?.contractStatus,
             contractContractorSignedAt: lifecycle?.contractContractorSignedAt,
             contractHomeownerSignedAt: lifecycle?.contractHomeownerSignedAt,
+            escrowFundedAt: lifecycle?.escrowFundedAt,
+            escrowReleasedAt: lifecycle?.escrowReleasedAt,
             escrowStatus: lifecycle?.escrowStatus,
             completionConfirmed: !!lifecycle?.completionConfirmed,
           }}

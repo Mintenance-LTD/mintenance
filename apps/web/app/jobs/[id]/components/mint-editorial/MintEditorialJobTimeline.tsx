@@ -50,6 +50,8 @@ interface LifecycleInput {
   contractStatus?: string | null;
   contractContractorSignedAt?: string | null;
   contractHomeownerSignedAt?: string | null;
+  escrowFundedAt?: string | null;
+  escrowReleasedAt?: string | null;
   escrowStatus?: string | null;
   completionConfirmed: boolean;
 }
@@ -73,6 +75,7 @@ function formatEventDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleString('en-GB', {
+    timeZone: 'Europe/London',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -138,7 +141,10 @@ export function MintEditorialJobTimeline({
   // column. Add a small offset so it sorts after the bid event.
   const accepted = allBids.find((b) => b.status === 'accepted');
   if (accepted) {
-    const ts = new Date(accepted.created_at).getTime() + 1;
+    const acceptedTs = Date.parse(accepted.accepted_at ?? '');
+    const ts = Number.isFinite(acceptedTs)
+      ? acceptedTs
+      : new Date(accepted.created_at).getTime() + 1;
     // 2026-05-27 audit-76 P2: previously hardcoded "held in escrow"
     // as the meta string. Live data shows 6 accepted bids with no
     // escrow row — between accept and contract-signing, the
@@ -148,17 +154,18 @@ export function MintEditorialJobTimeline({
     // below (line 186, gated on escrowStatus === 'held') fires.
     // Until then this just says the accepted amount + reflects
     // the actual next step (contract signing).
-    const meta =
-      lifecycle.escrowStatus === 'held'
-        ? `£${accepted.amount.toLocaleString('en-GB')} held in escrow`
-        : `£${accepted.amount.toLocaleString('en-GB')} · awaiting contract signing`;
+    const meta = `Accepted price: £${accepted.amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · payment recorded separately`;
     events.push({
       id: 'bid-accepted',
       ts,
-      hasRealTs: false,
+      hasRealTs: Number.isFinite(acceptedTs),
       icon: <CheckCircle2 size={14} strokeWidth={1.75} />,
       title: `You accepted ${bidContractorName(accepted)}'s bid`,
-      meta,
+      meta:
+        meta +
+        (Number.isFinite(acceptedTs)
+          ? ' · ' + formatEventDate(accepted.accepted_at!)
+          : ' · acceptance time not recorded'),
       tone: 'brand',
     });
   }
@@ -196,7 +203,7 @@ export function MintEditorialJobTimeline({
   // 5. Escrow held — no timestamp; render only if status is held
   // and not yet released. Positioned just after the latest contract
   // sign event by adding 1 ms.
-  if (lifecycle.escrowStatus === 'held') {
+  if (lifecycle.escrowFundedAt || lifecycle.escrowStatus === 'held') {
     const latestSign = Math.max(
       lifecycle.contractContractorSignedAt
         ? new Date(lifecycle.contractContractorSignedAt).getTime()
@@ -207,11 +214,17 @@ export function MintEditorialJobTimeline({
     );
     events.push({
       id: 'escrow-held',
-      ts: latestSign > 0 ? latestSign + 1 : postedTs + 1,
-      hasRealTs: false,
+      ts: lifecycle.escrowFundedAt
+        ? Date.parse(lifecycle.escrowFundedAt)
+        : latestSign > 0
+          ? latestSign + 1
+          : postedTs + 1,
+      hasRealTs: !!lifecycle.escrowFundedAt,
       icon: <ShieldCheck size={14} strokeWidth={1.75} />,
       title: 'Payment held in escrow',
-      meta: 'Released to the contractor once you approve the work.',
+      meta: lifecycle.escrowFundedAt
+        ? formatEventDate(lifecycle.escrowFundedAt)
+        : 'Funding time not recorded; showing the current held status.',
       tone: 'brand',
     });
   }
@@ -293,11 +306,16 @@ export function MintEditorialJobTimeline({
       : NOW_SENTINEL + 2;
     events.push({
       id: 'released',
-      ts: baseTs,
-      hasRealTs: false,
+      ts: lifecycle.escrowReleasedAt
+        ? Date.parse(lifecycle.escrowReleasedAt)
+        : baseTs,
+      hasRealTs: !!lifecycle.escrowReleasedAt,
       icon: <ShieldCheck size={14} strokeWidth={1.75} />,
       title: 'Payment released to the contractor',
-      meta: 'Funds delivered out of escrow.',
+      meta: lifecycle.escrowReleasedAt
+        ? formatEventDate(lifecycle.escrowReleasedAt) +
+          ' · escrow release; bank receipt is separate.'
+        : 'Release time not recorded; bank receipt is separate.',
       tone: 'ok',
     });
   }
@@ -317,7 +335,8 @@ export function MintEditorialJobTimeline({
         <div className='col' style={{ gap: 2 }}>
           <h2 className='t-h3'>Timeline</h2>
           <span className='t-meta'>
-            Everything that&apos;s happened on this job, newest first.
+            Recorded job events, newest first. Events without a recorded time
+            are labelled; their order is approximate.
           </span>
         </div>
         <span className='badge badge-mute'>

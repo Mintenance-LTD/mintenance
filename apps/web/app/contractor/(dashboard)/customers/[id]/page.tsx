@@ -1,31 +1,16 @@
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { collectRows } from '@/lib/db/collect-rows';
+import { getReleasedCustomerPayments } from '@/lib/contractor/customer-payments';
 import { ArrowLeft, Briefcase, Mail, Phone, MapPin } from 'lucide-react';
 
 export const metadata = {
   title: 'Customer Details | Mintenance',
 };
-
-// 2026-05-23: local helper for the budget→escrow refactor — sums
-// released escrow rows attached to a job. Used by both the
-// totalRevenue aggregate and the per-row price render so the
-// flatten logic lives once.
-function realisedFromEscrow(
-  escrow:
-    | Array<{ amount?: number | string | null; status?: string | null }>
-    | { amount?: number | string | null; status?: string | null }
-    | null
-    | undefined
-): number {
-  const rows = Array.isArray(escrow) ? escrow : escrow ? [escrow] : [];
-  return rows
-    .filter((t) => t?.status === 'released' || t?.status === 'completed')
-    .reduce<number>((acc, t) => acc + Number(t.amount ?? 0), 0);
-}
 
 export default async function CustomerDetailPage({
   params,
@@ -39,57 +24,31 @@ export default async function CustomerDetailPage({
     redirect('/login');
   }
 
-  // Fetch customer profile
-  const { data: customer } = await serverSupabase
+  // Establish the assignment relationship before reading any contact details.
+  const jobs = await collectRows((from, to) =>
+    serverSupabase
+      .from('jobs')
+      .select('id,title,description,status,category,created_at,completed_at')
+      .eq('contractor_id', user.id)
+      .eq('homeowner_id', customerId)
+      .order('created_at', { ascending: false })
+      .order('id')
+      .range(from, to)
+  );
+  if (!jobs?.length) notFound();
+
+  const { data: customer, error: customerError } = await serverSupabase
     .from('profiles')
     .select(
-      'id, first_name, last_name, email, phone, profile_image_url, city, country, created_at'
+      'id,first_name,last_name,email,phone,profile_image_url,city,country,created_at'
     )
     .eq('id', customerId)
     .single();
-
-  if (!customer) {
-    redirect('/contractor/customers');
-  }
-
-  // Fetch jobs with this customer — from direct assignment OR accepted bids.
-  // 2026-05-23 audit: dropped `final_price` (not a live column) in
-  // favour of joining released escrow for the realised revenue figure.
-  const { data: directJobs } = await serverSupabase
-    .from('jobs')
-    .select(
-      `id, title, description, status, category, budget, created_at, completed_at,
-       escrow_transactions(amount, status)`
-    )
-    .eq('contractor_id', user.id)
-    .eq('homeowner_id', customerId)
-    .order('created_at', { ascending: false });
-
-  // Also get jobs via bids (covers pre-assignment stage)
-  const { data: bidJobs } = await serverSupabase
-    .from('bids')
-    .select(
-      `job:jobs!inner(id, title, description, status, category, budget, created_at, completed_at,
-       escrow_transactions(amount, status))`
-    )
-    .eq('contractor_id', user.id)
-    .eq('jobs.homeowner_id', customerId);
-
-  // Deduplicate
-  const jobMap = new Map<string, Record<string, unknown>>();
-  for (const j of directJobs || [])
-    jobMap.set(j.id, j as Record<string, unknown>);
-  for (const b of bidJobs || []) {
-    const j = (b as Record<string, unknown>).job as Record<
-      string,
-      unknown
-    > | null;
-    if (j?.id && !jobMap.has(j.id as string)) jobMap.set(j.id as string, j);
-  }
-  const jobs = [...jobMap.values()].sort(
-    (a, b) =>
-      new Date(b.created_at as string).getTime() -
-      new Date(a.created_at as string).getTime()
+  if (customerError) throw new Error('Customer profile unavailable');
+  if (!customer) notFound();
+  const releasedByJob = await getReleasedCustomerPayments(
+    user.id,
+    jobs.map((job) => job.id)
   );
 
   // Fetch messages
@@ -116,14 +75,10 @@ export default async function CustomerDetailPage({
   const totalJobs = jobs?.length || 0;
   const completedJobs =
     jobs?.filter((j) => j.status === 'completed').length || 0;
-  // Realised revenue: sum released escrow per job, fall back to
-  // legacy budget if no escrow has been released yet.
-  const totalRevenue = (jobs || []).reduce((sum, j) => {
-    const realised = realisedFromEscrow(
-      j.escrow_transactions as Parameters<typeof realisedFromEscrow>[0]
-    );
-    return sum + (realised > 0 ? realised : (j.budget as number) || 0);
-  }, 0);
+  const totalRevenue = [...releasedByJob.values()].reduce(
+    (sum, amount) => sum + amount,
+    0
+  );
   const avgRating = reviews?.length
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(
         1
@@ -294,9 +249,10 @@ export default async function CustomerDetailPage({
               <div className='num'>{completedJobs}</div>
             </div>
             <div className='kpi' style={{ padding: 0, border: 'none' }}>
-              <div className='label'>Total revenue</div>
+              <div className='label'>Released payments</div>
               <div className='num' style={{ color: 'var(--me-brand)' }}>
-                {'\u00A3'}{totalRevenue.toLocaleString('en-GB')}
+                {'\u00A3'}
+                {totalRevenue.toLocaleString('en-GB')}
               </div>
             </div>
             <div className='kpi' style={{ padding: 0, border: 'none' }}>
@@ -325,7 +281,7 @@ export default async function CustomerDetailPage({
                 {'\u00A3'}
                 {totalRevenue.toLocaleString('en-GB')}
               </div>
-              <div className='text-sm text-gray-500'>Total Revenue</div>
+              <div className='text-sm text-gray-500'>Released payments</div>
             </div>
             <div>
               <div className='text-2xl font-bold text-gray-900'>
@@ -339,6 +295,11 @@ export default async function CustomerDetailPage({
         )}
       </div>
 
+      <p className='text-sm text-gray-500 mb-6'>
+        Released payments are gross customer payments for your jobs, before
+        fees. They are not your net bank payout. Unpaid budgets and held
+        payments are excluded.
+      </p>
       <div className='grid lg:grid-cols-3 gap-6'>
         {/* Job history */}
         <div className='lg:col-span-2'>
@@ -358,14 +319,7 @@ export default async function CustomerDetailPage({
                 const cat = (job.category as string) || 'general';
                 const status = (job.status as string) || 'posted';
                 const date = job.created_at as string;
-                // Same realised-escrow → budget fallback as totalRevenue.
-                const realised = realisedFromEscrow(
-                  job.escrow_transactions as Parameters<
-                    typeof realisedFromEscrow
-                  >[0]
-                );
-                const price =
-                  realised > 0 ? realised : (job.budget as number) || 0;
+                const price = releasedByJob.get(id) ?? 0;
                 return (
                   <Link
                     key={id}
@@ -388,7 +342,11 @@ export default async function CustomerDetailPage({
                       <div className='flex items-center gap-3'>
                         <span className='text-lg font-semibold text-gray-900'>
                           {'\u00A3'}
-                          {price.toLocaleString('en-GB')}
+                          {price.toLocaleString('en-GB', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}{' '}
+                          released
                         </span>
                         <span
                           className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-600'}`}

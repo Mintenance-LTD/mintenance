@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
@@ -25,7 +25,8 @@ type FilterStatus =
   | 'completed'
   | 'draft'
   | 'awaiting_action'
-  | 'archived';
+  | 'archived'
+  | 'cancelled';
 
 interface RawJobData {
   id: string;
@@ -97,6 +98,11 @@ function getNextAction(status: string): NextAction | undefined {
 }
 
 function JobsPageContent() {
+  const searchParams = useSearchParams();
+  const propertyFilter =
+    searchParams.get('property_id') || searchParams.get('propertyId') || '';
+  const categoryFilter = searchParams.get('category') || '';
+
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
   const [filters, setFilters] = useState<JobFilters>({});
@@ -134,12 +140,15 @@ function JobsPageContent() {
     isLoading: loading,
     error: jobsError,
   } = useQuery({
-    queryKey: ['jobs', user?.id, user?.role],
+    queryKey: ['jobs', user?.id, user?.role, propertyFilter, categoryFilter],
     queryFn: async () => {
       if (!user) return [];
       const jobsRaw =
         user.role === 'homeowner'
-          ? await JobService.getJobsByHomeowner(user.id)
+          ? await JobService.getJobsByHomeowner(user.id, {
+              propertyId: propertyFilter || undefined,
+              category: categoryFilter || undefined,
+            })
           : await JobService.getAvailableJobs();
       return (jobsRaw as RawJobData[]).map(
         (j: RawJobData): ProcessedJob => ({
@@ -268,7 +277,7 @@ function JobsPageContent() {
     }
   }, [user, loadingUser, currentUserError, router]);
 
-  if (loadingUser) {
+  if (loadingUser || loading) {
     return <LoadingSpinner fullScreen message='Loading your workspace...' />;
   }
   if (currentUserError) {
@@ -308,7 +317,12 @@ function JobsPageContent() {
   if (isMintEditorial) {
     return (
       <HomeownerPageWrapper>
-        <MintEditorialJobsList jobs={visibleJobs} />
+        <MintEditorialJobsList
+          key={`${propertyFilter}:${categoryFilter}`}
+          jobs={visibleJobs}
+          initialCategory={categoryFilter || 'all'}
+          scoped={Boolean(propertyFilter || categoryFilter)}
+        />
       </HomeownerPageWrapper>
     );
   }

@@ -487,6 +487,7 @@ export function MintEditorialTenantReports({
                       href={{
                         pathname: '/jobs/create',
                         query: {
+                          is_rental_property: 'true',
                           property_id: selected.properties.id,
                           category: selected.category,
                           description: selected.description,

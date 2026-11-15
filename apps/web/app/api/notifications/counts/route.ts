@@ -12,11 +12,12 @@ export const GET = withApiHandler({}, async (_request, { user }) => {
   // `messages` keyed by (sender_id, receiver_id, job_id) with a single
   // `read` boolean — no thread_id, no read_by. The thread_id query
   // returned 0 rows on every call, masking real unread counts.
-  const { count: messageCountRaw } = await serverSupabase
+  const { count: messageCountRaw, error: messageError } = await serverSupabase
     .from('messages')
     .select('id', { count: 'exact', head: true })
     .eq('receiver_id', user.id)
     .eq('read', false);
+  if (messageError) throw messageError;
   const messageCount = messageCountRaw ?? 0;
 
   // 2026-05-02 audit follow-up (98% readiness step 2): the `connections`
@@ -35,11 +36,12 @@ export const GET = withApiHandler({}, async (_request, { user }) => {
   const [notificationsResponse] = await Promise.all([
     serverSupabase
       .from('notifications')
-      .select('id', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('read', false),
   ]);
 
+  if (notificationsResponse.error) throw notificationsResponse.error;
   return NextResponse.json(
     {
       success: true,
@@ -52,7 +54,7 @@ export const GET = withApiHandler({}, async (_request, { user }) => {
     },
     {
       headers: {
-        'Cache-Control': 'private, max-age=120, must-revalidate',
+        'Cache-Control': 'private, no-store',
       },
     }
   );

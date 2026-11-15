@@ -410,11 +410,13 @@ export function QuoteHistoryClient({
             </h3>
             <p>
               <time dateTime={revision.created_at}>
-                {new Date(revision.created_at).toLocaleString('en-GB')}
+                {new Date(revision.created_at).toLocaleString('en-GB', {
+                  timeZone: 'Europe/London',
+                })}
               </time>{' '}
               —{' '}
               {revision.actor_id
-                ? 'Saved by the contractor'
+                ? 'Recorded account: ' + revision.actor_id
                 : 'Recorded change; individual actor not captured'}
             </p>
             {revision.reason && (

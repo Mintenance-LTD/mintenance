@@ -1,3 +1,4 @@
+import { workStartRestriction } from '@/lib/services/contracts/work-start';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
@@ -8,6 +9,7 @@ import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { canRevealKeySafeCode } from '@/lib/services/jobs/key-safe-reveal';
 import { redirect } from 'next/navigation';
 import React from 'react';
+import { hasExplicitObligations } from '@/lib/services/contracts/explicit-obligations';
 import { theme } from '@/lib/theme';
 import { MapPin, MessageCircle, ArrowLeft } from 'lucide-react';
 import { ContractManagement } from '@/app/jobs/[id]/components/ContractManagement';
@@ -127,24 +129,41 @@ export default async function ContractorJobDetailPage({
   const { data: contract } = await serverSupabase
     .from('contracts')
     .select(
-      'id, status, contractor_signed_at, homeowner_signed_at, start_date, end_date'
+      'id, status, contractor_signed_at, homeowner_signed_at, start_date, end_date, cancellation_deadline, cancellation_requested_at, terms'
     )
     .eq('job_id', resolvedParams.id)
     .neq('status', 'cancelled')
     .single();
+
+  let earlyStartRequested = false;
+  if (contract?.status === 'accepted') {
+    const { data: consent, error } = await serverSupabase
+      .from('contract_consents')
+      .select('early_start_requested')
+      .eq('contract_id', contract.id)
+      .eq('signer_role', 'homeowner')
+      .maybeSingle();
+    earlyStartRequested = !error && consent?.early_start_requested === true;
+  }
+  const startRestriction = workStartRestriction(contract, earlyStartRequested);
 
   const contractStatus = !contract
     ? 'none'
     : contract.status === 'accepted' ||
         (contract.contractor_signed_at && contract.homeowner_signed_at)
       ? 'accepted'
-      : contract.status === 'draft'
+      : contract.status === 'draft' ||
+          (!contract.contractor_signed_at &&
+            !contract.homeowner_signed_at &&
+            !hasExplicitObligations(contract.terms))
         ? 'none' // Draft contracts are treated as "not prepared yet"
         : 'pending';
 
   const { data: escrowTransaction } = await serverSupabase
     .from('escrow_transactions')
-    .select('id, status, amount, platform_fee, contractor_payout')
+    .select(
+      'id, status, amount, platform_fee, contractor_payout, stripe_processing_fee'
+    )
     .eq('job_id', resolvedParams.id)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -203,9 +222,15 @@ export default async function ContractorJobDetailPage({
   const currentStage = determineStage(
     job.status || 'posted',
     contractStatus,
-    escrowHeld
+    escrowHeld,
+    startRestriction === null
   );
-  const stageConfig = getStageConfig(currentStage);
+  const stageConfig = {
+    ...getStageConfig(currentStage),
+    ...(currentStage === 'waiting_to_start' && startRestriction
+      ? { subtitle: startRestriction }
+      : {}),
+  };
 
   const currentStatus =
     JOB_STATUS_CONFIG[job.status || 'posted'] || JOB_STATUS_CONFIG.posted;
@@ -334,6 +359,10 @@ export default async function ContractorJobDetailPage({
             escrowTransaction
               ? {
                   gross: Number(escrowTransaction.amount),
+                  processing:
+                    escrowTransaction.stripe_processing_fee == null
+                      ? null
+                      : Number(escrowTransaction.stripe_processing_fee),
                   fee:
                     escrowTransaction.platform_fee === null
                       ? null
