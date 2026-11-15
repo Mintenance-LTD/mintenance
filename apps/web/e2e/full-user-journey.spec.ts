@@ -1,3 +1,4 @@
+import { registerReview48Journeys } from './helpers/review48-journeys';
 /**
  * Full User Journey E2E Test: Homeowner & Contractor Flow
  *
@@ -274,3 +275,5 @@ for (const role of ['homeowner', 'contractor'] as const) {
     ).toBeVisible();
   });
 }
+
+registerReview48Journeys();
