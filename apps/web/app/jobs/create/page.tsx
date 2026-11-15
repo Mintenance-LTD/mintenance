@@ -18,10 +18,7 @@ import {
   type JobFormData,
 } from './utils/validation';
 import { submitJob } from './utils/submitJob';
-import {
-  initialFormDataFromParams,
-  formDataPatchFromParams,
-} from './utils/url-prefill';
+import { initialFormDataFromParams } from './utils/url-prefill';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -138,13 +135,7 @@ export default function CreateJobPage2025() {
     },
   });
 
-  // Prefill from URL on soft-navigations (Mint AI dock, deep-links).
-  // Initial state already captured the params on mount; this effect
-  // covers later URL changes that don't remount the page.
-  useEffect(() => {
-    const patch = formDataPatchFromParams(searchParams);
-    if (patch) setFormData((prev) => ({ ...prev, ...patch }));
-  }, [searchParams]);
+  // The account-scoped draft hook also handles URL context changes.
 
   useEffect(() => {
     if (user && user.role === 'homeowner') {
@@ -185,11 +176,15 @@ export default function CreateJobPage2025() {
                 (p: Property) => p.id === urlPropertyId
               );
               if (selectedProperty) {
-                setFormData((prev) => ({
-                  ...prev,
-                  property_id: urlPropertyId,
-                  location: selectedProperty.address || prev.location,
-                }));
+                setFormData((prev) =>
+                  prev.property_id && prev.property_id !== urlPropertyId
+                    ? prev
+                    : {
+                        ...prev,
+                        property_id: urlPropertyId,
+                        location: selectedProperty.address || prev.location,
+                      }
+                );
               }
             }
           }

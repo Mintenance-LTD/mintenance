@@ -23,8 +23,11 @@ const dateLabel = (date: Date) =>
     year: 'numeric',
   });
 
+const ukToday = () =>
+  new Date(appointmentLocalTime(new Date()).date + 'T12:00:00');
+
 export function Calendar({ events = [] }: { events: CalendarEvent[] }) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(ukToday);
   const [view, setView] = useState<'month' | 'week' | 'day'>('month');
   const start = new Date(
     currentDate.getFullYear(),
@@ -72,7 +75,7 @@ export function Calendar({ events = [] }: { events: CalendarEvent[] }) {
       : view === 'day'
         ? dateLabel(currentDate)
         : `${dateLabel(days[0])} – ${dateLabel(days[6])}`;
-  const today = new Date().toDateString();
+  const today = ukToday().toDateString();
   return (
     <section
       aria-label='Schedule calendar'
@@ -91,7 +94,7 @@ export function Calendar({ events = [] }: { events: CalendarEvent[] }) {
         label={label}
         view={view}
         onViewChange={setView}
-        onToday={() => setCurrentDate(new Date())}
+        onToday={() => setCurrentDate(ukToday())}
         onPreviousMonth={() => move(-1)}
         onNextMonth={() => move(1)}
       />
