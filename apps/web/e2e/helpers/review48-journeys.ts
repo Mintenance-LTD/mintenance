@@ -168,10 +168,12 @@ export function registerReview48Journeys() {
     await submitJobWizard(page);
     const upload = await uploaded;
     expect(upload.ok(), await upload.text()).toBe(true);
-    expect(upload.request().postDataBuffer()!.length).toBeLessThan(4_500_000);
     const { urls } = await upload.json();
     expect(urls).toHaveLength(1);
-    expect((await page.request.get(urls[0])).ok()).toBe(true);
+    const stored = await page.request.get(urls[0]);
+    expect(stored.ok()).toBe(true);
+    expect(stored.headers()['content-type']).toContain('image/jpeg');
+    expect((await stored.body()).length).toBeLessThan(4_000_000);
     const id = new URL(page.url()).pathname.split('/')[2];
     const detail = await page.request.get(`/api/jobs/${id}`);
     expect(detail.ok()).toBe(true);

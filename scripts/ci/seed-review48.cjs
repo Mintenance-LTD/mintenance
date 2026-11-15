@@ -18,7 +18,9 @@ exports.seedReview48 = async function (db, users, env) {
   );
   env.E2E_REVIEW_PROPERTY_ID = property;
   const start = new Date();
-  start.setUTCDate(start.getUTCDate() + 2);
+  // Keep review visits off the Monday/Tuesday availability-test slots.
+  const daysUntilWednesday = (3 - start.getUTCDay() + 7) % 7 || 7;
+  start.setUTCDate(start.getUTCDate() + daysUntilWednesday);
   start.setUTCHours(11, 0, 0, 0);
   const end = new Date(start.getTime() + 86400000);
   env.E2E_REVIEW_START = start.toISOString();
