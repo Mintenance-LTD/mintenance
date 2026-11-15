@@ -22,11 +22,24 @@ test('finance, marketing and dashboard use the same contractor earnings definiti
   await expect(
     page.getByText('Lifetime net earnings', { exact: true })
   ).toBeVisible();
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  // The payout-onboarding banner and Next's route announcer are valid alerts.
+  await expect(
+    page.getByRole('heading', { name: 'Finance could not be loaded' })
+  ).toHaveCount(0);
+  const earnings = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+  }).format(summary.allTimeRevenue);
+  await expect(
+    page.locator('.kpi').filter({ hasText: 'Lifetime net earnings' })
+  ).toContainText(earnings);
   await page.goto('/contractor/dashboard-enhanced');
   await expect(
     page.getByText('Lifetime net earnings', { exact: true })
   ).toBeVisible();
+  await expect(
+    page.locator('.kpi').filter({ hasText: 'Lifetime net earnings' })
+  ).toContainText(earnings);
   expect(await establishSessionInContext(page, TEST_USERS.homeowner)).toBe(
     true
   );
@@ -77,7 +90,7 @@ test('contractor can save a linked video appointment and the homeowner receives 
       ? 13
       : 15;
   await modal.locator('input[type=time]').nth(0).fill(`${hour}:00`);
-  await page.locator('input[type=time]').nth(1).fill(`${hour}:30`);
+  await modal.locator('input[type=time]').nth(1).fill(`${hour}:30`);
   await page.getByRole('button', { name: 'Video Call', exact: true }).click();
   await page
     .getByLabel('Video call link (HTTPS)')
