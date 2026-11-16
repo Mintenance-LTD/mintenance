@@ -44,6 +44,7 @@ interface BuildingAssessmentDisplayProps {
   loading?: boolean;
   onCorrection?: (assessmentId: string, corrections: unknown[]) => void;
   jobId?: string;
+  canEditPhotos?: boolean;
   photoUrls?: string[];
   /**
    * The job's declared category (plumbing / electrical / roofing / ...).
@@ -65,6 +66,7 @@ export function BuildingAssessmentDisplay({
   loading = false,
   onCorrection: _onCorrection,
   jobId,
+  canEditPhotos = false,
   photoUrls,
   jobCategory,
   frameUrls,
@@ -509,7 +511,7 @@ export function BuildingAssessmentDisplay({
                   job’s current photos; it does not submit a professional
                   correction.
                 </p>
-                {jobId ? (
+                {jobId && canEditPhotos ? (
                   <Link
                     className='mt-3 inline-block underline'
                     href={`/jobs/${jobId}/edit`}
@@ -518,8 +520,9 @@ export function BuildingAssessmentDisplay({
                   </Link>
                 ) : (
                   <p className='mt-2'>
-                    Open the original job to review its photos before requesting
-                    another analysis.
+                    Review the original job photos with the homeowner or
+                    contractor before requesting another analysis. Photo editing
+                    is not available from this view.
                   </p>
                 )}
                 {!photoUrls?.length && (

@@ -33,6 +33,7 @@ it('opens improvement guidance on a legacy assessment and qualifies confidence a
     <BuildingAssessmentDisplay
       assessment={legacy}
       jobId='qa-job'
+      canEditPhotos
       photoUrls={['/test-photo.jpg']}
     />
   );
@@ -57,6 +58,14 @@ it('opens improvement guidance on a legacy assessment and qualifies confidence a
   expect(
     screen.queryByRole('region', { name: 'Improve assessment evidence' })
   ).toBeNull();
+});
+it('does not offer a forbidden photo editor on a read-only job view', () => {
+  render(<BuildingAssessmentDisplay assessment={legacy} jobId='qa-job' />);
+  fireEvent.click(screen.getByRole('button', { name: 'Improve Assessment' }));
+  expect(
+    screen.queryByRole('link', { name: 'Review job details and photos' })
+  ).toBeNull();
+  expect(screen.getByText(/Photo editing is not available/)).toBeVisible();
 });
 it.each([
   ['posted', 'Open for bids'],
