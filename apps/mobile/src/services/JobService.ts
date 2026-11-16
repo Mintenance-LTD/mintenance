@@ -84,8 +84,13 @@ export class JobService {
     return JobCRUDService.startJob(jobId);
   }
 
-  static async completeJob(jobId: string): Promise<void> {
-    return JobCRUDService.completeJob(jobId);
+  static async completeJob(
+    jobId: string,
+    reworkRequestId?: string
+  ): Promise<void> {
+    return reworkRequestId
+      ? JobCRUDService.completeJob(jobId, reworkRequestId)
+      : JobCRUDService.completeJob(jobId);
   }
 
   // Job search operations - delegate to JobSearchService

@@ -1,3 +1,5 @@
+import { fetchWithCsrf } from '@/lib/csrf-client';
+import { readActionResponse } from '@/lib/api/read-action-response';
 import { logger } from '@mintenance/shared';
 import type { Notification } from './notificationDropdownUtils';
 
@@ -68,18 +70,23 @@ export async function fetchNotificationsApi(
 }
 
 export async function markAsReadApi(notificationId: string): Promise<void> {
-  await fetch(`/api/notifications/${notificationId}/read`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
+  const response = await fetchWithCsrf(
+    `/api/notifications/${notificationId}/read`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    }
+  );
+  await readActionResponse(response, 'Unable to mark notifications as read.');
 }
 
 export async function markAllAsReadApi(): Promise<void> {
   // Security fix: API now uses authenticated user, no userId in body needed
-  await fetch('/api/notifications/mark-all-read', {
+  const response = await fetchWithCsrf('/api/notifications/mark-all-read', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
   });
+  await readActionResponse(response, 'Unable to mark notifications as read.');
 }

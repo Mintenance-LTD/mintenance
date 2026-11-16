@@ -46,7 +46,7 @@ export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
     ','
   ),
   contracts:
-    'agreement_formed_at,cancellation_deadline,cancellation_information_provided_at,cancellation_requested_at,amount,contract_version,contractor_company_name,contractor_id,contractor_license_registration,contractor_license_type,contractor_signed_at,created_at,description,end_date,homeowner_id,homeowner_signed_at,id,job_id,notes,quote_id,start_date,status,terms,title,updated_at'.split(
+    'sent_at,agreement_formed_at,cancellation_deadline,cancellation_information_provided_at,cancellation_requested_at,amount,contract_version,contractor_company_name,contractor_id,contractor_license_registration,contractor_license_type,contractor_signed_at,created_at,description,end_date,homeowner_id,homeowner_signed_at,id,job_id,notes,quote_id,start_date,status,terms,title,updated_at'.split(
       ','
     ),
   notifications:

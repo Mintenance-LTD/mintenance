@@ -223,6 +223,19 @@ export default async function ContractorJobDetailPage({
   );
   const stageConfig = {
     ...getStageConfig(currentStage),
+    ...(currentStage === 'contract_pending'
+      ? contract?.status === 'pending_contractor'
+        ? {
+            title: 'Your signature is next',
+            subtitle:
+              'The homeowner has signed. Review the agreed terms and sign below.',
+          }
+        : {
+            title: 'Waiting for the homeowner’s signature',
+            subtitle:
+              'The homeowner signs first. Your signature action becomes available afterwards.',
+          }
+      : {}),
     ...(currentStage === 'waiting_to_start' && startRestriction
       ? { subtitle: startRestriction }
       : {}),

@@ -1,3 +1,11 @@
+vi.mock('@/lib/hooks/useJobRework', () => ({
+  useJobRework: () => ({
+    requests: [],
+    latest: undefined,
+    loading: false,
+    error: null,
+  }),
+}));
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
@@ -85,8 +93,13 @@ describe('JobPhotoUpload', () => {
     const [url, options] = vi.mocked(fetchWithCsrf).mock.calls[0];
     expect(url).toBe('/api/jobs/job-1/photos/after');
     const form = options!.body as FormData;
-    expect(form.getAll('photos')).toHaveLength(3);
-    expect(form.getAll('angleTypes')).toEqual(['wide', 'close-up', 'wide']);
+    expect(form.getAll('photos')).toHaveLength(1);
+    expect(vi.mocked(fetchWithCsrf).mock.calls).toHaveLength(3);
+    expect(
+      vi
+        .mocked(fetchWithCsrf)
+        .mock.calls.map((call) => (call[1]!.body as FormData).get('angleTypes'))
+    ).toEqual(['wide', 'close-up', 'wide']);
     expect(refresh).toHaveBeenCalledOnce();
     expect(screen.getByText(/Job completed!/)).toBeVisible();
   });
@@ -116,8 +129,14 @@ describe('JobPhotoUpload', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove photo 1' }));
     fireEvent.click(screen.getByRole('button', { name: 'Upload 2 Photos' }));
     expect(await screen.findByText('Minimum 3 photos required')).toBeVisible();
-    const form = vi.mocked(fetchWithCsrf).mock.calls[0][1]!.body as FormData;
-    expect(form.getAll('angleTypes')).toEqual(['wide', 'close-up']);
+    await waitFor(() =>
+      expect(vi.mocked(fetchWithCsrf).mock.calls).toHaveLength(2)
+    );
+    expect(
+      vi
+        .mocked(fetchWithCsrf)
+        .mock.calls.map((call) => (call[1]!.body as FormData).get('angleTypes'))
+    ).toEqual(['wide', 'close-up']);
     expect(onJobCompleted).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
     expect(screen.queryByText(/Job completed!/)).not.toBeInTheDocument();

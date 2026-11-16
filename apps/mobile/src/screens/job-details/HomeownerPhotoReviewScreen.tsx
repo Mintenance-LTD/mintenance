@@ -44,6 +44,7 @@ import { logger } from '../../utils/logger';
 import { me } from '../../design-system/mint-editorial';
 import { styles } from './photoReviewStyles';
 import { BeforeAfterSliderView } from './components/BeforeAfterSliderView';
+import { PaymentReviewMilestones } from './PaymentReviewMilestones';
 import { PhotoReviewControls } from './components/PhotoReviewControls';
 
 type PhotoReviewRouteProp = RouteProp<JobsStackParamList, 'PhotoReview'>;
@@ -51,40 +52,6 @@ type PhotoReviewRouteProp = RouteProp<JobsStackParamList, 'PhotoReview'>;
 interface PhotoPair {
   before: { url: string; id: string; timestamp?: string };
   after: { url: string; id: string; timestamp?: string };
-}
-
-/** Days the homeowner has to approve before automatic eligibility checks begin. */
-const AUTO_RELEASE_WINDOW_DAYS = 7;
-
-// 2026-05-28 U3: mirror of web computeAutoReleaseInfo (audit-P2-4). The
-// 7-day review window runs from jobs.completed_at (stamped when
-// the after-photo upload auto-flips the job to 'completed'). Surfacing
-// the deadline reassures homeowners that funds move even with no action.
-function computeAutoReleaseInfo(completedAt: string | null | undefined): {
-  deadline: Date;
-  daysRemaining: number;
-  passed: boolean;
-} | null {
-  if (!completedAt) return null;
-  const completed = new Date(completedAt);
-  if (Number.isNaN(completed.getTime())) return null;
-  const deadline = new Date(completed);
-  deadline.setUTCDate(deadline.getUTCDate() + AUTO_RELEASE_WINDOW_DAYS);
-  const msRemaining = deadline.getTime() - Date.now();
-  // Ceil so "23 hours left" reads as "1 day" not "0 days".
-  const daysRemaining = Math.max(
-    0,
-    Math.ceil(msRemaining / (24 * 60 * 60 * 1000))
-  );
-  return { deadline, daysRemaining, passed: msRemaining <= 0 };
-}
-
-function formatDeadline(d: Date): string {
-  return d.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
 }
 
 export const HomeownerPhotoReviewScreen: React.FC = () => {
@@ -108,17 +75,37 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   const approvalInFlight = useRef(false);
   const reworkRequests = useRef(new Map<string, string>());
   const reworkInFlight = useRef(false);
-  const autoRelease = computeAutoReleaseInfo(completedAt);
+  const [latestRework, setLatestRework] = useState<{
+    id: string;
+    comments: string;
+    created_at: string;
+  } | null>(null);
+  const [showPrevious, setShowPrevious] = useState(false);
+  const currentPairs = latestRework
+    ? photoPairs.filter(
+        (pair) =>
+          pair.after.timestamp &&
+          Date.parse(pair.after.timestamp) > Date.parse(latestRework.created_at)
+      )
+    : photoPairs;
+  const visiblePairs = showPrevious ? photoPairs : currentPairs;
 
   const fetchPhotos = useCallback(async () => {
     try {
       setLoading(true);
       setLoadError(null);
 
-      const [jobData, photos] = await Promise.all([
+      const [jobData, photos, history] = await Promise.all([
         JobService.getJobById(jobId),
         PhotoUploadService.getJobPhotos(jobId),
+        mobileApiClient.get<{
+          requests: Array<{ id: string; comments: string; created_at: string }>;
+        }>(`/api/jobs/${jobId}/rework`),
       ]);
+      if (!Array.isArray(history.requests))
+        throw new Error('Unable to verify the current review cycle.');
+      setLatestRework(history.requests[0] ?? null);
+      setShowPrevious(false);
       if (jobData?.title) setJobTitle(jobData.title);
       setCompletedAt(jobData?.completed_at ?? null);
       setApproved(
@@ -197,6 +184,13 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
 
   const handleApprove = async () => {
     if (!user?.id || submitting || approved || approvalInFlight.current) return;
+    if (latestRework && currentPairs.length < 3) {
+      alert(
+        'Fresh evidence required',
+        'At least three fresh accepted after photos are required for this rework cycle.'
+      );
+      return;
+    }
     if (!completedAt) {
       alert(
         'Refresh required',
@@ -368,7 +362,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
           ) : null}
         </View>
         <Text style={styles.photoCount}>
-          {activePairIndex + 1}/{photoPairs.length}
+          {visiblePairs.length ? activePairIndex + 1 : 0}/{visiblePairs.length}
         </Text>
       </View>
 
@@ -377,8 +371,44 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps='handled'
       >
+        {latestRework && (
+          <View style={{ padding: 16, gap: 8 }}>
+            <Text>
+              {showPrevious
+                ? 'All photos, including previous cycles'
+                : 'Current rework evidence'}
+            </Text>
+            <Text>Requested changes: {latestRework.comments}</Text>
+            <Text>
+              At least three fresh accepted after photos are required. Earlier
+              photos do not count toward this cycle.
+            </Text>
+            <TouchableOpacity
+              accessibilityRole='button'
+              onPress={() => {
+                setShowPrevious((value) => !value);
+                setActivePairIndex(0);
+              }}
+            >
+              <Text>
+                {showPrevious
+                  ? 'Show current rework only'
+                  : 'Browse all photos including previous cycles'}
+              </Text>
+            </TouchableOpacity>
+            {showPrevious && visiblePairs[activePairIndex] && (
+              <Text>
+                {visiblePairs[activePairIndex]?.after.timestamp &&
+                Date.parse(visiblePairs[activePairIndex]!.after.timestamp!) >
+                  Date.parse(latestRework.created_at)
+                  ? 'Current cycle'
+                  : 'Previous cycle / date unavailable'}
+              </Text>
+            )}
+          </View>
+        )}
         <BeforeAfterSliderView
-          photoPairs={photoPairs}
+          photoPairs={visiblePairs}
           activePairIndex={activePairIndex}
           onSelectPair={setActivePairIndex}
           onRetry={fetchPhotos}
@@ -406,57 +436,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Auto-release countdown — only while awaiting homeowner action. */}
-        {!approved &&
-          !showChangesForm &&
-          autoRelease &&
-          (() => {
-            const isUrgent =
-              autoRelease.passed || autoRelease.daysRemaining <= 2;
-            return (
-              <View
-                accessibilityRole='alert'
-                style={[
-                  styles.autoReleaseBanner,
-                  {
-                    backgroundColor: isUrgent ? me.warnBg : me.infoBg,
-                    borderColor: isUrgent ? me.warnFg : me.infoFg,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name='time-outline'
-                  size={20}
-                  color={isUrgent ? me.warnFg : me.infoFg}
-                  style={styles.autoReleaseIcon}
-                />
-                <View style={styles.autoReleaseTextWrap}>
-                  <Text
-                    style={[
-                      styles.autoReleaseTitle,
-                      { color: isUrgent ? me.warnFg : me.infoFg },
-                    ]}
-                  >
-                    {autoRelease.passed
-                      ? 'Review window ended'
-                      : autoRelease.daysRemaining === 1
-                        ? '1 day left to approve or request changes'
-                        : `${autoRelease.daysRemaining} days left to approve or request changes`}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.autoReleaseBody,
-                      { color: isUrgent ? me.warnFg : me.infoFg },
-                    ]}
-                  >
-                    {autoRelease.passed
-                      ? `The ${AUTO_RELEASE_WINDOW_DAYS}-day review window has passed (${formatDeadline(autoRelease.deadline)}). Automatic review and payment checks apply before release.`
-                      : `Please review by ${formatDeadline(autoRelease.deadline)}. If you take no action, automatic review applies. Release remains subject to payment checks and any active dispute.`}
-                  </Text>
-                </View>
-              </View>
-            );
-          })()}
+        <PaymentReviewMilestones jobId={jobId} approved={approved} />
 
         {/* Changes Form (rendered inside scroll so it's above the keyboard) */}
         {!approved && showChangesForm && (

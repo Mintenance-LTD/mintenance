@@ -68,10 +68,11 @@ it('hides raw proxy response errors and rejects null success payloads', async ()
     readActionResponse(response(null), 'Upload failed')
   ).rejects.toThrow('Upload failed');
 });
-it('checks combined batch bytes and count before uploading', () => {
-  expect(photoBatchError([{ size: 3_000_000 }, { size: 2_000_000 }])).toMatch(
-    /4 MB/
-  );
+it('checks each individually uploaded file and the selection count', () => {
+  expect(
+    photoBatchError([{ size: 3_000_000 }, { size: 2_000_000 }])
+  ).toBeNull();
+  expect(photoBatchError([{ size: 5_000_000 }])).toMatch(/4 MB/);
   expect(
     photoBatchError(Array.from({ length: 11 }, () => ({ size: 1 })))
   ).toMatch(/10 photos/);

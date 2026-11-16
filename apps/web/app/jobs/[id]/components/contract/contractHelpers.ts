@@ -12,6 +12,7 @@ import {
 
 export const formatDate = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString('en-GB', {
+    timeZone: 'Europe/London',
     weekday: 'short',
     year: 'numeric',
     month: 'short',
@@ -23,6 +24,8 @@ export const formatDateTime = (dateStr: string) =>
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    timeZone: 'Europe/London',
+    timeZoneName: 'short',
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -40,7 +43,10 @@ export interface StatusConfig {
   icon: typeof CheckCircle2;
 }
 
-export const getStatusConfig = (status: string): StatusConfig => {
+export const getStatusConfig = (
+  status: string,
+  role: 'homeowner' | 'contractor' = 'homeowner'
+): StatusConfig => {
   const map: Record<string, StatusConfig> = {
     draft: {
       label: 'Draft',
@@ -50,14 +56,20 @@ export const getStatusConfig = (status: string): StatusConfig => {
       icon: FileText,
     },
     pending_contractor: {
-      label: 'Awaiting Contractor',
+      label:
+        role === 'contractor'
+          ? 'Awaiting Your Signature'
+          : 'Awaiting Contractor',
       bg: 'bg-amber-50',
       text: 'text-amber-700',
       border: 'border-amber-200',
       icon: Clock,
     },
     pending_homeowner: {
-      label: 'Awaiting Your Signature',
+      label:
+        role === 'homeowner'
+          ? 'Awaiting Your Signature'
+          : 'Awaiting Homeowner Signature',
       bg: 'bg-amber-50',
       text: 'text-amber-700',
       border: 'border-amber-200',

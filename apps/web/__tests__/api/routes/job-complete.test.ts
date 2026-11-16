@@ -1,3 +1,7 @@
+vi.mock('@/lib/jobs/rework-evidence', async (original) => ({
+  ...(await original<typeof import('@/lib/jobs/rework-evidence')>()),
+  getJobReworkRequests: vi.fn(async () => []),
+}));
 /**
  * Tests for POST /api/jobs/[id]/complete
  * Route: apps/web/app/api/jobs/[id]/complete/route.ts
@@ -230,7 +234,11 @@ function setupCompleteMocks(
   };
   const notificationResult = { error: overrides.notificationError ?? null };
   const afterPhotoResult = {
-    count: overrides.afterPhotoCount ?? 1,
+    data: Array.from({ length: overrides.afterPhotoCount ?? 3 }, () => ({
+      photo_url: '/fresh.jpg',
+      angle_type: 'wide',
+      quality_score: 0.9,
+    })),
     error: null,
   };
   const escrowResult = {

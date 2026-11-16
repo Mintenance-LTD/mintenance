@@ -215,7 +215,7 @@ export default function PaymentsPage2025() {
         ? {
             title: 'Approve work and release payment?',
             description:
-              'This will approve the work as satisfactorily completed and immediately release the payment to the contractor.\n\n' +
+              'This will approve the work as satisfactorily completed and request payment release, subject to the remaining release checks.\n\n' +
               'You will be waiving the 48-hour cooling-off period you would normally get after approving, during which a payment can still be held back.\n\n' +
               'This cannot be undone.',
             confirmText: 'Approve & release',

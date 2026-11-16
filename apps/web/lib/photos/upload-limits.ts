@@ -7,10 +7,8 @@ export function photoBatchError(
 ): string | null {
   if (files.length > MAX_PHOTO_BATCH_COUNT)
     return 'Choose up to 10 photos per upload.';
-  if (
-    files.reduce((total, file) => total + file.size, 0) > MAX_PHOTO_BATCH_BYTES
-  ) {
-    return 'Choose smaller photos or upload in smaller batches: each upload can contain up to 4 MB in total. Previously accepted photos still count.';
+  if (files.some((file) => file.size > MAX_PHOTO_BATCH_BYTES)) {
+    return 'Each photo must be 4 MB or smaller. Choose a smaller image; photos upload individually.';
   }
   return null;
 }

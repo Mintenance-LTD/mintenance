@@ -69,7 +69,7 @@ export function ContractManagement(props: ContractManagementProps) {
   }
 
   const isDraft = contract.status === 'draft';
-  const statusConfig = getStatusConfig(contract.status);
+  const statusConfig = getStatusConfig(contract.status, userRole);
   const logoUrl = contract.contractor?.profile_image_url;
 
   const contractorName =

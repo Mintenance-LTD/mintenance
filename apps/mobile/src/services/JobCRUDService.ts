@@ -297,9 +297,16 @@ export class JobCRUDService {
     await mobileApiClient.post(`/api/jobs/${jobId}/start`);
   }
 
-  static async completeJob(jobId: string): Promise<void> {
-    // Route through web API to enforce payment checks and send notifications
-    await mobileApiClient.post(`/api/jobs/${jobId}/complete`);
+  static async completeJob(
+    jobId: string,
+    reworkRequestId?: string
+  ): Promise<void> {
+    // The server fences this exact rework cycle and validates fresh evidence.
+    if (reworkRequestId)
+      await mobileApiClient.post(`/api/jobs/${jobId}/complete`, {
+        reworkRequestId,
+      });
+    else await mobileApiClient.post(`/api/jobs/${jobId}/complete`);
   }
 
   /**

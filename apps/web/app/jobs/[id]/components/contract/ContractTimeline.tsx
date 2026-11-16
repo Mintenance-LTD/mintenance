@@ -63,7 +63,11 @@ export function ContractTimeline({ contract }: ContractTimelineProps) {
             icon={Send}
             color='blue'
             label='Sent to Homeowner'
-            date={formatDateTime(contract.updated_at)}
+            date={
+              contract.sent_at
+                ? formatDateTime(contract.sent_at)
+                : 'Sent timestamp not recorded'
+            }
           />
         )}
         {contract.contractor_signed_at && (

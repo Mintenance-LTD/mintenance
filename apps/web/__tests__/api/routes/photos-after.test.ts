@@ -1,3 +1,7 @@
+vi.mock('@/lib/jobs/rework-evidence', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/jobs/rework-evidence')>()),
+  getJobReworkRequests: async () => [],
+}));
 /**
  * Tests for POST /api/jobs/[id]/photos/after
  * Route: apps/web/app/api/jobs/[id]/photos/after/route.ts
@@ -658,4 +662,14 @@ describe('POST /api/jobs/[id]/photos/after', () => {
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
   });
+  it('rejects storage path traversal before any storage operation', async () => {
+    setupPhotoMocks();
+    const formData = new FormData();
+    formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
+    const request = createFormDataRequest('http://localhost/api/jobs/job-1/photos/after', formData);
+    const response = await POST(request, segmentData('../other-job'));
+    expect(response.status).toBe(400);
+    expect(mocks.supabaseStorageFrom).not.toHaveBeenCalled();
+  });
+
 });

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { ukDateTimeToISO } from '@/lib/scheduling/uk-date-time';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -56,13 +57,23 @@ const contractFormSchema = z
       )
       .max(2000),
     contractor_company_name: z.string().min(2, 'Company name is required'),
-    contractor_license_registration: z
+    contractor_license_registration: z.string().optional(),
+    contractor_license_type: z
       .string()
-      .min(2, 'License registration number is required'),
-    contractor_license_type: z.string().optional(),
+      .min(1, 'Choose a licence type or not applicable'),
     insurance_provider: z.string().optional(),
     insurance_policy_number: z.string().optional(),
   })
+  .refine(
+    (data) =>
+      data.contractor_license_type === 'not_applicable' ||
+      (data.contractor_license_registration?.trim().length ?? 0) >= 2,
+    {
+      message:
+        'Enter a registration number, or choose not applicable when no registration is required for this work.',
+      path: ['contractor_license_registration'],
+    }
+  )
   .refine(
     (data) => {
       const startDate = new Date(data.start_date);
@@ -237,16 +248,16 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
 
     try {
       const amount = parseFloat(data.amount);
-      const startDateObj = new Date(data.start_date);
-      const endDateObj = new Date(data.end_date);
+      const startDateISO = ukDateTimeToISO(data.start_date);
+      const endDateISO = ukDateTimeToISO(data.end_date);
 
       const contractData = {
         job_id: jobId,
         title: data.title.trim(),
         description: data.description.trim(),
         amount: amount,
-        start_date: startDateObj.toISOString(),
-        end_date: endDateObj.toISOString(),
+        start_date: startDateISO,
+        end_date: endDateISO,
         terms: {
           materials_terms: data.materials_terms.trim(),
           warranty_terms: data.warranty_terms.trim(),
@@ -256,7 +267,9 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
         },
         contractor_company_name: data.contractor_company_name.trim(),
         contractor_license_registration:
-          data.contractor_license_registration.trim(),
+          data.contractor_license_type === 'not_applicable'
+            ? 'Not applicable — no trade registration required for this work'
+            : data.contractor_license_registration?.trim(),
         contractor_license_type:
           data.contractor_license_type?.trim() || undefined,
         insurance_provider: data.insurance_provider?.trim() || undefined,
@@ -326,7 +339,7 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
                   ? 'This contract has been signed by both parties. No further changes can be made.'
                   : existingContractStatus === 'rejected'
                     ? 'The homeowner has requested changes to the contract. You can update and resend it.'
-                    : `A finalized contract already exists for this job (status: ${existingContractStatus.replace('_', ' ')}).`}
+                    : `A contract already exists for this job (status: ${existingContractStatus.replace('_', ' ')}).`}
             </AlertDescription>
           </Alert>
         )}
@@ -393,7 +406,7 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
 
           <div className='grid grid-cols-2 gap-4'>
             <div className='space-y-2'>
-              <Label htmlFor='start_date'>Start Date *</Label>
+              <Label htmlFor='start_date'>Start Date (UK time) *</Label>
               <Input
                 id='start_date'
                 type='datetime-local'
@@ -402,7 +415,7 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='end_date'>End Date *</Label>
+              <Label htmlFor='end_date'>End Date (UK time) *</Label>
               <Input
                 id='end_date'
                 type='datetime-local'
@@ -435,7 +448,7 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
           <div className='grid grid-cols-2 gap-4'>
             <div className='space-y-2'>
               <Label htmlFor='contractor_license_registration'>
-                License Number *
+                Licence / registration number
               </Label>
               <Input
                 id='contractor_license_registration'
@@ -445,13 +458,16 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='contractor_license_type'>License Type</Label>
+              <Label htmlFor='contractor_license_type'>Licence type</Label>
               <select
                 id='contractor_license_type'
                 {...register('contractor_license_type')}
                 className='flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
               >
                 <option value=''>Select type</option>
+                <option value='not_applicable'>
+                  Not applicable — no trade registration required
+                </option>
                 <option value='General Contractor'>General Contractor</option>
                 <option value='Electrical'>Electrical</option>
                 <option value='Plumbing'>Plumbing</option>

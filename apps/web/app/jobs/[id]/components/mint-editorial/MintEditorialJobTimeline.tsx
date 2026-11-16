@@ -28,6 +28,7 @@
  */
 
 import React from 'react';
+import { useJobRework } from '@/lib/hooks/useJobRework';
 import {
   Briefcase,
   Clock,
@@ -107,7 +108,29 @@ export function MintEditorialJobTimeline({
   afterPhotos,
   lifecycle,
 }: Props) {
+  const rework = useJobRework(job.id, job.completed_at);
   const events: TimelineEvent[] = [];
+  for (const request of rework.requests) {
+    if (request.completion_version)
+      events.push({
+        id: 'completion-' + request.id,
+        ts: Date.parse(request.completion_version),
+        hasRealTs: true,
+        icon: <CheckCircle2 size={14} />,
+        title: 'Previous completion submitted',
+        meta: formatEventDate(request.completion_version),
+        tone: 'mute',
+      });
+    events.push({
+      id: 'rework-' + request.id,
+      ts: Date.parse(request.created_at),
+      hasRealTs: true,
+      icon: <FileText size={14} />,
+      title: 'Changes requested — job reopened',
+      meta: formatEventDate(request.created_at) + ' · ' + request.comments,
+      tone: 'brand',
+    });
+  }
 
   // 1. Job posted — always
   const postedTs = new Date(job.created_at).getTime();

@@ -47,6 +47,7 @@ export interface ContractQuote {
 }
 
 export interface Contract {
+  sent_at?: string | null;
   id: string;
   job_id: string;
   contractor_id: string;

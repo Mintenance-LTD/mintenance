@@ -506,13 +506,19 @@ export default function TransactionDetailPage2025() {
 
                   <div>
                     <p className='text-sm text-gray-600 mb-1'>Email</p>
-                    <a
-                      href={`mailto:${transaction.contractor.email}`}
-                      className='font-medium text-teal-600 hover:text-teal-700 flex items-center gap-2 break-all'
-                    >
-                      <Mail className='w-4 h-4 flex-shrink-0' />
-                      {transaction.contractor.email}
-                    </a>
+                    {transaction.contractor.email?.includes('@') ? (
+                      <a
+                        href={`mailto:${transaction.contractor.email}`}
+                        className='font-medium text-teal-600 hover:text-teal-700 flex items-center gap-2 break-all'
+                      >
+                        <Mail className='w-4 h-4 flex-shrink-0' />
+                        {transaction.contractor.email}
+                      </a>
+                    ) : (
+                      <p className='text-sm text-gray-600'>
+                        Email not provided
+                      </p>
+                    )}
                   </div>
 
                   {transaction.contractor.phone && (
