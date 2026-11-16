@@ -1,6 +1,16 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import {
+  ArrowUpRight,
+  Briefcase,
+  ClipboardCheck,
+  FileText,
+  History,
+  MessageSquare,
+  Wallet,
+} from 'lucide-react';
+import styles from './property-activity.module.css';
 interface Event {
   id: string;
   title: string;
@@ -8,6 +18,19 @@ interface Event {
   href: string;
   kind: string;
 }
+const eventTypes = {
+  job: { label: 'Job', Icon: Briefcase },
+  document: { label: 'Document', Icon: FileText },
+  inspection: { label: 'Inspection', Icon: ClipboardCheck },
+  payment: { label: 'Payment', Icon: Wallet },
+  message: { label: 'Message', Icon: MessageSquare },
+};
+const monthFormat = new Intl.DateTimeFormat('en-GB', {
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'Europe/London',
+});
+
 export function PropertyActivityFeed({ propertyId }: { propertyId: string }) {
   const [offset, setOffset] = useState(0);
   const [attempt, setAttempt] = useState(0);
@@ -42,47 +65,94 @@ export function PropertyActivityFeed({ propertyId }: { propertyId: string }) {
       });
     return () => controller.abort();
   }, [propertyId, offset, attempt]);
+  const groups = new Map<string, Event[]>();
+  for (const event of events) {
+    const month = monthFormat.format(new Date(event.date));
+    groups.set(month, [...(groups.get(month) ?? []), event]);
+  }
   return (
-    <section className='pw-card' aria-label='Property history'>
-      <h2>Property history</h2>
-      <p>
+    <section className={`pw-card ${styles.feed}`} aria-label='Property history'>
+      <header className={styles.header}>
+        <span className={styles.headerIcon}>
+          <History size={22} aria-hidden='true' />
+        </span>
+        <div>
+          <h2>Property history</h2>
+          <p className={styles.intro}>A record of what happened, and when.</p>
+        </div>
+        <span className={styles.timezone}>UK time</span>
+      </header>
+      <p className={styles.description}>
         Recorded jobs, documents, inspections, payments and your job messages.
         Signed agreements and original event times are preserved.
       </p>
       {loading ? (
-        <p role='status'>Loading history…</p>
+        <p role='status' className={styles.state}>
+          Loading history…
+        </p>
       ) : error ? (
-        <p role='alert'>
+        <p role='alert' className={styles.state}>
           {error}{' '}
-          <button onClick={() => setAttempt((v) => v + 1)}>Retry</button>
+          <button
+            className='pw-btn pw-btn-small'
+            onClick={() => setAttempt((v) => v + 1)}
+          >
+            Retry
+          </button>
         </p>
       ) : (
         <>
           {events.length ? (
-            <ol>
-              {events.map((event) => (
-                <li key={event.id} className='pw-event'>
-                  <div>
-                    <Link href={event.href}>{event.title}</Link>
-                    <p>
-                      <time dateTime={event.date}>
-                        {new Date(event.date).toLocaleString('en-GB', {
-                          timeZone: 'Europe/London',
-                          dateStyle: 'medium',
-                          timeStyle: 'short',
-                        })}{' '}
-                        UK
-                      </time>
-                    </p>
-                  </div>
-                </li>
+            <div className={styles.groups}>
+              {[...groups].map(([month, entries]) => (
+                <section key={month} aria-label={month}>
+                  <h3 className={styles.month}>{month}</h3>
+                  <ol className={styles.list}>
+                    {entries.map((event) => {
+                      const { Icon, label } = eventTypes[
+                        event.kind as keyof typeof eventTypes
+                      ] ?? { label: 'Activity', Icon: History };
+                      return (
+                        <li key={event.id} className={styles.event}>
+                          <span className={styles.eventIcon}>
+                            <Icon size={18} aria-hidden='true' />
+                          </span>
+                          <Link href={event.href} className={styles.eventLink}>
+                            <span className={styles.eventContent}>
+                              <span className={styles.kind}>{label}</span>
+                              <span className={styles.title}>
+                                {event.title}
+                              </span>
+                              <time
+                                dateTime={event.date}
+                                className={styles.date}
+                              >
+                                {new Date(event.date).toLocaleString('en-GB', {
+                                  timeZone: 'Europe/London',
+                                  dateStyle: 'medium',
+                                  timeStyle: 'short',
+                                })}{' '}
+                                UK
+                              </time>
+                            </span>
+                            <ArrowUpRight size={18} aria-hidden='true' />
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
               ))}
-            </ol>
+            </div>
           ) : (
-            <p>No recorded activity on this page.</p>
+            <p className={styles.state}>No recorded activity on this page.</p>
           )}
-          <div className='pw-between'>
+          <nav
+            className={styles.pagination}
+            aria-label='Property history pages'
+          >
             <button
+              className='pw-btn pw-btn-small'
               disabled={!offset}
               onClick={() => setOffset((v) => Math.max(0, v - 25))}
             >
@@ -90,12 +160,13 @@ export function PropertyActivityFeed({ propertyId }: { propertyId: string }) {
             </button>
             <span>Page {offset / 25 + 1}</span>
             <button
+              className='pw-btn pw-btn-small'
               disabled={!hasMore}
               onClick={() => setOffset((v) => v + 25)}
             >
               Older
             </button>
-          </div>
+          </nav>
         </>
       )}
     </section>

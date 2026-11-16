@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import styles from './jobs-list.module.css';
 import {
   Plus,
   ArrowRight,
@@ -75,8 +76,12 @@ function statusBadge(status: string) {
       </span>
     );
   }
-  if (s === 'cancelled' || s === 'disputed') {
-    return <span className='badge badge-err'>{status}</span>;
+  if (s === 'cancelled' || s === 'canceled' || s === 'disputed') {
+    return (
+      <span className='badge badge-err'>
+        {s === 'disputed' ? 'Disputed' : 'Cancelled'}
+      </span>
+    );
   }
   return <span className='badge badge-mute'>{status}</span>;
 }
@@ -94,6 +99,26 @@ function metaLine(job: JobListItem): string {
         : `Posted ${diffDays} days ago`;
   const where = job.location || 'Location not set';
   return `${where} · ${when}`;
+}
+
+function JobRow({ job }: { job: JobListItem }) {
+  return (
+    <Link
+      href={`/jobs/${job.id}`}
+      className={styles.jobRow}
+      data-testid='job-card'
+    >
+      <CategoryThumb category={job.category} />
+      <div className={styles.details}>
+        <div className={styles.heading}>
+          <h3 className='t-h4'>{job.title}</h3>
+          {statusBadge(job.status)}
+        </div>
+        <p className={styles.meta}>{metaLine(job)}</p>
+      </div>
+      <ArrowRight className={styles.arrow} size={18} aria-hidden='true' />
+    </Link>
+  );
 }
 
 type Tab = 'all' | 'awaiting' | 'active' | 'done';
@@ -164,7 +189,7 @@ export function MintEditorialJobsList({
   return (
     <>
       {/* Page header */}
-      <div className='between' style={{ marginBottom: 18 }}>
+      <div className={`between ${styles.header}`} style={{ marginBottom: 18 }}>
         <div className='col' style={{ gap: 4 }}>
           <h1 className='t-h1'>Your jobs</h1>
           <p className='t-body'>
@@ -177,6 +202,7 @@ export function MintEditorialJobsList({
               type='button'
               key={t.id}
               className={'chip ' + (activeTab === t.id ? 'on' : '')}
+              aria-pressed={activeTab === t.id}
               onClick={() => setActiveTab(t.id)}
             >
               {t.label} · {counts[t.id]}
@@ -186,10 +212,7 @@ export function MintEditorialJobsList({
       </div>
 
       {/* Top actions row */}
-      <div
-        className='row'
-        style={{ gap: 8, marginBottom: 14, justifyContent: 'flex-end' }}
-      >
+      <div className={styles.toolbar}>
         <label className='row' style={{ gap: 8 }}>
           Category
           <select
@@ -245,95 +268,23 @@ export function MintEditorialJobsList({
         </div>
       ) : (
         <div className='card'>
-          {activeGroup.length > 0 && (
-            <>
-              <div className='me-list-section'>Active</div>
-              {activeGroup.map((j) => (
-                <Link
-                  key={j.id}
-                  href={`/jobs/${j.id}`}
-                  className='job-row'
-                  data-testid='job-card'
-                  style={{
-                    cursor: 'pointer',
-                    color: 'inherit',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <CategoryThumb category={j.category} />
-                  <div className='col' style={{ gap: 4, minWidth: 0 }}>
-                    <div className='row' style={{ gap: 8 }}>
-                      <h3 className='t-h4'>{j.title}</h3>
-                      {statusBadge(j.status)}
-                    </div>
-                    <div className='t-meta'>{metaLine(j)}</div>
-                  </div>
-                  <div
-                    className='col'
-                    style={{ alignItems: 'flex-end', gap: 2 }}
-                  >
-                    {/* 2026-05-22: budget amount hidden — contractors price each bid themselves. */}
-                    <ArrowRight
-                      size={14}
-                      strokeWidth={1.75}
-                      style={{ color: 'var(--me-ink-3)' }}
-                    />
-                  </div>
-                </Link>
-              ))}
-            </>
-          )}
-          {closedGroup.length > 0 && (
-            <section aria-label='Cancelled jobs'>
-              <div className='me-list-section'>Cancelled</div>
-              {closedGroup.map((job) => (
-                <Link className='job-row' href={`/jobs/${job.id}`} key={job.id}>
-                  <span>{job.title}</span>
-                  {statusBadge(job.status)}
-                </Link>
-              ))}
-            </section>
-          )}
-          {doneGroup.length > 0 && (
-            <>
-              <div className='me-list-section me-list-section-divider'>
-                Recently completed
-              </div>
-              {doneGroup.map((j) => (
-                <Link
-                  key={j.id}
-                  href={`/jobs/${j.id}`}
-                  className='job-row'
-                  data-testid='job-card'
-                  style={{
-                    cursor: 'pointer',
-                    color: 'inherit',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <CategoryThumb category={j.category} />
-                  <div className='col' style={{ gap: 4, minWidth: 0 }}>
-                    <div className='row' style={{ gap: 8 }}>
-                      <h3 className='t-h4'>{j.title}</h3>
-                      {statusBadge(j.status)}
-                    </div>
-                    <div className='t-meta'>{metaLine(j)}</div>
-                  </div>
-                  <div
-                    className='col'
-                    style={{ alignItems: 'flex-end', gap: 2 }}
-                  >
-                    {/* 2026-05-22: budget amount hidden — contractors price each bid themselves. */}
-                    <ArrowRight
-                      size={14}
-                      strokeWidth={1.75}
-                      style={{ color: 'var(--me-ink-3)' }}
-                    />
-                  </div>
-                </Link>
-              ))}
-            </>
-          )}
+          {[
+            { label: 'Active', jobs: activeGroup },
+            { label: 'Cancelled', jobs: closedGroup },
+            { label: 'Recently completed', jobs: doneGroup },
+          ]
+            .filter((group) => group.jobs.length > 0)
+            .map((group) => (
+              <section key={group.label} aria-label={`${group.label} jobs`}>
+                <div className={`me-list-section ${styles.sectionHeading}`}>
+                  <span>{group.label}</span>
+                  <span>{group.jobs.length}</span>
+                </div>
+                {group.jobs.map((job) => (
+                  <JobRow key={job.id} job={job} />
+                ))}
+              </section>
+            ))}
         </div>
       )}
     </>
