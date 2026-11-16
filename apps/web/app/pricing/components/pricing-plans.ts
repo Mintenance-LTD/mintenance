@@ -51,7 +51,7 @@ export function getHomeownerPlans(isAnnual: boolean): PricingPlan[] {
       billingCycle: isAnnual ? 'year' : 'month',
       description: 'Complete management for landlords with up to 25 properties',
       features: [
-        'Everything in Free',
+        'Free features, with a higher property limit',
         'Up to 25 properties',
         'Compliance dashboard (gas, electrical, EPC)',
         'Expiry reminders (90/30/7 days)',
@@ -74,7 +74,7 @@ export function getHomeownerPlans(isAnnual: boolean): PricingPlan[] {
       billingCycle: isAnnual ? 'year' : 'month',
       description: 'Multi-user portfolio management for letting agents',
       features: [
-        'Everything in Landlord',
+        'Landlord features, with unlimited properties',
         'Unlimited properties',
         'Team member invites (up to 10)',
         'Role-based access (admin/manager/viewer)',

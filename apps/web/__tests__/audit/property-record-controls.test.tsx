@@ -78,6 +78,48 @@ async function selectFolder() {
   });
   await screen.findByRole('button', { name: 'New inspection' });
 }
+it('keeps the edited folder selected and reloads its new revision before another edit', async () => {
+  let saved = { ...folder };
+  request.mockImplementation(async (url: string, options?: RequestInit) => {
+    if (options?.method === 'PATCH') {
+      const body = JSON.parse(String(options.body));
+      saved = { ...saved, label: body.label, revision: saved.revision + 1 };
+      return response({ id: folder.id });
+    }
+    return response({
+      items: url.includes('/inspections') ? [] : [saved],
+      canCreate: true,
+      hasMore: false,
+    });
+  });
+  render(<TenancyInspections propertyId='property' />);
+  await selectFolder();
+  fireEvent.click(screen.getByRole('button', { name: 'Edit tenancy folder' }));
+  expect(
+    screen.getByRole('group', { name: 'Edit tenancy folder' })
+  ).toBeVisible();
+  fireEvent.change(screen.getByLabelText('Folder name'), {
+    target: { value: 'Renamed QA folder' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save folder changes' }));
+  await screen.findByRole('option', { name: /Renamed QA folder/ });
+  await waitFor(() =>
+    expect(screen.getByLabelText('Tenancy folder')).toHaveValue(folder.id)
+  );
+  expect(screen.getByText('Tenancy folder changes saved.')).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Edit tenancy folder' }));
+  expect(screen.getByLabelText('Folder name')).toHaveValue('Renamed QA folder');
+  fireEvent.click(screen.getByRole('button', { name: 'Save folder changes' }));
+  await waitFor(() =>
+    expect(
+      request.mock.calls.filter(([, options]) => options?.method === 'PATCH')
+    ).toHaveLength(2)
+  );
+  const patches = request.mock.calls.filter(
+    ([, options]) => options?.method === 'PATCH'
+  );
+  expect(JSON.parse(patches[1][1].body).revision).toBe(1);
+});
 it.each([
   ['Check-in', 'check_in'],
   ['Routine inspection', 'routine'],

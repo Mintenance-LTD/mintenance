@@ -64,7 +64,9 @@ export const PATCH = withApiHandler(
     // PATCH). Pull property_id too so we can call authorize().
     const { data: existing, error: fetchError } = await serverSupabase
       .from('property_contacts')
-      .select('id, owner_id, property_id')
+      .select(
+        'id, owner_id, property_id, contact_role, email, phone, is_active'
+      )
       .eq('id', contactId)
       .single();
 
@@ -73,11 +75,13 @@ export const PATCH = withApiHandler(
     }
 
     if (user.role !== 'admin') {
-      const { authorized } = await PropertyTeamService.authorize(
-        user.id,
-        existing.property_id as string,
-        'manage_contacts'
-      );
+      const { authorized } = existing.property_id
+        ? await PropertyTeamService.authorize(
+            user.id,
+            existing.property_id as string,
+            'manage_contacts'
+          )
+        : { authorized: existing.owner_id === user.id };
       if (!authorized) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
@@ -129,6 +133,22 @@ export const PATCH = withApiHandler(
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
         { error: 'No updatable fields provided' },
+        { status: 400 }
+      );
+    }
+
+    const next = { ...existing, ...updates };
+    if (
+      next.is_active !== false &&
+      next.contact_role === 'emergency_contact' &&
+      !trimOrNull(next.email) &&
+      !trimOrNull(next.phone)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Add a phone number or email address for an emergency contact.',
+        },
         { status: 400 }
       );
     }

@@ -21,18 +21,29 @@ function useRecords<T>(url: string, revision: number) {
     data: T | null;
     error: string;
     loading: boolean;
-  }>({ data: null, error: '', loading: true });
+    loadedRevision: number;
+  }>({ data: null, error: '', loading: true, loadedRevision: -1 });
   useEffect(() => {
     const controller = new AbortController();
-    setState({ data: null, error: '', loading: true });
+    setState({ data: null, error: '', loading: true, loadedRevision: -1 });
     void inspectionRequest<T>(url, undefined, controller.signal)
       .then((data) => {
         if (!controller.signal.aborted)
-          setState({ data, error: '', loading: false });
+          setState({
+            data,
+            error: '',
+            loading: false,
+            loadedRevision: revision,
+          });
       })
       .catch((error: Error) => {
         if (!controller.signal.aborted)
-          setState({ data: null, error: error.message, loading: false });
+          setState({
+            data: null,
+            error: error.message,
+            loading: false,
+            loadedRevision: revision,
+          });
       });
     return () => controller.abort();
   }, [url, revision]);
@@ -62,10 +73,21 @@ function TenancyWorkspace({ propertyId }: { propertyId: string }) {
     };
   }, []);
   const [error, setError] = useState('');
+  const [savedFolderId, setSavedFolderId] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState('');
   const folders = useRecords<InspectionPage<TenancyFolder>>(
     '/api/properties/' + propertyId + '/tenancies?offset=' + page,
     revision
   );
+  useEffect(() => {
+    if (!savedFolderId || !folders.data || folders.loadedRevision !== revision)
+      return;
+    const saved = folders.data.items.find((item) => item.id === savedFolderId);
+    if (saved) {
+      setFolder(saved);
+      setSavedFolderId(null);
+    }
+  }, [folders.data, folders.loadedRevision, revision, savedFolderId]);
   async function saveFolder(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving.current) return;
@@ -73,6 +95,7 @@ function TenancyWorkspace({ propertyId }: { propertyId: string }) {
     const form = new FormData(event.currentTarget);
     setBusy(true);
     setError('');
+    setSaveMessage('');
     try {
       const result = await inspectionRequest<{ id: string }>(
         '/api/properties/' + propertyId + '/tenancies',
@@ -91,8 +114,12 @@ function TenancyWorkspace({ propertyId }: { propertyId: string }) {
           'The folder save was not confirmed. Reload folders before retrying.'
         );
       setCreate(false);
-      setFolder(null);
-      setPage(0);
+      setSavedFolderId(result.id);
+      setSaveMessage(
+        editing ? 'Tenancy folder changes saved.' : 'Tenancy folder created.'
+      );
+      setEditing(null);
+      if (!editing) setPage(0);
       setRevision((v) => v + 1);
     } catch (e) {
       if (!mounted.current) return;
@@ -117,13 +144,14 @@ function TenancyWorkspace({ propertyId }: { propertyId: string }) {
             disabled={busy}
             onClick={() => {
               setError('');
+              setSaveMessage('');
               setEditing(null);
               setDraft({ label: '', starts_on: '', ends_on: '' });
               setCreate((v) => !v);
             }}
             aria-expanded={create}
           >
-            New tenancy folder
+            {create ? 'Cancel folder editing' : 'New tenancy folder'}
           </button>
         )}
       </div>
@@ -131,6 +159,11 @@ function TenancyWorkspace({ propertyId }: { propertyId: string }) {
         Keep check-in, routine and check-out reports together. Only current
         property members can open report links.
       </p>
+      {saveMessage && (
+        <p role='status' className='my-3 text-sm text-teal-800'>
+          {saveMessage}
+        </p>
+      )}
       {folders.loading && (
         <p role='status' className='py-4'>
           Loading tenancy folders…
@@ -162,6 +195,9 @@ function TenancyWorkspace({ propertyId }: { propertyId: string }) {
           className='my-4 grid gap-3 rounded-lg bg-gray-50 p-4'
         >
           <fieldset disabled={busy} className='min-w-0 grid gap-3'>
+            <legend className='font-semibold'>
+              {editing ? 'Edit tenancy folder' : 'New tenancy folder'}
+            </legend>
             <label className='text-sm'>
               Folder name
               <input
@@ -273,6 +309,7 @@ function TenancyWorkspace({ propertyId }: { propertyId: string }) {
               disabled={busy}
               onClick={() => {
                 setError('');
+                setSaveMessage('');
                 setEditing(folder);
                 setDraft({
                   label: folder.label,

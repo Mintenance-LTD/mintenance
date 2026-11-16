@@ -370,7 +370,8 @@ export function PropertiesClient2025({
                       {property.completedJobs === 1 ? 'job' : 'jobs'}
                     </div>
                     <div className='text-sm font-semibold text-gray-900'>
-                      {formatMoney(property.totalSpent, 'GBP')} spent
+                      {formatMoney(property.totalSpent, 'GBP')} completed job
+                      budgets
                     </div>
                   </div>
                 </div>

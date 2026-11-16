@@ -83,7 +83,7 @@ export const POST = withApiHandler(
       lease_end_date,
     } = body;
 
-    if (!property_id || !name?.trim()) {
+    if (!property_id || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json(
         { error: 'property_id and name are required' },
         { status: 400 }
@@ -141,6 +141,17 @@ export const POST = withApiHandler(
       );
     }
     const safeRole = contact_role ?? 'tenant';
+    const safeEmail = typeof email === 'string' ? email.trim() : '';
+    const safePhone = typeof phone === 'string' ? phone.trim() : '';
+    if (safeRole === 'emergency_contact' && !safeEmail && !safePhone) {
+      return NextResponse.json(
+        {
+          error:
+            'Add a phone number or email address for an emergency contact.',
+        },
+        { status: 400 }
+      );
+    }
 
     // 2026-05-12: also persist move_in_date + lease_end_date when set.
     // The DB columns exist (migration 20260214200000) but the form
@@ -174,8 +185,8 @@ export const POST = withApiHandler(
         property_id,
         owner_id: safeOwnerId,
         name: name.trim(),
-        email: email?.trim() || null,
-        phone: phone?.trim() || null,
+        email: safeEmail || null,
+        phone: safePhone || null,
         contact_role: safeRole,
         unit_label: unit_label?.trim() || null,
         notes: notes?.trim() || null,

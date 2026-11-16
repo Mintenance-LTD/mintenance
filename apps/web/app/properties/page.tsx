@@ -94,10 +94,7 @@ export default async function PropertiesPage2025() {
     const completedJobs = propertyJobs.filter(
       (j) => j.status === 'completed'
     ).length;
-    // "Spent" should mean money that has actually moved, not budgets on
-    // in-flight work. The /properties/[id] detail page already filters to
-    // completed for its totalSpent; align the grid card with that so the
-    // two views don't disagree.
+    // Sum completed-job budgets, not recorded payments. Labels must retain that distinction.
     const totalSpent = propertyJobs
       .filter((j) => j.status === 'completed')
       .reduce((sum, job) => sum + (Number(job.budget) || 0), 0);

@@ -28,8 +28,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { getCsrfHeaders } from '@/lib/csrf-client';
+import { useContactEditor } from './useContactEditor';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
 
 interface Property {
@@ -93,22 +92,21 @@ export function MintEditorialContacts({
   properties: Property[];
   contacts: Contact[];
 }) {
-  const [contacts, setContacts] = useState(initialContacts);
-  const [showForm, setShowForm] = useState(false);
-  const [filterProperty, setFilterProperty] = useState<string>('all');
-  const [saving, setSaving] = useState(false);
-
-  const [formData, setFormData] = useState({
-    property_id: '',
-    name: '',
-    email: '',
-    phone: '',
-    contact_role: 'tenant',
-    unit_label: '',
-    notes: '',
-    move_in_date: '',
-    lease_end_date: '',
-  });
+  const {
+    contacts,
+    showForm,
+    setShowForm,
+    editing,
+    formData,
+    setFormData,
+    saving,
+    error,
+    formRef,
+    openContact,
+    onSubmit,
+    toggleArchive,
+  } = useContactEditor(initialContacts);
+  const [filterProperty, setFilterProperty] = useState('all');
 
   // 2026-05-24 audit-30 P2: property_id is nullable + ON DELETE SET NULL,
   // so rows can become orphaned after a property delete. Label them
@@ -136,49 +134,6 @@ export function MintEditorialContacts({
     return contacts.filter((c) => c.property_id === filterProperty);
   }, [contacts, filterProperty]);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.property_id || !formData.name.trim() || saving) return;
-    setSaving(true);
-    try {
-      const csrfHeaders = await getCsrfHeaders();
-      const res = await fetch('/api/landlord/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-        body: JSON.stringify({
-          ...formData,
-          name: formData.name.trim(),
-          email: formData.email.trim() || null,
-          phone: formData.phone.trim() || null,
-          unit_label: formData.unit_label.trim() || null,
-          notes: formData.notes.trim() || null,
-          move_in_date: formData.move_in_date || null,
-          lease_end_date: formData.lease_end_date || null,
-        }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      const { contact } = await res.json();
-      setContacts((prev) => [...prev, contact]);
-      setShowForm(false);
-      setFormData({
-        property_id: '',
-        name: '',
-        email: '',
-        phone: '',
-        contact_role: 'tenant',
-        unit_label: '',
-        notes: '',
-        move_in_date: '',
-        lease_end_date: '',
-      });
-      toast.success('Contact added');
-    } catch {
-      toast.error('Failed to add contact');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <div style={{ maxWidth: 880, margin: '0 auto' }}>
       <div className='between' style={{ marginBottom: 22, gap: 16 }}>
@@ -192,24 +147,32 @@ export function MintEditorialContacts({
         <button
           type='button'
           className='btn btn-primary'
-          onClick={() => setShowForm((v) => !v)}
+          disabled={saving}
+          onClick={() => (showForm ? setShowForm(false) : openContact())}
         >
           <Plus size={14} strokeWidth={1.75} />
           {showForm ? 'Cancel' : 'Add contact'}
         </button>
       </div>
 
+      {error && (
+        <p role='alert' className='text-red-800' style={{ marginBottom: 16 }}>
+          {error}
+        </p>
+      )}
       {showForm ? (
         <form
+          ref={formRef}
           onSubmit={onSubmit}
           className='card card-pad'
           style={{ marginBottom: 18 }}
         >
           <div className='between' style={{ marginBottom: 12 }}>
-            <h2 className='t-h4'>New contact</h2>
+            <h2 className='t-h4'>{editing ? 'Edit contact' : 'New contact'}</h2>
             <button
               type='button'
               className='btn btn-ghost btn-sm'
+              disabled={saving}
               onClick={() => setShowForm(false)}
               aria-label='Close form'
             >
@@ -217,9 +180,15 @@ export function MintEditorialContacts({
             </button>
           </div>
           <div className='col' style={{ gap: 10 }}>
+            <p>
+              Emergency contacts need at least one phone number or email
+              address. Saving a contact does not send a message or grant access.
+            </p>
             <div className='row' style={{ gap: 10, flexWrap: 'wrap' }}>
               <select
-                required
+                aria-label='Property'
+                disabled={Boolean(editing) || saving}
+                required={!editing}
                 className='field'
                 value={formData.property_id}
                 onChange={(e) =>
@@ -235,6 +204,8 @@ export function MintEditorialContacts({
                 ))}
               </select>
               <select
+                aria-label='Contact role'
+                disabled={saving}
                 className='field'
                 value={formData.contact_role}
                 onChange={(e) =>
@@ -249,47 +220,72 @@ export function MintEditorialContacts({
                 ))}
               </select>
             </div>
-            <input
-              required
-              type='text'
-              className='field'
-              placeholder='Full name'
-              value={formData.name}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, name: e.target.value }))
-              }
-            />
-            <div className='row' style={{ gap: 10, flexWrap: 'wrap' }}>
+            <label className='flex flex-col' style={{ minWidth: 0, gap: 4 }}>
+              <span>Full name</span>
               <input
-                type='email'
-                className='field'
-                placeholder='Email (optional)'
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, email: e.target.value }))
-                }
-                style={{ flex: '1 1 200px', minWidth: 180 }}
-              />
-              <input
-                type='tel'
-                className='field'
-                placeholder='Phone (optional)'
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, phone: e.target.value }))
-                }
-                style={{ flex: '1 1 160px', minWidth: 140 }}
-              />
-              <input
+                disabled={saving}
+                required
                 type='text'
                 className='field'
-                placeholder='Unit / flat'
-                value={formData.unit_label}
+                placeholder='Full name'
+                value={formData.name}
                 onChange={(e) =>
-                  setFormData((p) => ({ ...p, unit_label: e.target.value }))
+                  setFormData((p) => ({ ...p, name: e.target.value }))
                 }
-                style={{ flex: '1 1 120px', minWidth: 120 }}
               />
+            </label>
+            <div className='row' style={{ gap: 10, flexWrap: 'wrap' }}>
+              <label
+                className='flex flex-col'
+                style={{ flex: '1 1 180px', minWidth: 0, gap: 4 }}
+              >
+                <span>Email</span>
+                <input
+                  disabled={saving}
+                  type='email'
+                  className='field'
+                  placeholder='Email (optional)'
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, email: e.target.value }))
+                  }
+                  style={{ width: '100%', minWidth: 0 }}
+                />
+              </label>
+              <label
+                className='flex flex-col'
+                style={{ flex: '1 1 180px', minWidth: 0, gap: 4 }}
+              >
+                <span>Phone</span>
+                <input
+                  disabled={saving}
+                  type='tel'
+                  className='field'
+                  placeholder='Phone (optional)'
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, phone: e.target.value }))
+                  }
+                  style={{ width: '100%', minWidth: 0 }}
+                />
+              </label>
+              <label
+                className='flex flex-col'
+                style={{ flex: '1 1 180px', minWidth: 0, gap: 4 }}
+              >
+                <span>Unit / flat</span>
+                <input
+                  disabled={saving}
+                  type='text'
+                  className='field'
+                  placeholder='Unit / flat'
+                  value={formData.unit_label}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, unit_label: e.target.value }))
+                  }
+                  style={{ width: '100%', minWidth: 0 }}
+                />
+              </label>
             </div>
             {/* Tenancy dates — only render for the tenant role; other
                 roles (keyholder / emergency contact / managing agent)
@@ -336,11 +332,13 @@ export function MintEditorialContacts({
               type='submit'
               className='btn btn-primary'
               disabled={
-                saving || !formData.property_id || !formData.name.trim()
+                saving ||
+                (!editing && !formData.property_id) ||
+                !formData.name.trim()
               }
               style={{ alignSelf: 'flex-start' }}
             >
-              {saving ? 'Saving…' : 'Save contact'}
+              {saving ? 'Saving…' : editing ? 'Save changes' : 'Save contact'}
             </button>
           </div>
         </form>
@@ -397,7 +395,7 @@ export function MintEditorialContacts({
           body='Add tenants, keyholders, emergency contacts, and managing agents so the right people get notified.'
           cta={{
             label: 'Add your first contact',
-            onClick: () => setShowForm(true),
+            onClick: () => openContact(),
           }}
         />
       ) : (
@@ -410,6 +408,7 @@ export function MintEditorialContacts({
                 display: 'flex',
                 gap: 14,
                 alignItems: 'center',
+                flexWrap: 'wrap',
                 opacity: contact.is_active ? 1 : 0.6,
               }}
             >
@@ -467,7 +466,31 @@ export function MintEditorialContacts({
                   </span>
                 ) : null}
               </div>
-              <div className='row' style={{ gap: 6, flexShrink: 0 }}>
+              <div className='flex flex-wrap items-center gap-2'>
+                {!contact.is_active && <span className='chip'>Archived</span>}
+                {!contact.phone?.trim() && !contact.email?.trim() && (
+                  <span className='text-amber-800'>
+                    Incomplete — no phone or email
+                  </span>
+                )}
+                <button
+                  type='button'
+                  className='btn btn-ghost btn-sm'
+                  disabled={saving}
+                  onClick={() => openContact(contact)}
+                  aria-label={`Edit ${contact.name}`}
+                >
+                  Edit
+                </button>
+                <button
+                  type='button'
+                  className='btn btn-ghost btn-sm'
+                  disabled={saving}
+                  onClick={() => void toggleArchive(contact)}
+                  aria-label={`${contact.is_active ? 'Archive' : 'Restore'} ${contact.name}`}
+                >
+                  {contact.is_active ? 'Archive' : 'Restore'}
+                </button>
                 {contact.phone ? (
                   <a
                     href={`tel:${contact.phone}`}

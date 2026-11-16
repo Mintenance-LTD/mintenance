@@ -347,7 +347,10 @@ export default function PropertyAssessments({
                     className='pw-muted'
                     style={{ fontSize: 14, marginTop: 6 }}
                   >
-                    Image findings require professional verification.
+                    Image findings require professional verification. Model
+                    confidence does not establish safety, photo origin or
+                    capture date. Check the original photos and review status
+                    before relying on these results.
                   </p>
                 </div>
               </div>

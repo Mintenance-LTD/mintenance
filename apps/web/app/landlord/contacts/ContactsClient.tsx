@@ -1,9 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, User, Phone, Mail, Key, AlertCircle, Users, X } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { getCsrfHeaders } from '@/lib/csrf-client';
+import {
+  Plus,
+  User,
+  Phone,
+  Mail,
+  Key,
+  AlertCircle,
+  Users,
+  X,
+} from 'lucide-react';
+import { useContactEditor } from './useContactEditor';
 
 interface Property {
   id: string;
@@ -46,77 +54,31 @@ export function ContactsClient({
   properties: Property[];
   contacts: Contact[];
 }) {
-  const [contacts, setContacts] = useState(initialContacts);
-  const [showForm, setShowForm] = useState(false);
+  const {
+    contacts,
+    showForm,
+    setShowForm,
+    editing,
+    formData,
+    setFormData,
+    saving,
+    error,
+    formRef,
+    openContact,
+    onSubmit,
+    toggleArchive,
+  } = useContactEditor(initialContacts);
   const [filterProperty, setFilterProperty] = useState('all');
-
-  // Form state
-  const [formData, setFormData] = useState({
-    property_id: '',
-    name: '',
-    email: '',
-    phone: '',
-    contact_role: 'tenant',
-    unit_label: '',
-    notes: '',
-    move_in_date: '',
-    lease_end_date: '',
-  });
 
   const filtered =
     filterProperty === 'all'
       ? contacts
       : contacts.filter((c) => c.property_id === filterProperty);
 
-  const getPropertyName = (id: string) =>
-    properties.find((p) => p.id === id)?.property_name || 'Unknown';
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.property_id || !formData.name.trim()) return;
-
-    try {
-      // /api/landlord/contacts uses the default `csrf: true` on
-      // withApiHandler — without an X-CSRF-Token the POST 403s in
-      // production. Audit 2026-05-12 caught this. The Mint Editorial
-      // port already sent CSRF; aligning the legacy path now.
-      const csrfHeaders = await getCsrfHeaders();
-      const res = await fetch('/api/landlord/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-        body: JSON.stringify({
-          ...formData,
-          name: formData.name.trim(),
-          email: formData.email.trim() || null,
-          phone: formData.phone.trim() || null,
-          unit_label: formData.unit_label.trim() || null,
-          notes: formData.notes.trim() || null,
-          move_in_date: formData.move_in_date || null,
-          lease_end_date: formData.lease_end_date || null,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed');
-
-      const { contact } = await res.json();
-      setContacts((prev) => [...prev, contact]);
-      setShowForm(false);
-      setFormData({
-        property_id: '',
-        name: '',
-        email: '',
-        phone: '',
-        contact_role: 'tenant',
-        unit_label: '',
-        notes: '',
-        move_in_date: '',
-        lease_end_date: '',
-      });
-      toast.success('Contact added');
-    } catch {
-      toast.error('Failed to add contact');
-    }
-  };
+  const getPropertyName = (id: string | null) =>
+    id
+      ? properties.find((p) => p.id === id)?.property_name || 'Unknown'
+      : 'Unassigned — property removed';
 
   return (
     <div className='max-w-4xl mx-auto px-4 sm:px-6 py-8'>
@@ -131,7 +93,8 @@ export function ContactsClient({
         </div>
         <button
           type='button'
-          onClick={() => setShowForm(!showForm)}
+          disabled={saving}
+          onClick={() => (showForm ? setShowForm(false) : openContact())}
           className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors'
         >
           <Plus className='w-4 h-4' />
@@ -139,23 +102,38 @@ export function ContactsClient({
         </button>
       </div>
 
+      {error && (
+        <p role='alert' className='text-red-800' style={{ marginBottom: 16 }}>
+          {error}
+        </p>
+      )}
       {/* Add Contact Form */}
       {showForm && (
         <div className='bg-white rounded-xl border border-gray-200 p-4 mb-6'>
           <div className='flex items-center justify-between mb-3'>
-            <h3 className='font-medium text-gray-900'>New Contact</h3>
+            <h3 className='font-medium text-gray-900'>
+              {editing ? 'Edit contact' : 'New contact'}
+            </h3>
             <button
               type='button'
+              disabled={saving}
               onClick={() => setShowForm(false)}
+              aria-label='Close form'
               className='text-gray-400 hover:text-gray-600'
             >
               <X className='w-5 h-5' />
             </button>
           </div>
-          <form onSubmit={handleSubmit} className='space-y-3'>
+          <form ref={formRef} onSubmit={onSubmit} className='space-y-3'>
+            <p>
+              Emergency contacts need at least one phone number or email
+              address. Saving a contact does not send a message or grant access.
+            </p>
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
               <select
-                required
+                aria-label='Property'
+                disabled={Boolean(editing) || saving}
+                required={!editing}
                 value={formData.property_id}
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, property_id: e.target.value }))
@@ -170,6 +148,8 @@ export function ContactsClient({
                 ))}
               </select>
               <select
+                aria-label='Contact role'
+                disabled={saving}
                 value={formData.contact_role}
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, contact_role: e.target.value }))
@@ -183,44 +163,69 @@ export function ContactsClient({
                 ))}
               </select>
             </div>
-            <input
-              required
-              type='text'
-              placeholder='Full Name'
-              value={formData.name}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, name: e.target.value }))
-              }
-              className='w-full rounded-lg border border-gray-300 px-3 py-2 text-sm'
-            />
-            <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+            <label className='flex flex-col' style={{ minWidth: 0, gap: 4 }}>
+              <span>Full name</span>
               <input
-                type='email'
-                placeholder='Email'
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, email: e.target.value }))
-                }
-                className='rounded-lg border border-gray-300 px-3 py-2 text-sm'
-              />
-              <input
-                type='tel'
-                placeholder='Phone'
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, phone: e.target.value }))
-                }
-                className='rounded-lg border border-gray-300 px-3 py-2 text-sm'
-              />
-              <input
+                disabled={saving}
+                required
                 type='text'
-                placeholder='Unit / Flat'
-                value={formData.unit_label}
+                placeholder='Full Name'
+                value={formData.name}
                 onChange={(e) =>
-                  setFormData((p) => ({ ...p, unit_label: e.target.value }))
+                  setFormData((p) => ({ ...p, name: e.target.value }))
                 }
-                className='rounded-lg border border-gray-300 px-3 py-2 text-sm'
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 text-sm'
               />
+            </label>
+            <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+              <label
+                className='flex flex-col'
+                style={{ flex: '1 1 180px', minWidth: 0, gap: 4 }}
+              >
+                <span>Email</span>
+                <input
+                  disabled={saving}
+                  type='email'
+                  placeholder='Email'
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, email: e.target.value }))
+                  }
+                  className='rounded-lg border border-gray-300 px-3 py-2 text-sm'
+                />
+              </label>
+              <label
+                className='flex flex-col'
+                style={{ flex: '1 1 180px', minWidth: 0, gap: 4 }}
+              >
+                <span>Phone</span>
+                <input
+                  disabled={saving}
+                  type='tel'
+                  placeholder='Phone'
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, phone: e.target.value }))
+                  }
+                  className='rounded-lg border border-gray-300 px-3 py-2 text-sm'
+                />
+              </label>
+              <label
+                className='flex flex-col'
+                style={{ flex: '1 1 180px', minWidth: 0, gap: 4 }}
+              >
+                <span>Unit / flat</span>
+                <input
+                  disabled={saving}
+                  type='text'
+                  placeholder='Unit / Flat'
+                  value={formData.unit_label}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, unit_label: e.target.value }))
+                  }
+                  className='rounded-lg border border-gray-300 px-3 py-2 text-sm'
+                />
+              </label>
             </div>
             {/* Tenancy dates — only for the tenant role; other contact
                 types (keyholder / emergency / managing agent) don't
@@ -259,9 +264,10 @@ export function ContactsClient({
             )}
             <button
               type='submit'
+              disabled={saving}
               className='px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors'
             >
-              Save Contact
+              {saving ? 'Saving…' : editing ? 'Save changes' : 'Save contact'}
             </button>
           </form>
         </div>
@@ -271,6 +277,7 @@ export function ContactsClient({
       {properties.length > 1 && (
         <div className='mb-4'>
           <select
+            aria-label='Filter by property'
             value={filterProperty}
             onChange={(e) => setFilterProperty(e.target.value)}
             className='rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white'
@@ -324,7 +331,31 @@ export function ContactsClient({
                     </div>
                   </div>
                 </div>
-                <div className='flex items-center gap-2'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  {!contact.is_active && <span className='chip'>Archived</span>}
+                  {!contact.phone?.trim() && !contact.email?.trim() && (
+                    <span className='text-amber-800'>
+                      Incomplete — no phone or email
+                    </span>
+                  )}
+                  <button
+                    type='button'
+                    className='btn btn-ghost btn-sm'
+                    disabled={saving}
+                    onClick={() => openContact(contact)}
+                    aria-label={`Edit ${contact.name}`}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type='button'
+                    className='btn btn-ghost btn-sm'
+                    disabled={saving}
+                    onClick={() => void toggleArchive(contact)}
+                    aria-label={`${contact.is_active ? 'Archive' : 'Restore'} ${contact.name}`}
+                  >
+                    {contact.is_active ? 'Archive' : 'Restore'}
+                  </button>
                   {contact.phone && (
                     <a
                       href={`tel:${contact.phone}`}

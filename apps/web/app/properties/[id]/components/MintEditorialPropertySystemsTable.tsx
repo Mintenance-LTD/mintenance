@@ -10,7 +10,7 @@
  * yet, so we derive each system's state from job history by category:
  *
  *   - completed job in that bucket → factual job record, not system condition
- *   - any active job in that bucket    → "In progress" chip
+ *   - active job in that bucket → its recorded work status
  *   - nothing on file                  → "No history" muted chip
  *
  * Mapping of canonical categories to grouped systems is deliberately
@@ -84,8 +84,16 @@ function deriveStatus(jobs: JobItem[], cats: string[]) {
 
   if (active) {
     return {
-      copy: `Job in flight · ${active.title}`,
-      badge: { tone: 'info' as const, label: 'In progress' },
+      copy: `Active job · ${active.title}`,
+      badge: {
+        tone: 'info' as const,
+        label:
+          active.status === 'in_progress'
+            ? 'In progress'
+            : active.status === 'assigned'
+              ? 'Assigned — work not started'
+              : 'Open for bids',
+      },
     };
   }
   if (lastDone) {

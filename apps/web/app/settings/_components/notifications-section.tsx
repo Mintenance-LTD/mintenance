@@ -154,6 +154,7 @@ function NotificationToggleGroup({
         {items.map((item, i) => (
           <div
             key={item.key}
+            id={item.key}
             style={{
               display: 'flex',
               alignItems: 'center',

@@ -36,7 +36,16 @@ export const GET = withApiHandler(
       redirectTarget.startsWith('/') &&
       !redirectTarget.startsWith('//') &&
       !redirectTarget.startsWith('/\\');
-    const safeRedirect = isSafeRelative ? redirectTarget : '/dashboard';
+    let destination = new URL('/dashboard', url.origin);
+    if (isSafeRelative) {
+      try {
+        const candidate = new URL(redirectTarget, url.origin);
+        // URL parsing strips tabs/newlines. Validate the resolved origin too.
+        if (candidate.origin === url.origin) destination = candidate;
+      } catch {
+        // Malformed URLs use the safe dashboard fallback.
+      }
+    }
 
     const cookieStore = await cookies();
     cookieStore.set(
@@ -46,9 +55,10 @@ export const GET = withApiHandler(
         path: '/',
         maxAge: 60 * 60 * 24 * 365, // 1 year
         sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
       }
     );
 
-    return NextResponse.redirect(new URL(safeRedirect, request.url));
+    return NextResponse.redirect(destination);
   }
 );

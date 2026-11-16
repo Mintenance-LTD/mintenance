@@ -10,6 +10,7 @@ import { getRecaptureMessage } from '@/lib/services/building-surveyor/recapture-
 import { CaptureWarnings } from '@/components/building-surveyor/CaptureWarnings';
 import { VisibleEvidenceCard } from '@/components/building-surveyor/VisibleEvidenceCard';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   AlertCircle,
   CheckCircle,
@@ -69,7 +70,7 @@ export function BuildingAssessmentDisplay({
   frameUrls,
 }: BuildingAssessmentDisplayProps) {
   const [expanded, setExpanded] = useState(true);
-  const [_showCorrections, setShowCorrections] = useState(false);
+  const [showCorrections, setShowCorrections] = useState(false);
   const [reRunLoading, setReRunLoading] = useState(false);
   const [reRunError, setReRunError] = useState<string | null>(null);
 
@@ -238,7 +239,7 @@ export function BuildingAssessmentDisplay({
           <div className='flex items-center gap-3'>
             <RicsConditionBadge rating={assessment.ricsConditionRating} />
             <span className='px-3 py-1 bg-teal-100 text-teal-700 text-sm font-medium rounded-full'>
-              {Math.round(confidence)}% Confidence
+              {Math.round(confidence)}% model confidence
             </span>
             {expanded ? (
               <ChevronUp className='w-5 h-5 text-gray-400' />
@@ -247,6 +248,17 @@ export function BuildingAssessmentDisplay({
             )}
           </div>
         </div>
+      </div>
+
+      <div className='mx-6 mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950'>
+        <strong>Professional verification required</strong>
+        <p>
+          These are automated image findings. A high model confidence or low
+          risk score does not confirm the property is safe. This legacy result
+          does not establish the photos’ origin or when they were taken. Review
+          the source photos and arrange professional verification before relying
+          on it.
+        </p>
       </div>
 
       {expanded && (
@@ -389,7 +401,9 @@ export function BuildingAssessmentDisplay({
             </h4>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
-                <p className='text-sm text-gray-500 mb-1'>Risk Score</p>
+                <p className='text-sm text-gray-500 mb-1'>
+                  Model risk score — requires verification
+                </p>
                 <div className='flex items-center gap-2'>
                   <div className='flex-1 bg-gray-200 rounded-full h-2'>
                     <div
@@ -463,7 +477,9 @@ export function BuildingAssessmentDisplay({
             <div className='flex items-center justify-between'>
               <button
                 type='button'
-                onClick={() => setShowCorrections(true)}
+                onClick={() => setShowCorrections((open) => !open)}
+                aria-expanded={showCorrections}
+                aria-controls='assessment-improvement'
                 className='px-4 py-2 text-sm font-medium text-teal-600 hover:text-teal-700'
               >
                 Improve Assessment
@@ -480,6 +496,39 @@ export function BuildingAssessmentDisplay({
                 Re-run Analysis
               </button>
             </div>
+            {showCorrections && (
+              <section
+                id='assessment-improvement'
+                aria-label='Improve assessment evidence'
+                className='mt-4 rounded-lg border border-gray-200 bg-white p-4 text-sm'
+              >
+                <h4 className='font-semibold'>Improve assessment evidence</h4>
+                <p className='mt-2'>
+                  Check that the photos show the current problem clearly,
+                  including a wider view and close-ups. Re-run Analysis uses the
+                  job’s current photos; it does not submit a professional
+                  correction.
+                </p>
+                {jobId ? (
+                  <Link
+                    className='mt-3 inline-block underline'
+                    href={`/jobs/${jobId}/edit`}
+                  >
+                    Review job details and photos
+                  </Link>
+                ) : (
+                  <p className='mt-2'>
+                    Open the original job to review its photos before requesting
+                    another analysis.
+                  </p>
+                )}
+                {!photoUrls?.length && (
+                  <p className='mt-2'>
+                    No job photos are available for re-analysis.
+                  </p>
+                )}
+              </section>
+            )}
             {reRunError && (
               <p className='text-xs text-red-500 mt-2 text-right'>
                 {reRunError}
