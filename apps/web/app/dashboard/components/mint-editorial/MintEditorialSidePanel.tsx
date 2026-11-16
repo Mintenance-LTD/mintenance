@@ -208,7 +208,10 @@ function UpNextCard({ appointments }: { appointments: Appointment[] }) {
               <div className='col' style={{ gap: 2, flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{apt.title}</div>
                 <div className='t-meta'>
-                  {apt.time}
+                  {(apt.time || 'Time not set').replace(
+                    /^(\d{1,2}:\d{2}):\d{2}(\.\d+)?$/,
+                    '$1'
+                  )}
                   {apt.endTime ? ` – ${apt.endTime}` : ''}
                   {apt.contractor?.name ? ` · ${apt.contractor.name}` : ''}
                 </div>

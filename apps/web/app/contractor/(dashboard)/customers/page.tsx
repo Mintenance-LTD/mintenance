@@ -1,3 +1,4 @@
+import { withEffectiveQuoteStatuses } from '@/lib/quotes/effective-quotes';
 import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -31,6 +32,7 @@ interface JobRow {
   id: string;
   title: string | null;
   status: string;
+  archived_at?: string | null;
   budget: number | null;
   postcode: string | null;
   city: string | null;
@@ -87,7 +89,7 @@ export default async function CustomersPage() {
       serverSupabase
         .from('jobs')
         .select(
-          'id, title, status, budget, postcode, city, created_at, completed_at, homeowner_id, homeowner:homeowner_id (id, first_name, last_name, profile_image_url, email)'
+          'id, title, status, archived_at, budget, postcode, city, created_at, completed_at, homeowner_id, homeowner:homeowner_id (id, first_name, last_name, profile_image_url, email)'
         )
         .eq('contractor_id', user.id)
         .not('homeowner_id', 'is', null)
@@ -97,7 +99,7 @@ export default async function CustomersPage() {
     collectRows((from, to) =>
       serverSupabase
         .from('current_contractor_quotes')
-        .select('status, total_amount, client_email')
+        .select('id, status, valid_until, total_amount, client_email')
         .eq('contractor_id', user.id)
         .order('id')
         .range(from, to)
@@ -180,7 +182,10 @@ export default async function CustomersPage() {
   if (isMintEditorial) {
     // ─── aggregate real data per customer for the Mint Editorial view ───
     const jobs = (jobsData.data || []) as JobRow[];
-    const quotes = (quotesData.data || []) as QuoteRow[];
+    const quotes = await withEffectiveQuoteStatuses(
+      quotesData.data || [],
+      user.id
+    );
     const reviews = (reviewsData.data || []) as ReviewRow[];
 
     // jobs by homeowner
@@ -216,7 +221,9 @@ export default async function CustomersPage() {
       hasOpenQuote: boolean
     ): CustomerStage {
       const hasActive = customerJobs.some(
-        (j) => j.status === 'in_progress' || j.status === 'assigned'
+        (j) =>
+          !j.archived_at &&
+          (j.status === 'in_progress' || j.status === 'assigned')
       );
       if (hasActive) return 'active';
       if (hasOpenQuote) return 'quoting';
@@ -244,7 +251,7 @@ export default async function CustomersPage() {
       const lastJob = sortedJobs[0] ?? null;
 
       const hasOpenQuote = cQuotes.some(
-        (q) => q.status === 'sent' || q.status === 'pending'
+        (q) => q.status === 'sent' || q.status === 'viewed'
       );
       const stage = deriveStage(cJobs, hasOpenQuote);
 
@@ -273,10 +280,12 @@ export default async function CustomersPage() {
 
     // KPIs — all real from the same data set
     const activeJobs = jobs.filter(
-      (j) => j.status === 'in_progress' || j.status === 'assigned'
+      (j) =>
+        !j.archived_at &&
+        (j.status === 'in_progress' || j.status === 'assigned')
     );
     const pendingQuotes = quotes.filter(
-      (q) => q.status === 'sent' || q.status === 'pending'
+      (q) => q.status === 'sent' || q.status === 'viewed'
     );
 
     const kpis: CustomersKpis = {

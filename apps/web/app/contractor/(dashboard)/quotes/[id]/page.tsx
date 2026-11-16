@@ -1,3 +1,4 @@
+import { withEffectiveQuoteStatuses } from '@/lib/quotes/effective-quotes';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
@@ -35,14 +36,16 @@ export default async function QuoteDetailsPage({
     redirect('/contractor/quotes');
   }
 
+  const [effectiveQuote] = await withEffectiveQuoteStatuses([quote], user.id);
+
   // Mint Editorial theme branch — same data shape, polished editorial layout.
   const cookieStore = await cookies();
   const isMintEditorial =
     cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
 
   if (isMintEditorial) {
-    return <MintEditorialQuoteDetailView quote={quote} />;
+    return <MintEditorialQuoteDetailView quote={effectiveQuote} />;
   }
 
-  return <QuoteDetailsClient quote={quote} />;
+  return <QuoteDetailsClient quote={effectiveQuote} />;
 }

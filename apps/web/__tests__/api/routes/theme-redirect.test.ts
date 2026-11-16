@@ -47,6 +47,25 @@ beforeEach(() => {
 });
 
 describe('GET /api/theme — open-redirect guard', () => {
+  it.each(['/\t/evil.com', '/\n/evil.com', '/\r/evil.com', '/\t\\evil.com'])(
+    'blocks URL-normalization bypass %j',
+    async (target) => {
+      expect(await locationFor(target)).toBe('http://localhost:3000/dashboard');
+    }
+  );
+  it('marks the theme cookie Secure in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      await locationFor('/settings?section=appearance');
+      expect(mocks.cookieSet).toHaveBeenCalledWith(
+        'mintenance-theme',
+        'mint-editorial',
+        expect.objectContaining({ secure: true, sameSite: 'lax' })
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
   it('honours a clean internal path', async () => {
     expect(await locationFor('/jobs/123')).toBe(
       'http://localhost:3000/jobs/123'

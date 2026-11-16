@@ -199,7 +199,13 @@ export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
           delivery is not controlled by this form. Event preferences choose
           which in-app and push updates you receive; they do not grant marketing
           email consent. Marketing emails also require your separate email
-          consent in account settings.
+          consent in account settings.{' '}
+          <a
+            className='font-medium underline'
+            href='/settings?section=notifications#emailMarketing'
+          >
+            Manage marketing email consent
+          </a>
         </p>
         {(
           [

@@ -224,9 +224,9 @@ test('internal APK upgrades existing test builds and always runs its embedded bu
   assert.equal(internal.android.gradleCommand, ':app:assembleRelease');
   assert.equal(internal.credentialsSource, 'remote');
   assert.equal(config.android.package, 'com.mintenance.app');
-  assert.equal(config.android.versionCode, 49);
+  assert.equal(config.android.versionCode, 50);
   assert.equal(config.name, 'Mintenance Internal');
-  assert.equal(config.runtimeVersion, '1.2.4-internal49');
+  assert.equal(config.runtimeVersion, '1.2.4-internal50');
   assert.equal(config.updates.enabled, false);
 });
 
@@ -247,7 +247,7 @@ test('iOS simulator embeds the same reviewed release bundle without device signi
   assert.equal(profile.ios.simulator, true);
   assert.equal(profile.ios.buildConfiguration, 'Release');
   assert.equal(config.ios.bundleIdentifier, 'com.mintenance.app');
-  assert.equal(config.runtimeVersion, '1.2.4-internal49');
+  assert.equal(config.runtimeVersion, '1.2.4-internal50');
   assert.equal(config.updates.enabled, false);
 });
 

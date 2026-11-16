@@ -35,7 +35,7 @@ beforeEach(() => {
 });
 it('blocks travel during the cancellation wait without explicit early-start consent', async () => {
   await expect(assertJobTravelAllowed('job', 'c')).rejects.toThrow(
-    'Wait until the cancellation deadline'
+    'homeowner records an early-start request'
   );
 });
 it('allows a funded signed job with explicit early-start consent', async () => {
@@ -73,4 +73,9 @@ it('formats an eight-hour visit clearly and removes duplicate address segments',
   expect(
     appointmentAddress('1 Test Street, London, 1 Test Street, London')
   ).toBe('1 Test Street, London');
+});
+
+it('allows the recorded post-signing request without changing original consent', async () => {
+  rows.contract_early_start_requests = { contract_id: 'agreement' };
+  await expect(assertJobTravelAllowed('job', 'c')).resolves.toBeUndefined();
 });

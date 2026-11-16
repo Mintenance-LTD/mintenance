@@ -156,6 +156,9 @@ export function MintEditorialContractorDashboard({
         </div>
         <div className='kpi'>
           <div className='label'>Active jobs</div>
+          <p className='t-meta'>
+            Assigned and in progress; excludes archived work.
+          </p>
           <div className='num'>{metrics.activeJobs}</div>
           <div className='sub'>
             <span>
@@ -235,7 +238,12 @@ export function MintEditorialContractorDashboard({
               borderBottom: '1px solid var(--me-line-2)',
             }}
           >
-            <h2 className='t-h3'>Active work</h2>
+            <div>
+              <h2 className='t-h3'>Active work</h2>
+              <p className='t-meta'>
+                Up to five most recently updated active jobs.
+              </p>
+            </div>
             <Link href='/contractor/jobs' className='btn btn-ghost btn-sm'>
               View all <ArrowRight size={12} strokeWidth={1.75} />
             </Link>

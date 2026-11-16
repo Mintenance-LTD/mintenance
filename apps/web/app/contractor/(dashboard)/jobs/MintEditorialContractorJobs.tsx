@@ -17,6 +17,7 @@
  * component only receives the resolved list + handlers.
  */
 
+import { cleanAddress } from '@/lib/utils/location';
 import React from 'react';
 import Link from 'next/link';
 import { Briefcase, MapPin, Search } from 'lucide-react';
@@ -189,7 +190,7 @@ function JobCard({ job }: { job: Job }) {
                 whiteSpace: 'nowrap',
               }}
             >
-              {job.location}
+              {cleanAddress(job.location)}
             </span>
           </div>
         ) : null}
@@ -279,6 +280,9 @@ export function MintEditorialContractorJobs({
       >
         <div className='kpi'>
           <div className='label'>Active</div>
+          <p className='t-meta'>
+            Assigned and in progress; excludes archived work.
+          </p>
           <div className='num'>{loadingStats ? '—' : stats.active}</div>
           <div className='sub'>
             <span>currently in flight</span>

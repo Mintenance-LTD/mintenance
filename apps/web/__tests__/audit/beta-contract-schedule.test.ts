@@ -17,7 +17,8 @@ describe('contract waiting period and displayed work stage', () => {
   };
   it('keeps funded assigned work waiting without an explicit early-start request', () => {
     const restriction = workStartRestriction(contract, false, now);
-    expect(restriction).toContain('Wait until');
+    expect(restriction).toContain('28 November 2026');
+    expect(restriction).toContain('homeowner records an early-start request');
     expect(
       determineStage('assigned', 'accepted', true, restriction === null)
     ).toBe('waiting_to_start');

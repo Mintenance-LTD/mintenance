@@ -259,6 +259,7 @@ export function JobDetailsProfessional({
                     null
                   }
                   jobId={job.id}
+                  canEditPhotos={canEdit}
                   jobCategory={job.category}
                   photoUrls={photos}
                   onCorrection={(assessmentId, corrections) => {

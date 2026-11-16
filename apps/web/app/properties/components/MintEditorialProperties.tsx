@@ -107,7 +107,7 @@ function PropertyCard({ p }: { p: PropertyStats }) {
             </div>
           </div>
           <div className='col' style={{ gap: 0 }}>
-            <div className='t-meta'>Total spent</div>
+            <div className='t-meta'>Completed job budgets</div>
             <div className='me-list-amount' style={{ fontSize: 18 }}>
               {p.totalSpent > 0 ? formatGBP(p.totalSpent) : '—'}
             </div>

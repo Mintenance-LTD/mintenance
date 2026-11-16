@@ -117,7 +117,7 @@ function formatAmount(amount: number, currency: string): string {
 }
 
 export function HomeownerSubscriptionClient({
-  user,
+  user: _user,
 }: HomeownerSubscriptionClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -283,7 +283,13 @@ export function HomeownerSubscriptionClient({
   const lockedFeatures: string[] = [];
   for (const tier of TIER_ORDER) {
     if (TIER_ORDER.indexOf(tier) <= TIER_ORDER.indexOf(currentTier)) {
-      includedFeatures.push(...PLAN_FEATURES[tier]);
+      includedFeatures.push(
+        ...PLAN_FEATURES[tier].filter(
+          (feature) =>
+            tier === currentTier ||
+            !['Manage 1 property', 'Up to 25 properties'].includes(feature)
+        )
+      );
     } else {
       lockedFeatures.push(...PLAN_FEATURES[tier]);
     }

@@ -1,3 +1,4 @@
+import { hasEarlyStartRequest } from '@/lib/services/contracts/early-start';
 import { workStartRestriction } from '@/lib/services/contracts/work-start';
 import { verifyEscrowFunding } from '@/lib/services/payment/EscrowFundingService';
 /**
@@ -112,14 +113,7 @@ export const POST = withApiHandler(
 
         let earlyStartRequested = false;
         if (Date.now() < Date.parse(contract.cancellation_deadline ?? '')) {
-          const { data: consent, error: consentError } = await serverSupabase
-            .from('contract_consents')
-            .select('early_start_requested')
-            .eq('contract_id', contract.id)
-            .eq('signer_role', 'homeowner')
-            .maybeSingle();
-          earlyStartRequested =
-            !consentError && consent?.early_start_requested === true;
+          earlyStartRequested = await hasEarlyStartRequest(contract.id);
         }
         const restriction = workStartRestriction(contract, earlyStartRequested);
         if (restriction) throw new BadRequestError(restriction);

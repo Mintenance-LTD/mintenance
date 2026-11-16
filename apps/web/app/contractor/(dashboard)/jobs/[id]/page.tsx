@@ -1,3 +1,5 @@
+import { cleanAddress } from '@/lib/utils/location';
+import { hasEarlyStartRequest } from '@/lib/services/contracts/early-start';
 import { workStartRestriction } from '@/lib/services/contracts/work-start';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
@@ -137,13 +139,7 @@ export default async function ContractorJobDetailPage({
 
   let earlyStartRequested = false;
   if (contract?.status === 'accepted') {
-    const { data: consent, error } = await serverSupabase
-      .from('contract_consents')
-      .select('early_start_requested')
-      .eq('contract_id', contract.id)
-      .eq('signer_role', 'homeowner')
-      .maybeSingle();
-    earlyStartRequested = !error && consent?.early_start_requested === true;
+    earlyStartRequested = await hasEarlyStartRequest(contract.id);
   }
   const startRestriction = workStartRestriction(contract, earlyStartRequested);
 
@@ -466,7 +462,7 @@ export default async function ContractorJobDetailPage({
                 className='h-4 w-4'
                 style={{ color: theme.colors.textSecondary }}
               />
-              {job.location}
+              {cleanAddress(job.location)}
             </p>
           )}
         </div>
@@ -549,7 +545,7 @@ export default async function ContractorJobDetailPage({
               jobStatus={job.status || 'posted'}
               latitude={job.latitude}
               longitude={job.longitude}
-              location={job.location}
+              location={cleanAddress(job.location)}
               existingBeforePhotosCount={existingBeforePhotosCount ?? 0}
             />
           )}

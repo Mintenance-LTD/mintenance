@@ -22,6 +22,9 @@ vi.mock('@/lib/api/supabaseServer', () => ({
           mocks.eq(...args);
           return q;
         },
+        in: () => q,
+        order: () => q,
+        range: async () => ({ data: [], error: null }),
         single: mocks.read,
         maybeSingle: mocks.read,
       };

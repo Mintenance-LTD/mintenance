@@ -14,7 +14,7 @@ export const GET = withApiHandler(
     const { data: c, error } = await serverSupabase
       .from('contracts')
       .select(
-        'id,job_id,homeowner_id,contractor_id,agreement_formed_at,cancellation_information_provided_at,cancellation_deadline,cancellation_requested_at'
+        'id,job_id,homeowner_id,contractor_id,agreement_formed_at,cancellation_information_provided_at,cancellation_deadline,cancellation_requested_at,status'
       )
       .eq('id', params.id)
       .maybeSingle();
@@ -22,7 +22,7 @@ export const GET = withApiHandler(
     const { data: job } = c
       ? await serverSupabase
           .from('jobs')
-          .select('payer_user_id')
+          .select('payer_user_id,status')
           .eq('id', c.job_id)
           .maybeSingle()
       : { data: null };
@@ -40,6 +40,20 @@ export const GET = withApiHandler(
       .order('accepted_at');
     if (readError)
       throw new InternalServerError('Could not load consent records');
+    const { data: earlyStartRequest, error: earlyError } = await serverSupabase
+      .from('contract_early_start_requests')
+      .select(
+        'requested_at,requested_by,policy_version,contract_snapshot,full_performance_acknowledged,early_start_wording,full_performance_wording'
+      )
+      .eq('contract_id', c.id)
+      .maybeSingle();
+    if (earlyError)
+      throw new InternalServerError('Could not load early-start receipt');
+    const earlyStartEligible =
+      c.status === 'accepted' &&
+      job?.status === 'assigned' &&
+      !c.cancellation_requested_at &&
+      Date.now() < Date.parse(c.cancellation_deadline ?? '');
     const versions = [...new Set((records || []).map((r) => r.policy_version))];
     const { data: documents, error: docError } = versions.length
       ? await serverSupabase
@@ -51,7 +65,17 @@ export const GET = withApiHandler(
       throw new InternalServerError('Could not load archived terms');
     if (new URL(req.url).searchParams.get('download') === '1')
       return new NextResponse(
-        JSON.stringify({ agreement: c, records, documents }, null, 2),
+        JSON.stringify(
+          {
+            agreement: c,
+            records,
+            documents,
+            earlyStartRequest,
+            earlyStartEligible,
+          },
+          null,
+          2
+        ),
         {
           headers: {
             'Content-Type': 'text/plain; charset=utf-8',
@@ -61,7 +85,13 @@ export const GET = withApiHandler(
         }
       );
     return NextResponse.json(
-      { agreement: c, records, documents },
+      {
+        agreement: c,
+        records,
+        documents,
+        earlyStartRequest,
+        earlyStartEligible,
+      },
       { headers: { 'Cache-Control': 'private, no-store' } }
     );
   }

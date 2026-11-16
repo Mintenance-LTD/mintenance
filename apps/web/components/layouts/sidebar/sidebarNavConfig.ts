@@ -266,6 +266,11 @@ export function useNavSections(
           { label: 'Invoices', href: '/contractor/invoices', icon: Receipt },
           { label: 'Expenses', href: '/contractor/expenses', icon: CreditCard },
           {
+            label: 'Tax Info',
+            href: '/contractor/tax-info/dashboard',
+            icon: Receipt,
+          },
+          {
             label: 'Subscription',
             href: '/contractor/subscription',
             icon: BarChart3,

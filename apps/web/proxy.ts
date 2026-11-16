@@ -28,8 +28,6 @@ import {
   enforceSessionTimeouts,
 } from './middleware/auth';
 
-
-
 // Mint Editorial is the default platform theme. When a visitor has no
 // `mintenance-theme` cookie we (a) inject it into the *forwarded* request
 // headers so every server component reads `mint-editorial` on the first
@@ -56,6 +54,7 @@ function persistDefaultThemeCookie(response: NextResponse): void {
     path: '/',
     maxAge: THEME_COOKIE_MAX_AGE,
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
   });
 }
 

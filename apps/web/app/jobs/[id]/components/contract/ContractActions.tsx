@@ -17,6 +17,7 @@ import {
   type ConsentChoices,
 } from '@/components/legal/ContractConsentChoices';
 import { CUSTOMER_TERMS_VERSION } from '@mintenance/shared';
+import { ContractStartChoices } from '@/components/legal/ContractStartChoices';
 import { ContractCancellation } from '@/components/legal/ContractCancellation';
 
 interface ContractActionsProps {
@@ -85,6 +86,20 @@ export function ContractActions({
     !contract.cancellation_deadline;
   return (
     <>
+      {contract.status === 'accepted' && (
+        <ContractStartChoices
+          contract={contract}
+          homeowner={userRole === 'homeowner'}
+        />
+      )}
+      {canSign && contract.start_date && (
+        <p className='rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm'>
+          Check the scheduled start against the cancellation period before
+          signing. If work is due within that period, the homeowner must
+          expressly request an early start below or agree a later schedule.
+          Signing alone does not authorise an early start.
+        </p>
+      )}
       {(canSign || legacyReview) && (
         <ContractConsentChoices
           value={consent}

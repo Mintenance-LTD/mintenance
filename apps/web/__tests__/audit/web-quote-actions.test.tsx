@@ -38,6 +38,9 @@ vi.mock('framer-motion', () => ({
 import { QuoteDraftActions } from '@/app/contractor/(dashboard)/quotes/components/QuoteDraftActions';
 import { QuoteCard } from '@/app/contractor/(dashboard)/quotes/components/QuoteCard';
 import type { Quote } from '@/app/contractor/(dashboard)/quotes/components/useQuotesData';
+vi.mock('@/lib/csrf-client', () => ({
+  getCsrfHeaders: async () => ({ 'X-CSRF-Token': 'test' }),
+}));
 const version = '2026-11-06T12:00:00Z';
 const quote: Quote = {
   id: 'quote',
@@ -118,7 +121,7 @@ it('blocks double-click sends while awaiting the API', async () => {
   render(<QuoteDraftActions id='quote' version={version} />);
   fireEvent.click(screen.getByText('Send to client'));
   fireEvent.click(screen.getByText('Sending…'));
-  expect(mocks.fetch).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(1));
   await act(async () => finish(response(200, { success: true })));
 });
 it('does not advertise successful duplication, downloading, or deletion from a list stub', () => {

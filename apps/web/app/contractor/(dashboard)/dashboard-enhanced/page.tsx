@@ -177,7 +177,7 @@ export default async function ContractorDashboard2025() {
   });
 
   // Recent jobs data (contractor's own jobs)
-  const recentJobs = jobs.slice(0, 5).map((job) => {
+  const recentJobs = activeJobs.slice(0, 5).map((job) => {
     const homeowner = Array.isArray(job.homeowner)
       ? job.homeowner[0]
       : job.homeowner;
