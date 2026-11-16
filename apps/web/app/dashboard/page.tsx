@@ -345,6 +345,7 @@ export default async function DashboardPage2025() {
   // pending bids, posted jobs with stale bid windows, unverified
   // properties.
   const needsYou = buildNeedsYouFeed({
+    completedJobs,
     pendingBids,
     allBids,
     postedJobs,

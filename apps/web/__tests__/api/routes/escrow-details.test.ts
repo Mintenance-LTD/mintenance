@@ -336,6 +336,11 @@ describe('GET /api/jobs/[id]/escrow', () => {
       payment_intent_id: 'pi_test123',
       created_at: '2026-01-01T00:00:00Z',
       updated_at: '2026-01-02T00:00:00Z',
+      auto_approval_date: '2026-01-09T15:02:00Z',
+      auto_release_date: '2026-01-11T15:02:00Z',
+      cooling_off_ends_at: '2026-01-11T15:02:00Z',
+      admin_hold_status: 'pending_review',
+      risk_hold_extended: false,
     };
 
     mocks.supabaseFrom.mockImplementation((table: string) => {
@@ -383,6 +388,10 @@ describe('GET /api/jobs/[id]/escrow', () => {
       paymentIntentId: 'pi_test123',
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-02T00:00:00Z',
+      autoApprovalDate: '2026-01-09T15:02:00Z',
+      autoReleaseDate: '2026-01-11T15:02:00Z',
+      coolingOffEndsAt: '2026-01-11T15:02:00Z',
+      onHold: true,
     });
   });
 

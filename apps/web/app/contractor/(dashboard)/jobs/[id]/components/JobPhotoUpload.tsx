@@ -7,6 +7,8 @@ import { StandardCard } from '@/components/ui/StandardCard';
 import { Button } from '@/components/ui/Button';
 import { Upload, X, Camera, CheckCircle, PlayCircle } from 'lucide-react';
 import { fetchWithCsrf } from '@/lib/csrf-client';
+import { readActionResponse } from '@/lib/api/read-action-response';
+import { photoBatchError } from '@/lib/photos/upload-limits';
 
 interface JobPhotoUploadProps {
   jobId: string;
@@ -75,7 +77,7 @@ export function JobPhotoUpload({
   const subtitle = isBeforeMode
     ? 'Take photos of the current damage before starting work'
     : isAfterMode
-      ? 'Take photos of the completed work to finish the job'
+      ? 'At least 3 accepted after photos are required, including a wide view. Plumbing, electrical and painting jobs also require a close-up. Select the view for each photo. Previously accepted photos count towards the total.'
       : 'Before and after photos have been uploaded';
 
   const handleFileSelect = useCallback(
@@ -84,6 +86,12 @@ export function JobPhotoUpload({
       if (!files || files.length === 0) return;
 
       const newFiles = Array.from(files);
+      e.target.value = '';
+      const selectionError = photoBatchError([...pendingFiles, ...newFiles]);
+      if (selectionError) {
+        setError(selectionError);
+        return;
+      }
       setPendingFiles((prev) => [...prev, ...newFiles]);
       setPendingAngles((prev) => [
         ...prev,
@@ -94,7 +102,7 @@ export function JobPhotoUpload({
       setPreviewUrls((prev) => [...prev, ...newUrls]);
       setError(null);
     },
-    []
+    [pendingFiles]
   );
 
   const removePending = useCallback(
@@ -130,6 +138,11 @@ export function JobPhotoUpload({
 
   const handleUpload = async () => {
     if (pendingFiles.length === 0) return;
+    const selectionError = photoBatchError(pendingFiles);
+    if (selectionError) {
+      setError(selectionError);
+      return;
+    }
     setIsUploading(true);
     setError(null);
 
@@ -147,8 +160,12 @@ export function JobPhotoUpload({
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      const data = await readActionResponse<{
+        validation?: { passed: boolean; errors: unknown[] };
+        photos?: Array<{ url: string; qualityScore: number }>;
+        count: number;
+        jobCompleted?: boolean;
+      }>(res, 'Unable to upload photos. Please retry.');
 
       // Clear previews and add uploaded photos
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -203,8 +220,7 @@ export function JobPhotoUpload({
         body: JSON.stringify({}),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to start job');
+      await readActionResponse(res, 'Failed to start job. Please retry.');
 
       setSuccessMessage('Job started! You can now begin work.');
       onJobStarted?.();
@@ -233,6 +249,12 @@ export function JobPhotoUpload({
           <div>
             <h3 className='text-lg font-semibold text-gray-900'>{title}</h3>
             <p className='text-sm text-gray-500'>{subtitle}</p>
+            {!isCompleted && (
+              <p className='text-sm text-gray-500'>
+                Up to 10 photos and 4 MB total per upload. Use clear, well-lit
+                photos of at least 800 × 600 pixels.
+              </p>
+            )}
           </div>
         </div>
 

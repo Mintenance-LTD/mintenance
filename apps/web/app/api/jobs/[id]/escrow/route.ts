@@ -43,7 +43,7 @@ export const GET = withApiHandler(
     const { data: escrow, error: escrowError } = await userDb
       .from('escrow_transactions')
       .select(
-        'id, job_id, status, amount, payment_intent_id, created_at, updated_at'
+        'id, job_id, status, amount, payment_intent_id, created_at, updated_at, auto_approval_date, auto_release_date, cooling_off_ends_at, admin_hold_status, risk_hold_extended'
       )
       .eq('job_id', jobId)
       .order('created_at', { ascending: false })
@@ -69,6 +69,12 @@ export const GET = withApiHandler(
         paymentIntentId: escrow.payment_intent_id,
         createdAt: escrow.created_at,
         updatedAt: escrow.updated_at,
+        autoApprovalDate: escrow.auto_approval_date,
+        autoReleaseDate: escrow.auto_release_date,
+        coolingOffEndsAt: escrow.cooling_off_ends_at,
+        onHold:
+          ['admin_hold', 'pending_review'].includes(escrow.admin_hold_status) ||
+          escrow.risk_hold_extended === true,
       },
     });
   }

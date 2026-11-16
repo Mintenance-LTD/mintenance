@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import Image from 'next/image';
+import { PaymentReviewMilestones } from './PaymentReviewMilestones';
 import { useRouter } from 'next/navigation';
 // Audit P2 (2026-05-10): consolidated to the canonical shared component.
 // Was importing a near-duplicate at './BeforeAfterSlider' (now deleted).
@@ -11,7 +13,6 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
-  Clock,
 } from 'lucide-react';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 
@@ -25,43 +26,8 @@ interface HomeownerPhotoReviewProps {
   beforePhotos: PhotoRecord[];
   afterPhotos: PhotoRecord[];
   isConfirmed: boolean;
-  /**
-   * jobs.completed_at — the moment the contractor's after-photo upload
-   * auto-flipped status to 'completed'. The 7-day auto-release window
-   * runs from this timestamp; we surface a countdown so homeowners
-   * know funds will move even if they do nothing. 2026-05-25 audit-P2-4.
-   */
+  /** Completion revision used to reject stale approval/change requests. */
   completedAt?: string | null;
-}
-
-/** Days the homeowner has to approve before the cron auto-releases. */
-const AUTO_RELEASE_WINDOW_DAYS = 7;
-
-function computeAutoReleaseInfo(completedAt: string | null | undefined): {
-  deadline: Date;
-  daysRemaining: number;
-  passed: boolean;
-} | null {
-  if (!completedAt) return null;
-  const completed = new Date(completedAt);
-  if (Number.isNaN(completed.getTime())) return null;
-  const deadline = new Date(completed);
-  deadline.setUTCDate(deadline.getUTCDate() + AUTO_RELEASE_WINDOW_DAYS);
-  const msRemaining = deadline.getTime() - Date.now();
-  // Ceil so "23 hours left" reads as "1 day" not "0 days".
-  const daysRemaining = Math.max(
-    0,
-    Math.ceil(msRemaining / (24 * 60 * 60 * 1000))
-  );
-  return { deadline, daysRemaining, passed: msRemaining <= 0 };
-}
-
-function formatDeadline(d: Date): string {
-  return d.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
 }
 
 /**
@@ -74,7 +40,6 @@ export function HomeownerPhotoReview({
   isConfirmed,
   completedAt,
 }: HomeownerPhotoReviewProps) {
-  const autoRelease = computeAutoReleaseInfo(completedAt);
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showChangesForm, setShowChangesForm] = useState(false);
@@ -86,8 +51,8 @@ export function HomeownerPhotoReview({
   const reworkRequests = useRef(new Map<string, string>());
   const reworkInFlight = useRef(false);
 
-  const pairCount = Math.min(beforePhotos.length, afterPhotos.length);
-  const hasPhotoPairs = pairCount > 0;
+  const pairCount = Math.max(beforePhotos.length, afterPhotos.length);
+  const photoIndex = Math.min(currentIndex, Math.max(0, pairCount - 1));
 
   const handleApprove = async () => {
     setIsSubmitting(true);
@@ -172,7 +137,7 @@ export function HomeownerPhotoReview({
     }
   };
 
-  if (!hasPhotoPairs) return null;
+  if (pairCount === 0) return null;
 
   return (
     <div className='space-y-4'>
@@ -195,29 +160,63 @@ export function HomeownerPhotoReview({
       )}
 
       {/* Before/After slider */}
-      <BeforeAfterSlider
-        beforeUrl={beforePhotos[currentIndex]?.photo_url || ''}
-        afterUrl={afterPhotos[currentIndex]?.photo_url || ''}
-      />
+      {beforePhotos[photoIndex] && afterPhotos[photoIndex] ? (
+        <BeforeAfterSlider
+          beforeUrl={beforePhotos[photoIndex].photo_url}
+          afterUrl={afterPhotos[photoIndex].photo_url}
+        />
+      ) : (
+        <figure>
+          <div className='relative h-80 w-full'>
+            <Image
+              src={
+                (afterPhotos[photoIndex] || beforePhotos[photoIndex]).photo_url
+              }
+              alt={
+                afterPhotos[photoIndex]
+                  ? 'Completed work photo'
+                  : 'Before work photo'
+              }
+              fill
+              sizes='(max-width: 768px) 100vw, 700px'
+              className='object-contain'
+            />
+          </div>
+          <figcaption className='text-sm text-gray-600'>
+            {afterPhotos[photoIndex]
+              ? 'After photo — no corresponding before photo supplied.'
+              : 'Before photo — no corresponding after photo supplied.'}
+          </figcaption>
+        </figure>
+      )}
+      <p className='text-sm text-gray-600'>
+        {beforePhotos.length} before photos · {afterPhotos.length} after photos.
+        Photos are shown in upload order; matching positions may show different
+        views.
+      </p>
 
       {/* Photo navigation (if multiple pairs) */}
       {pairCount > 1 && (
         <div className='flex items-center justify-center gap-4'>
           <button
+            type='button'
+            aria-label='Previous photo'
             onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-            disabled={currentIndex === 0}
+            disabled={photoIndex === 0}
             className='p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed'
           >
             <ChevronLeft className='h-5 w-5 text-gray-600' />
           </button>
           <span className='text-sm text-gray-500'>
-            {currentIndex + 1} / {pairCount}
+            {photoIndex + 1} / {pairCount}
           </span>
           <button
+            type='button'
+            aria-label='Next photo'
             onClick={() =>
               setCurrentIndex((i) => Math.min(pairCount - 1, i + 1))
             }
-            disabled={currentIndex === pairCount - 1}
+            disabled={photoIndex === pairCount - 1}
             className='p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed'
           >
             <ChevronRight className='h-5 w-5 text-gray-600' />
@@ -225,35 +224,7 @@ export function HomeownerPhotoReview({
         </div>
       )}
 
-      {/* Auto-release countdown — only when work is awaiting homeowner action. */}
-      {!isApproved && !successMessage && autoRelease && (
-        <div
-          className={`flex items-start gap-3 p-3 rounded-lg border ${
-            autoRelease.passed
-              ? 'bg-amber-50 border-amber-200 text-amber-900'
-              : autoRelease.daysRemaining <= 2
-                ? 'bg-amber-50 border-amber-200 text-amber-900'
-                : 'bg-blue-50 border-blue-200 text-blue-900'
-          }`}
-          role='status'
-        >
-          <Clock className='h-5 w-5 flex-shrink-0 mt-0.5' aria-hidden />
-          <div className='text-sm'>
-            <div className='font-medium'>
-              {autoRelease.passed
-                ? 'Review window ended'
-                : autoRelease.daysRemaining === 1
-                  ? '1 day left to approve or request changes'
-                  : `${autoRelease.daysRemaining} days left to approve or request changes`}
-            </div>
-            <div className='opacity-90'>
-              {autoRelease.passed
-                ? `The ${AUTO_RELEASE_WINDOW_DAYS}-day review window has passed (${formatDeadline(autoRelease.deadline)}). Payment will be released to the contractor on the next cron run.`
-                : `If you take no action, payment auto-releases on ${formatDeadline(autoRelease.deadline)}. This protects contractors from indefinite holds.`}
-            </div>
-          </div>
-        </div>
-      )}
+      <PaymentReviewMilestones jobId={jobId} approved={isApproved} />
 
       {/* Action buttons (only when not yet approved) */}
       {!isApproved && !successMessage && (

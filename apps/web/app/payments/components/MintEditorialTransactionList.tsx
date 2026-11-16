@@ -7,6 +7,7 @@
  * uppercase ink-3 column header, btn-ghost "Receipt" inline action.
  */
 
+import { formatUKSchedule } from '@/lib/scheduling/uk-date-time';
 import React from 'react';
 import { paymentAmounts } from '@/lib/payments/payment-amounts';
 import styles from './transaction-list.module.css';
@@ -210,11 +211,8 @@ export function MintEditorialTransactionList({
               <span className={badge.className}>{badge.label}</span>
               {tx.cooling_off_ends_at && tx.status === 'held' && (
                 <small>
-                  Review period ends{' '}
-                  {new Date(tx.cooling_off_ends_at).toLocaleString('en-GB', {
-                    dateStyle: 'medium',
-                    timeStyle: 'short',
-                  })}
+                  Review period ends {formatUKSchedule(tx.cooling_off_ends_at)}{' '}
+                  (UK time)
                 </small>
               )}
             </div>
