@@ -22,7 +22,9 @@ jest.mock('../../contexts/AuthContext', () => ({
 }));
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (effect: () => void) =>
-    require('react').useEffect(effect, [effect]),
+    jest
+      .requireActual<typeof import('react')>('react')
+      .useEffect(effect, [effect]),
   useNavigation: () => ({}),
   useRoute: () => ({ params: { jobId: 'synthetic-job' } }),
 }));
@@ -51,7 +53,7 @@ jest.mock('../../screens/job-details/components/BeforeAfterSliderView', () => ({
     photoPairs,
     activePairIndex,
   }: {
-    photoPairs: Array<{ after: { url: string } }>;
+    photoPairs: { after: { url: string } }[];
     activePairIndex: number;
   }) => {
     const { Text } = jest.requireActual('react-native');

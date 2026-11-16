@@ -3,10 +3,10 @@ import { Alert } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { CompleteWorkCTA } from '../CompleteWorkCTA';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
+import { JobService } from '../../../services/JobService';
 jest.mock('../../../utils/mobileApiClient', () => ({
   mobileApiClient: { get: jest.fn() },
 }));
-import { JobService } from '../../../services/JobService';
 jest.mock('../../../lib/queryClient', () => ({
   queryKeys: { jobs: { all: ['jobs'] } },
 }));

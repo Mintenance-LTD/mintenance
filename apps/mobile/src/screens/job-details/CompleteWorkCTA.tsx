@@ -44,7 +44,7 @@ export function CompleteWorkCTA({
     setLoading(true);
     try {
       const history = await mobileApiClient.get<{
-        requests: Array<{ id: string; comments: string }>;
+        requests: { id: string; comments: string }[];
       }>(`/api/jobs/${jobId}/rework`);
       if (!Array.isArray(history.requests))
         throw new Error(

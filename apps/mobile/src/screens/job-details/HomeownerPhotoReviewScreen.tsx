@@ -99,7 +99,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
         JobService.getJobById(jobId),
         PhotoUploadService.getJobPhotos(jobId),
         mobileApiClient.get<{
-          requests: Array<{ id: string; comments: string; created_at: string }>;
+          requests: { id: string; comments: string; created_at: string }[];
         }>(`/api/jobs/${jobId}/rework`),
       ]);
       if (!Array.isArray(history.requests))

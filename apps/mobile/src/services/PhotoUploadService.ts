@@ -186,7 +186,7 @@ export class PhotoUploadService {
   static async uploadAfterPhotos(
     jobId: string,
     photos: ImagePicker.ImagePickerAsset[],
-    angleTypes: ReadonlyArray<'wide' | 'close-up'> = []
+    angleTypes: readonly ('wide' | 'close-up')[] = []
   ): Promise<PhotoUploadResult[]> {
     const results: PhotoUploadResult[] = [];
     const location = await this.getCurrentLocation();
