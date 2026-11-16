@@ -35,12 +35,17 @@ vi.mock('@/lib/api/supabaseServer', () => ({
           mocks.update(...args);
           return query;
         },
+        in: () => query,
         order: () => query,
         range: () => query,
         then: (
           resolve: (data: unknown) => unknown,
           reject: (error: unknown) => unknown
-        ) => mocks.list().then(resolve, reject),
+        ) =>
+          (table === 'bids'
+            ? Promise.resolve({ data: [], error: null })
+            : mocks.list()
+          ).then(resolve, reject),
       };
       return query;
     },

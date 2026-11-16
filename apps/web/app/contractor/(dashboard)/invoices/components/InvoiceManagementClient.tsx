@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -60,7 +59,6 @@ export function InvoiceManagementClient({
   invoices: initialInvoices,
   stats,
 }: InvoiceManagementClientProps) {
-  const router = useRouter();
   const confirm = useConfirm();
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [selectedFilter, setSelectedFilter] =
@@ -179,7 +177,11 @@ export function InvoiceManagementClient({
   );
 
   const handleDownloadPDF = useCallback((invoiceId: string) => {
-    window.open(`/api/contractor/invoices/${invoiceId}/pdf`, '_blank');
+    window.open(
+      `/api/contractor/invoices/${encodeURIComponent(invoiceId)}/pdf`,
+      '_blank',
+      'noopener,noreferrer'
+    );
   }, []);
 
   const handleExportCSV = useCallback(() => {
@@ -333,10 +335,16 @@ export function InvoiceManagementClient({
               ships. Disabled here with a tooltip rather than linking to
               a 404; previous behaviour silently took users to a dead
               page. Re-enable once a `[id]/create/page.tsx` exists. */}
-          <Link href='/contractor/invoices'>
+          <div>
             <motion.button
               title='Invoice creation is currently mobile-only. Open the Mintenance app to create invoices.'
-              aria-label='Create invoice (mobile-only for now)'
+              aria-label='How to create an invoice in the mobile app'
+              onClick={() =>
+                toast(
+                  'In the Mintenance mobile app, open Invoices, then tap Create invoice. Sign in with this contractor account. Saved invoices will appear here.',
+                  { duration: 10000 }
+                )
+              }
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={
@@ -346,9 +354,9 @@ export function InvoiceManagementClient({
               }
             >
               <Plus className='w-5 h-5' />
-              Create Invoice
+              Create in mobile app
             </motion.button>
-          </Link>
+          </div>
         </div>
       </div>
 

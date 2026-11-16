@@ -55,6 +55,18 @@ const request = () =>
     ),
     {} as never
   );
+it('keeps the caller ownership filter when narrowing history to contractor receipts', async () => {
+  mocks.user = 'contractor';
+  await GET(
+    new NextRequest('http://localhost/api/payments/history?direction=received'),
+    {} as never
+  );
+  expect(query.or).toHaveBeenCalledWith(
+    'payer_id.eq.contractor,payee_id.eq.contractor'
+  );
+  expect(query.eq).toHaveBeenCalledWith('payee_id', 'contractor');
+  mocks.user = 'payer';
+});
 describe('payment history balance boundary', () => {
   it('reports a completed payout as released and preserves recorded fees', async () => {
     balances = [];

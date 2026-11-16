@@ -115,7 +115,9 @@ export function SubscriptionClient({
       if (data.clientSecret && data.requiresPayment) {
         // Redirect to checkout page to complete payment
         if (typeof window !== 'undefined') {
-          router.push(`/contractor/subscription/checkout?clientSecret=${encodeURIComponent(data.clientSecret)}&subscriptionId=${encodeURIComponent(data.stripeSubscriptionId)}&planType=${encodeURIComponent(planType)}`);
+          router.push(
+            `/contractor/subscription/checkout?clientSecret=${encodeURIComponent(data.clientSecret)}&subscriptionId=${encodeURIComponent(data.stripeSubscriptionId)}&planType=${encodeURIComponent(planType)}`
+          );
         }
         return;
       } else {
@@ -258,6 +260,11 @@ export function SubscriptionClient({
           per-job platform fee) so the generic "Your trial expires
           in N days / Subscribe Now" UX was just wrong. */}
       {earlyAccess && <FoundingMemberCard />}
+      <p className='text-sm text-gray-600 mt-4'>
+        Platform fees have a £0.50 minimum per payment, capped at the payment
+        amount. Mintenance pays Stripe processing fees; these are not an
+        additional deduction from your entitlement.
+      </p>
 
       {/* Trial Status Banner — suppressed for early-access contractors
           who have a permanent grant rather than a time-limited trial. */}

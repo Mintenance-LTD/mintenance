@@ -14,6 +14,7 @@ const querySchema = z.object({
   cursor: z.string().optional(),
   status: z.string().optional(),
   transactionId: z.string().uuid().optional(),
+  direction: z.enum(['received', 'sent']).optional(),
 });
 
 const selectFields = `
@@ -151,13 +152,14 @@ export const GET = withApiHandler(
       cursor: url.searchParams.get('cursor') ?? undefined,
       status: url.searchParams.get('status') ?? undefined,
       transactionId: url.searchParams.get('transactionId') ?? undefined,
+      direction: url.searchParams.get('direction') ?? undefined,
     });
 
     if (!parsed.success) {
       throw new BadRequestError('Invalid query parameters');
     }
 
-    const { limit, cursor, status, transactionId } = parsed.data;
+    const { limit, cursor, status, transactionId, direction } = parsed.data;
 
     let cursorIso: string | undefined;
     if (cursor) {
@@ -180,6 +182,11 @@ export const GET = withApiHandler(
     }
 
     if (transactionId) query = query.eq('id', transactionId);
+    if (direction)
+      query = query.eq(
+        direction === 'received' ? 'payee_id' : 'payer_id',
+        user.id
+      );
 
     if (status) {
       query = query.eq('status', status);

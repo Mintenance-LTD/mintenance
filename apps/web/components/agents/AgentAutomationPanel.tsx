@@ -37,8 +37,9 @@ interface AutomationSettings {
 const AGENT_CONFIGS = [
   {
     id: 'BidAcceptanceAgent',
-    name: 'Bid Acceptance',
-    description: 'Automatically accept high-quality bids',
+    name: 'Bid acceptance — manual confirmation',
+    description:
+      'Automatic acceptance is unavailable. Only the homeowner or designated payer can accept a bid after reviewing the price and terms.',
     icon: CheckCircle,
     color: 'green',
     requiredLevel: 'moderate' as const,
@@ -113,27 +114,36 @@ export function AgentAutomationPanel() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    fetchAutomationSettings();
-  }, []);
-
-  const fetchAutomationSettings = async () => {
-    try {
-      const response = await fetch('/api/agents/settings', {
-        credentials: 'include',
-      });
-
-      if (response.ok) {
+    const controller = new AbortController();
+    setLoading(true);
+    setSettings({
+      enableAutomation: false,
+      automationLevel: 'none',
+      agents: {},
+    });
+    void (async () => {
+      try {
+        const response = await fetch('/api/agents/settings', {
+          credentials: 'include',
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('Could not load automation settings');
         const data = await response.json();
-        setSettings(data);
+        if (!controller.signal.aborted) setSettings(data);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          logger.error('Failed to fetch automation settings:', error);
+          toast.error('Could not load automation settings');
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
-    } catch (error) {
-      logger.error('Failed to fetch automation settings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+    return () => controller.abort();
+  }, [user?.id, refresh]);
 
   const saveSettings = async () => {
     setSaving(true);
@@ -171,6 +181,7 @@ export function AgentAutomationPanel() {
   };
 
   const toggleAgent = (agentId: string) => {
+    if (agentId === 'BidAcceptanceAgent') return;
     setSettings((prev) => ({
       ...prev,
       agents: {
@@ -287,8 +298,12 @@ export function AgentAutomationPanel() {
         <div className='space-y-3'>
           {AGENT_CONFIGS.map((agent) => {
             const Icon = agent.icon;
-            const isAvailable = isAgentAvailable(agent.requiredLevel);
-            const isEnabled = settings.agents[agent.id]?.enabled;
+            const isAvailable =
+              agent.id !== 'BidAcceptanceAgent' &&
+              isAgentAvailable(agent.requiredLevel);
+            const isEnabled =
+              agent.id !== 'BidAcceptanceAgent' &&
+              settings.agents[agent.id]?.enabled;
             const agentData = settings.agents[agent.id];
 
             return (
@@ -390,7 +405,7 @@ export function AgentAutomationPanel() {
         {/* Save Button */}
         <div className='mt-6 flex items-center justify-between'>
           <button
-            onClick={fetchAutomationSettings}
+            onClick={() => setRefresh((value) => value + 1)}
             className='px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900'
           >
             <RefreshCw className='w-4 h-4 inline-block mr-2' />

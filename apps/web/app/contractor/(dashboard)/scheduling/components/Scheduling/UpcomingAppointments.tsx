@@ -1,4 +1,9 @@
 'use client';
+import {
+  appointmentTime,
+  appointmentDuration,
+  appointmentAddress,
+} from '@/lib/scheduling/appointment-display';
 
 import React from 'react';
 import { Calendar, Clock, MapPin, Video, Phone } from 'lucide-react';
@@ -84,13 +89,26 @@ export function UpcomingAppointments({
                 </div>
                 <div className='flex items-center gap-1.5'>
                   <Clock className='w-3.5 h-3.5' />
-                  {appointment.time} ({appointment.duration})
+                  {appointmentTime(appointment.time, appointment.endTime)} (
+                  {appointmentDuration(appointment.duration)})
                 </div>
               </div>
+              {appointment.videoCallUrl?.startsWith('https://') && (
+                <a
+                  href={appointment.videoCallUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-teal-700 underline'
+                >
+                  Join video call
+                </a>
+              )}
               {appointment.location && (
                 <div className='flex items-center gap-1.5 mt-2 text-xs text-slate-500'>
                   <MapPin className='w-3.5 h-3.5' />
-                  <span className='truncate'>{appointment.location}</span>
+                  <span className='truncate'>
+                    {appointmentAddress(appointment.location)}
+                  </span>
                 </div>
               )}
             </div>

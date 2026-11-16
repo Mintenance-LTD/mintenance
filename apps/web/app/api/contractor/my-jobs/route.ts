@@ -66,6 +66,9 @@ function finiteAmount(value: unknown): number | null {
 }
 
 function transformJob(job: JobApiResponse) {
+  const homeowner = Array.isArray(job.homeowner)
+    ? job.homeowner[0]
+    : job.homeowner;
   // 2026-05-23: derive a single `total_amount` from the most-committed
   // figure available. Used by the stats card on /contractor/jobs so
   // totals no longer read as £0 for jobs posted under the open-bidding
@@ -112,9 +115,14 @@ function transformJob(job: JobApiResponse) {
     scheduled_start_date: job.scheduled_start_date ?? null,
     scheduled_end_date: job.scheduled_end_date ?? null,
     homeowner_id: job.homeowner_id,
-    homeowner: Array.isArray(job.homeowner)
-      ? job.homeowner[0] || null
-      : job.homeowner || null,
+    // Lists include unsuccessful bids; contact access belongs to assigned-job routes.
+    homeowner: homeowner
+      ? {
+          first_name: homeowner.first_name,
+          last_name: homeowner.last_name,
+          profile_image_url: homeowner.profile_image_url,
+        }
+      : null,
     homeowner_name: job.homeowner
       ? Array.isArray(job.homeowner)
         ? `${job.homeowner[0]?.first_name || ''} ${job.homeowner[0]?.last_name || ''}`.trim() ||
@@ -150,8 +158,6 @@ const JOB_SELECT_FIELDS = `
     id,
     first_name,
     last_name,
-    email,
-    phone,
     profile_image_url
   ),
   job_attachments (
@@ -195,7 +201,7 @@ export const GET = withApiHandler(
       // Get jobs where contractor has placed a bid
       const { data: bids, error: bidsError } = await serverSupabase
         .from('bids')
-        .select('job_id')
+        .select('job_id, status')
         .eq('contractor_id', user.id);
 
       if (bidsError) {
@@ -228,7 +234,10 @@ export const GET = withApiHandler(
 
       return NextResponse.json({
         jobs: await attachSignedPhotos(
-          (jobs || []).map((job: JobApiResponse) => transformJob(job)),
+          (jobs || []).map((job: JobApiResponse) => ({
+            ...transformJob(job),
+            bid_status: bids?.find((b) => b.job_id === job.id)?.status,
+          })),
           user.id
         ),
       });

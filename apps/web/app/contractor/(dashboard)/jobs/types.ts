@@ -18,6 +18,7 @@ export interface Job {
    * budget → null. Null when nothing is committed yet. */
   total_amount?: number | null;
   status: string;
+  bid_status?: string;
   photos: string[];
   created_at: string;
   homeowner: {
@@ -40,6 +41,7 @@ export interface JobApiResponse {
   budget: number;
   total_amount?: number | null;
   status: string;
+  bid_status?: string;
   photos?: string[];
   created_at: string;
   homeowner_id: string;

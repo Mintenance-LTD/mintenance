@@ -141,8 +141,9 @@ export function MintEditorialReviewsView({
       <div className='col' style={{ gap: 4 }}>
         <h1 className='t-h1'>Reviews & ratings</h1>
         <p className='t-body'>
-          Homeowner feedback on completed jobs — reply within 48 hours so your
-          response publishes alongside the review.
+          Homeowner feedback on completed jobs — aim to reply within 48 hours (a
+          recommendation, not a deadline) so your response publishes alongside
+          the review.
         </p>
       </div>
 
@@ -166,14 +167,16 @@ export function MintEditorialReviewsView({
             >
               <span
                 style={{
-                  fontSize: 64,
+                  fontSize: stats.totalReviews > 0 ? 64 : 22,
                   fontWeight: 600,
                   lineHeight: 1,
                   color: 'var(--me-ink)',
                   letterSpacing: '-0.02em',
                 }}
               >
-                {stats.averageRating.toFixed(1)}
+                {stats.totalReviews > 0
+                  ? stats.averageRating.toFixed(1)
+                  : 'No ratings in this period'}
               </span>
               <Star
                 size={28}
@@ -184,7 +187,9 @@ export function MintEditorialReviewsView({
                 }}
               />
             </div>
-            <StarRow value={Math.round(stats.averageRating)} size={18} />
+            {stats.totalReviews > 0 && (
+              <StarRow value={Math.round(stats.averageRating)} size={18} />
+            )}
             <p className='t-body'>
               {stats.totalReviews} review
               {stats.totalReviews !== 1 ? 's' : ''}

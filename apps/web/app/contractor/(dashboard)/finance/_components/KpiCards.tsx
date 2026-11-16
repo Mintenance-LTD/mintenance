@@ -46,22 +46,22 @@ export function KpiCards({
         <div className='kpi'>
           <div className='label'>This month</div>
           <div className='num'>£{fmt(thisMonthRevenue)}</div>
-          <div className='sub'>Net after platform + processing fees</div>
+          <div className='sub'>Released net, after platform fee</div>
         </div>
         <div className='kpi'>
-          <div className='label'>Pending payout</div>
+          <div className='label'>Held in escrow (gross)</div>
           <div className='num'>£{fmt(pendingPayouts)}</div>
-          <div className='sub'>Held in escrow</div>
+          <div className='sub'>Before platform fee; release checks apply</div>
         </div>
         <div className='kpi'>
-          <div className='label'>All-time revenue</div>
+          <div className='label'>Lifetime net earnings</div>
           <div className='num'>£{fmt(allTimeRevenue)}</div>
-          <div className='sub'>Lifetime earnings</div>
+          <div className='sub'>Released payments, all dates</div>
         </div>
         <div className='kpi'>
           <div className='label'>Avg job value</div>
           <div className='num'>£{fmt(avgJobValue)}</div>
-          <div className='sub'>Per completed job</div>
+          <div className='sub'>Net per job with released payments</div>
         </div>
       </div>
     );
@@ -84,7 +84,9 @@ export function KpiCards({
       <div className='bg-white rounded-xl p-4 border border-gray-200'>
         <div className='flex items-center gap-2 mb-2'>
           <Clock className='w-5 h-5 text-amber-600' />
-          <p className='text-gray-600 text-sm font-medium'>Pending</p>
+          <p className='text-gray-600 text-sm font-medium'>
+            Held in escrow (gross)
+          </p>
         </div>
         <p className='text-2xl font-semibold text-gray-900'>
           £{fmt(pendingPayouts)}
@@ -95,7 +97,9 @@ export function KpiCards({
       <div className='bg-white rounded-xl p-4 border border-gray-200'>
         <div className='flex items-center gap-2 mb-2'>
           <TrendingUp className='w-5 h-5 text-green-600' />
-          <p className='text-gray-600 text-sm font-medium'>All Time</p>
+          <p className='text-gray-600 text-sm font-medium'>
+            Lifetime net earnings
+          </p>
         </div>
         <p className='text-2xl font-semibold text-gray-900'>
           £{fmt(allTimeRevenue)}

@@ -1,3 +1,4 @@
+import { quoteHasExpired } from '@/lib/quotes/quote-status';
 import { NextResponse } from 'next/server';
 import {
   createServerSupabaseClient,
@@ -136,6 +137,26 @@ export const POST = withApiHandler(
         hasData: !!bidData,
       });
       throw new NotFoundError('Bid not found');
+    }
+
+    if (bid.status === 'pending' && bid.quote_id) {
+      const { data: quote, error: quoteError } = await serverSupabase
+        .from('contractor_quotes')
+        .select('id, status, valid_until')
+        .eq('id', bid.quote_id)
+        .eq('contractor_id', bid.contractor_id)
+        .single();
+      if (quoteError || !quote)
+        throw new ConflictError(
+          'The linked quote could not be verified. Please request an updated quote.'
+        );
+      if (
+        !['sent', 'viewed'].includes(quote.status) ||
+        quoteHasExpired(quote.valid_until)
+      )
+        throw new ConflictError(
+          'This quote is no longer available for acceptance. Please request an updated quote.'
+        );
     }
 
     const idempotencyCheck = await checkIdempotency(

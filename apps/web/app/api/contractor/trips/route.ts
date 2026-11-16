@@ -1,3 +1,4 @@
+import { assertJobTravelAllowed } from '@/lib/contractor/job-travel';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BadRequestError, UnauthorizedError } from '@/lib/errors/api-error';
@@ -84,6 +85,7 @@ export const POST = withApiHandler(
     let destinationAddress: string | null = null;
 
     if (jobId) {
+      await assertJobTravelAllowed(jobId, user.id);
       const { data: job } = await serverSupabase
         .from('jobs')
         .select(
@@ -132,6 +134,10 @@ export const POST = withApiHandler(
       if (appt.contractor_id !== user.id)
         throw new UnauthorizedError('Not your appointment');
 
+      if (jobId && appt.job_id !== jobId)
+        throw new BadRequestError('Appointment does not belong to this job');
+      if (appt.job_id && !jobId)
+        await assertJobTravelAllowed(appt.job_id, user.id);
       destinationAddress = appt.location_address;
 
       if (appt.job_id && !jobId) {

@@ -108,7 +108,8 @@ export function ReportingDashboard2025Client({
         Revenue means contractor entitlement released after platform fees, not
         confirmed bank receipt. Job and bid rates use records created in the
         selected period; payments use their release date. Boundaries are UTC;
-        chart dates are UK time.{' '}
+        chart dates are UK time. Average job value is released net earnings
+        divided by distinct jobs with a released payment in that period.{' '}
         {generatedAt
           ? 'Generated ' +
             new Date(generatedAt).toLocaleString('en-GB', {

@@ -107,6 +107,24 @@ export default function ExpenseTrackingPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   // Add form state
+  const [formJobId, setFormJobId] = useState('');
+  const [jobOptions, setJobOptions] = useState<
+    Array<{ id: string; title: string; homeowner_name?: string }>
+  >([]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/api/contractor/my-jobs?status=all', { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error('Jobs unavailable');
+        return response.json();
+      })
+      .then((data) => setJobOptions(data.jobs ?? []))
+      .catch(() => {
+        if (!controller.signal.aborted)
+          toast.error('Could not load jobs for expense linking');
+      });
+    return () => controller.abort();
+  }, []);
   const [formDescription, setFormDescription] = useState('');
   const [formCategory, setFormCategory] = useState('materials');
   const [formAmount, setFormAmount] = useState('');
@@ -158,6 +176,7 @@ export default function ExpenseTrackingPage() {
         credentials: 'include',
         body: JSON.stringify({
           description: formDescription.trim(),
+          jobId: formJobId || undefined,
           category: formCategory,
           amount: Number(formAmount),
           date: formDate,
@@ -188,7 +207,9 @@ export default function ExpenseTrackingPage() {
           amount: Number(data.expense.amount),
           date: data.expense.date,
           jobId: data.expense.job_id,
-          jobTitle: null,
+          jobTitle:
+            jobOptions.find((job) => job.id === data.expense.job_id)?.title ??
+            null,
           paymentMethod: data.expense.payment_method || formPaymentMethod,
           receiptUrl: null,
           tags: data.expense.tags || [],
@@ -633,6 +654,9 @@ export default function ExpenseTrackingPage() {
 
       {showAddModal && (
         <ExpenseFormModal
+          jobId={formJobId}
+          jobs={jobOptions}
+          onJobIdChange={setFormJobId}
           onClose={() => {
             setShowAddModal(false);
             resetForm();

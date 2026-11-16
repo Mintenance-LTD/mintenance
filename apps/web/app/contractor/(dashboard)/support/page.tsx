@@ -46,7 +46,8 @@ export default async function ContractorSupportPage() {
               >
                 support@mintenance.co.uk
               </a>{' '}
-              or start a chat with our contractor success team.
+              or email our contractor support team using the contact details
+              below.
             </p>
           </div>
 
@@ -189,7 +190,8 @@ export default async function ContractorSupportPage() {
             >
               support@mintenance.co.uk
             </a>{' '}
-            or start a chat with our contractor success team.
+            or email our contractor support team using the contact details
+            below.
           </p>
         </div>
 

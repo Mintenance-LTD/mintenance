@@ -571,9 +571,7 @@ export function MintEditorialJobDetailView({
             )}
 
           {/* Scheduling */}
-          {(currentStage === 'awaiting_payment' ||
-            currentStage === 'waiting_to_start' ||
-            currentStage === 'ready_to_start' ||
+          {(currentStage === 'ready_to_start' ||
             currentStage === 'in_progress') && (
             <JobScheduling
               jobId={job.id}
@@ -590,14 +588,7 @@ export function MintEditorialJobDetailView({
             />
           )}
 
-          {/* On My Way + Location Sharing — visible at every stage
-              where the contractor might reasonably need to head out:
-              awaiting_payment (homeowner could pay any moment),
-              ready_to_start (escrow funded, work expected), and
-              in_progress (mid-job updates). Previously only shown at
-              ready_to_start/in_progress, which meant the contractor
-              had to wait for escrow to even prepare the trip
-              tracking. */}
+          {/* Travel is available only after the same waiting-to-start gates as work. */}
           {(currentStage === 'awaiting_payment' ||
             currentStage === 'waiting_to_start' ||
             currentStage === 'ready_to_start' ||

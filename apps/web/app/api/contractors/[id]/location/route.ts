@@ -1,3 +1,4 @@
+import { assertJobTravelAllowed } from '@/lib/contractor/job-travel';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
@@ -95,21 +96,7 @@ export const POST = withApiHandler(
     // Verify the contractor is assigned to this job before accepting a
     // job-scoped location ping. The first ping creates the sharing row, so
     // checking contractor_locations here would block the initial write.
-    if (job_id) {
-      const { data: assignedJob } = await serverSupabase
-        .from('jobs')
-        .select('id')
-        .eq('id', job_id)
-        .eq('contractor_id', contractorId)
-        .in('status', ['assigned', 'in_progress'])
-        .maybeSingle();
-
-      if (!assignedJob) {
-        throw new ForbiddenError(
-          'Not authorized to share location for this job'
-        );
-      }
-    }
+    if (job_id) await assertJobTravelAllowed(job_id, contractorId);
 
     const locationPayload = {
       contractor_id: contractorId,

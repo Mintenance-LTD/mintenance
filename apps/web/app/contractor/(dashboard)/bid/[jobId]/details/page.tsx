@@ -1,7 +1,9 @@
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
+import { canViewBidJob } from '@/lib/contractor/bid-details';
 import { JobDetailsClient } from '@/app/contractor/(dashboard)/jobs/[id]/components/JobDetailsClient';
 import { logger } from '@mintenance/shared';
 
@@ -28,13 +30,11 @@ export default async function ContractorJobDetailsPage({
     .from('jobs')
     .select(
       `
-      *,
+      id, title, description, budget, status, category, created_at,
+      homeowner_id, contractor_id, archived_at, requirements, photos,
       homeowner:homeowner_id (
         id,
         first_name,
-        last_name,
-        email,
-        phone,
         profile_image_url,
         created_at
       )
@@ -56,17 +56,29 @@ export default async function ContractorJobDetailsPage({
   }
 
   // Check if contractor has already bid on this job
-  const { data: existingBid } = await serverSupabase
+  if (job.contractor_id === user.id) redirect(`/contractor/jobs/${job.id}`);
+
+  const { data: existingBid, error: bidError } = await serverSupabase
     .from('bids')
-    .select('*')
+    .select('id, amount, status')
     .eq('job_id', resolvedParams.jobId)
     .eq('contractor_id', user.id)
-    .single();
+    .maybeSingle();
 
+  if (bidError) throw new Error('Unable to verify bid access');
+  if (!canViewBidJob(job, Boolean(existingBid))) notFound();
+
+  const photos = await resignJobStorageUrls(job.photos ?? [], user.id);
   return (
     <JobDetailsClient
-      job={job}
-      homeowner={job.homeowner}
+      job={{ ...job, photos }}
+      homeowner={
+        (Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner) ?? {
+          id: job.homeowner_id,
+          first_name: 'Homeowner',
+          created_at: job.created_at,
+        }
+      }
       existingBid={existingBid}
     />
   );

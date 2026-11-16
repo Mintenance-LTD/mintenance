@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,6 +36,7 @@ interface PhotoUploadDialogProps {
     files: File[];
     title: string;
     category: string;
+    description?: string;
   }) => Promise<void>;
 }
 
@@ -62,6 +64,9 @@ const photoUploadSchema = z.object({
     .min(1, 'Title is required')
     .max(100, 'Title must be less than 100 characters'),
   category: z.enum(CATEGORIES),
+  description: z.string().max(600),
+  workPerformed: z.string().max(600),
+  outcome: z.string().max(600),
 });
 
 type PhotoUploadFormData = z.infer<typeof photoUploadSchema>;
@@ -90,6 +95,9 @@ export function PhotoUploadDialog(props: PhotoUploadDialogProps) {
     defaultValues: {
       title: '',
       category: 'General',
+      description: '',
+      workPerformed: '',
+      outcome: '',
     },
   });
 
@@ -168,6 +176,13 @@ export function PhotoUploadDialog(props: PhotoUploadDialogProps) {
         files: selectedFiles,
         title: data.title.trim(),
         category: data.category,
+        description: [
+          data.description,
+          data.workPerformed && 'Work performed: ' + data.workPerformed,
+          data.outcome && 'Outcome: ' + data.outcome,
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
       });
       // Reset form
       setSelectedFiles([]);
@@ -200,6 +215,27 @@ export function PhotoUploadDialog(props: PhotoUploadDialogProps) {
           onSubmit={handleSubmit(onSubmit)}
           className='flex-1 overflow-y-auto p-6 flex flex-col gap-6'
         >
+          {(['description', 'workPerformed', 'outcome'] as const).map(
+            (field) => (
+              <div key={field} className='space-y-2'>
+                <Label htmlFor={'portfolio-' + field}>
+                  {field === 'workPerformed'
+                    ? 'Work performed'
+                    : field === 'outcome'
+                      ? 'Outcome'
+                      : 'Project description'}
+                </Label>
+                <textarea
+                  id={'portfolio-' + field}
+                  {...register(field)}
+                  maxLength={600}
+                  className='w-full rounded-lg border p-3'
+                />
+                {errors[field] && <p role='alert'>{errors[field]?.message}</p>}
+              </div>
+            )
+          )}
+
           {error && (
             <Alert variant='destructive'>
               <AlertCircle className='h-4 w-4' />
@@ -266,7 +302,10 @@ export function PhotoUploadDialog(props: PhotoUploadDialogProps) {
                   key={`${preview}-${index}`}
                   className='relative pb-[100%] rounded-xl overflow-hidden bg-background-secondary'
                 >
-                  <img
+                  <Image
+                    fill
+                    unoptimized
+                    sizes='(max-width: 768px) 50vw, 25vw'
                     src={preview}
                     alt={`Upload preview ${index + 1}`}
                     className='absolute inset-0 w-full h-full object-cover'

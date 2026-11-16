@@ -27,6 +27,7 @@ export interface ContractorDashboardData {
   contractor: {
     id: string;
     name: string;
+    firstName?: string;
     company?: string;
     avatar?: string;
     location: string;
@@ -73,7 +74,9 @@ export interface ContractorDashboardData {
 
 function statusBadge(status: string) {
   const s = (status || '').toLowerCase();
-  if (s === 'in_progress' || s === 'assigned')
+  if (s === 'assigned')
+    return <span className='badge badge-warn'>Waiting to start</span>;
+  if (s === 'in_progress')
     return <span className='badge badge-info'>In progress</span>;
   if (s === 'completed')
     return <span className='badge badge-ok'>Completed</span>;
@@ -97,7 +100,7 @@ export function MintEditorialContractorDashboard({
   data: ContractorDashboardData;
 }) {
   const { contractor, metrics, recentJobs, availableJobs } = data;
-  const firstName = contractor.name?.split(' ')[0] || 'there';
+  const firstName = contractor.firstName || 'there';
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
@@ -138,7 +141,7 @@ export function MintEditorialContractorDashboard({
       {/* KPI row */}
       <div className={styles.metrics}>
         <div className='kpi'>
-          <div className='label'>Total revenue</div>
+          <div className='label'>Lifetime net earnings</div>
           <div className='num'>{formatMoney(metrics.totalRevenue)}</div>
           <div className='sub'>
             {deltaDirection === 'up' ? (
@@ -148,7 +151,7 @@ export function MintEditorialContractorDashboard({
             ) : (
               <span>—</span>
             )}
-            <span style={{ marginLeft: 6 }}>vs last month</span>
+            <span style={{ marginLeft: 6 }}>monthly change vs last month</span>
           </div>
         </div>
         <div className='kpi'>
@@ -156,18 +159,18 @@ export function MintEditorialContractorDashboard({
           <div className='num'>{metrics.activeJobs}</div>
           <div className='sub'>
             <span>
-              {metrics.completedJobs}{' '}
+              Assigned or in progress · {metrics.completedJobs}{' '}
               {metrics.completedJobs === 1 ? 'completed' : 'completed'} all-time
             </span>
           </div>
         </div>
         <div className='kpi'>
-          <div className='label'>Pending escrow</div>
+          <div className='label'>Held in escrow (gross)</div>
           <div className='num'>{formatMoney(metrics.pendingEscrowAmount)}</div>
           <div className='sub'>
             <span>
               {metrics.pendingEscrowCount > 0
-                ? `across ${metrics.pendingEscrowCount} ${metrics.pendingEscrowCount === 1 ? 'job' : 'jobs'}`
+                ? `across ${metrics.pendingEscrowCount} ${metrics.pendingEscrowCount === 1 ? 'payment' : 'payments'}`
                 : PAYMENT_RELEASE_COPY.compact}
             </span>
           </div>

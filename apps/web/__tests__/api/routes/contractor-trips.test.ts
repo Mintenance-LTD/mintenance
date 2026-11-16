@@ -48,7 +48,13 @@ beforeEach(() => {
         ? assignedJob
         : table === 'escrow_transactions'
           ? funding
-          : trip,
+          : table === 'contracts'
+            ? {
+                id: 'contract',
+                status: 'accepted',
+                cancellation_deadline: '2020-01-01',
+              }
+            : trip,
       table === 'escrow_transactions' ? fundingError : null
     )
   );
@@ -70,7 +76,7 @@ it('refuses departure before confirmed funding, without a trip or notification',
 it('fails closed when the funding lookup fails', async () => {
   fundingError = new Error('database unavailable');
   await expect(POST(request(), {} as never)).rejects.toThrow(
-    'database unavailable'
+    'Payment must be confirmed'
   );
   expect(insert).not.toHaveBeenCalled();
 });
@@ -150,7 +156,13 @@ for (const scenario of [
                     Date.now() - scenario.locationMinutes * 60000
                   ).toISOString(),
                 }
-              : oldTrip
+              : table === 'contracts'
+                ? {
+                    id: 'contract',
+                    status: 'accepted',
+                    cancellation_deadline: '2020-01-01',
+                  }
+                : oldTrip
       );
       b.update = vi.fn((value) => {
         update(value);

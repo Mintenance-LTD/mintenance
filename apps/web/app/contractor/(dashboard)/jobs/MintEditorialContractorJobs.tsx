@@ -202,6 +202,9 @@ function JobCard({ job }: { job: Job }) {
               comes from the accepted bid, which lives downstream of
               this card (BidJobDetailsPanel / earnings sidebar). */}
           <div className='col' style={{ gap: 0 }}>
+            {job.bid_status && (
+              <span className='t-meta'>Your bid: {job.bid_status}</span>
+            )}
             {isAssigned && job.budget > 0 ? (
               <>
                 <span className='t-meta' style={{ fontSize: 11 }}>
@@ -213,19 +216,30 @@ function JobCard({ job }: { job: Job }) {
               </>
             ) : null}
           </div>
-          {isAssigned ? (
+          {job.bid_status && job.bid_status !== 'accepted' ? (
+            <Link
+              href={`/contractor/bid/${job.id}/details`}
+              className='btn btn-primary btn-sm'
+            >
+              View {job.bid_status} bid →
+            </Link>
+          ) : isAssigned ? (
             <Link
               href={`/contractor/jobs/${job.id}`}
               className='btn btn-primary btn-sm'
             >
-              Manage →
+              {job.status === 'completed'
+                ? 'View completed job →'
+                : job.status === 'assigned'
+                  ? 'Review next steps →'
+                  : 'Manage active job →'}
             </Link>
           ) : (
             <Link
               href={`/contractor/bid/${job.id}`}
               className='btn btn-primary btn-sm'
             >
-              View & bid →
+              {job.bid_status ? 'View bid →' : 'View & bid →'}
             </Link>
           )}
         </div>
@@ -337,7 +351,9 @@ export function MintEditorialContractorJobs({
           icon={Search}
           title={
             filter === 'active'
-              ? 'No active jobs'
+              ? categoryFilter !== 'all'
+                ? 'No active jobs match this filter'
+                : 'No active jobs'
               : filter === 'bid'
                 ? 'No bids submitted yet'
                 : filter === 'completed'
@@ -346,7 +362,9 @@ export function MintEditorialContractorJobs({
           }
           body={
             filter === 'active'
-              ? 'Browse Discover to find new work nearby. Mint matches you to jobs in your trades and service area.'
+              ? categoryFilter !== 'all'
+                ? 'Choose All trades or another trade to see your other active jobs.'
+                : 'Browse Discover to find new work nearby.'
               : filter === 'bid'
                 ? 'Submit a bid from Discover to start the pipeline.'
                 : 'Check back here once homeowners accept your work and sign off.'

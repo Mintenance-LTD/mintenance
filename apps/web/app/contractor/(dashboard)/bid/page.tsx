@@ -284,7 +284,11 @@ export default function ContractorBidsOverviewPage() {
                           Your Bid
                         </div>
                         <div className='text-xl sm:text-2xl font-bold text-gray-900'>
-                          £{bid.amount.toLocaleString()}
+                          £
+                          {bid.amount.toLocaleString('en-GB', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
                         </div>
                       </div>
                     </div>

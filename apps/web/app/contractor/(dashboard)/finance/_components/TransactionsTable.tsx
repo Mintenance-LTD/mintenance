@@ -90,7 +90,7 @@ export function TransactionsTable({
             }
             style={isMintEditorial ? { marginTop: 2 } : undefined}
           >
-            View and manage your payment history
+            Latest 50 payments by creation date; totals above cover all payments
           </p>
         </div>
       </div>
@@ -240,7 +240,14 @@ export function TransactionsTable({
                       £{transaction.netAmount.toFixed(2)}
                     </p>
                     <p className='text-xs text-gray-500'>
-                      of £{transaction.amount.toFixed(2)}
+                      {transaction.feesFinalized
+                        ? 'Recorded net'
+                        : ['failed', 'cancelled', 'refunded'].includes(
+                              transaction.status
+                            )
+                          ? 'No payout due'
+                          : 'Estimated net'}{' '}
+                      · gross £{transaction.amount.toFixed(2)}
                     </p>
                   </td>
                   <td className='py-4 px-6'>

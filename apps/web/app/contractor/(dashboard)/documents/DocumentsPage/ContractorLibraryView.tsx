@@ -187,7 +187,8 @@ export function ContractorLibraryView({
           <Search size={14} strokeWidth={1.75} />
           <input
             type='text'
-            placeholder='Search filename, category, linked job…'
+            placeholder='Search documents…'
+            aria-label='Search documents'
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             style={{
@@ -385,7 +386,9 @@ export function ContractorLibraryView({
                       }}
                     >
                       {relativeDate(doc.created_at)} ·{' '}
-                      {formatKB(doc.size_bytes)}
+                      {doc.is_contract
+                        ? 'Generated PDF'
+                        : formatKB(doc.size_bytes)}
                     </span>
                   </div>
                 </div>

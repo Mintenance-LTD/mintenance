@@ -1,3 +1,5 @@
+import { collectRows } from '@/lib/db/collect-rows';
+import { loadContractorFinancialSummary } from '@/lib/contractor/load-financial-summary';
 import { cookies } from 'next/headers';
 import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
 import { contractorOnboardingAudience } from '@/lib/onboarding/audience';
@@ -36,7 +38,7 @@ export default async function ContractorDashboard2025() {
     availableJobsResponse,
     bidsResponse,
     trialStatus,
-    escrowsResponse,
+    financialSummary,
     notificationsResponse,
   ] = await Promise.all([
     serverSupabase
@@ -46,10 +48,11 @@ export default async function ContractorDashboard2025() {
       )
       .eq('id', user.id)
       .single(),
-    serverSupabase
-      .from('jobs')
-      .select(
-        `
+    collectRows((from, to) =>
+      serverSupabase
+        .from('jobs')
+        .select(
+          `
         id,
         title,
         status,
@@ -67,10 +70,12 @@ export default async function ContractorDashboard2025() {
           email
         )
       `
-      )
-      .eq('contractor_id', user.id)
-      .order('updated_at', { ascending: false })
-      .limit(20),
+        )
+        .eq('contractor_id', user.id)
+        .order('updated_at', { ascending: false })
+        .order('id')
+        .range(from, to)
+    ).then((data) => ({ data })),
     serverSupabase
       .from('jobs')
       .select(
@@ -96,23 +101,16 @@ export default async function ContractorDashboard2025() {
       .in('status', ['open', 'posted'])
       .order('created_at', { ascending: false })
       .limit(10),
-    serverSupabase
-      .from('bids')
-      .select('id, status, amount, created_at, job_id')
-      .eq('contractor_id', user.id)
-      .limit(50),
+    collectRows((from, to) =>
+      serverSupabase
+        .from('bids')
+        .select('id, status, amount, created_at, job_id')
+        .eq('contractor_id', user.id)
+        .order('id')
+        .range(from, to)
+    ).then((data) => ({ data })),
     TrialService.getTrialStatus(user.id),
-    serverSupabase
-      .from('escrow_transactions')
-      .select('id, amount, status')
-      .eq('payee_id', user.id)
-      .in('status', [
-        'held',
-        'awaiting_homeowner_approval',
-        'pending_review',
-        'pending',
-      ])
-      .limit(20),
+    loadContractorFinancialSummary(user.id),
     serverSupabase
       .from('notifications')
       .select('id, type, message, created_at, read')
@@ -125,7 +123,6 @@ export default async function ContractorDashboard2025() {
   const jobs = jobsResponse.data || [];
   const availableJobs = availableJobsResponse.data || [];
   const bids = bidsResponse.data || [];
-  const escrows = escrowsResponse.data || [];
   const notifications = notificationsResponse.data || [];
 
   const completedJobs = jobs.filter((j) => j.status === 'completed');
@@ -135,27 +132,17 @@ export default async function ContractorDashboard2025() {
   );
   const pendingBids = bids.filter((b) => b.status === 'pending');
 
-  // ✅ FIXED: Use real monthly revenue aggregation instead of manual calculations
-  const { getMonthlyRevenue, getRevenueStats } =
-    await import('@/app/dashboard/lib/revenue-queries');
-  const monthlyRevenue = await getMonthlyRevenue(user.id, 6, 'earnings');
-  const revenueStats = await getRevenueStats(user.id, 'earnings');
-  const totalRevenue = revenueStats.total;
-
-  // Calculate month-over-month revenue change
-  const revenueChange = revenueStats.growthPercentage;
+  const monthlyRevenue = financialSummary.monthlyRevenue;
+  const totalRevenue = financialSummary.allTimeRevenue;
+  const revenueChange = financialSummary.revenueChange;
 
   // Calculate completion rate
   const totalProjects = jobs.length;
   const completionRate =
     totalProjects > 0 ? (completedJobs.length / totalProjects) * 100 : 0;
 
-  // Pending escrow
-  const pendingEscrowAmount = escrows.reduce(
-    (sum, e) => sum + (e.amount || 0),
-    0
-  );
-  const pendingEscrowCount = escrows.length;
+  const pendingEscrowAmount = financialSummary.pendingPayouts;
+  const pendingEscrowCount = financialSummary.heldCount;
   const hasPaymentSetup = !!contractor?.stripe_connect_account_id;
 
   // ✅ FIXED: Progress trend data from real monthly aggregations
@@ -185,7 +172,7 @@ export default async function ContractorDashboard2025() {
       month: monthData.month,
       jobs: monthJobs.length,
       completed: monthCompleted,
-      revenue: monthData.total,
+      revenue: monthData.revenue,
     };
   });
 
@@ -262,10 +249,11 @@ export default async function ContractorDashboard2025() {
   const dashboardData = {
     contractor: {
       id: user.id,
-      // Prioritize company name, then full name, then email
+      firstName: contractor?.first_name || undefined,
+      // Use the person’s name for greetings; company remains a separate field.
       name: (contractor
-        ? contractor.company_name ||
-          `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() ||
+        ? `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() ||
+          contractor.company_name ||
           contractor.email ||
           user.email ||
           'Unknown'

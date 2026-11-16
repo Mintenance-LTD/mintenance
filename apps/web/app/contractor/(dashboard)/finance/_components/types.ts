@@ -10,7 +10,12 @@ export interface Transaction {
     | 'release_pending'
     | 'released'
     | 'completed'
-    | 'refunded';
+    | 'refunded'
+    | 'failed'
+    | 'cancelled'
+    | 'awaiting_homeowner_approval'
+    | 'pending_review'
+    | 'disputed';
   date: string;
   platformFee: number;
   processingFee: number;
@@ -18,6 +23,8 @@ export interface Transaction {
   // True once the escrow has been released and real fees are stored.
   // Pending/held rows have no computed fee breakdown yet.
   feesFinalized: boolean;
+  feeRate?: number;
+  remainingAmount?: number;
 }
 
 // API response type from escrow transactions endpoint
@@ -28,13 +35,8 @@ export interface EscrowTransaction {
   payerId: string;
   payeeId: string;
   amount: number;
-  status:
-    | 'pending'
-    | 'held'
-    | 'release_pending'
-    | 'released'
-    | 'completed'
-    | 'refunded';
+  status: Transaction['status'];
+  remainingAmount?: number;
   createdAt?: string;
   releasedAt?: string;
   created_at?: string;

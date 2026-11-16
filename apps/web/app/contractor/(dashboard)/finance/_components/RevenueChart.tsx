@@ -14,15 +14,9 @@ import { useChartPalette } from '@/lib/charts/editorial-palette';
 
 interface RevenueChartProps {
   revenueChartData: Array<{ month: string; revenue: number; jobs: number }>;
-  timeRange: 'week' | 'month' | 'year';
-  setTimeRange: (range: 'week' | 'month' | 'year') => void;
 }
 
-export function RevenueChart({
-  revenueChartData,
-  timeRange,
-  setTimeRange,
-}: RevenueChartProps) {
+export function RevenueChart({ revenueChartData }: RevenueChartProps) {
   const palette = useChartPalette();
 
   // 2026-05-13 polish pass: editorial-branched wrapper. Recharts
@@ -59,48 +53,6 @@ export function RevenueChart({
           >
             Monthly revenue trend (last 6 months)
           </p>
-        </div>
-        <div
-          className='flex gap-1 p-1 rounded-lg'
-          style={
-            isMintEditorial
-              ? { background: 'var(--me-bg-2)' }
-              : { background: 'var(--me-bg-2, #F3F4F6)' }
-          }
-        >
-          {(['week', 'month', 'year'] as const).map((range) => {
-            const isActive = timeRange === range;
-            return (
-              <button
-                key={range}
-                onClick={() => setTimeRange(range)}
-                className={
-                  isMintEditorial
-                    ? 'px-4 py-1.5 rounded-md text-sm font-medium transition-colors'
-                    : `px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        isActive
-                          ? 'bg-white text-gray-900 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`
-                }
-                style={
-                  isMintEditorial
-                    ? {
-                        background: isActive
-                          ? 'var(--me-surface)'
-                          : 'transparent',
-                        color: isActive ? 'var(--me-ink)' : 'var(--me-ink-2)',
-                        boxShadow: isActive
-                          ? '0 1px 2px rgba(0,0,0,0.05)'
-                          : undefined,
-                      }
-                    : undefined
-                }
-              >
-                {range.charAt(0).toUpperCase() + range.slice(1)}
-              </button>
-            );
-          })}
         </div>
       </div>
 

@@ -1,8 +1,12 @@
 'use client';
 
 import React from 'react';
+import {
+  formatPlatformFeePercent,
+  PAYMENT_RELEASE_COPY,
+} from '@mintenance/shared';
 import { MotionDiv } from '@/components/ui/MotionDiv';
-import { PricingBreakdown } from '@/components/ui/PricingBreakdown';
+import { formatMoney } from '@/lib/utils/currency';
 import type { Transaction } from './types';
 
 interface PricingModalProps {
@@ -11,65 +15,68 @@ interface PricingModalProps {
 }
 
 export function PricingModal({ transaction, onClose }: PricingModalProps) {
+  const recorded = transaction.feesFinalized;
   return (
     <div
       className='fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50'
       onClick={onClose}
     >
       <MotionDiv
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='payment-breakdown-title'
         onClick={(e) => e.stopPropagation()}
-        className='bg-white rounded-xl shadow-2xl max-w-md w-full'
+        className='bg-white rounded-xl shadow-2xl max-w-md w-full p-6'
       >
-        <div className='p-6'>
-          <h3 className='t-h2 text-gray-900 mb-6'>Payment Breakdown</h3>
-          {transaction.feesFinalized ? (
-            <PricingBreakdown
-              items={[
-                {
-                  id: '1',
-                  label: 'Job Payment',
-                  amount: transaction.amount,
-                },
-                {
-                  id: '2',
-                  label: 'Platform Fee',
-                  amount: -transaction.platformFee,
-                  isDiscount: true,
-                },
-                {
-                  id: '3',
-                  label: 'Processing Fee',
-                  amount: -transaction.processingFee,
-                  isDiscount: true,
-                },
-              ]}
-              subtotal={transaction.amount}
-              total={transaction.netAmount}
-              currency='£'
-              showSubtotal={false}
-            />
-          ) : (
-            <div className='rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800'>
-              <p className='font-medium mb-1'>
-                £{transaction.amount.toFixed(2)} held in escrow
-              </p>
-              <p>
-                The platform and processing fees are finalized when this payment
-                is released, so the net payout isn&apos;t available yet.
-              </p>
-            </div>
-          )}
-          <div className='mt-6'>
-            <button
-              onClick={onClose}
-              className='w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium'
-            >
-              Close
-            </button>
+        <h3 id='payment-breakdown-title' className='t-h2 text-gray-900 mb-6'>
+          {recorded
+            ? 'Recorded payment breakdown'
+            : 'Estimated payment breakdown'}
+        </h3>
+        <dl className='space-y-3 text-sm'>
+          <div className='flex justify-between'>
+            <dt>{recorded ? 'Gross payment' : 'Payment amount before fees'}</dt>
+            <dd>
+              {formatMoney(
+                recorded
+                  ? transaction.amount
+                  : (transaction.remainingAmount ?? transaction.amount)
+              )}
+            </dd>
           </div>
-        </div>
+          <div className='flex justify-between'>
+            <dt>
+              {recorded
+                ? 'Recorded platform fee'
+                : `Estimated platform fee${transaction.feeRate == null ? '' : ` (${formatPlatformFeePercent(transaction.feeRate)})`}`}
+            </dt>
+            <dd>−{formatMoney(transaction.platformFee)}</dd>
+          </div>
+          <div className='flex justify-between font-semibold'>
+            <dt>
+              {recorded
+                ? 'Recorded contractor entitlement'
+                : 'Estimated contractor entitlement'}
+            </dt>
+            <dd>{formatMoney(transaction.netAmount)}</dd>
+          </div>
+        </dl>
+        <p className='mt-4 text-sm text-gray-600'>
+          {recorded
+            ? 'These amounts were recorded at release.'
+            : 'Estimate only: the platform fee has a 50p minimum, capped at the payment amount. The applicable rate and any refunds are confirmed at release.'}{' '}
+          Stripe processing is paid by the platform, not deducted again from
+          your entitlement.
+        </p>
+        <p className='mt-3 text-sm text-gray-600'>
+          {PAYMENT_RELEASE_COPY.summary} {PAYMENT_RELEASE_COPY.details}
+        </p>
+        <button
+          onClick={onClose}
+          className='mt-6 w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium'
+        >
+          Close
+        </button>
       </MotionDiv>
     </div>
   );

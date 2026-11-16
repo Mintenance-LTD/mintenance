@@ -102,6 +102,7 @@ export async function fetchJobsByFilter(
     budget: job.budget,
     total_amount: job.total_amount ?? null,
     status: job.status,
+    bid_status: job.bid_status,
     photos: job.photos || [],
     created_at: job.created_at,
     homeowner: {

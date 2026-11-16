@@ -98,7 +98,11 @@ export function MintEditorialQuotesView({
         <div className='kpi'>
           <div className='label'>Pending value</div>
           <div className='num'>
-            £{stats.pendingAmount.toLocaleString('en-GB')}
+            £
+            {stats.pendingAmount.toLocaleString('en-GB', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </div>
           <div className='sub'>
             {stats.pending} {stats.pending === 1 ? 'quote' : 'quotes'} awaiting
@@ -113,7 +117,11 @@ export function MintEditorialQuotesView({
         <div className='kpi'>
           <div className='label'>Accepted quote value</div>
           <div className='num'>
-            £{stats.acceptedAmount.toLocaleString('en-GB')}
+            £
+            {stats.acceptedAmount.toLocaleString('en-GB', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </div>
           <div className='sub'>
             Accepted quotes; payment is tracked separately

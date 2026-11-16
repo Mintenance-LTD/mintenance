@@ -127,7 +127,11 @@ export function DocumentsView({
                 </button>
 
                 <div className='text-xs text-gray-600 mb-3 space-y-1'>
-                  <p>{formatFileSize(doc.size_bytes)}</p>
+                  <p>
+                    {doc.is_contract
+                      ? 'Generated PDF'
+                      : formatFileSize(doc.size_bytes)}
+                  </p>
                   <p>{new Date(doc.created_at).toLocaleDateString('en-GB')}</p>
                   {doc.jobTitle && (
                     <p className='text-blue-600 truncate'>{doc.jobTitle}</p>
@@ -192,7 +196,11 @@ export function DocumentsView({
                     {doc.name}
                   </button>
                   <div className='flex items-center gap-3 mt-1 text-xs text-gray-600'>
-                    <span>{formatFileSize(doc.size_bytes)}</span>
+                    <span>
+                      {doc.is_contract
+                        ? 'Generated PDF'
+                        : formatFileSize(doc.size_bytes)}
+                    </span>
                     <span>&middot;</span>
                     <span>
                       {new Date(doc.created_at).toLocaleDateString('en-GB')}
