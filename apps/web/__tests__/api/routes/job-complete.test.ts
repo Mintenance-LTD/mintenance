@@ -11,6 +11,7 @@ vi.mock('@/lib/jobs/rework-evidence', async (original) => ({
  * payment enforcement, success path with notification creation,
  * escrow auto-release scheduling, update failure.
  */
+import { getJobReworkRequests } from '@/lib/jobs/rework-evidence';
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------
@@ -133,7 +134,13 @@ vi.mock('@/lib/errors/api-error', async () => {
       super('BAD_REQUEST', m, 400, d);
     }
   }
+  class ConflictError extends APIError {
+    constructor(m = 'Conflict') {
+      super('CONFLICT', m, 409);
+    }
+  }
   return {
+    ConflictError,
     APIError,
     UnauthorizedError,
     ForbiddenError,
@@ -445,4 +452,33 @@ describe('POST /api/jobs/[id]/complete', () => {
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(500);
   });
+  it.each([
+    {},
+    { reworkRequestId: { unexpected: true } },
+    { reworkRequestId: '00000000-0000-4000-8000-000000000002' },
+  ])(
+    'rejects a missing, malformed or stale rework identity before completion: %j',
+    async (body) => {
+      setupCompleteMocks();
+      vi.mocked(getJobReworkRequests).mockResolvedValueOnce([
+        {
+          id: '00000000-0000-4000-8000-000000000001',
+          comments: 'Repair edge',
+          created_at: '2026-11-16T10:00Z',
+          completion_version: null,
+        },
+      ]);
+      const request = new NextRequest(
+        'http://localhost/api/jobs/job-1/complete',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      );
+      const response = await POST(request, segmentData('job-1'));
+      expect(response.status).toBe(409);
+      expect(mocks.createNotification).not.toHaveBeenCalled();
+    }
+  );
 });

@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import {
   getJobReworkRequests,
   getCompletionEvidence,
@@ -67,7 +68,10 @@ export const POST = withApiHandler(
     let expectedReworkId: string | null = null;
     if (latestRework) {
       const body = await _request.json().catch(() => null);
-      expectedReworkId = body?.reworkRequestId;
+      const parsed = z
+        .object({ reworkRequestId: z.string().uuid() })
+        .safeParse(body);
+      expectedReworkId = parsed.success ? parsed.data.reworkRequestId : null;
       if (expectedReworkId !== latestRework.id) {
         throw new ConflictError(
           'Review the latest requested changes and explicitly submit fresh rework evidence.'
