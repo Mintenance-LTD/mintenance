@@ -134,6 +134,8 @@ jobs:
       - run: npm run test:availability --prefix scripts/db-tests
       - name: Verify beta journey migrations
         run: node scripts/db-tests/beta-journey.mjs
+      - name: Verify post-signing early-start consent and access boundaries
+        run: node scripts/db-tests/early-start.mjs
       - name: Verify archival policy keys and access preservation
         run: node scripts/db-tests/archive-primary-keys.mjs
       - name: Check onboarding recovery and legacy migration compatibility

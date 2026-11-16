@@ -9,6 +9,7 @@ interface Category {
 }
 
 interface ExpenseFormModalProps {
+  editing?: boolean;
   jobId: string;
   jobs: Array<{ id: string; title: string; homeowner_name?: string }>;
   onJobIdChange: (id: string) => void;
@@ -36,6 +37,7 @@ interface ExpenseFormModalProps {
 }
 
 export function ExpenseFormModal({
+  editing = false,
   jobId,
   jobs,
   onJobIdChange,
@@ -62,16 +64,25 @@ export function ExpenseFormModal({
   paymentMethods,
 }: ExpenseFormModalProps) {
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+    <div
+      role='dialog'
+      aria-modal='true'
+      aria-label={editing ? 'Edit expense' : 'Add expense'}
+      className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'
+    >
       <MotionDiv
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className='bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto'
       >
         <div className='flex items-center justify-between mb-6'>
-          <h3 className='text-xl font-bold text-gray-900'>Add Expense</h3>
+          <h3 className='text-xl font-bold text-gray-900'>
+            {editing ? 'Edit Expense' : 'Add Expense'}
+          </h3>
           <button
             onClick={onClose}
+            disabled={submitting}
+            aria-label='Close expense editor'
             className='p-1 hover:bg-gray-100 rounded-lg'
           >
             <X className='w-5 h-5 text-gray-500' />
@@ -80,11 +91,15 @@ export function ExpenseFormModal({
 
         <div className='space-y-4'>
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='expense-description'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Description *
             </label>
             <input
               type='text'
+              id='expense-description'
               value={description}
               onChange={(e) => onDescriptionChange(e.target.value)}
               placeholder='e.g. Electrical supplies'
@@ -120,13 +135,17 @@ export function ExpenseFormModal({
           </div>
           <div className='grid grid-cols-2 gap-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label
+                htmlFor='expense-amount'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
                 Amount (GBP) *
               </label>
               <input
                 type='number'
                 step='0.01'
                 min='0.01'
+                id='expense-amount'
                 value={amount}
                 onChange={(e) => onAmountChange(e.target.value)}
                 placeholder='0.00'
@@ -134,11 +153,15 @@ export function ExpenseFormModal({
               />
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label
+                htmlFor='expense-date'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
                 Date *
               </label>
               <input
                 type='date'
+                id='expense-date'
                 value={date}
                 onChange={(e) => onDateChange(e.target.value)}
                 className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
@@ -148,10 +171,14 @@ export function ExpenseFormModal({
 
           <div className='grid grid-cols-2 gap-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label
+                htmlFor='expense-category'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
                 Category
               </label>
               <select
+                id='expense-category'
                 value={category}
                 onChange={(e) => onCategoryChange(e.target.value)}
                 className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
@@ -166,10 +193,14 @@ export function ExpenseFormModal({
               </select>
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label
+                htmlFor='expense-paymentMethod'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
                 Payment Method
               </label>
               <select
+                id='expense-paymentMethod'
                 value={paymentMethod}
                 onChange={(e) => onPaymentMethodChange(e.target.value)}
                 className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
@@ -184,11 +215,15 @@ export function ExpenseFormModal({
           </div>
 
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='expense-tags'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Tags (comma-separated)
             </label>
             <input
               type='text'
+              id='expense-tags'
               value={tags}
               onChange={(e) => onTagsChange(e.target.value)}
               placeholder='e.g. electrical, supplies'
@@ -197,10 +232,14 @@ export function ExpenseFormModal({
           </div>
 
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='expense-notes'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Notes
             </label>
             <textarea
+              id='expense-notes'
               value={notes}
               onChange={(e) => onNotesChange(e.target.value)}
               rows={2}
@@ -233,7 +272,7 @@ export function ExpenseFormModal({
             className='flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2'
           >
             {submitting && <Loader2 className='w-4 h-4 animate-spin' />}
-            Add Expense
+            {editing ? 'Save changes' : 'Add Expense'}
           </button>
         </div>
       </MotionDiv>

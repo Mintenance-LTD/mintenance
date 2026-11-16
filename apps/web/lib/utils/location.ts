@@ -12,14 +12,22 @@
  */
 export function cleanAddress(address: string | null | undefined): string {
   if (!address) return '';
+  const seen = new Set<string>();
   return address
     .split(',')
-    .map(p => p.trim())
-    .filter(p => p.length > 0)
+    .map((p) => p.trim())
+    .filter((p) => {
+      const key = p.toLocaleLowerCase('en-GB').replace(/\s/g, '');
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .join(', ');
 }
 
-export function formatLocationShort(address: string | null | undefined): string {
+export function formatLocationShort(
+  address: string | null | undefined
+): string {
   if (!address) return 'Not specified';
 
   // Clean the address first
@@ -31,29 +39,38 @@ export function formatLocationShort(address: string | null | undefined): string 
   const postcode = postcodeMatch ? postcodeMatch[1].toUpperCase() : null;
 
   // Split address by commas and try to find city
-  const parts = cleaned.split(',').map(p => p.trim());
-  
+  const parts = cleaned.split(',').map((p) => p.trim());
+
   // Common UK address patterns: look for city name (usually before postcode)
   let city: string | null = null;
-  
+
   // Try to find city before postcode
   if (postcode) {
-    const postcodeIndex = parts.findIndex(p => p.includes(postcode));
+    const postcodeIndex = parts.findIndex((p) => p.includes(postcode));
     if (postcodeIndex > 0) {
       // City is usually the item before the postcode
       city = parts[postcodeIndex - 1];
     }
   }
-  
+
   // If no city found, try to find common city indicators
   if (!city) {
     // Look for items that don't contain numbers and aren't too long
-    city = parts.find(p => 
-      !/\d/.test(p) && 
-      p.length > 3 && 
-      p.length < 30 &&
-      !['England', 'United Kingdom', 'UK', 'Scotland', 'Wales', 'Northern Ireland'].includes(p)
-    ) || null;
+    city =
+      parts.find(
+        (p) =>
+          !/\d/.test(p) &&
+          p.length > 3 &&
+          p.length < 30 &&
+          ![
+            'England',
+            'United Kingdom',
+            'UK',
+            'Scotland',
+            'Wales',
+            'Northern Ireland',
+          ].includes(p)
+      ) || null;
   }
 
   // Format: "City, Postcode" or just "City" or just address if we can't parse
@@ -82,17 +99,17 @@ export function calculateDistance(
   const R = 6371; // Earth's radius in kilometers
   const dLat = toRadians(lat2 - lat1);
   const dLon = toRadians(lon2 - lon1);
-  
+
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRadians(lat1)) *
       Math.cos(toRadians(lat2)) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
-  
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c;
-  
+
   return Math.round(distance * 10) / 10; // Round to 1 decimal place
 }
 
@@ -112,4 +129,3 @@ export function formatDistance(distanceKm: number): string {
     return `${Math.round(distanceKm)}km away`;
   }
 }
-

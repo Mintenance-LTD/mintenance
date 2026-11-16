@@ -1,4 +1,5 @@
 'use client';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -27,7 +28,10 @@ export function QuoteDraftActions({
     try {
       const res = await fetch('/api/contractor/send-quote', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getCsrfHeaders()),
+        },
         credentials: 'include',
         body: JSON.stringify({
           quoteId: id,

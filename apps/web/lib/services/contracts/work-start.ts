@@ -18,6 +18,6 @@ export function workStartRestriction(
   if (!Number.isFinite(deadline))
     return 'This agreement needs cancellation-information review. Contact support before starting work.';
   if (now < deadline && !earlyStartRequested)
-    return 'The customer has not requested an early start. Wait until the cancellation deadline.';
+    return `The homeowner has not requested an early start. Work can start after ${new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', dateStyle: 'long', timeStyle: 'short' }).format(deadline)} UK time, or after the homeowner records an early-start request in this job’s contract. A scheduled date alone is not consent.`;
   return null;
 }

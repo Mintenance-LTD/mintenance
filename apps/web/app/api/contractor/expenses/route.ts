@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError, BadRequestError } from '@/lib/errors/api-error';
@@ -20,11 +23,13 @@ export const GET = withApiHandler(
 
     let query = userDb
       .from('contractor_expenses')
-      .select(`
+      .select(
+        `
         id, description, category, amount, date, job_id, payment_method,
         receipt_url, tags, is_billable, notes, created_at,
         job:jobs!contractor_expenses_job_id_fkey(id, title)
-      `)
+      `
+      )
       .eq('contractor_id', user.id)
       .order('date', { ascending: false });
 
@@ -41,7 +46,10 @@ export const GET = withApiHandler(
     const { data: expenses, error } = await query;
 
     if (error) {
-      logger.error('Error fetching expenses', error, { service: 'expenses', userId: user.id });
+      logger.error('Error fetching expenses', error, {
+        service: 'expenses',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to fetch expenses');
     }
 
@@ -70,10 +78,18 @@ export const GET = withApiHandler(
 
 const createExpenseSchema = z.object({
   description: z.string().min(1).max(500),
-  category: z.enum(['materials', 'tools', 'fuel', 'software', 'insurance', 'marketing', 'other']),
+  category: z.enum([
+    'materials',
+    'tools',
+    'fuel',
+    'software',
+    'insurance',
+    'marketing',
+    'other',
+  ]),
   amount: z.number().positive(),
   date: z.string().min(1),
-  jobId: z.string().uuid().optional(),
+  jobId: z.string().uuid().nullable().optional(),
   paymentMethod: z.string().optional(),
   tags: z.array(z.string()).optional(),
   isBillable: z.boolean().optional(),
@@ -109,11 +125,16 @@ export const POST = withApiHandler(
         is_billable: d.isBillable || false,
         notes: d.notes || null,
       })
-      .select('id, description, category, amount, date, job_id, payment_method, tags, is_billable, notes, created_at')
+      .select(
+        'id, description, category, amount, date, job_id, payment_method, tags, is_billable, notes, created_at'
+      )
       .single();
 
     if (error) {
-      logger.error('Error creating expense', error, { service: 'expenses', userId: user.id });
+      logger.error('Error creating expense', error, {
+        service: 'expenses',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to create expense');
     }
 
@@ -150,7 +171,10 @@ export const DELETE = withApiHandler(
       .eq('contractor_id', user.id);
 
     if (error) {
-      logger.error('Error deleting expense', error, { service: 'expenses', userId: user.id });
+      logger.error('Error deleting expense', error, {
+        service: 'expenses',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to delete expense');
     }
 
@@ -164,8 +188,12 @@ export const PATCH = withApiHandler(
   async (request: NextRequest, { user }) => {
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
 
-    const body = await request.json();
-    const { id, ...updates } = body;
+    const validation = await validateRequest(
+      request,
+      createExpenseSchema.partial().extend({ id: z.string().uuid() }).strict()
+    );
+    if (validation instanceof NextResponse) return validation;
+    const { id, ...updates } = validation.data;
 
     if (!id) throw new BadRequestError('Missing expense id');
 
@@ -186,15 +214,20 @@ export const PATCH = withApiHandler(
     }
 
     // Map camelCase to snake_case
-    const dbUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    const dbUpdates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (updates.description !== undefined)
+      dbUpdates.description = updates.description;
     if (updates.category !== undefined) dbUpdates.category = updates.category;
     if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
     if (updates.date !== undefined) dbUpdates.date = updates.date;
     if (updates.jobId !== undefined) dbUpdates.job_id = updates.jobId;
-    if (updates.paymentMethod !== undefined) dbUpdates.payment_method = updates.paymentMethod;
+    if (updates.paymentMethod !== undefined)
+      dbUpdates.payment_method = updates.paymentMethod;
     if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
-    if (updates.isBillable !== undefined) dbUpdates.is_billable = updates.isBillable;
+    if (updates.isBillable !== undefined)
+      dbUpdates.is_billable = updates.isBillable;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
     const { error } = await userDb
@@ -204,7 +237,10 @@ export const PATCH = withApiHandler(
       .eq('contractor_id', user.id);
 
     if (error) {
-      logger.error('Error updating expense', error, { service: 'expenses', userId: user.id });
+      logger.error('Error updating expense', error, {
+        service: 'expenses',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to update expense');
     }
 

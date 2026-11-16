@@ -1,5 +1,6 @@
 'use client';
 
+import { cleanAddress } from '@/lib/utils/location';
 import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin, Briefcase } from 'lucide-react';
@@ -122,11 +123,7 @@ export function JobCard({ job }: Props) {
           <div className='text-right'>
             <div className='text-xs text-gray-500 mb-1'>Location</div>
             <div className='text-sm font-medium text-gray-700'>
-              {(job.location || '')
-                .split(',')
-                .map((s) => s.trim())
-                .filter(Boolean)
-                .join(', ')}
+              {cleanAddress(job.location)}
             </div>
           </div>
         </div>

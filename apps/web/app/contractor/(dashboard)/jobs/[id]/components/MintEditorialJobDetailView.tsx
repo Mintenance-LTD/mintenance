@@ -26,6 +26,7 @@
  * theme-aware via the prior Phase-4 commits.
  */
 
+import { cleanAddress } from '@/lib/utils/location';
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -282,7 +283,7 @@ export function MintEditorialJobDetailView({
               }}
             >
               <MapPin size={12} strokeWidth={1.75} />
-              {job.location}
+              {cleanAddress(job.location)}
             </span>
           ) : null}
           {job.created_at ? (
@@ -688,7 +689,7 @@ export function MintEditorialJobDetailView({
                         maxWidth: '60%',
                       }}
                     >
-                      {job.location}
+                      {cleanAddress(job.location)}
                     </span>
                   </div>
                 ) : null}
@@ -712,7 +713,7 @@ export function MintEditorialJobDetailView({
           <JobMapCard
             jobLatitude={job.latitude}
             jobLongitude={job.longitude}
-            jobLocation={job.location}
+            jobLocation={cleanAddress(job.location)}
           />
 
           {/* Access details — uses the property fields from migration
@@ -892,6 +893,12 @@ export function MintEditorialJobDetailView({
                           <span className='t-meta' style={{ fontSize: 11 }}>
                             {roleLabel}
                           </span>
+                          {!c.phone && !c.email && (
+                            <p role='status' className='t-meta'>
+                              Contact details missing — ask the homeowner to add
+                              a phone number or email.
+                            </p>
+                          )}
                           {c.phone ? (
                             <a
                               href={`tel:${c.phone}`}

@@ -1,3 +1,4 @@
+import { hasEarlyStartRequest } from '@/lib/services/contracts/early-start';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 import { workStartRestriction } from '@/lib/services/contracts/work-start';
@@ -43,13 +44,7 @@ export async function assertJobTravelAllowed(
     throw new BadRequestError('The signed agreement could not be verified');
   let earlyStart = false;
   if (Date.now() < Date.parse(contract.cancellation_deadline ?? '')) {
-    const { data: consent, error: consentError } = await serverSupabase
-      .from('contract_consents')
-      .select('early_start_requested')
-      .eq('contract_id', contract.id)
-      .eq('signer_role', 'homeowner')
-      .maybeSingle();
-    earlyStart = !consentError && consent?.early_start_requested === true;
+    earlyStart = await hasEarlyStartRequest(contract.id);
   }
   const reason = workStartRestriction(contract, earlyStart);
   if (reason) throw new BadRequestError(reason);

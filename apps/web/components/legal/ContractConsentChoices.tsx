@@ -19,10 +19,12 @@ export function ContractConsentChoices({
   value,
   onChange,
   homeowner,
+  supplemental = false,
 }: {
   value: ConsentChoices;
   onChange: (v: ConsentChoices) => void;
   homeowner: boolean;
+  supplemental?: boolean;
 }) {
   return (
     <fieldset className='space-y-4 rounded-xl border p-4 text-sm'>
@@ -56,15 +58,18 @@ export function ContractConsentChoices({
           }
         />
         {homeowner
-          ? 'I have read and accept the customer terms and this job agreement.'
+          ? supplemental
+            ? 'I have reviewed the customer terms and my existing job agreement for this early-start request.'
+            : 'I have read and accept the customer terms and this job agreement.'
           : 'I have reviewed the platform terms, the customer cancellation information, and the materials and warranty terms. I agree to carry out the work under this job agreement.'}
       </label>
       {homeowner && (
         <>
           <p>
-            You may sign without requesting an early start. The contractor must
-            then wait until the cancellation period ends. Starting work alone
-            does not remove your cancellation rights.
+            {supplemental
+              ? 'You may keep your existing choices and wait until the cancellation period ends. Recording this request does not change your original signature.'
+              : 'You may sign without requesting an early start. The contractor must then wait until the cancellation period ends.'}{' '}
+            Starting work alone does not remove your cancellation rights.
           </p>
           <label className='flex gap-3'>
             <input

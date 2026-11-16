@@ -1,5 +1,6 @@
 'use client';
 
+import { isTestExpense, expenseCsvCell } from '@/lib/contractor/expense-export';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
@@ -91,6 +92,7 @@ export default function ExpenseTrackingPage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -171,12 +173,13 @@ export default function ExpenseTrackingPage() {
     try {
       const csrfHeaders = await getCsrfHeaders();
       const res = await fetch('/api/contractor/expenses', {
-        method: 'POST',
+        method: editingId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         credentials: 'include',
         body: JSON.stringify({
+          ...(editingId ? { id: editingId } : {}),
           description: formDescription.trim(),
-          jobId: formJobId || undefined,
+          jobId: formJobId || null,
           category: formCategory,
           amount: Number(formAmount),
           date: formDate,
@@ -188,7 +191,7 @@ export default function ExpenseTrackingPage() {
                 .filter(Boolean)
             : [],
           isBillable: formIsBillable,
-          notes: formNotes.trim() || undefined,
+          notes: formNotes.trim(),
         }),
       });
 
@@ -197,30 +200,8 @@ export default function ExpenseTrackingPage() {
         throw new Error(data.error || 'Failed to add expense');
       }
 
-      const data = await res.json();
-      // Add to local state
-      setExpenses((prev) => [
-        {
-          id: data.expense.id,
-          description: data.expense.description,
-          category: data.expense.category,
-          amount: Number(data.expense.amount),
-          date: data.expense.date,
-          jobId: data.expense.job_id,
-          jobTitle:
-            jobOptions.find((job) => job.id === data.expense.job_id)?.title ??
-            null,
-          paymentMethod: data.expense.payment_method || formPaymentMethod,
-          receiptUrl: null,
-          tags: data.expense.tags || [],
-          isBillable: data.expense.is_billable || false,
-          notes: data.expense.notes,
-          createdAt: data.expense.created_at,
-        },
-        ...prev,
-      ]);
-
-      toast.success('Expense added');
+      await fetchExpenses();
+      toast.success(editingId ? 'Expense updated' : 'Expense added');
       setShowAddModal(false);
       resetForm();
     } catch (error) {
@@ -232,7 +213,23 @@ export default function ExpenseTrackingPage() {
     }
   };
 
+  const editExpense = (expense: Expense) => {
+    setEditingId(expense.id);
+    setFormDescription(expense.description);
+    setFormCategory(expense.category);
+    setFormAmount(String(expense.amount));
+    setFormDate(expense.date.slice(0, 10));
+    setFormJobId(expense.jobId || '');
+    setFormPaymentMethod(expense.paymentMethod);
+    setFormTags(expense.tags.join(', '));
+    setFormIsBillable(expense.isBillable);
+    setFormNotes(expense.notes || '');
+    setShowAddModal(true);
+  };
+
   const resetForm = () => {
+    setEditingId(null);
+    setFormJobId('');
     setFormDescription('');
     setFormCategory('materials');
     setFormAmount('');
@@ -270,8 +267,8 @@ export default function ExpenseTrackingPage() {
   };
 
   const handleExport = () => {
-    const monthExpenses = expenses.filter((e) =>
-      e.date.startsWith(selectedMonth)
+    const monthExpenses = expenses.filter(
+      (e) => !isTestExpense(e) && e.date.startsWith(selectedMonth)
     );
     if (monthExpenses.length === 0) {
       toast.error('No expenses to export for this month');
@@ -290,16 +287,19 @@ export default function ExpenseTrackingPage() {
     ];
     const rows = monthExpenses.map((e) => [
       e.date,
-      `"${e.description}"`,
+      e.description,
       CATEGORIES.find((c) => c.value === e.category)?.label || e.category,
       e.amount.toFixed(2),
       e.paymentMethod,
       e.isBillable ? 'Yes' : 'No',
-      `"${e.tags.join(', ')}"`,
-      `"${e.notes || ''}"`,
+      e.tags.join(', '),
+      e.notes || '',
     ]);
 
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csv = [
+      headers.map(expenseCsvCell).join(','),
+      ...rows.map((r) => r.map(expenseCsvCell).join(',')),
+    ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -312,8 +312,8 @@ export default function ExpenseTrackingPage() {
 
   // Stats
   const stats = useMemo(() => {
-    const monthExpenses = expenses.filter((e) =>
-      e.date.startsWith(selectedMonth)
+    const monthExpenses = expenses.filter(
+      (e) => !isTestExpense(e) && e.date.startsWith(selectedMonth)
     );
     const total = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
     const billable = monthExpenses
@@ -333,8 +333,8 @@ export default function ExpenseTrackingPage() {
   }, [expenses, selectedMonth]);
 
   const expensesByCategory = useMemo(() => {
-    const monthExpenses = expenses.filter((e) =>
-      e.date.startsWith(selectedMonth)
+    const monthExpenses = expenses.filter(
+      (e) => !isTestExpense(e) && e.date.startsWith(selectedMonth)
     );
     const grouped = monthExpenses.reduce(
       (acc, expense) => {
@@ -360,10 +360,13 @@ export default function ExpenseTrackingPage() {
       const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthName = date.toLocaleDateString('en-GB', { month: 'short' });
       const monthTotal = expenses
-        .filter((e) => e.date.startsWith(monthStr))
+        .filter((e) => !isTestExpense(e) && e.date.startsWith(monthStr))
         .reduce((sum, e) => sum + e.amount, 0);
       const billable = expenses
-        .filter((e) => e.date.startsWith(monthStr) && e.isBillable)
+        .filter(
+          (e) =>
+            !isTestExpense(e) && e.date.startsWith(monthStr) && e.isBillable
+        )
         .reduce((sum, e) => sum + e.amount, 0);
       months.push({
         month: monthName,
@@ -424,7 +427,10 @@ export default function ExpenseTrackingPage() {
             <button
               type='button'
               className='btn btn-primary btn-sm'
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                resetForm();
+                setShowAddModal(true);
+              }}
             >
               <Plus size={14} strokeWidth={1.75} />
               Add expense
@@ -452,7 +458,10 @@ export default function ExpenseTrackingPage() {
                   Export CSV
                 </button>
                 <button
-                  onClick={() => setShowAddModal(true)}
+                  onClick={() => {
+                    resetForm();
+                    setShowAddModal(true);
+                  }}
                   className='flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium'
                 >
                   <Plus className='w-5 h-5' />
@@ -467,7 +476,7 @@ export default function ExpenseTrackingPage() {
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         <ExpenseStatsCards
           stats={stats}
-          totalItems={filteredExpenses.length}
+          totalItems={filteredExpenses.filter((e) => !isTestExpense(e)).length}
           staggerContainer={staggerContainer}
           staggerItem={staggerItem}
         />
@@ -620,7 +629,20 @@ export default function ExpenseTrackingPage() {
                       </div>
                     )}
                   </div>
+                  {isTestExpense(expense) && (
+                    <p className='text-sm text-amber-700'>
+                      Test record — excluded from totals and accounting CSV.
+                    </p>
+                  )}
                   <div className='flex gap-2'>
+                    <button
+                      type='button'
+                      onClick={() => editExpense(expense)}
+                      className='p-2 rounded-lg text-teal-700'
+                      aria-label={`Edit expense ${expense.description}`}
+                    >
+                      Edit
+                    </button>
                     <button
                       onClick={() =>
                         handleDeleteExpense(expense.id, expense.description)
@@ -654,6 +676,7 @@ export default function ExpenseTrackingPage() {
 
       {showAddModal && (
         <ExpenseFormModal
+          editing={Boolean(editingId)}
           jobId={formJobId}
           jobs={jobOptions}
           onJobIdChange={setFormJobId}

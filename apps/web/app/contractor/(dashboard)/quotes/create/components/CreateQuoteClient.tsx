@@ -1,6 +1,7 @@
 'use client';
 
 import React, { FormEvent, useMemo, useState, useEffect } from 'react';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Input } from '@/components/ui/Input';
@@ -35,13 +36,19 @@ const REQUIRED_STEPS = [
   { id: 'project', label: 'Project details' },
   { id: 'client', label: 'Client information' },
   { id: 'lineItems', label: 'Line items' },
-  { id: 'review', label: 'Review & send' },
+  { id: 'review', label: 'Review draft' },
 ] as const;
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
     value || 0
   );
+
+function quoteValidityDate(days: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
 export function CreateQuoteClient() {
   const router = useRouter();
@@ -119,7 +126,11 @@ export function CreateQuoteClient() {
   );
   const lineItemsComplete =
     lineItems.length > 0 &&
-    lineItems.every((item) => item.description.trim() && item.quantity > 0);
+    lineItems.every(
+      (item) =>
+        item.description.trim() && item.quantity > 0 && item.unit_price >= 0
+    ) &&
+    total > 0;
   const reviewComplete =
     basicDetailsComplete && clientDetailsComplete && lineItemsComplete;
 
@@ -164,23 +175,40 @@ export function CreateQuoteClient() {
     setValidDays(30);
   };
 
-  const performSubmit = async (status: 'draft' | 'sent') => {
+  const performSubmit = async (status: 'draft' | 'review') => {
+    if (isSubmitting) return;
+    if (!reviewComplete) {
+      setFeedback({
+        tone: 'error',
+        message:
+          'Add project and client details and a positive quote total before saving.',
+      });
+      return;
+    }
     setIsSubmitting(true);
     setFeedback(null);
 
     try {
       const response = await fetch('/api/contractor/quotes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getCsrfHeaders()),
+        },
+        credentials: 'include',
         body: JSON.stringify({
-          projectTitle,
+          title: projectTitle.trim(),
           clientName,
           clientEmail,
           clientPhone,
-          lineItems,
+          lineItems: lineItems.map(({ description, quantity, unit_price }) => ({
+            description: description.trim(),
+            quantity,
+            unitPrice: unit_price,
+            total: quantity * unit_price,
+          })),
           notes,
-          validDays,
-          status,
+          validUntil: quoteValidityDate(validDays),
           // Persist the VAT rate USED (percent) + amount on the quote row so
           // historic quotes are never recomputed from today's rate.
           subtotal,
@@ -192,16 +220,27 @@ export function CreateQuoteClient() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to save quote');
+        throw new Error(
+          error.message ||
+            (typeof error.error === 'string'
+              ? error.error
+              : error.error?.message) ||
+            'Failed to save quote'
+        );
       }
 
+      const data = await response.json();
+      if (status === 'review') {
+        router.push(`/contractor/quotes/${data.quote.id}`);
+        router.refresh();
+        return;
+      }
       resetStateAfterSubmit();
+      router.refresh();
       setFeedback({
         tone: 'success',
         message:
-          status === 'draft'
-            ? 'Quote saved as draft.'
-            : 'Quote sent successfully.',
+          'Quote saved as draft. Open it from Quotes to review and send.',
       });
     } catch (error) {
       setFeedback({
@@ -231,7 +270,7 @@ export function CreateQuoteClient() {
       return;
     }
 
-    await performSubmit('sent');
+    await performSubmit('review');
   };
 
   const stepCompletionMap = useMemo(
@@ -453,6 +492,7 @@ export function CreateQuoteClient() {
                 }}
               >
                 <Input
+                  aria-label={`Line ${index + 1} description`}
                   value={item.description}
                   onChange={(e) =>
                     handleUpdateLineItem(index, 'description', e.target.value)
@@ -462,6 +502,7 @@ export function CreateQuoteClient() {
                 />
                 <Input
                   type='number'
+                  aria-label={`Line ${index + 1} quantity`}
                   value={item.quantity.toString()}
                   onChange={(e) =>
                     handleUpdateLineItem(
@@ -475,6 +516,7 @@ export function CreateQuoteClient() {
                 />
                 <Input
                   type='number'
+                  aria-label={`Line ${index + 1} unit price`}
                   value={item.unit_price.toString()}
                   onChange={(e) =>
                     handleUpdateLineItem(
@@ -661,7 +703,7 @@ export function CreateQuoteClient() {
             {isSubmitting ? 'Saving...' : 'Save draft'}
           </Button>
           <Button type='submit' variant='primary' disabled={isSubmitting}>
-            {isSubmitting ? 'Sending...' : 'Send quote'}
+            {isSubmitting ? 'Saving...' : 'Save and review draft'}
           </Button>
         </div>
       </form>

@@ -1,4 +1,4 @@
-import { effectiveQuoteStatus } from '@/lib/quotes/quote-status';
+import { withEffectiveQuoteStatuses } from '@/lib/quotes/effective-quotes';
 import { collectRows } from '@/lib/db/collect-rows';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -47,36 +47,15 @@ export const GET = withApiHandler(
       .order('id');
 
     const storedQuotes = await collectRows((from, to) => query.range(from, to));
-    const bidStatuses = new Map<string, string>();
-    for (let offset = 0; offset < storedQuotes.length; offset += 500) {
-      const ids = storedQuotes.slice(offset, offset + 500).map((q) => q.id);
-      const bids = await collectRows<{ quote_id: string; status: string }>(
-        (from, to) =>
-          serverSupabase
-            .from('bids')
-            .select('quote_id, status')
-            .eq('contractor_id', user.id)
-            .in('quote_id', ids)
-            .order('updated_at')
-            .order('id')
-            .range(from, to)
-      );
-      for (const bid of bids)
-        if (bidStatuses.get(bid.quote_id) !== 'accepted')
-          bidStatuses.set(bid.quote_id, bid.status);
-    }
-    const quotes = storedQuotes
-      .map((q) => ({
-        ...q,
-        status: effectiveQuoteStatus(q, bidStatuses.get(q.id)),
-      }))
-      .filter(
-        (q) =>
-          !status ||
-          status === 'all' ||
-          q.status === status ||
-          (status === 'declined' && q.status === 'rejected')
-      );
+    const quotes = (
+      await withEffectiveQuoteStatuses(storedQuotes, user.id)
+    ).filter(
+      (q) =>
+        !status ||
+        status === 'all' ||
+        q.status === status ||
+        (status === 'declined' && q.status === 'rejected')
+    );
 
     const transformedQuotes =
       quotes?.map((quote) => ({
