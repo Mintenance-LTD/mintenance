@@ -10,6 +10,31 @@ import {
 } from './dashboardHelpers';
 
 function NeedsYouRow({ item }: { item: NeedsYouItem }) {
+  if (item.kind === 'reviewJob') {
+    return (
+      <div
+        className='col'
+        style={{
+          gap: 8,
+          padding: 12,
+          background: 'var(--me-brand-soft)',
+          borderRadius: 10,
+        }}
+      >
+        <strong>Completed work needs your review</strong>
+        <span>{item.jobTitle}</span>
+        <span className='t-meta'>
+          Check all photos, approve the work or request changes.
+        </span>
+        <Link
+          href={`/jobs/${item.jobId}#photo-review`}
+          className='btn btn-primary btn-sm'
+        >
+          Review completed work
+        </Link>
+      </div>
+    );
+  }
   if (item.kind === 'bid' || item.kind === 'quote') {
     const verb = item.kind === 'quote' ? 'sent a quote' : 'sent a bid';
     const primaryLabel = item.kind === 'quote' ? 'Approve & hold' : 'Review';

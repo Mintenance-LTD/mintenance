@@ -73,6 +73,7 @@ export interface Appointment {
  *   - quote        → contractor quote that needs accept/reject
  */
 export type NeedsYouItem =
+  | { kind: 'reviewJob'; id: string; jobId: string; jobTitle: string }
   | {
       kind: 'bid';
       id: string;

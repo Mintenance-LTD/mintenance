@@ -11,6 +11,7 @@
 import type { Job } from './types';
 
 export type NeedsYouItem =
+  | { kind: 'reviewJob'; id: string; jobId: string; jobTitle: string }
   | {
       kind: 'bid';
       id: string;
@@ -59,18 +60,35 @@ export function buildNeedsYouFeed({
   pendingBids,
   allBids,
   postedJobs,
+  completedJobs = [],
   maxItems = 4,
 }: {
   pendingBids: PendingBidInput[];
   allBids: BidInput[];
   postedJobs: Job[];
+  completedJobs?: Job[];
   properties: PropertyInput[];
   maxItems?: number;
 }): NeedsYouItem[] {
   const items: NeedsYouItem[] = [];
+  for (const job of completedJobs) {
+    if (items.length >= maxItems) break;
+    if (
+      job.status !== 'completed' ||
+      job.completion_confirmed_by_homeowner === true
+    )
+      continue;
+    items.push({
+      kind: 'reviewJob',
+      id: `review-${job.id}`,
+      jobId: job.id,
+      jobTitle: job.title || 'Completed job',
+    });
+  }
 
   // 1) Top 2 pending bids.
   for (const bid of pendingBids.slice(0, 2)) {
+    if (items.length >= maxItems) break;
     items.push({
       kind: 'bid',
       id: bid.id,

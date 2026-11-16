@@ -12,7 +12,7 @@ export const getCachedUserJobs = unstable_cache(
     const { data, error } = await serverSupabase
       .from('jobs')
       .select(
-        'id, title, status, budget, scheduled_start_date, scheduled_end_date, created_at, updated_at, category, location, homeowner_id, contractor_id'
+        'id, title, status, budget, scheduled_start_date, scheduled_end_date, created_at, updated_at, category, location, homeowner_id, contractor_id, completed_at, completion_confirmed_by_homeowner'
       )
       .eq('homeowner_id', userId)
       .is('archived_at', null)

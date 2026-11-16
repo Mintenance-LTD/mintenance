@@ -19,6 +19,7 @@ import {
 import { CUSTOMER_TERMS_VERSION } from '@mintenance/shared';
 import { ContractStartChoices } from '@/components/legal/ContractStartChoices';
 import { ContractCancellation } from '@/components/legal/ContractCancellation';
+import { contractStartWarning } from '@/lib/scheduling/contract-start-warning';
 
 interface ContractActionsProps {
   contract: Contract;
@@ -69,6 +70,18 @@ export function ContractActions({
   // for canonical `.btn-primary` on editorial.
   const [isMintEditorial, setIsMintEditorial] = useState(false);
   const [consent, setConsent] = useState(emptyConsent);
+  const [scheduleAcknowledged, setScheduleAcknowledged] = useState(false);
+  const [startWarning, setStartWarning] =
+    useState<ReturnType<typeof contractStartWarning>>(null);
+  useEffect(() => {
+    setScheduleAcknowledged(false);
+    setStartWarning(contractStartWarning(contract.start_date));
+  }, [
+    contract.id,
+    contract.updated_at,
+    contract.review_token,
+    contract.start_date,
+  ]);
   useEffect(
     () => setConsent(emptyConsent),
     [contract.id, contract.updated_at, contract.review_token]
@@ -93,12 +106,39 @@ export function ContractActions({
         />
       )}
       {canSign && contract.start_date && (
-        <p className='rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm'>
-          Check the scheduled start against the cancellation period before
-          signing. If work is due within that period, the homeowner must
-          expressly request an early start below or agree a later schedule.
-          Signing alone does not authorise an early start.
-        </p>
+        <div className='space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm'>
+          {startWarning && (
+            <p>
+              <strong>Scheduled start: {startWarning.start}.</strong> If
+              everyone signs today, the cancellation period runs through{' '}
+              {startWarning.end}. Signing later moves that deadline later. This
+              start date needs an express homeowner early-start request or a
+              later agreed schedule.
+            </p>
+          )}
+          <p>
+            Check the scheduled start against the cancellation period before
+            signing. If work is due within that period, the homeowner must
+            expressly request an early start below or agree a later schedule.
+            Signing alone does not authorise an early start.
+          </p>
+          {startWarning &&
+            !(userRole === 'homeowner' && consent.earlyStartRequested) && (
+              <label className='flex gap-3'>
+                <input
+                  type='checkbox'
+                  checked={scheduleAcknowledged}
+                  onChange={(event) =>
+                    setScheduleAcknowledged(event.target.checked)
+                  }
+                />
+                I understand that signing does not authorise this scheduled
+                start. Without an express homeowner request, we must agree a
+                later start. This acknowledgement does not change the schedule
+                or give early-start consent.
+              </label>
+            )}
+        </div>
       )}
       {(canSign || legacyReview) && (
         <ContractConsentChoices
@@ -173,7 +213,17 @@ export function ContractActions({
                 expectedReviewToken: contract.review_token,
               })
             }
-            disabled={isSigning || isRejecting || !consent.termsAccepted}
+            disabled={
+              isSigning ||
+              isRejecting ||
+              !consent.termsAccepted ||
+              Boolean(
+                canSign &&
+                startWarning &&
+                !scheduleAcknowledged &&
+                !(userRole === 'homeowner' && consent.earlyStartRequested)
+              )
+            }
             className={
               isMintEditorial
                 ? 'btn btn-primary'

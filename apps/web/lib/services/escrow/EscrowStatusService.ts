@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotFoundError } from '@/lib/errors/api-error';
+import { formatUKSchedule } from '@/lib/scheduling/uk-date-time';
 
 interface EscrowStatus {
   status: string;
@@ -232,7 +233,7 @@ export class EscrowStatusService {
         new Date(escrow.auto_release_date) > new Date()
       ) {
         reasons.push(
-          `Release eligibility begins ${new Date(escrow.auto_release_date).toLocaleString()}`
+          `Release eligibility begins ${formatUKSchedule(escrow.auto_release_date)} (UK time)`
         );
       }
       if (
@@ -269,7 +270,9 @@ export class EscrowStatusService {
           auto_release_date,
           cooling_off_ends_at,
           auto_approval_date,
-          admin_hold_status
+          admin_hold_status,
+          homeowner_approval,
+          risk_hold_extended
         `
         )
         .eq('id', escrowId)
@@ -280,11 +283,14 @@ export class EscrowStatusService {
       }
 
       // If admin hold, no estimated date
-      if (escrow.admin_hold_status === 'admin_hold') {
+      if (
+        ['admin_hold', 'pending_review'].includes(escrow.admin_hold_status) ||
+        escrow.risk_hold_extended
+      ) {
         return null;
       }
 
-      // Use the latest of: auto_release_date, cooling_off_ends_at, auto_approval_date
+      // Approval supersedes the automatic review deadline, not the release holds.
       const dates: Date[] = [];
 
       if (escrow.auto_release_date) {
@@ -295,11 +301,14 @@ export class EscrowStatusService {
         dates.push(new Date(escrow.cooling_off_ends_at));
       }
 
-      if (escrow.auto_approval_date) {
+      if (!escrow.homeowner_approval && escrow.auto_approval_date) {
         dates.push(new Date(escrow.auto_approval_date));
       }
 
-      if (dates.length === 0) {
+      if (
+        dates.length === 0 ||
+        dates.some((date) => !Number.isFinite(date.getTime()))
+      ) {
         return null;
       }
 

@@ -72,6 +72,29 @@ beforeEach(() => {
 });
 import { afterEach } from 'vitest';
 afterEach(() => vi.useRealTimers());
+it('shows the approval hold instead of the superseded automatic review deadline', async () => {
+  escrow.auto_approval_date = '2026-10-10T17:41:57Z';
+  const { EscrowStatusService } =
+    await import('@/lib/services/escrow/EscrowStatusService');
+  expect(
+    (await EscrowStatusService.getEstimatedReleaseDate('escrow'))?.toISOString()
+  ).toBe('2026-10-06T17:41:57.000Z');
+  escrow.homeowner_approval = false;
+  expect(
+    (await EscrowStatusService.getEstimatedReleaseDate('escrow'))?.toISOString()
+  ).toBe('2026-10-10T17:41:57.000Z');
+});
+it.each(['pending_review', 'admin_hold'])(
+  'does not promise a release date during %s',
+  async (status) => {
+    escrow.admin_hold_status = status;
+    const { EscrowStatusService } =
+      await import('@/lib/services/escrow/EscrowStatusService');
+    expect(
+      await EscrowStatusService.getEstimatedReleaseDate('escrow')
+    ).toBeNull();
+  }
+);
 it('releases the inspected £1 job after its advertised deadline without an extra trust hold', async () => {
   expect(await evaluateAutoRelease('escrow')).toMatchObject({ success: true });
   expect(m.hold).not.toHaveBeenCalled();

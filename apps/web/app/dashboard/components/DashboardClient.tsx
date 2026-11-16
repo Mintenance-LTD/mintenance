@@ -70,6 +70,7 @@ interface DashboardClientProps {
     /** Polymorphic "Needs you" feed — Mint Editorial only.
      *  See dashboardHelpers.NeedsYouItem for variants. */
     needsYou?: Array<
+      | { kind: 'reviewJob'; id: string; jobId: string; jobTitle: string }
       | {
           kind: 'bid';
           id: string;
