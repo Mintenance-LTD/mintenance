@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { parseContractConsent } from '@/lib/services/contracts/customer-consent';
+import { contractConsentSchema } from '@/lib/services/contracts/customer-consent';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 import {
   BadRequestError,
   ForbiddenError,
@@ -11,8 +13,12 @@ import {
 export const POST = withApiHandler(
   { roles: ['homeowner'] },
   async (request, { user, params }) => {
-    const body = await request.json();
-    const legal = parseContractConsent(body.legalConsent, false);
+    const validation = await validateRequest(
+      request,
+      z.object({ legalConsent: contractConsentSchema }).strict()
+    );
+    if (validation instanceof NextResponse) return validation;
+    const legal = validation.data.legalConsent;
     if (!legal.earlyStartRequested)
       throw new BadRequestError(
         'Explicitly request an early start before continuing'

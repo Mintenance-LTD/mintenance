@@ -134,3 +134,15 @@ it('requires ownership on expense edits and validates linked job access', async 
     expect.objectContaining({ job_id: null, notes: '' })
   );
 });
+
+import { POST as requestEarlyStart } from '@/app/api/contracts/[id]/early-start/route';
+it('rejects malformed or injected early-start bodies before recording a request', async () => {
+  for (const body of [
+    null,
+    {},
+    { legalConsent: {} },
+    { legalConsent: {}, p_customer: 'other' },
+  ]) {
+    expect((await call(requestEarlyStart, body)).status).toBe(400);
+  }
+});
