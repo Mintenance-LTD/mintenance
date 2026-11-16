@@ -55,9 +55,7 @@ afterEach(() => {
 it('shows responsibility and view-only access without a follow-up editor', async () => {
   render(<Page />);
   await screen.findByText('Fix tap');
-  expect(
-    screen.getByText('Responsible: Needs reassignment')
-  ).toBeInTheDocument();
+  expect(screen.getByText('Needs reassignment')).toBeInTheDocument();
   expect(screen.queryByText('Manage follow-up')).toBeNull();
   expect(screen.getByRole('link', { name: 'Review job' })).toHaveAttribute(
     'href',

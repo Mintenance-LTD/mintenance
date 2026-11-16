@@ -5,7 +5,13 @@ import { FollowupForm } from './FollowupForm';
 import { PortfolioReport } from './PortfolioReport';
 import { OperationsPage } from '@/components/property-operations/OperationsPage';
 import styles from '@/components/property-operations/operations.module.css';
-import { ClipboardList, ArrowRight, Clock3 } from 'lucide-react';
+import {
+  ClipboardList,
+  ArrowRight,
+  Clock3,
+  UserRound,
+  Search,
+} from 'lucide-react';
 
 interface Item {
   id: string;
@@ -124,91 +130,124 @@ export default function PropertyWorkQueuePage() {
           next 30 days.
         </p>
       </details>
-      <label className='block my-4 font-medium'>
-        Team queue{' '}
-        <select
-          className='min-h-12 rounded border px-3'
-          value={scope}
-          onChange={(event) => {
-            setScope(event.target.value);
-            setOffset(0);
-            setEditing(null);
-            setData(null);
-            setError('');
-          }}
-        >
-          <option value='team'>Team — all accessible actions</option>
-          <option value='mine'>Mine</option>
-          <option value='unassigned'>Unassigned</option>
-        </select>
-      </label>
-      <p className='text-sm text-slate-600 mb-4'>
-        Mine shows follow-ups assigned to you. Unassigned includes items needing
-        reassignment. Property access still applies to every view.
-      </p>
-      <div className='flex flex-wrap gap-4 mb-5'>
-        <label>
-          Property
+      <section
+        className={styles.queueFilters}
+        aria-label='Filter maintenance actions'
+      >
+        <label className={styles.queueScope}>
+          Team queue{' '}
           <select
-            className='block min-h-11 rounded border p-2'
-            value={filters.property}
-            onChange={(event) => updateFilter('property', event.target.value)}
+            className={styles.queueField}
+            value={scope}
+            onChange={(event) => {
+              setScope(event.target.value);
+              setOffset(0);
+              setEditing(null);
+              setData(null);
+              setError('');
+            }}
           >
-            <option value=''>All accessible properties</option>
-            {properties.map((property) => (
-              <option key={property.id} value={property.id}>
-                {property.name}
-              </option>
-            ))}
+            <option value='team'>Team — all accessible actions</option>
+            <option value='mine'>Mine</option>
+            <option value='unassigned'>Unassigned</option>
           </select>
         </label>
-        <label>
-          Priority
-          <select
-            className='block min-h-11 rounded border p-2'
-            value={filters.priority}
-            onChange={(event) => updateFilter('priority', event.target.value)}
-          >
-            <option value=''>All priorities</option>
-            <option value='0'>Priority / overdue</option>
-            <option value='1'>Needs attention</option>
-            <option value='2'>Upcoming / routine</option>
-          </select>
-        </label>
-        <label>
-          Sort by
-          <select
-            className='block min-h-11 rounded border p-2'
-            value={filters.sort}
-            onChange={(event) => updateFilter('sort', event.target.value)}
-          >
-            <option value='priority'>Priority, then due date</option>
-            <option value='due'>Due date</option>
-            <option value='property'>Property</option>
-            <option value='person'>Responsible person</option>
-          </select>
-        </label>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            updateFilter('person', personDraft.trim());
-          }}
-        >
+        <p className={styles.queueHint}>
+          Mine shows follow-ups assigned to you. Unassigned includes items
+          needing reassignment. Property access still applies to every view.
+        </p>
+        <div className={styles.queueFilterGrid}>
           <label>
-            Responsible person
-            <input
-              className='block min-h-11 rounded border p-2'
-              type='search'
-              maxLength={100}
-              value={personDraft}
-              onChange={(event) => setPersonDraft(event.target.value)}
-            />
+            Property
+            <select
+              className={styles.queueField}
+              value={filters.property}
+              onChange={(event) => updateFilter('property', event.target.value)}
+            >
+              <option value=''>All accessible properties</option>
+              {properties.map((property) => (
+                <option key={property.id} value={property.id}>
+                  {property.name}
+                </option>
+              ))}
+            </select>
           </label>
-          <button type='submit' className='underline'>
-            Apply person filter
+          <label>
+            Priority
+            <select
+              className={styles.queueField}
+              value={filters.priority}
+              onChange={(event) => updateFilter('priority', event.target.value)}
+            >
+              <option value=''>All priorities</option>
+              <option value='0'>Priority / overdue</option>
+              <option value='1'>Needs attention</option>
+              <option value='2'>Upcoming / routine</option>
+            </select>
+          </label>
+          <label>
+            Sort by
+            <select
+              className={styles.queueField}
+              value={filters.sort}
+              onChange={(event) => updateFilter('sort', event.target.value)}
+            >
+              <option value='priority'>Priority, then due date</option>
+              <option value='due'>Due date</option>
+              <option value='property'>Property</option>
+              <option value='person'>Responsible person</option>
+            </select>
+          </label>
+          <form
+            className={styles.queuePerson}
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateFilter('person', personDraft.trim());
+            }}
+          >
+            <label>
+              Responsible person
+              <input
+                className={styles.queueField}
+                type='search'
+                maxLength={100}
+                value={personDraft}
+                onChange={(event) => setPersonDraft(event.target.value)}
+              />
+            </label>
+            <button
+              type='submit'
+              className={styles.secondary}
+              aria-label='Apply person filter'
+            >
+              <Search size={16} aria-hidden='true' /> Apply
+            </button>
+          </form>
+        </div>
+        {(filters.property ||
+          filters.priority ||
+          filters.person ||
+          filters.sort !== 'priority') && (
+          <button
+            type='button'
+            className={styles.queueReset}
+            onClick={() => {
+              setFilters({
+                property: '',
+                priority: '',
+                person: '',
+                sort: 'priority',
+              });
+              setPersonDraft('');
+              setOffset(0);
+              setEditing(null);
+              setData(null);
+            }}
+          >
+            Clear filters
           </button>
-        </form>
-      </div>
+        )}
+      </section>
       {error ? (
         <div role='alert' className={styles.error}>
           {error}{' '}
@@ -258,22 +297,32 @@ export default function PropertyWorkQueuePage() {
                     </span>
                     <div className={styles.content}>
                       <p className={styles.meta}>
-                        {item.property_name} · {item.kind} ·{' '}
+                        {item.property_name} · {item.kind}
+                      </p>
+                      <span
+                        className={styles.queuePriority}
+                        data-priority={item.urgency}
+                      >
                         {item.urgency === 0
                           ? 'Priority / overdue'
                           : item.urgency === 1
                             ? 'Needs attention'
                             : 'Upcoming / routine'}
-                      </p>
+                      </span>
                       <h2>{item.title}</h2>
                     </div>
                   </div>
-                  <p className='text-sm text-slate-700'>
-                    Responsible:{' '}
-                    {item.assignment_status === 'needs_reassignment'
-                      ? 'Needs reassignment'
-                      : item.assignee_name || 'Unassigned'}
-                  </p>
+                  <div className={styles.queueOwner}>
+                    <UserRound size={16} aria-hidden='true' />
+                    <div>
+                      <span>Responsible person</span>
+                      <strong>
+                        {item.assignment_status === 'needs_reassignment'
+                          ? 'Needs reassignment'
+                          : item.assignee_name || 'Unassigned'}
+                      </strong>
+                    </div>
+                  </div>
                   <div className={styles.next}>
                     <Clock3 size={16} />
                     <strong>
@@ -346,7 +395,7 @@ export default function PropertyWorkQueuePage() {
               ))}
             </ul>
           )}
-          <nav aria-label='Queue pages' className='flex items-center gap-4'>
+          <nav aria-label='Queue pages' className={styles.queuePagination}>
             <button
               disabled={offset === 0}
               onClick={() => setOffset((value) => Math.max(0, value - 25))}
