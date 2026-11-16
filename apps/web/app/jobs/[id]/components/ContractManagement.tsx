@@ -20,7 +20,7 @@ interface ContractManagementProps {
 }
 
 export function ContractManagement(props: ContractManagementProps) {
-  const { jobId = '', userRole = 'homeowner', userId = '' } = props || {};
+  const { jobId = '', userRole = 'homeowner' } = props || {};
   const {
     contract,
     loading,

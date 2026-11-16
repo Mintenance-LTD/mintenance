@@ -1,6 +1,5 @@
 'use client';
 import { fetchWithCsrf } from '@/lib/csrf-client';
-import { readActionResponse } from '@/lib/api/read-action-response';
 
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
@@ -340,24 +339,6 @@ export default function NotificationsPage2025() {
   }
 
   if (!user) return null;
-
-  const userDisplayName =
-    user.first_name && user.last_name
-      ? `${user.first_name} ${user.last_name}`.trim()
-      : user.email;
-
-  // Filter notifications. DB stores full event names (`message_received`,
-  // `bid_accepted`, `contract_created`, …) so we normalise to the
-  // canonical 5-bucket union before comparing — otherwise every category
-  // tab counts 0.
-  const filteredNotifications = notifications.filter((n) => {
-    if (filter === 'unread') return !n.is_read;
-    const bucket = normalizeNotificationType(n.type);
-    if (filter === 'jobs') return bucket === 'job' || bucket === 'bid';
-    if (filter === 'messages') return bucket === 'message';
-    if (filter === 'payments') return bucket === 'payment';
-    return true;
-  });
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const jobsCount = notifications.filter((n) => {

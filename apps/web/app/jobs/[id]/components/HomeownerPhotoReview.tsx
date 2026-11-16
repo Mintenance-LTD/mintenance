@@ -46,6 +46,7 @@ export function HomeownerPhotoReview({
   const router = useRouter();
   const rework = useJobRework(jobId, completedAt);
   const [showPrevious, setShowPrevious] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const afterPhotos =
     rework.latest && !showPrevious
       ? allAfterPhotos.filter(
@@ -58,7 +59,6 @@ export function HomeownerPhotoReview({
     setCurrentIndex(0);
     setShowPrevious(false);
   }, [rework.latest?.id, completedAt]);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [showChangesForm, setShowChangesForm] = useState(false);
   const [comments, setComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
