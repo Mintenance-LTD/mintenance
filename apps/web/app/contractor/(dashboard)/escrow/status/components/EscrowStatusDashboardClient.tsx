@@ -6,9 +6,12 @@ import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
+import { formatUKSchedule } from '@/lib/scheduling/uk-date-time';
 import { logger } from '@mintenance/shared';
 import toast from 'react-hot-toast';
+import { fetchWithCsrf } from '@/lib/csrf-client';
+import { readActionResponse } from '@/lib/api/read-action-response';
 
 interface EscrowStatus {
   status: string;
@@ -102,20 +105,22 @@ export function EscrowStatusDashboardClient() {
 
   const handleRequestAdminReview = async (escrowId: string) => {
     try {
-      const response = await fetch(
+      const response = await fetchWithCsrf(
         `/api/escrow/${escrowId}/request-admin-review`,
         {
           method: 'POST',
         }
       );
-      if (!response.ok) {
-        throw new Error('Failed to request admin review');
-      }
+      await readActionResponse(response, 'Failed to request admin review');
       await fetchEscrowStatus(escrowId);
       toast.success('Admin review requested successfully');
     } catch (error) {
       logger.error('Error requesting admin review:', error);
-      toast.error('Failed to request admin review');
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to request admin review'
+      );
     }
   };
 
@@ -341,14 +346,14 @@ export function EscrowStatusDashboardClient() {
                       marginBottom: theme.spacing.sm,
                     }}
                   >
-                    Estimated Release Date:
+                    Earliest estimated release eligibility:
                   </h3>
                   <p style={{ color: theme.colors.textSecondary }}>
-                    {format(
-                      escrowStatus.estimatedReleaseDate,
-                      'MMM d, yyyy HH:mm'
+                    {formatUKSchedule(
+                      new Date(escrowStatus.estimatedReleaseDate).toISOString()
                     )}{' '}
-                    ({formatDistanceToNow(escrowStatus.estimatedReleaseDate)})
+                    (UK time). Subject to approval, holds, disputes and final
+                    checks; bank arrival follows provider processing.
                   </p>
                 </div>
               )}
@@ -403,16 +408,24 @@ export function EscrowStatusDashboardClient() {
                   </div>
                   {escrowStatus.coolingOffEndsAt && (
                     <div>
-                      Cooling-off:{' '}
-                      {formatDistanceToNow(escrowStatus.coolingOffEndsAt)}{' '}
-                      remaining
+                      Approval hold ends:{' '}
+                      {formatUKSchedule(
+                        new Date(escrowStatus.coolingOffEndsAt).toISOString()
+                      )}{' '}
+                      (UK time),{' '}
+                      {formatDistanceToNow(escrowStatus.coolingOffEndsAt, {
+                        addSuffix: true,
+                      })}
                     </div>
                   )}
                   {escrowStatus.autoApprovalDate &&
                     !escrowStatus.homeownerApproval && (
                       <div>
-                        Auto-approval:{' '}
-                        {formatDistanceToNow(escrowStatus.autoApprovalDate)}
+                        Automatic review approval:{' '}
+                        {formatUKSchedule(
+                          new Date(escrowStatus.autoApprovalDate).toISOString()
+                        )}{' '}
+                        (UK time). This is not a payment release date.
                       </div>
                     )}
                 </div>
