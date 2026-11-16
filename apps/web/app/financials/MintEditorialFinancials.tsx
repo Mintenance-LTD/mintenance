@@ -68,6 +68,7 @@ const fmtDate = (raw?: string | null): string => {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    timeZone: 'Europe/London',
   });
 };
 
@@ -97,14 +98,19 @@ function statusBadge(status: string | null | undefined) {
   return <span className='badge badge-mute'>{s || 'unknown'}</span>;
 }
 
-function deriveCounts(payments: FinancialsPaymentRow[]) {
+export function deriveCounts(payments: FinancialsPaymentRow[]) {
   let heldTotal = 0;
   let heldCount = 0;
   let releasedThisYear = 0;
   let releasedCount = 0;
   let lifetimeSpentTotal = 0;
   let lifetimeSpentCount = 0;
-  const currentYear = new Date().getFullYear();
+  const ukYear = (date: string | Date) =>
+    new Intl.DateTimeFormat('en-GB', {
+      year: 'numeric',
+      timeZone: 'Europe/London',
+    }).format(new Date(date));
+  const currentYear = ukYear(new Date());
   for (const p of payments) {
     const status = (p.status || '').toLowerCase();
     const amount = Number(p.amount || 0);
@@ -116,8 +122,8 @@ function deriveCounts(payments: FinancialsPaymentRow[]) {
     if (RELEASED_STATUSES.has(status)) {
       lifetimeSpentTotal += amount;
       lifetimeSpentCount += 1;
-      if (p.created_at) {
-        const year = new Date(p.created_at).getFullYear();
+      if (p.released_at && !Number.isNaN(Date.parse(p.released_at))) {
+        const year = ukYear(p.released_at);
         if (year === currentYear) {
           releasedThisYear += amount;
           releasedCount += 1;
@@ -125,11 +131,9 @@ function deriveCounts(payments: FinancialsPaymentRow[]) {
       }
     }
   }
-  // "Avg. job cost" — average of released amounts (only counted-once
-  // contractor pay-outs feel like a real job-cost). Falls back to 0
-  // when there are no released jobs yet.
+  // Average released payment, including separate payments on the same job.
   const avgJobCost = lifetimeSpentCount
-    ? Math.round(lifetimeSpentTotal / lifetimeSpentCount)
+    ? lifetimeSpentTotal / lifetimeSpentCount
     : 0;
   return {
     heldTotal,
@@ -170,7 +174,7 @@ export function MintEditorialFinancials({
           </p>
         </div>
         <Link href='/payments' className='btn btn-secondary btn-sm'>
-          <FileText size={13} strokeWidth={1.75} /> Export CSV
+          <FileText size={13} strokeWidth={1.75} /> View payments and export
         </Link>
       </div>
 
@@ -189,7 +193,7 @@ export function MintEditorialFinancials({
           <div className='sub'>
             <span>
               {derived.heldCount > 0
-                ? `${derived.heldCount} active ${derived.heldCount === 1 ? 'job' : 'jobs'}`
+                ? `${derived.heldCount} held ${derived.heldCount === 1 ? 'payment' : 'payments'}`
                 : 'no active escrow'}
             </span>
           </div>
@@ -200,20 +204,20 @@ export function MintEditorialFinancials({
           <div className='sub'>
             <span>
               {derived.releasedCount > 0
-                ? `${derived.releasedCount} ${derived.releasedCount === 1 ? 'job' : 'jobs'} signed off`
+                ? `${derived.releasedCount} ${derived.releasedCount === 1 ? 'payment' : 'payments'} released`
                 : 'no releases yet'}
             </span>
           </div>
         </div>
         <div className='kpi'>
-          <div className='label'>Avg. job cost</div>
+          <div className='label'>Average released payment</div>
           <div className='num'>
             {derived.avgJobCost > 0 ? formatMoney(derived.avgJobCost) : '—'}
           </div>
           <div className='sub'>
             <span>
               {derived.lifetimeSpentCount > 0
-                ? `across ${derived.lifetimeSpentCount} ${derived.lifetimeSpentCount === 1 ? 'job' : 'jobs'}`
+                ? `across ${derived.lifetimeSpentCount} ${derived.lifetimeSpentCount === 1 ? 'payment' : 'payments'}`
                 : 'awaiting first sign-off'}
             </span>
           </div>
@@ -263,6 +267,11 @@ export function MintEditorialFinancials({
         ) : (
           ledger.map((row, i) => {
             const job = Array.isArray(row.job) ? row.job[0] : row.job;
+            const payee = Array.isArray(row.payee) ? row.payee[0] : row.payee;
+            const payeeName =
+              payee?.company_name ||
+              [payee?.first_name, payee?.last_name].filter(Boolean).join(' ') ||
+              'Not recorded';
             return (
               <div
                 key={row.id || i}
@@ -284,11 +293,7 @@ export function MintEditorialFinancials({
                   {job?.title || 'Payment'}
                 </div>
                 <div style={{ flex: 1, color: 'var(--me-ink-2)', minWidth: 0 }}>
-                  {/* The escrow row doesn't carry the contractor name in
-                      the existing shape — the page-level query joins
-                      only `job` + `id/title`. Show a — placeholder until
-                      the join is extended. */}
-                  —
+                  {payeeName}
                 </div>
                 <div style={{ flex: 1, color: 'var(--me-ink-3)' }}>
                   {fmtDate(row.created_at)}

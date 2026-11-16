@@ -2,6 +2,7 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerPhotoReviewScreen';
+import { PhotoUploadService } from '../../services/PhotoUploadService';
 import { JobService } from '../../services/JobService';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
@@ -14,14 +15,16 @@ jest.mock('@tanstack/react-query', () => ({
 }));
 
 jest.mock('../../utils/mobileApiClient', () => ({
-  mobileApiClient: { post: jest.fn() },
+  mobileApiClient: { post: jest.fn(), get: jest.fn() },
 }));
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'synthetic-homeowner' } }),
 }));
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (effect: () => void) =>
-    require('react').useEffect(effect, [effect]),
+    jest
+      .requireActual<typeof import('react')>('react')
+      .useEffect(effect, [effect]),
   useNavigation: () => ({}),
   useRoute: () => ({ params: { jobId: 'synthetic-job' } }),
 }));
@@ -39,19 +42,35 @@ jest.mock('../../services/JobService', () => ({
 }));
 jest.mock('../../services/PhotoUploadService', () => ({
   PhotoUploadService: {
-    getJobPhotos: async () => [
+    getJobPhotos: jest.fn(async () => [
       { id: 'before', photo_type: 'before', photo_url: '/before' },
       { id: 'after', photo_type: 'after', photo_url: '/after' },
-    ],
+    ]),
   },
 }));
 jest.mock('../../screens/job-details/components/BeforeAfterSliderView', () => ({
-  BeforeAfterSliderView: () => null,
+  BeforeAfterSliderView: ({
+    photoPairs,
+    activePairIndex,
+  }: {
+    photoPairs: { after: { url: string } }[];
+    activePairIndex: number;
+  }) => {
+    const { Text } = jest.requireActual('react-native');
+    return (
+      <Text>
+        {photoPairs[activePairIndex]?.after.url || 'No current evidence'}
+      </Text>
+    );
+  },
 }));
 
 const post = mobileApiClient.post as jest.Mock;
 beforeEach(() => {
   jest.clearAllMocks();
+  (mobileApiClient.get as jest.Mock).mockImplementation(async (url: string) =>
+    url.endsWith('/rework') ? { requests: [] } : { escrow: null }
+  );
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 });
 const show = async () => {
@@ -198,4 +217,48 @@ it('shows a recoverable error and retries the photo review', async () => {
   expect(await view.findByText('Connection interrupted')).toBeTruthy();
   fireEvent.press(view.getByText('Retry loading photos'));
   expect(await view.findByLabelText('Approve the completed work')).toBeTruthy();
+});
+it('defaults to fresh rework evidence and labels the previous cycle gallery', async () => {
+  (mobileApiClient.get as jest.Mock).mockImplementation(async (url: string) =>
+    url.endsWith('/rework')
+      ? {
+          requests: [
+            {
+              id: 'cycle',
+              created_at: '2026-11-16T10:00Z',
+              comments: 'Repair edge',
+            },
+          ],
+        }
+      : { escrow: null }
+  );
+  (PhotoUploadService.getJobPhotos as jest.Mock).mockResolvedValueOnce([
+    { id: 'b', photo_type: 'before', photo_url: '/before' },
+    {
+      id: 'old',
+      photo_type: 'after',
+      photo_url: '/old',
+      created_at: '2026-11-15T10:00Z',
+    },
+    {
+      id: 'new',
+      photo_type: 'after',
+      photo_url: '/new',
+      created_at: '2026-11-16T11:00Z',
+    },
+  ]);
+  const view = render(<HomeownerPhotoReviewScreen />);
+  expect(await view.findByText('/new')).toBeTruthy();
+  expect(view.getByText('Requested changes: Repair edge')).toBeTruthy();
+  fireEvent.press(
+    view.getByText('Browse all photos including previous cycles')
+  );
+  expect(view.getByText('/old')).toBeTruthy();
+  expect(view.getByText('Previous cycle / date unavailable')).toBeTruthy();
+  fireEvent.press(view.getByLabelText('Approve the completed work'));
+  expect(post).not.toHaveBeenCalled();
+  expect(Alert.alert).toHaveBeenCalledWith(
+    'Fresh evidence required',
+    expect.stringContaining('three fresh')
+  );
 });

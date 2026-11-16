@@ -1,4 +1,5 @@
 'use client';
+import { fetchWithCsrf } from '@/lib/csrf-client';
 
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
@@ -104,7 +105,11 @@ export default function NotificationsPage2025() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to fetch notifications');
+          throw new Error(
+            (typeof errorData.error === 'string'
+              ? errorData.error
+              : errorData.error?.message) || 'Failed to fetch notifications'
+          );
         }
 
         const data = await response.json();
@@ -161,7 +166,7 @@ export default function NotificationsPage2025() {
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
-      const response = await fetch(
+      const response = await fetchWithCsrf(
         `/api/notifications/${notificationId}/read`,
         {
           method: 'POST',
@@ -174,7 +179,11 @@ export default function NotificationsPage2025() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to mark as read');
+        throw new Error(
+          typeof errorData.error === 'string'
+            ? errorData.error
+            : errorData.error?.message || 'Failed to mark as read'
+        );
       }
 
       setNotifications((prev) =>
@@ -192,7 +201,7 @@ export default function NotificationsPage2025() {
 
   const handleMarkAllAsRead = async () => {
     try {
-      const response = await fetch('/api/notifications/mark-all-read', {
+      const response = await fetchWithCsrf('/api/notifications/mark-all-read', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -202,7 +211,11 @@ export default function NotificationsPage2025() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to mark all as read');
+        throw new Error(
+          (typeof errorData.error === 'string'
+            ? errorData.error
+            : errorData.error?.message) || 'Failed to mark all as read'
+        );
       }
 
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
@@ -226,7 +239,7 @@ export default function NotificationsPage2025() {
 
     try {
       const deletePromises = notifications.map((n) =>
-        fetch(`/api/notifications/${n.id}`, {
+        fetchWithCsrf(`/api/notifications/${n.id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -236,7 +249,10 @@ export default function NotificationsPage2025() {
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(
-              errorData.error || `Failed to delete notification ${n.id}`
+              (typeof errorData.error === 'string'
+                ? errorData.error
+                : errorData.error?.message) ||
+                `Failed to delete notification ${n.id}`
             );
           }
           return response;
@@ -282,9 +298,12 @@ export default function NotificationsPage2025() {
     if (!ok) return;
 
     try {
-      const response = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetchWithCsrf(
+        `/api/notifications/${notificationId}`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       if (!response.ok) throw new Error('Failed to delete notification');
 
@@ -320,24 +339,6 @@ export default function NotificationsPage2025() {
   }
 
   if (!user) return null;
-
-  const userDisplayName =
-    user.first_name && user.last_name
-      ? `${user.first_name} ${user.last_name}`.trim()
-      : user.email;
-
-  // Filter notifications. DB stores full event names (`message_received`,
-  // `bid_accepted`, `contract_created`, …) so we normalise to the
-  // canonical 5-bucket union before comparing — otherwise every category
-  // tab counts 0.
-  const filteredNotifications = notifications.filter((n) => {
-    if (filter === 'unread') return !n.is_read;
-    const bucket = normalizeNotificationType(n.type);
-    if (filter === 'jobs') return bucket === 'job' || bucket === 'bid';
-    if (filter === 'messages') return bucket === 'message';
-    if (filter === 'payments') return bucket === 'payment';
-    return true;
-  });
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const jobsCount = notifications.filter((n) => {

@@ -277,3 +277,12 @@ it('keeps the server location rejection actionable', async () => {
     error: 'You are approximately 1156m away (maximum allowed: 100m).',
   });
 });
+it('passes the selected close-up view to the server', async () => {
+  mockPostFormData.mockResolvedValueOnce({
+    photos: [{ url: 'https://x/close.jpg' }],
+    jobCompleted: false,
+  });
+  await PhotoUploadService.uploadAfterPhotos('j1', [asset()], ['close-up']);
+  const form = mockPostFormData.mock.calls[0][1] as FormData;
+  expect(form.getAll('angleTypes')).toEqual(['close-up']);
+});

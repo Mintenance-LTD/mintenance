@@ -58,6 +58,7 @@ export default async function FinancialsPage() {
         updated_at,
         released_at,
         refunded_at,
+        payee:profiles!payee_id (first_name, last_name, company_name),
         job:jobs!escrow_transactions_job_id_fkey (
           id,
           title

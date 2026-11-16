@@ -311,7 +311,7 @@ export function MintEditorialJobDetailView({
               }}
             >
               <ShieldCheck size={12} strokeWidth={1.75} />£
-              {budgetNum.toFixed(0)} held in escrow
+              {budgetNum.toFixed(2)} held in escrow
             </span>
           ) : null}
         </div>

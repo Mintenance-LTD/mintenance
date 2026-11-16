@@ -1,6 +1,8 @@
 'use client';
+import { useJobRework } from '@/lib/hooks/useJobRework';
+import { ReworkHistory } from '@/components/jobs/ReworkHistory';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { PaymentReviewMilestones } from './PaymentReviewMilestones';
 import { useRouter } from 'next/navigation';
@@ -19,6 +21,7 @@ import { fetchWithCsrf } from '@/lib/csrf-client';
 interface PhotoRecord {
   id: string;
   photo_url: string;
+  created_at?: string | null;
 }
 
 interface HomeownerPhotoReviewProps {
@@ -36,12 +39,26 @@ interface HomeownerPhotoReviewProps {
 export function HomeownerPhotoReview({
   jobId,
   beforePhotos,
-  afterPhotos,
+  afterPhotos: allAfterPhotos,
   isConfirmed,
   completedAt,
 }: HomeownerPhotoReviewProps) {
   const router = useRouter();
+  const rework = useJobRework(jobId, completedAt);
+  const [showPrevious, setShowPrevious] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const afterPhotos =
+    rework.latest && !showPrevious
+      ? allAfterPhotos.filter(
+          (photo) =>
+            photo.created_at &&
+            Date.parse(photo.created_at) > Date.parse(rework.latest.created_at)
+        )
+      : allAfterPhotos;
+  useEffect(() => {
+    setCurrentIndex(0);
+    setShowPrevious(false);
+  }, [rework.latest?.id, completedAt]);
   const [showChangesForm, setShowChangesForm] = useState(false);
   const [comments, setComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,7 +154,7 @@ export function HomeownerPhotoReview({
     }
   };
 
-  if (pairCount === 0) return null;
+  if (allAfterPhotos.length === 0 && beforePhotos.length === 0) return null;
 
   return (
     <div className='space-y-4'>
@@ -145,6 +162,59 @@ export function HomeownerPhotoReview({
         Review Completed Work
       </h3>
 
+      {rework.loading && (
+        <p role='status'>Loading the current completion cycle…</p>
+      )}
+      {rework.error && <p role='alert'>{rework.error}</p>}
+      <ReworkHistory requests={rework.requests} />
+      {rework.latest && (
+        <div className='space-y-2'>
+          <p className='font-medium'>
+            {showPrevious
+              ? 'All after photos — includes earlier cycles'
+              : 'Current rework evidence'}
+          </p>
+          <p>
+            {afterPhotos.length} after photos in this view. Earlier-cycle photos
+            do not count towards this review.
+          </p>
+          <button
+            type='button'
+            className='underline'
+            onClick={() => {
+              setShowPrevious((value) => !value);
+              setCurrentIndex(0);
+            }}
+          >
+            {showPrevious
+              ? 'Show current rework only'
+              : 'Browse all photos including previous cycles'}
+          </button>
+          {!showPrevious &&
+            afterPhotos.length > 0 &&
+            afterPhotos.length < 3 && (
+              <p>
+                At least three fresh accepted after photos are required before
+                this cycle can be approved.
+              </p>
+            )}
+          {!showPrevious && afterPhotos.length === 0 && (
+            <p>
+              No fresh after photos are available for this cycle. Request
+              evidence before approving.
+            </p>
+          )}
+        </div>
+      )}
+      {showPrevious && rework.latest && afterPhotos[photoIndex] && (
+        <p className='font-medium'>
+          {afterPhotos[photoIndex].created_at &&
+          Date.parse(afterPhotos[photoIndex].created_at!) >
+            Date.parse(rework.latest.created_at)
+            ? 'Current cycle'
+            : 'Previous cycle / date unavailable'}
+        </p>
+      )}
       {/* Approved banner */}
       {isApproved && (
         <div className='flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-xl'>
@@ -160,35 +230,37 @@ export function HomeownerPhotoReview({
       )}
 
       {/* Before/After slider */}
-      {beforePhotos[photoIndex] && afterPhotos[photoIndex] ? (
-        <BeforeAfterSlider
-          beforeUrl={beforePhotos[photoIndex].photo_url}
-          afterUrl={afterPhotos[photoIndex].photo_url}
-        />
-      ) : (
-        <figure>
-          <div className='relative h-80 w-full'>
-            <Image
-              src={
-                (afterPhotos[photoIndex] || beforePhotos[photoIndex]).photo_url
-              }
-              alt={
-                afterPhotos[photoIndex]
-                  ? 'Completed work photo'
-                  : 'Before work photo'
-              }
-              fill
-              sizes='(max-width: 768px) 100vw, 700px'
-              className='object-contain'
-            />
-          </div>
-          <figcaption className='text-sm text-gray-600'>
-            {afterPhotos[photoIndex]
-              ? 'After photo — no corresponding before photo supplied.'
-              : 'Before photo — no corresponding after photo supplied.'}
-          </figcaption>
-        </figure>
-      )}
+      {pairCount > 0 &&
+        (beforePhotos[photoIndex] && afterPhotos[photoIndex] ? (
+          <BeforeAfterSlider
+            beforeUrl={beforePhotos[photoIndex].photo_url}
+            afterUrl={afterPhotos[photoIndex].photo_url}
+          />
+        ) : (
+          <figure>
+            <div className='relative h-80 w-full'>
+              <Image
+                src={
+                  (afterPhotos[photoIndex] || beforePhotos[photoIndex])
+                    .photo_url
+                }
+                alt={
+                  afterPhotos[photoIndex]
+                    ? 'Completed work photo'
+                    : 'Before work photo'
+                }
+                fill
+                sizes='(max-width: 768px) 100vw, 700px'
+                className='object-contain'
+              />
+            </div>
+            <figcaption className='text-sm text-gray-600'>
+              {afterPhotos[photoIndex]
+                ? 'After photo — no corresponding before photo supplied.'
+                : 'Before photo — no corresponding after photo supplied.'}
+            </figcaption>
+          </figure>
+        ))}
       <p className='text-sm text-gray-600'>
         {beforePhotos.length} before photos · {afterPhotos.length} after photos.
         Photos are shown in upload order; matching positions may show different
@@ -233,7 +305,20 @@ export function HomeownerPhotoReview({
             <div className='flex gap-3'>
               <Button
                 onClick={handleApprove}
-                disabled={isSubmitting}
+                disabled={
+                  isSubmitting ||
+                  rework.loading ||
+                  !!rework.error ||
+                  !!(
+                    rework.latest &&
+                    allAfterPhotos.filter(
+                      (photo) =>
+                        photo.created_at &&
+                        Date.parse(photo.created_at) >
+                          Date.parse(rework.latest!.created_at)
+                    ).length < 3
+                  )
+                }
                 variant='primary'
                 className='flex-1'
                 size='lg'

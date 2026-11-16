@@ -59,8 +59,9 @@ export function getStageConfig(stage: JobStage): StageConfig {
       };
     case 'contract_pending':
       return {
-        title: 'Sign Your Contract',
-        subtitle: 'Review the contract terms below and sign to proceed.',
+        title: 'Contract signatures pending',
+        subtitle:
+          'Check the next signer below. The homeowner signs first; the contractor signs after them.',
         accentColor: theme.colors.warning,
         icon: FileText,
       };
@@ -92,7 +93,7 @@ export function getStageConfig(stage: JobStage): StageConfig {
       return {
         title: 'Work In Progress',
         subtitle:
-          'Upload after photos when complete. This will automatically mark the job as done.',
+          'Upload completion evidence. For requested changes, submit the fresh rework evidence explicitly for review.',
         accentColor: theme.colors.primary,
         icon: Camera,
       };
@@ -100,7 +101,7 @@ export function getStageConfig(stage: JobStage): StageConfig {
       return {
         title: 'Awaiting Review',
         subtitle:
-          'Your completion photos have been submitted. Payment will be released once the homeowner approves.',
+          'Your completion photos have been submitted. Payment remains subject to the recorded approval hold and release checks.',
         accentColor: theme.colors.success,
         icon: Award,
       };

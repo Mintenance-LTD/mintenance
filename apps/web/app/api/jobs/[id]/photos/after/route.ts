@@ -1,3 +1,7 @@
+import {
+  getJobReworkRequests,
+  getCompletionEvidence,
+} from '@/lib/jobs/rework-evidence';
 import { parseMultipartRequest } from '@/lib/api/request-fingerprint';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -62,6 +66,15 @@ export const POST = withApiHandler(
       throw new ForbiddenError('Not authorized to upload photos for this job');
     }
 
+    if (!['in_progress', 'completed'].includes(job.status)) {
+      throw new BadRequestError(
+        'Start the job before uploading completion evidence.'
+      );
+    }
+    // Bind evidence time to receipt, before slow storage/quality processing.
+    // An upload already in flight cannot count for a later rework request.
+    const evidenceReceivedAt = new Date().toISOString();
+
     // Idempotency — opt-in via the `Idempotency-Key` header. After
     // photos auto-trigger job completion + notify the homeowner +
     // send the "Job Completed - Review Required" email. Without
@@ -93,6 +106,8 @@ export const POST = withApiHandler(
       });
       return NextResponse.json(idem.cachedResult);
     }
+
+    const latestRework = (await getJobReworkRequests(jobId))[0];
 
     return await releaseOnError(
       idempotencyKey,
@@ -224,6 +239,13 @@ export const POST = withApiHandler(
 
           // Upload to storage
           const fileName = `job-photos/${jobId}/after/${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+          if (
+            !/^job-photos\/[A-Za-z0-9-]+\/after\/[A-Za-z0-9-]+\.(jpg|jpeg|png|gif|webp|bmp|heic|heif)$/.test(
+              fileName
+            )
+          ) {
+            throw new BadRequestError('Invalid photo storage path');
+          }
           const { error: uploadError } = await serverSupabase.storage
             .from('Job-storage')
             .upload(fileName, file, {
@@ -278,6 +300,7 @@ export const POST = withApiHandler(
               photo_url: photoUrl,
               storage_path: fileName,
               photo_type: 'after',
+              created_at: evidenceReceivedAt,
               geolocation: geolocation || null,
               geolocation_verified: geolocation ? geolocationVerified : null,
               timestamp: new Date().toISOString(),
@@ -316,18 +339,10 @@ export const POST = withApiHandler(
         }
 
         // Validate photo requirements for job category
-        const { data: savedPhotos, error: evidenceError } = await serverSupabase
-          .from('job_photos_metadata')
-          .select('photo_url, angle_type, quality_score')
-          .eq('job_id', jobId)
-          .eq('photo_type', 'after')
-          .eq('verified', true);
-        if (evidenceError) throw evidenceError;
-        const photos = (savedPhotos || []).map((p) => ({
-          url: p.photo_url,
-          angleType: p.angle_type,
-          qualityScore: p.quality_score,
-        }));
+        const photos = await getCompletionEvidence(
+          jobId,
+          latestRework?.created_at
+        );
         const validationResult =
           await PhotoVerificationService.validatePhotoRequirements(
             job.category || 'general',
@@ -339,7 +354,11 @@ export const POST = withApiHandler(
         // set (for example, a category may require multiple photos/angles).
         // Safety checks below also verify contractor assignment and held escrow.
         let jobCompleted = false;
-        if (job.status === 'in_progress' && validationResult.passed) {
+        if (
+          job.status === 'in_progress' &&
+          !latestRework &&
+          validationResult.passed
+        ) {
           try {
             // Safety: verify contractor is assigned
             let canAutoComplete = true;
@@ -467,14 +486,14 @@ export const POST = withApiHandler(
                   NotificationService.createNotification({
                     userId: job.homeowner_id,
                     title: 'How did your contractor do?',
-                    message: `${homeownerJobTitle} is done. Two taps to leave a review and release payment.`,
+                    message: `${homeownerJobTitle} is done. Review the evidence and approve or request changes. Payment release remains subject to its recorded checks.`,
                     type: 'job_completed',
                     actionUrl: `/jobs/${jobId}`,
                   }),
                   NotificationService.createNotification({
                     userId: user.id,
                     title: 'Sign-off pending',
-                    message: `After photos are in for "${homeownerJobTitle}". Homeowner has 7 days — we'll auto-release if they don't.`,
+                    message: `After photos are in for "${homeownerJobTitle}". The homeowner can now review your work. See the recorded payment milestones; approval does not guarantee immediate release.`,
                     type: 'job_completed',
                     actionUrl: `/contractor/jobs/${jobId}`,
                   }),

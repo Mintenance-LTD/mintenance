@@ -1,3 +1,7 @@
+vi.mock('@/lib/jobs/rework-evidence', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/jobs/rework-evidence')>()),
+  getJobReworkRequests: async () => [],
+}));
 vi.mock('@/lib/services/payment/EscrowFundingService', () => ({
   verifyEscrowFunding: vi.fn().mockResolvedValue('ch_verified'),
 }));

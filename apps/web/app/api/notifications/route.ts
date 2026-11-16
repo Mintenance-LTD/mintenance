@@ -310,7 +310,8 @@ export const GET = withApiHandler(
       .from('jobs')
       .select('id, title, scheduled_start_date, status')
       .eq('contractor_id', userId)
-      .in('status', ['assigned', 'in_progress'])
+      .eq('status', 'assigned')
+      .is('started_at', null)
       .gte('scheduled_start_date', now.toISOString())
       .lte('scheduled_start_date', tomorrow.toISOString())
       .order('scheduled_start_date', { ascending: true })
@@ -328,7 +329,11 @@ export const GET = withApiHandler(
         const existingNotif = mappedNotifications.find(
           (n) => n.id === `project-reminder-${job.id}`
         );
-        if (!existingNotif && job.scheduled_start_date) {
+        if (
+          !existingNotif &&
+          job.status === 'assigned' &&
+          job.scheduled_start_date
+        ) {
           const startDate = new Date(job.scheduled_start_date);
           const hoursUntil = Math.round(
             (startDate.getTime() - now.getTime()) / (1000 * 60 * 60)
@@ -346,7 +351,7 @@ export const GET = withApiHandler(
             message: `Time to load the van — check parking + access on the job thread.`,
             read: false,
             created_at: job.scheduled_start_date || new Date().toISOString(),
-            action_url: `/jobs/${job.id}`,
+            action_url: `/contractor/jobs/${job.id}`,
           });
         }
       });

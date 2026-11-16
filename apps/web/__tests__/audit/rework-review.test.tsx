@@ -1,3 +1,11 @@
+vi.mock('@/lib/hooks/useJobRework', () => ({
+  useJobRework: () => ({
+    requests: [],
+    latest: undefined,
+    loading: false,
+    error: null,
+  }),
+}));
 import React from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {

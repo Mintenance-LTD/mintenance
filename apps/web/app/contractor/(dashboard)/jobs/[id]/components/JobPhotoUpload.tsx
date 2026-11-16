@@ -1,4 +1,6 @@
 'use client';
+import { useJobRework } from '@/lib/hooks/useJobRework';
+import { ReworkHistory } from '@/components/jobs/ReworkHistory';
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
@@ -49,6 +51,8 @@ export function JobPhotoUpload({
   onJobCompleted,
 }: JobPhotoUploadProps) {
   const router = useRouter();
+  const rework = useJobRework(jobId, jobStatus);
+  const [isSubmittingRework, setIsSubmittingRework] = useState(false);
   // Server-rendered inputs must not accept files before onChange is attached.
   const [isReady, setIsReady] = useState(false);
   useEffect(() => setIsReady(true), []);
@@ -69,15 +73,28 @@ export function JobPhotoUpload({
   const isCompleted = jobStatus === 'completed';
 
   const mode = isBeforeMode ? 'before' : 'after';
+  useEffect(() => {
+    setUploadedPhotos([]);
+    setPendingFiles([]);
+    setPendingAngles([]);
+    setPreviewUrls((previous) => {
+      previous.forEach((url) => URL.revokeObjectURL(url));
+      return [];
+    });
+    setSuccessMessage(null);
+    setMissingEvidence([]);
+  }, [jobId, mode, rework.latest?.id]);
   const title = isBeforeMode
     ? 'Upload Before Photos'
     : isAfterMode
-      ? 'Upload After Photos'
+      ? rework.latest
+        ? 'Upload fresh rework evidence'
+        : 'Upload After Photos'
       : 'Photos Submitted';
   const subtitle = isBeforeMode
     ? 'Take photos of the current damage before starting work'
     : isAfterMode
-      ? 'At least 3 accepted after photos are required, including a wide view. Plumbing, electrical and painting jobs also require a close-up. Select the view for each photo. Previously accepted photos count towards the total.'
+      ? 'At least 3 accepted after photos are required, including a wide view. Plumbing, electrical and painting jobs also require a close-up. Select the view for each photo. Only photos accepted in the current completion cycle count towards the total.'
       : 'Before and after photos have been uploaded';
 
   const handleFileSelect = useCallback(
@@ -148,59 +165,49 @@ export function JobPhotoUpload({
 
     try {
       const geo = await getGeolocation();
-      const formData = new FormData();
-      pendingFiles.forEach((f) => formData.append('photos', f));
-      if (isAfterMode) {
-        pendingAngles.forEach((angle) => formData.append('angleTypes', angle));
+      let uploadedCount = 0;
+      let completed = false;
+      // Keep successful uploads out of a retry; each request stays below the host body limit.
+      for (let index = 0; index < pendingFiles.length; index++) {
+        const formData = new FormData();
+        formData.append('photos', pendingFiles[index]);
+        if (isAfterMode) formData.append('angleTypes', pendingAngles[index]);
+        if (geo) formData.append('geolocation', JSON.stringify(geo));
+        const res = await fetchWithCsrf(
+          '/api/jobs/' + jobId + '/photos/' + mode,
+          { method: 'POST', body: formData }
+        );
+        const data = await readActionResponse<{
+          validation?: { passed: boolean; errors: unknown[] };
+          photos?: Array<{ url: string; qualityScore: number }>;
+          count: number;
+          jobCompleted?: boolean;
+        }>(
+          res,
+          'Unable to upload ' + pendingFiles[index].name + '. Please retry.'
+        );
+        uploadedCount += data.count;
+        completed ||= data.jobCompleted === true;
+        setUploadedPhotos((previous) => [...previous, ...(data.photos ?? [])]);
+        URL.revokeObjectURL(previewUrls[index]);
+        setPendingFiles(pendingFiles.slice(index + 1));
+        setPendingAngles(pendingAngles.slice(index + 1));
+        setPreviewUrls(previewUrls.slice(index + 1));
+        setMissingEvidence(
+          isAfterMode && data.validation?.passed === false
+            ? data.validation.errors.filter(
+                (message): message is string => typeof message === 'string'
+              )
+            : []
+        );
+        setSuccessMessage(uploadedCount + ' photo(s) uploaded successfully.');
       }
-      if (geo) formData.append('geolocation', JSON.stringify(geo));
-
-      const res = await fetchWithCsrf(`/api/jobs/${jobId}/photos/${mode}`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await readActionResponse<{
-        validation?: { passed: boolean; errors: unknown[] };
-        photos?: Array<{ url: string; qualityScore: number }>;
-        count: number;
-        jobCompleted?: boolean;
-      }>(res, 'Unable to upload photos. Please retry.');
-
-      // Clear previews and add uploaded photos
-      previewUrls.forEach((url) => URL.revokeObjectURL(url));
-      setPendingFiles([]);
-      setPendingAngles([]);
-      setPreviewUrls([]);
-      setMissingEvidence(
-        isAfterMode &&
-          data.validation?.passed === false &&
-          Array.isArray(data.validation.errors)
-          ? data.validation.errors.filter(
-              (message: unknown): message is string =>
-                typeof message === 'string'
-            )
-          : []
-      );
-
-      const newPhotos: UploadedPhoto[] = (data.photos || []).map(
-        (p: { url: string; qualityScore: number }) => ({
-          url: p.url,
-          qualityScore: p.qualityScore,
-        })
-      );
-      setUploadedPhotos((prev) => [...prev, ...newPhotos]);
-
-      if (isAfterMode && data.jobCompleted) {
+      if (isAfterMode && completed) {
         setSuccessMessage(
           'Job completed! The homeowner has been notified to review your work.'
         );
         onJobCompleted?.();
         router.refresh();
-      } else {
-        setSuccessMessage(
-          `${data.count} photo${data.count > 1 ? 's' : ''} uploaded successfully`
-        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -232,6 +239,34 @@ export function JobPhotoUpload({
     }
   };
 
+  const submitRework = async () => {
+    if (!rework.latest || rework.loading || rework.error) return;
+    setIsSubmittingRework(true);
+    setError(null);
+    try {
+      const response = await fetchWithCsrf('/api/jobs/' + jobId + '/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reworkRequestId: rework.latest.id }),
+      });
+      const result = await readActionResponse<{ success?: boolean }>(
+        response,
+        'Unable to submit rework. Check the fresh evidence requirements.'
+      );
+      if (result.success !== true)
+        throw new Error('Rework was not submitted. Please retry.');
+      setSuccessMessage(
+        'Rework submitted for homeowner review. Payment remains held pending review and release checks.'
+      );
+      onJobCompleted?.();
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to submit rework.');
+    } finally {
+      setIsSubmittingRework(false);
+    }
+  };
+
   // Enable Start Job when there are photos uploaded in this session OR
   // photos already exist server-side from a previous visit. Both paths
   // satisfy the API gate at POST /api/jobs/:id/start (which counts
@@ -251,13 +286,38 @@ export function JobPhotoUpload({
             <p className='text-sm text-gray-500'>{subtitle}</p>
             {!isCompleted && (
               <p className='text-sm text-gray-500'>
-                Up to 10 photos and 4 MB total per upload. Use clear, well-lit
-                photos of at least 800 × 600 pixels.
+                Choose up to 10 photos, at most 4 MB each. Files upload
+                individually. Use clear, well-lit photos of at least 800 × 600
+                pixels.
               </p>
             )}
           </div>
         </div>
 
+        {rework.error && <p role='alert'>{rework.error}</p>}
+        <ReworkHistory requests={rework.requests} />
+        {isAfterMode && rework.latest && (
+          <div className='space-y-2'>
+            <p>
+              Upload at least three new accepted photos covering the requested
+              changes, including the required views. Uploading does not submit
+              rework.
+            </p>
+            <Button
+              onClick={submitRework}
+              disabled={
+                isUploading ||
+                isSubmittingRework ||
+                rework.loading ||
+                !!rework.error
+              }
+            >
+              {isSubmittingRework
+                ? 'Submitting rework…'
+                : 'Submit rework for review'}
+            </Button>
+          </div>
+        )}
         {/* Completed state */}
         {isCompleted && (
           <div className='flex items-center gap-2 p-3 bg-green-50 rounded-lg'>
@@ -282,7 +342,13 @@ export function JobPhotoUpload({
                 capture='environment'
                 onChange={handleFileSelect}
                 className='hidden'
-                disabled={!isReady || isUploading}
+                disabled={
+                  !isReady ||
+                  isUploading ||
+                  isSubmittingRework ||
+                  rework.loading ||
+                  !!rework.error
+                }
                 id='photo-upload-input'
               />
               <Upload className='h-8 w-8 mx-auto text-gray-400 mb-2' />
@@ -316,7 +382,7 @@ export function JobPhotoUpload({
                         <button
                           onClick={() => removePending(i)}
                           aria-label={`Remove photo ${i + 1}`}
-                          disabled={isUploading}
+                          disabled={isUploading || isSubmittingRework}
                           className='absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity'
                         >
                           <X className='h-3 w-3' />
@@ -328,7 +394,7 @@ export function JobPhotoUpload({
                           <select
                             aria-label={`Photo ${i + 1} angle`}
                             value={pendingAngles[i]}
-                            disabled={isUploading}
+                            disabled={isUploading || isSubmittingRework}
                             onChange={(event) => {
                               const value = event.target.value;
                               if (value === 'wide' || value === 'close-up') {
@@ -351,7 +417,7 @@ export function JobPhotoUpload({
                 </div>
                 <Button
                   onClick={handleUpload}
-                  disabled={isUploading}
+                  disabled={isUploading || isSubmittingRework}
                   className='w-full mt-3'
                   size='md'
                 >

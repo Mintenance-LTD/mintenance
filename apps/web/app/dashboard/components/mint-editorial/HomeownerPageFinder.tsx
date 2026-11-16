@@ -7,6 +7,7 @@ const pages = [
   ['Properties', '/properties'],
   ['Contractors', '/contractors'],
   ['Payments', '/payments'],
+  ['Finance and financials', '/financials'],
   ['Documents', '/documents'],
   ['Messages', '/messages'],
   ['Schedule', '/scheduling'],

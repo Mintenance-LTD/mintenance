@@ -20,7 +20,7 @@ interface ContractManagementProps {
 }
 
 export function ContractManagement(props: ContractManagementProps) {
-  const { jobId = '', userRole = 'homeowner', userId = '' } = props || {};
+  const { jobId = '', userRole = 'homeowner' } = props || {};
   const {
     contract,
     loading,
@@ -69,7 +69,7 @@ export function ContractManagement(props: ContractManagementProps) {
   }
 
   const isDraft = contract.status === 'draft';
-  const statusConfig = getStatusConfig(contract.status);
+  const statusConfig = getStatusConfig(contract.status, userRole);
   const logoUrl = contract.contractor?.profile_image_url;
 
   const contractorName =

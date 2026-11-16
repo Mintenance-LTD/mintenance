@@ -54,7 +54,7 @@ export const GET = withApiHandler(
     let query = serverSupabase.from('contracts').select(`
       id, job_id, contractor_id, homeowner_id, status, title, description, amount,
       start_date, end_date, terms, contractor_signed_at, homeowner_signed_at,
-      contractor_company_name, contractor_license_registration, contractor_license_type,
+      sent_at, contractor_company_name, contractor_license_registration, contractor_license_type,
       quote_id, created_at, updated_at, agreement_formed_at, cancellation_deadline, cancellation_requested_at,
       contractor:profiles!contractor_id(first_name, last_name, company_name, profile_image_url, insurance_expiry_date),
       homeowner:profiles!homeowner_id(first_name, last_name),

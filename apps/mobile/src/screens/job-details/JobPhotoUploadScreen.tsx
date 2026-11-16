@@ -4,7 +4,7 @@
  * Before photos: Required before starting a job (Phase 6)
  * After photos: Uploaded when work is complete, auto-triggers job completion (Phase 8)
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -43,6 +43,7 @@ interface SelectedPhoto {
   uri: string;
   asset: ImagePicker.ImagePickerAsset;
   uploaded?: boolean;
+  angle?: 'wide' | 'close-up';
 }
 
 export const JobPhotoUploadScreen: React.FC<Props> = ({
@@ -57,6 +58,10 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  useEffect(() => {
+    setPhotos([]);
+    setUploadProgress(0);
+  }, [jobId, photoType]);
   const isBefore = photoType === 'before';
   const title = isBefore ? 'Upload Before Photos' : 'Upload After Photos';
   const subtitle = isBefore
@@ -142,9 +147,6 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
 
     try {
       const assets = pending.map((p) => p.asset);
-      const uploadFn = isBefore
-        ? PhotoUploadService.uploadBeforePhotos
-        : PhotoUploadService.uploadAfterPhotos;
 
       const results: {
         success: boolean;
@@ -156,9 +158,13 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
         try {
           const asset = assets[i];
           if (!asset) continue;
-          const result = await uploadFn.call(PhotoUploadService, jobId, [
-            asset,
-          ]);
+          const result = isBefore
+            ? await PhotoUploadService.uploadBeforePhotos(jobId, [asset])
+            : await PhotoUploadService.uploadAfterPhotos(
+                jobId,
+                [asset],
+                [pending[i]?.angle || 'wide']
+              );
           results.push(...result);
         } catch (error) {
           results.push({
@@ -314,7 +320,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
           <Text style={styles.infoText}>
             {isBefore
               ? 'Take clear photos of the area that needs work. Include wide shots and close-ups of any damage or issues.'
-              : 'Take photos of the completed work from the same angles as your before photos for easy comparison.'}
+              : 'Upload at least three accepted after photos per completion cycle, including a wide view. Plumbing, electrical and painting also require a close-up. Use clear, well-lit photos; rework needs new photos and an explicit completion submission.'}
           </Text>
         </View>
 
@@ -323,6 +329,36 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
           {photos.map((photo, index) => (
             <View key={index} style={styles.photoItem}>
               <Image source={{ uri: photo.uri }} style={styles.photoImage} />
+              {!isBefore && (
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  accessibilityLabel={`Photo ${index + 1} view: ${photo.angle || 'wide'}. Tap to change`}
+                  disabled={uploading || photo.uploaded}
+                  style={{
+                    position: 'absolute',
+                    bottom: 4,
+                    left: 4,
+                    right: 4,
+                    backgroundColor: me.bg2,
+                    padding: 6,
+                  }}
+                  onPress={() =>
+                    setPhotos((previous) =>
+                      previous.map((item, i) =>
+                        i === index
+                          ? {
+                              ...item,
+                              angle:
+                                item.angle === 'close-up' ? 'wide' : 'close-up',
+                            }
+                          : item
+                      )
+                    )
+                  }
+                >
+                  <Text>{photo.angle || 'wide'}</Text>
+                </TouchableOpacity>
+              )}
               {photo.uploaded && (
                 <View style={styles.uploadedBadge}>
                   <Ionicons
@@ -335,6 +371,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
               {!photo.uploaded && (
                 <TouchableOpacity
                   style={styles.removeButton}
+                  disabled={uploading}
                   onPress={() => removePhoto(index)}
                   accessibilityLabel={`Remove photo ${index + 1}`}
                 >
@@ -347,6 +384,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
           {/* Add Photo Buttons */}
           <TouchableOpacity
             style={styles.addPhotoButton}
+            disabled={uploading}
             onPress={pickFromCamera}
             accessibilityLabel='Take a photo'
           >
@@ -356,6 +394,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
 
           <TouchableOpacity
             style={styles.addPhotoButton}
+            disabled={uploading}
             onPress={pickFromGallery}
             accessibilityLabel='Choose from gallery'
           >
@@ -366,7 +405,11 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
 
         <Text style={styles.photoCount}>
           {photos.length} photo{photos.length !== 1 ? 's' : ''} selected
-          {photos.length === 0 ? ' (minimum 1 required)' : ''}
+          {photos.length === 0
+            ? isBefore
+              ? ' (minimum 1 required)'
+              : ' (3 accepted photos required per cycle)'
+            : ''}
         </Text>
       </ScrollView>
 

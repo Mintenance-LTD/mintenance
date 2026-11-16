@@ -185,7 +185,8 @@ export class PhotoUploadService {
   /** Upload after photos with one location fix per batch. */
   static async uploadAfterPhotos(
     jobId: string,
-    photos: ImagePicker.ImagePickerAsset[]
+    photos: ImagePicker.ImagePickerAsset[],
+    angleTypes: readonly ('wide' | 'close-up')[] = []
   ): Promise<PhotoUploadResult[]> {
     const results: PhotoUploadResult[] = [];
     const location = await this.getCurrentLocation();
@@ -208,6 +209,10 @@ export class PhotoUploadService {
           type: 'image/jpeg',
           name: `after_${Date.now()}.jpg`,
         } as unknown as Blob);
+        formData.append(
+          'angleTypes',
+          angleTypes[photos.indexOf(photo)] || 'wide'
+        );
         formData.append('metadata', JSON.stringify(metadata));
 
         // 2026-05-26 audit-52 P2: normalise response shape — same as before-photo path.

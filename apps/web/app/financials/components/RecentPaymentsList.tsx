@@ -9,6 +9,18 @@ export interface FinancialsPaymentRow {
   status?: string | null;
   created_at?: string | null;
   released_at?: string | null;
+  payee?:
+    | {
+        first_name?: string | null;
+        last_name?: string | null;
+        company_name?: string | null;
+      }
+    | Array<{
+        first_name?: string | null;
+        last_name?: string | null;
+        company_name?: string | null;
+      }>
+    | null;
   job?:
     | { id: string; title?: string | null }
     | Array<{ id: string; title?: string | null }>

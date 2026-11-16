@@ -1,3 +1,9 @@
+import { z } from 'zod';
+import {
+  getJobReworkRequests,
+  getCompletionEvidence,
+} from '@/lib/jobs/rework-evidence';
+import { PhotoVerificationService } from '@/lib/services/escrow/PhotoVerificationService';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PaymentEnforcement } from '@/lib/services/payment/PaymentEnforcement';
@@ -13,6 +19,7 @@ import {
   ForbiddenError,
   NotFoundError,
   BadRequestError,
+  ConflictError,
 } from '@/lib/errors/api-error';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
@@ -24,7 +31,9 @@ export const POST = withApiHandler(
     // Get job details
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, contractor_id, homeowner_id, payer_user_id, status, title')
+      .select(
+        'id, contractor_id, homeowner_id, payer_user_id, status, title, category'
+      )
       .eq('id', jobId)
       .single();
 
@@ -55,27 +64,32 @@ export const POST = withApiHandler(
     // the work. Require the evidence used by that approval before changing
     // the job state; otherwise this endpoint can strand a job as completed
     // while the homeowner's confirmation endpoint correctly refuses it.
-    const { count: afterPhotoCount, error: afterPhotoError } =
-      await serverSupabase
-        .from('job_photos_metadata')
-        .select('id', { count: 'exact', head: true })
-        .eq('job_id', jobId)
-        .eq('photo_type', 'after')
-        .eq('verified', true);
-
-    if (afterPhotoError) {
-      logger.error('Failed to verify completion evidence', afterPhotoError, {
-        service: 'jobs',
-        jobId,
-      });
-      throw new BadRequestError(
-        'Could not verify completion photos. Please try again.'
-      );
+    const latestRework = (await getJobReworkRequests(jobId))[0];
+    let expectedReworkId: string | null = null;
+    if (latestRework) {
+      const body = await _request.json().catch(() => null);
+      const parsed = z
+        .object({ reworkRequestId: z.string().uuid() })
+        .safeParse(body);
+      expectedReworkId = parsed.success ? parsed.data.reworkRequestId : null;
+      if (expectedReworkId !== latestRework.id) {
+        throw new ConflictError(
+          'Review the latest requested changes and explicitly submit fresh rework evidence.'
+        );
+      }
     }
-
-    if (!afterPhotoCount || afterPhotoCount === 0) {
+    const evidence = await getCompletionEvidence(
+      jobId,
+      latestRework?.created_at
+    );
+    const validation = await PhotoVerificationService.validatePhotoRequirements(
+      job.category || 'general',
+      evidence
+    );
+    if (!validation.passed) {
       throw new BadRequestError(
-        'At least one after photo must be uploaded before completing the job'
+        'Completion evidence required for this cycle: ' +
+          validation.errors.join('. ')
       );
     }
 
@@ -112,16 +126,32 @@ export const POST = withApiHandler(
     // The .eq('status', JOB_STATUS.IN_PROGRESS) predicate makes the
     // UPDATE a no-op on the loser; .select('id') lets us detect the
     // no-op via row count and bail before the notification fanout.
-    const { data: updatedRows, error: updateError } = await serverSupabase
-      .from('jobs')
-      .update({
-        status: JOB_STATUS.COMPLETED,
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', jobId)
-      .eq('status', JOB_STATUS.IN_PROGRESS)
-      .select('id');
+    const result = latestRework
+      ? await serverSupabase.rpc('submit_job_rework', {
+          p_job_id: jobId,
+          p_actor_id: user.id,
+          p_rework_id: expectedReworkId,
+        })
+      : await serverSupabase
+          .from('jobs')
+          .update({
+            status: JOB_STATUS.COMPLETED,
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', jobId)
+          .eq('status', JOB_STATUS.IN_PROGRESS)
+          .select('id');
+    const updateError = result.error;
+    const updatedRows = latestRework
+      ? result.data === true
+        ? [{ id: jobId }]
+        : []
+      : result.data;
+    if (updateError?.code === '23514')
+      throw new ConflictError(
+        'The job or evidence changed. Reload and check the current cycle before submitting.'
+      );
 
     if (updateError) {
       logger.error('Failed to complete job', {
@@ -168,7 +198,7 @@ export const POST = withApiHandler(
           userId: customerId,
           type: 'job_update',
           title: 'How did your contractor do?',
-          message: `${job.title || 'Your job'} is done. Two taps to leave a review and release payment.`,
+          message: `${job.title || 'Your job'} is done. Review the current evidence and approve or request changes. Payment remains subject to its release checks.`,
           actionUrl: `/jobs/${jobId}`,
           metadata: { jobId, event: 'job_completed' },
         })
@@ -216,7 +246,7 @@ export const POST = withApiHandler(
         .single();
 
       if (escrow) {
-        EscrowReleaseAgent.calculateAutoReleaseDate(
+        await EscrowReleaseAgent.calculateAutoReleaseDate(
           escrow.id,
           jobId,
           job.contractor_id
