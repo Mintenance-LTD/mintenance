@@ -78,7 +78,7 @@ it.each([false, true])(
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
     await screen.findByText(/Your draft is retained/);
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Pause' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Pause / })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
     expect(fetch).toHaveBeenCalledTimes(2);
     fireEvent.click(screen.getByRole('button', { name: 'Refresh schedules' }));
@@ -120,15 +120,15 @@ it('guards pause with the displayed revision and does not claim a stale confirma
     );
   vi.stubGlobal('fetch', fetch);
   render(<RecurringMaintenance propertyId='property' />);
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: /^Pause / }));
   await screen.findByText(/Refresh schedules before another action/);
   expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
     scheduleId: schedule.id,
     is_active: false,
     expected_updated_at: schedule.updated_at,
   });
-  expect(screen.getByRole('button', { name: 'Pause' })).toBeDisabled();
-  expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull();
+  expect(screen.getByRole('button', { name: /^Pause / })).toBeDisabled();
+  expect(screen.queryByRole('button', { name: /^Resume / })).toBeNull();
 });
 
 it('accepts a confirmed pause and resumes using its new revision', async () => {
@@ -152,9 +152,9 @@ it('accepts a confirmed pause and resumes using its new revision', async () => {
     );
   vi.stubGlobal('fetch', fetch);
   render(<RecurringMaintenance propertyId='property' />);
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Resume' }));
-  await screen.findByRole('button', { name: 'Pause' });
+  fireEvent.click(await screen.findByRole('button', { name: /^Pause / }));
+  fireEvent.click(await screen.findByRole('button', { name: /^Resume / }));
+  await screen.findByRole('button', { name: /^Pause / });
   expect(JSON.parse(fetch.mock.calls[2][1].body).expected_updated_at).toBe(
     paused.updated_at
   );
@@ -205,7 +205,7 @@ it('hides stale controls during refresh and preserves an ordinary unsaved draft'
   });
   fireEvent.click(screen.getByRole('button', { name: 'Refresh schedules' }));
   expect(screen.getByRole('status')).toHaveTextContent('Loading schedules');
-  expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Pause / })).toBeNull();
   await act(async () => pending.resolve(list()));
   expect(screen.getByLabelText('Task title')).toHaveValue('Unsaved work');
 });
@@ -300,7 +300,7 @@ it('explains unavailable property access without showing editable cached schedul
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'Access unavailable'
   );
-  expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Pause / })).toBeNull();
 });
 
 it('keeps today due until the London day ends and distinguishes paused records', async () => {

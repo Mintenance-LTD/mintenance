@@ -137,11 +137,18 @@ export async function verifySandboxBrowserJourney() {
         await workPage
           .getByLabel('Photo 2 angle', { exact: true })
           .selectOption('close-up');
-        response = workPage.waitForResponse(
-          (r) =>
-            r.url().endsWith(`/api/jobs/${journey.jobId}/photos/after`) &&
-            r.request().method() === 'POST'
-        );
+        // The UI uploads photos individually to stay below the host body limit.
+        // The first two successful responses do not complete the job; wait for
+        // the response whose full persisted evidence passes the completion guard.
+        response = workPage.waitForResponse(async (r) => {
+          if (
+            !r.url().endsWith(`/api/jobs/${journey.jobId}/photos/after`) ||
+            r.request().method() !== 'POST'
+          )
+            return false;
+          const body = await r.json().catch(() => null);
+          return r.ok() && body?.jobCompleted === true;
+        });
         await workPage
           .getByRole('button', { name: 'Upload 3 Photos', exact: true })
           .click();

@@ -361,8 +361,14 @@ export default function PaymentsPage2025() {
   // The "Across N transactions" subtitle must count THIS set, not
   // transactions.length, or the total and its caption disagree whenever a
   // pending row exists (e.g. £2.52 across 2 held rows shown as "3").
-  const { totalPaid, paidTransactionCount, inEscrowAmount, refundedAmount } =
-    summarizePayments(scopedTransactions);
+  const {
+    totalPaid,
+    paidTransactionCount,
+    inEscrowAmount,
+    refundedAmount,
+    disputedAmount,
+    releasedAmount,
+  } = summarizePayments(scopedTransactions);
   // The "Protected" stat card previously showed pre-charge `pending`
   // rows — money that hadn't actually hit Mintenance's escrow yet. Now
   // it reflects the real "held in escrow by the platform" total:
@@ -457,6 +463,8 @@ export default function PaymentsPage2025() {
           totalPaid={totalPaid}
           paidTransactionCount={paidTransactionCount}
           pendingAmount={inEscrowAmount}
+          disputedAmount={disputedAmount}
+          releasedAmount={releasedAmount}
           refundedAmount={refundedAmount}
           transactionCount={transactions.length}
         />

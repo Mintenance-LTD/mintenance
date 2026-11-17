@@ -22,6 +22,14 @@ const schema = z
     escrowId: z.string().uuid(),
     decision: z.enum(['refund_homeowner', 'pay_contractor', 'split_50_50']),
     reason: z.string().trim().min(5).max(500),
+    confirmation: z
+      .object({
+        principalMinor: z.number().int().positive(),
+        feeRate: z.number().min(0).max(1),
+        payerId: z.string().uuid(),
+        payeeId: z.string().uuid(),
+      })
+      .strict(),
   })
   .strict();
 
@@ -38,7 +46,7 @@ export const POST = withApiHandler(
         'Provide a payment reference, resolution and reason (5–500 characters).'
       );
     await requireAdminFromDatabase(user.id);
-    const { escrowId, decision, reason } = parsed.data;
+    const { escrowId, decision, reason, confirmation } = parsed.data;
     const { data: escrow, error } = await serverSupabase
       .from('escrow_transactions')
       .select('id, payee_id, payment_type')
@@ -53,13 +61,20 @@ export const POST = withApiHandler(
       contractorTier: tier,
       paymentType: (escrow.payment_type || 'final') as PaymentType,
     }).platformFeeRate;
-    const reservation = await serverSupabase.rpc('reserve_dispute_resolution', {
-      p_admin_id: user.id,
-      p_escrow_id: escrowId,
-      p_decision: decision,
-      p_reason: reason,
-      p_fee_rate: feeRate,
-    });
+    const reservation = await serverSupabase.rpc(
+      'reserve_confirmed_dispute_resolution',
+      {
+        p_admin_id: user.id,
+        p_escrow_id: escrowId,
+        p_decision: decision,
+        p_reason: reason,
+        p_fee_rate: feeRate,
+        p_expected_principal: confirmation.principalMinor,
+        p_expected_fee_rate: confirmation.feeRate,
+        p_expected_payer: confirmation.payerId,
+        p_expected_payee: confirmation.payeeId,
+      }
+    );
     if (reservation.error)
       throw new ConflictError(
         'Resolution cannot be reserved. Recover the existing decision or reconcile the dispute payment reference.'

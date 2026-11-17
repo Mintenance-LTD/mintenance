@@ -27,12 +27,12 @@ vi.mock('@/lib/api/supabaseServer', () => ({
 }));
 import { GET } from '@/app/api/appointments/route';
 
-it('excludes terminal jobs from upcoming visits while preserving active and standalone visits', async () => {
+it('keeps scheduled visits visible independently of the linked job status', async () => {
   const response = await GET(
     new NextRequest('https://example.test/api/appointments')
   );
   const body = await response.json();
   expect(
     body.appointments.map((appointment: { id: string }) => appointment.id)
-  ).toEqual(['active', 'manual']);
+  ).toEqual(['finished', 'cancelled', 'active', 'manual']);
 });

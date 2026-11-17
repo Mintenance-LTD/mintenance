@@ -5,6 +5,7 @@ export interface ReworkRequest {
   comments: string;
   created_at: string;
   completion_version: string | null;
+  submitted_at?: string | null;
 }
 
 export async function getJobReworkRequests(
@@ -12,7 +13,7 @@ export async function getJobReworkRequests(
 ): Promise<ReworkRequest[]> {
   const { data, error } = await serverSupabase
     .from('job_rework_requests')
-    .select('id, comments, created_at, completion_version')
+    .select('id, comments, created_at, completion_version, submitted_at')
     .eq('job_id', jobId)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false });

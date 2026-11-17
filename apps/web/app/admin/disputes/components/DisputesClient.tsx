@@ -29,6 +29,8 @@ import {
 } from './DisputesTable';
 import { ResolveDisputeDialog } from './ResolveDisputeDialog';
 import { DisputesPageHeader } from './DisputesPageHeader';
+import type { SettlementConfirmation } from '@/lib/payments/settlement-breakdown';
+import { disputePageCsv } from './export-disputes';
 
 interface DisputesResponse {
   data: Dispute[];
@@ -76,8 +78,9 @@ export function DisputesClient() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [resolveDialog, setResolveDialog] = useState(false);
-  const [resolution, setResolution] = useState<Resolution>('pay_contractor');
+  const [resolution, setResolution] = useState<Resolution | ''>('');
   const [resolveNotes, setResolveNotes] = useState('');
+  const [exportMessage, setExportMessage] = useState('');
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     message: string;
@@ -148,13 +151,15 @@ export function DisputesClient() {
   });
   const actionLoading = actions.loading || actions.requiresVerification;
 
-  const handleResolve = () => {
-    if (!selectedDispute || isError) return;
+  const handleResolve = (confirmation: SettlementConfirmation) => {
+    const decision = currentSelection?.resolution?.decision || resolution;
+    if (!selectedDispute || isError || !decision) return;
     void actions.submit({
       kind: 'resolve',
       body: {
         escrowId: selectedDispute.id,
-        decision: currentSelection?.resolution?.decision ?? resolution,
+        confirmation,
+        decision,
         reason:
           currentSelection?.resolution?.reason ??
           (resolveNotes.trim() ||
@@ -187,6 +192,29 @@ export function DisputesClient() {
         stats={stats}
         statusFilter={statusFilter}
         onStatusFilterChange={handleStatusFilterChange}
+        exportDisabled={loading || isError || !disputes.length}
+        exportMessage={exportMessage}
+        onExport={() => {
+          try {
+            const url = URL.createObjectURL(
+              new Blob([disputePageCsv(disputes)], {
+                type: 'text/csv;charset=utf-8',
+              })
+            );
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `disputes-${statusFilter}-page-${page}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setExportMessage(
+              `Download started: ${disputes.length} cases from page ${page}.`
+            );
+          } catch {
+            setExportMessage('Download could not start. Please retry.');
+          }
+        }}
       />
 
       {/* Disputes Table */}
@@ -268,7 +296,7 @@ export function DisputesClient() {
               onHoldForReview={handleHoldForReview}
               onResolve={(dispute) => {
                 setSelectedDispute(dispute);
-                setResolution(dispute.resolution?.decision ?? 'pay_contractor');
+                setResolution(dispute.resolution?.decision ?? '');
                 setResolveNotes(dispute.resolution?.reason ?? '');
                 setResolveDialog(true);
               }}

@@ -12,6 +12,8 @@ interface PaymentsStatsCardsProps {
   paidTransactionCount: number;
   pendingAmount: number;
   refundedAmount: number;
+  disputedAmount?: number;
+  releasedAmount?: number;
   /** All transactions, including pending — drives the "all-time" tile. */
   transactionCount: number;
 }
@@ -30,6 +32,8 @@ export function PaymentsStatsCards({
   paidTransactionCount,
   pendingAmount,
   refundedAmount,
+  disputedAmount = 0,
+  releasedAmount = 0,
   transactionCount,
 }: PaymentsStatsCardsProps) {
   const [isMintEditorial, setIsMintEditorial] = useState(false);
@@ -51,7 +55,7 @@ export function PaymentsStatsCards({
         }}
       >
         <div className='kpi'>
-          <div className='label'>Total paid</div>
+          <div className='label'>Paid, less refunds</div>
           <div className='num'>{formatMoney(totalPaid, 'GBP')}</div>
           <div className='sub'>
             <span>
@@ -62,13 +66,25 @@ export function PaymentsStatsCards({
           </div>
         </div>
         <div className='kpi'>
-          <div className='label'>Protected</div>
+          <div className='label'>Held · not disputed</div>
           <div className='num'>{formatMoney(pendingAmount, 'GBP')}</div>
           <div className='sub'>
             <span>
-              {pendingAmount > 0 ? 'Held in escrow' : 'Nothing held yet'}
+              {pendingAmount > 0
+                ? 'Awaiting release checks'
+                : 'No undisputed balance held'}
             </span>
           </div>
+        </div>
+        <div className='kpi'>
+          <div className='label'>Disputed · held</div>
+          <div className='num'>{formatMoney(disputedAmount, 'GBP')}</div>
+          <p className='sub'>Release paused for case review</p>
+        </div>
+        <div className='kpi'>
+          <div className='label'>Released</div>
+          <div className='num'>{formatMoney(releasedAmount, 'GBP')}</div>
+          <p className='sub'>Bank arrival is tracked separately</p>
         </div>
         <div className='kpi'>
           <div className='label'>Refunded</div>
@@ -92,7 +108,7 @@ export function PaymentsStatsCards({
 
   const stats = [
     {
-      label: 'Total Paid',
+      label: 'Paid, less refunds',
       value: formatMoney(totalPaid, 'GBP'),
       icon: Banknote,
       iconColor: 'text-emerald-600',
@@ -100,7 +116,7 @@ export function PaymentsStatsCards({
       accent: 'border-l-emerald-500',
     },
     {
-      label: 'Protected',
+      label: 'Held · not disputed',
       value: formatMoney(pendingAmount, 'GBP'),
       icon: Clock,
       iconColor: 'text-amber-600',
@@ -124,6 +140,26 @@ export function PaymentsStatsCards({
       accent: 'border-l-violet-500',
     },
   ];
+  stats.splice(
+    2,
+    0,
+    {
+      label: 'Disputed · held',
+      value: formatMoney(disputedAmount, 'GBP'),
+      icon: Clock,
+      iconColor: 'text-amber-600',
+      bgIcon: 'bg-amber-50',
+      accent: 'border-l-amber-500',
+    },
+    {
+      label: 'Released',
+      value: formatMoney(releasedAmount, 'GBP'),
+      icon: Banknote,
+      iconColor: 'text-emerald-600',
+      bgIcon: 'bg-emerald-50',
+      accent: 'border-l-emerald-500',
+    }
+  );
 
   return (
     <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8'>

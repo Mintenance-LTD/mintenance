@@ -21,10 +21,12 @@ describe('payment history refund accounting', () => {
       { amount: 120, remainingAmount: 120, status: 'disputed' },
     ];
     expect(summarizePayments(payments)).toEqual({
-      totalPaid: 420,
+      totalPaid: 540,
       refundedAmount: 420,
       inEscrowAmount: 0,
-      paidTransactionCount: 4,
+      paidTransactionCount: 5,
+      disputedAmount: 120,
+      releasedAmount: 420,
     });
     expect(payments.filter((p) => paymentAmounts(p).refunded > 0)).toHaveLength(
       4
@@ -38,6 +40,8 @@ describe('payment history refund accounting', () => {
       refundedAmount: 30,
       inEscrowAmount: 90,
       paidTransactionCount: 1,
+      disputedAmount: 0,
+      releasedAmount: 0,
     });
   });
   it('supports old fully refunded records without a balance and excludes uncaptured payments', () => {
@@ -51,6 +55,8 @@ describe('payment history refund accounting', () => {
       refundedAmount: 50,
       inEscrowAmount: 0,
       paidTransactionCount: 0,
+      disputedAmount: 0,
+      releasedAmount: 0,
     });
   });
   it('sums in pence without floating point residue', () => {
@@ -69,4 +75,20 @@ describe('payment history refund accounting', () => {
       ).toThrow('Invalid payment amount');
     }
   );
+});
+
+it('keeps the disputed £1.20 in paid totals and separates its remaining held balance', () => {
+  expect(
+    summarizePayments([
+      { amount: 1.2, remainingAmount: 1, status: 'disputed' },
+      { amount: 1, status: 'held' },
+    ])
+  ).toEqual({
+    totalPaid: 2,
+    paidTransactionCount: 2,
+    disputedAmount: 1,
+    inEscrowAmount: 1,
+    refundedAmount: 0.2,
+    releasedAmount: 0,
+  });
 });

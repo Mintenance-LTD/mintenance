@@ -21,7 +21,8 @@ on:
       - 'apps/web/lib/api/with-api-handler.ts'
       - 'supabase/migrations/**'
       - 'scripts/db-tests/**'
-      - 'scripts/test-rework-cycle-migration.mjs'
+      - 'scripts/test-*-migration.mjs'
+      - 'scripts/test-legacy-rework-recovery.mjs'
       - '.github/workflows/integration-tests.yml'
   pull_request:
     branches: [main, master, develop]
@@ -38,7 +39,8 @@ on:
       - 'apps/web/lib/api/with-api-handler.ts'
       - 'supabase/migrations/**'
       - 'scripts/db-tests/**'
-      - 'scripts/test-rework-cycle-migration.mjs'
+      - 'scripts/test-*-migration.mjs'
+      - 'scripts/test-legacy-rework-recovery.mjs'
       - '.github/workflows/integration-tests.yml'
   workflow_dispatch:
     inputs:
@@ -177,7 +179,12 @@ jobs:
       - name: Verify rework evidence and first-send migration in disposable PostgreSQL
         run: |
           npm install --prefix "$RUNNER_TEMP/rework-db" --no-package-lock --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.3.14
-          PGLITE_MODULE="file://$RUNNER_TEMP/rework-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-rework-cycle-migration.mjs
+          export PGLITE_MODULE="file://$RUNNER_TEMP/rework-db/node_modules/@electric-sql/pglite/dist/index.js"
+          node scripts/test-rework-cycle-migration.mjs
+          node scripts/test-dispute-closure-migration.mjs
+          node scripts/test-dispute-confirmation-migration.mjs
+          node scripts/test-appointment-reschedule-migration.mjs
+          node scripts/test-legacy-rework-recovery.mjs
 
       - name: Install Supabase CLI
         # 2026-07-27: previous pin 8e24e7f8... no longer resolves upstream

@@ -74,8 +74,9 @@ exports.seedReview48 = async function (db, users, env) {
         client_id: users.homeowner,
         title: 'Synthetic visit ' + role,
         appointment_date: date,
-        start_time: '11:00',
-        end_time: '15:00',
+        // Each role gets an independent, non-overlapping visit fixture.
+        start_time: role === 'homeowner' ? '11:00' : '13:00',
+        end_time: role === 'homeowner' ? '13:00' : '15:00',
         status: 'scheduled',
       })
     );
@@ -83,20 +84,17 @@ exports.seedReview48 = async function (db, users, env) {
   const fresh = crypto.randomUUID();
   env.E2E_REVIEW_CONTRACT_JOB_ID = fresh;
   await check(
-    db
-      .from('jobs')
-      .insert({
-        id: fresh,
-        property_id: property,
-        homeowner_id: users.homeowner,
-        contractor_id: users.contractor,
-        title: 'Synthetic fresh agreement',
-        description:
-          'Synthetic explicit terms journey, no payment or real work.',
-        status: 'assigned',
-        category: 'plumbing',
-        urgency: 'medium',
-        location: 'London',
-      })
+    db.from('jobs').insert({
+      id: fresh,
+      property_id: property,
+      homeowner_id: users.homeowner,
+      contractor_id: users.contractor,
+      title: 'Synthetic fresh agreement',
+      description: 'Synthetic explicit terms journey, no payment or real work.',
+      status: 'assigned',
+      category: 'plumbing',
+      urgency: 'medium',
+      location: 'London',
+    })
   );
 };

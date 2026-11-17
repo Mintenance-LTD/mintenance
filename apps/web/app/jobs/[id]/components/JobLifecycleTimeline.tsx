@@ -255,7 +255,7 @@ export function NextActionCard({
     urgency = 'info';
   } else if (jobStatus === 'completed' && !completionConfirmed) {
     message =
-      'The contractor has completed the work. Review the before/after photos and approve to release payment.';
+      'The contractor has completed the work. Review the before/after photos. Approval starts the payment release checks; any cooling-off period or hold still applies.';
     ctaLabel = 'Review & Approve';
     ctaHref = '#photo-review';
     urgency = 'urgent';

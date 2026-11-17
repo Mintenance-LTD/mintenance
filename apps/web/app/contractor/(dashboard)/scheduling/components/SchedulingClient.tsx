@@ -1,5 +1,7 @@
 'use client';
 
+import { appointmentLocalTime } from '@/lib/utils/appointment-local-time';
+import { EditAppointmentDialog } from './Scheduling/EditAppointmentDialog';
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -28,6 +30,7 @@ interface SchedulingClientProps {
 
 export function SchedulingClient(_props: SchedulingClientProps) {
   const searchParams = useSearchParams();
+  const [editing, setEditing] = useState<Appointment | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [view, setView] = useState<'week' | 'month'>('month');
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
@@ -326,18 +329,16 @@ export function SchedulingClient(_props: SchedulingClientProps) {
   };
 
   const today = new Date();
-  const todayDate = dateKey(today);
-  const nextWeek = dateKey(
-    new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7)
+  const todayDate = appointmentLocalTime(today).date;
+  const nextWeek = new Date(Date.parse(todayDate + 'T12:00:00Z') + 7 * 86400000)
+    .toISOString()
+    .slice(0, 10);
+  const upcomingAppointments = appointments.filter(
+    (apt) =>
+      apt.date >= todayDate &&
+      apt.date < nextWeek &&
+      ['scheduled', 'confirmed', 'rescheduled'].includes(apt.status)
   );
-  const upcomingAppointments = appointments
-    .filter(
-      (apt) =>
-        apt.date >= todayDate &&
-        apt.date < nextWeek &&
-        ['scheduled', 'confirmed'].includes(apt.status)
-    )
-    .slice(0, 5);
 
   // Hydration-safe theme detection — hooks must run unconditionally
   // so this lives above the loading early-return.
@@ -417,6 +418,18 @@ export function SchedulingClient(_props: SchedulingClientProps) {
           </MotionDiv>
         )}
 
+        {editing && (
+          <EditAppointmentDialog
+            key={editing.id}
+            appointment={editing}
+            onClose={() => setEditing(null)}
+            onSaved={() => {
+              setEditing(null);
+              void loadData();
+              setCalendarRefresh((n) => n + 1);
+            }}
+          />
+        )}
         <StatsCards stats={stats} />
 
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
@@ -434,6 +447,7 @@ export function SchedulingClient(_props: SchedulingClientProps) {
             )}
             {calendarLoading && <p role='status'>Loading appointments…</p>}
             <CalendarView
+              onEdit={setEditing}
               selectedDate={selectedDate}
               view={view}
               setView={setView}
@@ -444,7 +458,10 @@ export function SchedulingClient(_props: SchedulingClientProps) {
             />
           </div>
           <div>
-            <UpcomingAppointments upcomingAppointments={upcomingAppointments} />
+            <UpcomingAppointments
+              upcomingAppointments={upcomingAppointments}
+              onEdit={setEditing}
+            />
           </div>
         </div>
 

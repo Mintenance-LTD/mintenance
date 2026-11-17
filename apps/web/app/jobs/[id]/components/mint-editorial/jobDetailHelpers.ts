@@ -225,7 +225,7 @@ export function computeNextStep(
   if (jobStatus === 'completed' && !completionConfirmed) {
     return {
       title: 'Review the finished work',
-      body: 'Compare the before / after photos and approve to release the held payment.',
+      body: 'Compare the before / after photos. Approval starts the release checks; cooling-off periods and payment holds still apply.',
       cta: { label: 'Open review', href: '#photo-review' },
     };
   }

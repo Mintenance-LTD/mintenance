@@ -30,6 +30,7 @@ import {
   Check,
 } from 'lucide-react';
 import type { Bid } from '../BidCard';
+import { OpenJobDispute } from '../../review/OpenJobDispute';
 import { formatGBP, type PropertyShape } from './MintEditorialJobCards';
 
 interface SelectedCardProps {
@@ -511,6 +512,12 @@ export function QuickActionsList({
         Quick actions
       </div>
       <div className='col' style={{ gap: 6 }}>
+        {['in_progress', 'completed', 'disputed'].includes(status ?? '') && (
+          <OpenJobDispute
+            jobId={jobId}
+            label={status === 'disputed' ? 'View dispute' : 'Open a dispute'}
+          />
+        )}
         {items.map((a, i) => (
           <Link
             key={i}

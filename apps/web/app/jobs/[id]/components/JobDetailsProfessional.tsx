@@ -56,6 +56,7 @@ import {
 } from './JobDetailHelpers';
 import { BidCard } from './BidCard';
 import { ImageLightbox } from './ImageLightbox';
+import { OpenJobDispute } from '../review/OpenJobDispute';
 import { JobLifecycleTimeline, NextActionCard } from './JobLifecycleTimeline';
 
 // Re-export types used by external consumers (e.g., page.tsx)
@@ -425,6 +426,19 @@ export function JobDetailsProfessional({
 
               {/* Action Buttons */}
               <div className='bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-3'>
+                {isOwner &&
+                  ['in_progress', 'completed', 'disputed'].includes(
+                    job.status
+                  ) && (
+                    <OpenJobDispute
+                      jobId={job.id}
+                      label={
+                        job.status === 'disputed'
+                          ? 'View dispute'
+                          : 'Report a problem with this job'
+                      }
+                    />
+                  )}
                 {canEdit && (
                   <Link
                     href={`/jobs/${job.id}/edit`}

@@ -304,6 +304,9 @@ describe('MeetingService', () => {
   });
 
   describe('rescheduleMeeting', () => {
+    beforeEach(() =>
+      mockedApiClient.get.mockResolvedValue({ appointment: mockAppointmentRow })
+    );
     it('should reschedule meeting successfully', async () => {
       const newDateTime = '2024-03-16T15:00:00.000Z';
       mockedApiClient.patch.mockResolvedValueOnce({

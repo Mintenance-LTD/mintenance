@@ -1,4 +1,5 @@
 'use client';
+import { PropertyDocumentActions } from './PropertyDocumentActions';
 import { useEffect, useRef, useState } from 'react';
 import {
   FileText,
@@ -16,6 +17,8 @@ interface Doc {
   name: string;
   kind: string;
   created_at: string;
+  updated_at: string;
+  archived_at: string | null;
 }
 const KINDS = [
   'lease',
@@ -41,6 +44,7 @@ export function PropertyFileHub({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(0);
+  const [archived, setArchived] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const [rows, setRows] = useState<Doc[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -62,7 +66,7 @@ export function PropertyFileHub({
     setRows([]);
     setHasMore(false);
     setError('');
-    fetch(`${url}?offset=${page * 25}`, {
+    fetch(`${url}?offset=${page * 25}&archived=${archived ? 1 : 0}`, {
       signal: controller.signal,
       cache: 'no-store',
     })
@@ -86,7 +90,7 @@ export function PropertyFileHub({
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [url, page, refresh]);
+  }, [url, page, refresh, archived]);
   function chooseFile(next: File | null) {
     setSuccess('');
     if (
@@ -267,7 +271,7 @@ export function PropertyFileHub({
                       <td>
                         <button
                           className='pw-btn pw-btn-small'
-                          disabled={opening}
+                          disabled={opening || !!doc.archived_at}
                           onClick={() => void download(doc.id)}
                           aria-label={`Download ${doc.name}`}
                         >
@@ -373,6 +377,18 @@ export function PropertyFileHub({
           )}
         </section>
         <aside className='pw-card'>
+          <label className='flex gap-2'>
+            <input
+              type='checkbox'
+              checked={archived}
+              onChange={(e) => {
+                setArchived(e.target.checked);
+                setPage(0);
+                setSelectedId(null);
+              }}
+            />
+            Show archived files
+          </label>
           <h2>File details</h2>
           {selected && !loading && !error ? (
             <>
@@ -400,12 +416,18 @@ export function PropertyFileHub({
               <button
                 className='pw-btn pw-btn-primary'
                 style={{ width: '100%' }}
-                disabled={opening}
+                disabled={opening || !!selected.archived_at}
                 onClick={() => void download(selected.id)}
               >
                 <Download size={18} />
                 {opening ? 'Opening…' : 'Download document'}
               </button>
+              <PropertyDocumentActions
+                key={selected.id + selected.updated_at}
+                propertyId={propertyId}
+                document={selected}
+                onSaved={() => setRefresh((v) => v + 1)}
+              />
             </>
           ) : (
             <p className='pw-muted'>Select a file to see its details.</p>

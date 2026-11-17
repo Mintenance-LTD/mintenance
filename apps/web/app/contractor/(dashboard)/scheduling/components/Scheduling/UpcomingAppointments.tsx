@@ -12,6 +12,7 @@ import type { Appointment } from './types';
 
 interface UpcomingAppointmentsProps {
   upcomingAppointments: Appointment[];
+  onEdit?: (appointment: Appointment) => void;
 }
 
 function getTypeIcon(type: Appointment['type']) {
@@ -38,6 +39,7 @@ function getTypeColor(type: Appointment['type']) {
 
 export function UpcomingAppointments({
   upcomingAppointments,
+  onEdit,
 }: UpcomingAppointmentsProps) {
   return (
     <MotionDiv
@@ -82,10 +84,14 @@ export function UpcomingAppointments({
               <div className='flex items-center gap-4 text-xs text-slate-500'>
                 <div className='flex items-center gap-1.5'>
                   <Calendar className='w-3.5 h-3.5' />
-                  {new Date(appointment.date).toLocaleDateString('en-GB', {
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {new Date(appointment.date + 'T12:00:00Z').toLocaleDateString(
+                    'en-GB',
+                    {
+                      timeZone: 'Europe/London',
+                      month: 'short',
+                      day: 'numeric',
+                    }
+                  )}
                 </div>
                 <div className='flex items-center gap-1.5'>
                   <Clock className='w-3.5 h-3.5' />
@@ -103,6 +109,13 @@ export function UpcomingAppointments({
                   Join video call
                 </a>
               )}
+              <button
+                type='button'
+                className='text-teal-700 underline'
+                onClick={() => onEdit?.(appointment)}
+              >
+                Reschedule {appointment.title}
+              </button>
               {appointment.location && (
                 <div className='flex items-center gap-1.5 mt-2 text-xs text-slate-500'>
                   <MapPin className='w-3.5 h-3.5' />

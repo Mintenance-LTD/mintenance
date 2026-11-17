@@ -225,7 +225,11 @@ for (const role of ['homeowner', 'contractor'] as const) {
     expect(await establishSessionInContext(page, TEST_USERS[role])).toBe(true);
     await page.goto('/scheduling');
     await expect(
-      page.getByText(`Synthetic visit ${role} (Visit 11:00–15:00 UK)`).first()
+      page
+        .getByText(
+          `Synthetic visit ${role} (Visit ${role === 'homeowner' ? '11:00–13:00' : '13:00–15:00'} UK)`
+        )
+        .first()
     ).toBeVisible();
     const beforeResponse = await page.request.get(
       `/api/contracts?job_id=${jobId}`
@@ -265,7 +269,11 @@ for (const role of ['homeowner', 'contractor'] as const) {
     ]);
     await page.goto('/scheduling');
     await expect(
-      page.getByText(`Synthetic visit ${role} (Visit 11:00–15:00 UK)`).first()
+      page
+        .getByText(
+          `Synthetic visit ${role} (Visit ${role === 'homeowner' ? '11:00–13:00' : '13:00–15:00'} UK)`
+        )
+        .first()
     ).toBeVisible();
     await page.goto('/faq');
     await expect(

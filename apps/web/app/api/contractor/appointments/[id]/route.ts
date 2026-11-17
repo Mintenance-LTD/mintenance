@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import {
+  BadRequestError,
+  ConflictError,
   ForbiddenError,
   InternalServerError,
   NotFoundError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { ukDateTimeToISO } from '@/lib/scheduling/uk-date-time';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 
@@ -39,12 +42,21 @@ const patchSchema = z
         'rescheduled',
       ])
       .optional(),
-    appointmentDate: z.string().min(1).optional(),
+    appointmentDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
     startTime: timeString.optional(),
     endTime: timeString.optional(),
+    rescheduleReason: z.string().max(5000).optional(),
+    expected: z
+      .object({ date: z.string(), start: timeString, end: timeString })
+      .strict()
+      .optional(),
     notes: z.string().max(5000).optional(),
     cancellationReason: z.string().max(2000).optional(),
   })
+  .strict()
   .refine(
     (data) => !data.startTime || !data.endTime || data.endTime > data.startTime,
     {
@@ -124,7 +136,9 @@ export const PATCH = withApiHandler(
 
     const { data: existing, error: lookupErr } = await serverSupabase
       .from('appointments')
-      .select('id, contractor_id, status, appointment_date, start_time')
+      .select(
+        'id, contractor_id, status, appointment_date, start_time, end_time'
+      )
       .eq('id', id)
       .maybeSingle();
     if (lookupErr) {
@@ -139,29 +153,52 @@ export const PATCH = withApiHandler(
       throw new ForbiddenError('Not authorized to update this appointment');
     }
 
-    const updates: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    };
-    if (payload.status !== undefined) updates.status = payload.status;
-    if (payload.appointmentDate !== undefined)
-      updates.appointment_date = payload.appointmentDate;
-    if (payload.startTime !== undefined) updates.start_time = payload.startTime;
-    if (payload.endTime !== undefined) updates.end_time = payload.endTime;
-    if (payload.notes !== undefined) updates.notes = payload.notes;
-    if (payload.cancellationReason !== undefined)
-      updates.cancellation_reason = payload.cancellationReason;
-    if (payload.status === 'cancelled') {
-      updates.cancelled_at = new Date().toISOString();
+    if (
+      payload.appointmentDate !== undefined ||
+      payload.startTime !== undefined ||
+      payload.endTime !== undefined
+    ) {
+      if (!payload.expected)
+        throw new BadRequestError('Reload the visit before changing its time.');
+      const day = payload.appointmentDate ?? existing.appointment_date;
+      const start = payload.startTime ?? existing.start_time;
+      const end = payload.endTime ?? existing.end_time;
+      try {
+        ukDateTimeToISO(day + 'T' + start.slice(0, 5));
+        ukDateTimeToISO(day + 'T' + end.slice(0, 5));
+      } catch (error) {
+        throw new BadRequestError(
+          error instanceof Error
+            ? error.message
+            : 'Choose valid UK visit times.'
+        );
+      }
+      if (end <= start)
+        throw new BadRequestError('End time must be after start time.');
     }
-    if (payload.status === 'completed') {
-      updates.completed_at = new Date().toISOString();
-    }
-
+    const mutation = await serverSupabase.rpc('update_contractor_appointment', {
+      p_actor: user.id,
+      p_id: id,
+      p_changes: payload,
+    });
+    if (mutation.error?.code === '42501')
+      throw new ForbiddenError('Appointment unavailable');
+    if (['23P01', '40001'].includes(mutation.error?.code ?? ''))
+      throw new ConflictError(
+        'This visit changed or overlaps another appointment. Refresh and choose an available time.'
+      );
+    if (
+      ['22023', '22007', '22008', '23514'].includes(mutation.error?.code ?? '')
+    )
+      throw new BadRequestError(
+        'Choose valid dates and times for an upcoming visit. Completed or cancelled visits need a new appointment.'
+      );
+    if (mutation.error)
+      throw new InternalServerError(
+        'Unable to save the visit. Refresh before retrying.'
+      );
     const { data: updated, error: updateErr } = await serverSupabase
       .from('appointments')
-      .update(updates)
-      .eq('id', id)
-      .eq('contractor_id', user.id)
       .select(
         `
         *,
@@ -174,6 +211,8 @@ export const PATCH = withApiHandler(
         job:jobs!job_id(id, title, status, latitude, longitude, location)
       `
       )
+      .eq('id', id)
+      .eq('contractor_id', user.id)
       .single();
     if (updateErr) {
       logger.error('Error updating appointment', updateErr, {

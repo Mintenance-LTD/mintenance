@@ -1,3 +1,4 @@
+import { appointmentLocalTime } from '@/lib/utils/appointment-local-time';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ConflictError, BadRequestError } from '@/lib/errors/api-error';
@@ -111,14 +112,14 @@ export const GET = withApiHandler(
       .eq('contractor_id', user.id)
       .gte(
         'appointment_date',
-        rangeStart || new Date().toISOString().split('T')[0]
+        rangeStart || appointmentLocalTime(new Date()).date
       )
       .lte(
         'appointment_date',
         rangeEnd ||
-          new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split('T')[0]
+          appointmentLocalTime(
+            new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
+          ).date
       )
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
@@ -139,36 +140,27 @@ export const GET = withApiHandler(
 
     // Transform data to match client interface
     const transformedAppointments =
-      appointments
-        ?.filter((apt) => {
-          const job = Array.isArray(apt.job) ? apt.job[0] : apt.job;
-          return (
-            !!rangeStart ||
-            !job ||
-            !['completed', 'cancelled'].includes(job.status)
-          );
-        })
-        .map((apt) => ({
-          id: apt.id,
-          title: apt.title,
-          client: apt.client
-            ? `${apt.client.first_name} ${apt.client.last_name}`
-            : apt.client_name || 'Unknown Client',
-          clientEmail: apt.client?.email || apt.client_email,
-          clientPhone: apt.client?.phone || apt.client_phone,
-          date: apt.appointment_date,
-          time: apt.start_time,
-          endTime: apt.end_time,
-          duration: apt.duration_minutes ? `${apt.duration_minutes}m` : '60m',
-          location: apt.location_address,
-          type: apt.location_type === 'video' ? 'remote' : apt.location_type,
-          videoCallUrl: apt.video_call_url,
-          status: apt.status,
-          jobTitle: apt.job?.title,
-          jobId: apt.job?.id,
-          notes: apt.notes,
-          createdAt: apt.created_at,
-        })) || [];
+      appointments?.map((apt) => ({
+        id: apt.id,
+        title: apt.title,
+        client: apt.client
+          ? `${apt.client.first_name} ${apt.client.last_name}`
+          : apt.client_name || 'Unknown Client',
+        clientEmail: apt.client?.email || apt.client_email,
+        clientPhone: apt.client?.phone || apt.client_phone,
+        date: apt.appointment_date,
+        time: apt.start_time,
+        endTime: apt.end_time,
+        duration: apt.duration_minutes ? `${apt.duration_minutes}m` : '60m',
+        location: apt.location_address,
+        type: apt.location_type === 'video' ? 'remote' : apt.location_type,
+        videoCallUrl: apt.video_call_url,
+        status: apt.status,
+        jobTitle: apt.job?.title,
+        jobId: apt.job?.id,
+        notes: apt.notes,
+        createdAt: apt.created_at,
+      })) || [];
 
     return NextResponse.json({ appointments: transformedAppointments });
   }
@@ -279,6 +271,10 @@ export const POST = withApiHandler(
       .select()
       .single();
 
+    if (error?.code === '23P01')
+      throw new ConflictError(
+        'Time slot conflicts with an existing appointment'
+      );
     if (error) {
       logger.error('Error creating appointment', error, {
         service: 'appointments',

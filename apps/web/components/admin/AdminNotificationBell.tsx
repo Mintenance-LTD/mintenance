@@ -6,10 +6,11 @@ import { Icon } from '@/components/ui/Icon';
 import { createPortal } from 'react-dom';
 import { theme } from '@/lib/admin-theme';
 import Link from 'next/link';
+import { fetchWithCsrf } from '@/lib/csrf-client';
 
 interface AdminNotification {
   id: string;
-  type: 'verification' | 'security' | 'revenue' | 'user';
+  type: string;
   title: string;
   message: string;
   href?: string;
@@ -28,6 +29,7 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loadError, setLoadError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
@@ -79,14 +81,42 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
   const fetchNotifications = useCallback(async () => {
     try {
       // Fetch pending verifications count
-      const verificationsRes = await fetch(
-        '/api/admin/notifications/pending-verifications'
+      const [verificationsRes, feedRes] = await Promise.all([
+        fetch('/api/admin/notifications/pending-verifications'),
+        fetch('/api/notifications?history=1&limit=50'),
+      ]);
+      if (!verificationsRes.ok || !feedRes.ok)
+        throw new Error('Unable to load notifications');
+      const verificationsData = await verificationsRes.json();
+      const feed = await feedRes.json();
+      const newNotifications: AdminNotification[] = (
+        feed.notifications ?? []
+      ).map(
+        (n: {
+          id: string;
+          type: string;
+          title: string;
+          message: string;
+          action_url?: string;
+          link?: string;
+          created_at: string;
+          read: boolean;
+        }) => {
+          const href = n.action_url || n.link;
+          return {
+            id: n.id,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            createdAt: n.created_at,
+            read: n.read,
+            href:
+              href?.startsWith('/') && !href.startsWith('//')
+                ? href
+                : undefined,
+          };
+        }
       );
-      const verificationsData = (await verificationsRes.ok)
-        ? await verificationsRes.json()
-        : { count: 0 };
-
-      const newNotifications: AdminNotification[] = [];
 
       if (verificationsData.count > 0) {
         newNotifications.push({
@@ -102,8 +132,10 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
 
       setNotifications(newNotifications);
       setUnreadCount(newNotifications.filter((n) => !n.read).length);
+      setLoadError('');
     } catch (error) {
       logger.error('Error fetching notifications:', error);
+      setLoadError('Notifications could not be refreshed. Please retry.');
     }
   }, []);
 
@@ -135,6 +167,17 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
   }, [isOpen]);
 
   const markAsRead = async (notificationId: string) => {
+    if (notificationId === 'pending-verifications') return;
+    try {
+      const response = await fetchWithCsrf(
+        `/api/notifications/${encodeURIComponent(notificationId)}/read`,
+        { method: 'POST' }
+      );
+      if (!response.ok) throw new Error('Unable to mark notification read');
+    } catch {
+      setLoadError('Could not mark the notification read. Please retry.');
+      return;
+    }
     setNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
     );
@@ -173,6 +216,12 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
 
   return (
     <div ref={dropdownRef} style={{ position: 'relative' }}>
+      {loadError && (
+        <p role='alert'>
+          {loadError}{' '}
+          <button onClick={() => void fetchNotifications()}>Retry</button>
+        </p>
+      )}
       {/* Notification Bell Button */}
       <button
         ref={bellRef}

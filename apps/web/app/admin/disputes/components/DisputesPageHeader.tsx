@@ -13,12 +13,18 @@ interface DisputesPageHeaderProps {
   stats: Stats;
   statusFilter: StatusFilter;
   onStatusFilterChange: (value: StatusFilter) => void;
+  onExport?: () => void;
+  exportDisabled?: boolean;
+  exportMessage?: string;
 }
 
 export function DisputesPageHeader({
   stats,
   statusFilter,
   onStatusFilterChange,
+  onExport,
+  exportDisabled,
+  exportMessage,
 }: DisputesPageHeaderProps) {
   return (
     <>
@@ -34,9 +40,14 @@ export function DisputesPageHeader({
           </p>
         </div>
         <div className='flex gap-3'>
-          <button className='px-5 py-2.5 rounded-xl border border-[#a9b4b9]/30 text-[#565e74] font-semibold text-sm hover:bg-[#f0f4f7] transition-colors'>
-            Export Report
+          <button
+            onClick={onExport}
+            disabled={exportDisabled}
+            className='px-5 py-2.5 rounded-xl border border-[#a9b4b9]/30 text-[#565e74] font-semibold text-sm hover:bg-[#f0f4f7] transition-colors'
+          >
+            Export this page (CSV)
           </button>
+          {exportMessage && <p role='status'>{exportMessage}</p>}
         </div>
       </div>
 

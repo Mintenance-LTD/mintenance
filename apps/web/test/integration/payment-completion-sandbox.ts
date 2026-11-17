@@ -243,7 +243,28 @@ export async function verifySandboxDispute(journey: SandboxJourney) {
   assert.equal(session.error, null);
   const { POST: resolve } =
     await import('@/app/api/admin/disputes/resolve/route');
+  const { GET: previewResolution } =
+    await import('@/app/api/admin/disputes/preview/route');
+  const previewResponse = await previewResolution(
+    new NextRequest(
+      `http://localhost/api/admin/disputes/preview?escrowId=${escrow.id}&decision=refund_homeowner`,
+      {
+        headers: {
+          authorization: `Bearer ${session.data.session!.access_token}`,
+        },
+      }
+    ),
+    { params: Promise.resolve({}) }
+  );
+  assert.equal(previewResponse.status, 200, 'Dispute settlement preview');
+  const preview = await previewResponse.json();
+  assert.equal(preview.escrowId, escrow.id);
+  assert.equal(preview.decision, 'refund_homeowner');
+  assert.equal(preview.refundMinor, Math.round(Number(escrow.amount) * 100));
+  assert.equal(preview.confirmation.payerId, journey.ownerId);
+  assert.equal(preview.confirmation.payeeId, journey.contractorId);
   const resolution = {
+    confirmation: preview.confirmation,
     escrowId: escrow.id,
     decision: 'refund_homeowner',
     reason: 'Synthetic readiness test refund approved after review.',
