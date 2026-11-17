@@ -8,6 +8,8 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
+import { readDisputeEvidence } from '@/lib/services/disputes/evidence';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 
 /**
  * GET /api/admin/disputes/[id]
@@ -46,7 +48,7 @@ function displayName(p: ProfileRow | null, preferCompany = false): string {
 
 export const GET = withApiHandler(
   { roles: ['admin'], csrf: false },
-  async (_request, { params }) => {
+  async (_request, { params, user }) => {
     const { id: disputeId } = params;
 
     if (!isValidUUID(disputeId)) {
@@ -97,13 +99,17 @@ export const GET = withApiHandler(
     } | null = null;
 
     if (jobId) {
-      const { data: jobRow } = await serverSupabase
+      const { data: jobRow, error: jobError } = await serverSupabase
         .from('jobs')
         .select(
           'id, title, category, status, budget, location, created_at, completed_at'
         )
         .eq('id', jobId)
         .maybeSingle();
+      if (jobError)
+        throw new InternalServerError(
+          'Unable to load the job history. Please retry.'
+        );
       job = jobRow ?? null;
     }
 
@@ -145,12 +151,16 @@ export const GET = withApiHandler(
     );
     let profilesById: Record<string, ProfileRow> = {};
     if (partyIds.length > 0) {
-      const { data: profileRows } = await serverSupabase
+      const { data: profileRows, error: profileError } = await serverSupabase
         .from('profiles')
         .select(
           'id, first_name, last_name, email, company_name, rating, total_jobs_completed'
         )
         .in('id', partyIds);
+      if (profileError)
+        throw new InternalServerError(
+          'Unable to load the case participants. Please retry.'
+        );
       profilesById = Object.fromEntries(
         (profileRows ?? []).map((p) => [p.id, p as ProfileRow])
       );
@@ -172,12 +182,16 @@ export const GET = withApiHandler(
     }[] = [];
 
     if (jobId) {
-      const { data: messageRows } = await serverSupabase
+      const { data: messageRows, error: messageError } = await serverSupabase
         .from('messages')
         .select('id, sender_id, receiver_id, content, message_type, created_at')
         .eq('job_id', jobId)
         .order('created_at', { ascending: true });
 
+      if (messageError)
+        throw new InternalServerError(
+          'Unable to load the job conversation. Please retry.'
+        );
       // Resolve any sender ids not already in profilesById
       const senderIds = Array.from(
         new Set(
@@ -187,12 +201,16 @@ export const GET = withApiHandler(
         )
       );
       if (senderIds.length > 0) {
-        const { data: extraProfiles } = await serverSupabase
+        const { data: extraProfiles, error: senderError } = await serverSupabase
           .from('profiles')
           .select(
             'id, first_name, last_name, email, company_name, rating, total_jobs_completed'
           )
           .in('id', senderIds);
+        if (senderError)
+          throw new InternalServerError(
+            'Unable to verify message senders. Please retry.'
+          );
         for (const p of extraProfiles ?? []) {
           profilesById[p.id] = p as ProfileRow;
         }
@@ -220,16 +238,24 @@ export const GET = withApiHandler(
     }[] = [];
 
     if (jobId) {
-      const { data: photoRows } = await serverSupabase
+      const { data: photoRows, error: photoError } = await serverSupabase
         .from('job_photos_metadata')
         .select(
           'id, photo_url, photo_type, created_at, quality_score, verified'
         )
         .eq('job_id', jobId)
         .order('created_at', { ascending: true });
-      evidence = (photoRows ?? []).map((p) => ({
+      if (photoError)
+        throw new InternalServerError(
+          'Unable to load job evidence. Please retry.'
+        );
+      const signed = await resignJobStorageUrls(
+        (photoRows ?? []).map((p) => p.photo_url),
+        user.id
+      );
+      evidence = (photoRows ?? []).map((p, index) => ({
         id: p.id as string,
-        url: (p.photo_url as string) ?? '',
+        url: signed[index] ?? '',
         type: (p.photo_type as string | null) ?? null,
         createdAt: p.created_at as string,
         qualityScore: p.quality_score != null ? Number(p.quality_score) : null,
@@ -275,7 +301,38 @@ export const GET = withApiHandler(
       homeownerPriorDisputes = count ?? 0;
     }
 
+    const caseEvidence =
+      jobId && disputeRecord
+        ? await readDisputeEvidence(
+            disputeRecord.description,
+            jobId,
+            disputeRecord.raised_by
+          )
+        : [];
+    const agreements = jobId
+      ? await serverSupabase
+          .from('contracts')
+          .select(
+            'id,title,status,terms,amount,start_date,end_date,contractor_signed_at,homeowner_signed_at,sent_at'
+          )
+          .eq('job_id', jobId)
+          .order('created_at', { ascending: false })
+      : { data: [], error: null };
+    const rework = jobId
+      ? await serverSupabase
+          .from('job_rework_requests')
+          .select('id,comments,created_at,completion_version,submitted_at')
+          .eq('job_id', jobId)
+          .order('created_at', { ascending: true })
+      : { data: [], error: null };
+    if (agreements.error || rework.error)
+      throw new InternalServerError(
+        'Unable to load the agreement or case history. Please retry.'
+      );
     return NextResponse.json({
+      caseEvidence,
+      agreements: agreements.data ?? [],
+      rework: rework.data ?? [],
       id: escrow.id,
       jobId,
       escrow: {

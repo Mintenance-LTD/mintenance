@@ -52,6 +52,12 @@ const payload = {
   escrowId: 'fc160906-0000-4000-8000-000000000020',
   decision: 'split_50_50',
   reason: 'Synthetic decision',
+  confirmation: {
+    principalMinor: 12000,
+    feeRate: 0.1,
+    payerId: '00000000-0000-4000-8000-000000000001',
+    payeeId: '00000000-0000-4000-8000-000000000002',
+  },
 };
 const send = () =>
   POST(
@@ -117,4 +123,18 @@ it('reports a revoked authorization or invariant conflict as requiring intervent
     success: false,
     status: 'requires_intervention',
   });
+});
+
+it('binds the reviewed amounts and recipients to the atomic reservation', async () => {
+  m.recover.mockResolvedValue({ status: 'completed' });
+  await send();
+  expect(m.rpc).toHaveBeenCalledWith(
+    'reserve_confirmed_dispute_resolution',
+    expect.objectContaining({
+      p_expected_principal: 12000,
+      p_expected_fee_rate: 0.1,
+      p_expected_payer: payload.confirmation.payerId,
+      p_expected_payee: payload.confirmation.payeeId,
+    })
+  );
 });

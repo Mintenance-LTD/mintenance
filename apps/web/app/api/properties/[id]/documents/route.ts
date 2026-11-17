@@ -6,6 +6,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import {
   BadRequestError,
+  ConflictError,
   ForbiddenError,
   NotFoundError,
 } from '@/lib/errors/api-error';
@@ -20,6 +21,8 @@ const kinds = z.enum([
   'other',
 ]);
 async function authorize(userId: string, propertyId: string) {
+  if (!z.string().uuid().safeParse(propertyId).success)
+    throw new BadRequestError('Invalid property reference');
   const access = await PropertyTeamService.authorize(
     userId,
     propertyId,
@@ -42,12 +45,20 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
       .eq('id', documentId)
       .eq('property_id', params.id)
       .eq('status', 'ready')
+      .is('archived_at', null)
       .maybeSingle();
     if (error) throw error;
     if (!doc) throw new NotFoundError('Document not found');
+    const expectedPath = `${params.id}/${documentId}`;
+    if (
+      doc.object_path !== expectedPath ||
+      expectedPath.includes('..') ||
+      !/^[a-f0-9-]+\/[a-f0-9-]+$/i.test(expectedPath)
+    )
+      throw new BadRequestError('Document storage reference requires review');
     const { data, error: signedError } = await serverSupabase.storage
       .from(BUCKET)
-      .createSignedUrl(doc.object_path, 60, { download: doc.name });
+      .createSignedUrl(expectedPath, 60, { download: doc.name });
     if (signedError) throw signedError;
     return NextResponse.json(
       { url: data.signedUrl },
@@ -57,14 +68,22 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
   const offset = Number(request.nextUrl.searchParams.get('offset') || 0);
   if (!Number.isInteger(offset) || offset < 0 || offset > 100000)
     throw new BadRequestError('Invalid page');
-  const { data, error, count } = await serverSupabase
+  let query = serverSupabase
     .from('property_document_files')
-    .select('id,name,kind,mime_type,size_bytes,created_at', { count: 'exact' })
+    .select(
+      'id,name,kind,mime_type,size_bytes,created_at,updated_at,archived_at',
+      { count: 'exact' }
+    )
     .eq('property_id', params.id)
     .eq('status', 'ready')
     .order('created_at', { ascending: false })
     .order('id')
     .range(offset, offset + 24);
+  query =
+    request.nextUrl.searchParams.get('archived') === '1'
+      ? query.not('archived_at', 'is', null)
+      : query.is('archived_at', null);
+  const { data, error, count } = await query;
   if (error) throw error;
   return NextResponse.json(
     { documents: data || [], hasMore: offset + 25 < (count || 0) },
@@ -104,6 +123,11 @@ export const POST = withApiHandler(
       );
     const id = randomUUID();
     const objectPath = `${params.id}/${id}`;
+    if (
+      objectPath.includes('..') ||
+      !/^[a-f0-9-]+\/[a-f0-9-]+$/i.test(objectPath)
+    )
+      throw new BadRequestError('Invalid document storage reference');
     const name =
       file.name.replace(/[\x00-\x1f\x7f/\\]/g, '_').slice(0, 200) || 'Document';
     const { error: reserveError } = await serverSupabase
@@ -133,5 +157,69 @@ export const POST = withApiHandler(
     if (readyError) throw readyError;
     if (!ready) throw new NotFoundError('Property no longer available');
     return NextResponse.json({ id }, { status: 201 });
+  }
+);
+
+const editSchema = z.discriminatedUnion('action', [
+  z
+    .object({
+      action: z.literal('edit'),
+      documentId: z.string().uuid(),
+      expectedUpdatedAt: z.string().datetime({ offset: true }),
+      name: z
+        .string()
+        .trim()
+        .min(1)
+        .max(200)
+        .regex(/^[^\x00-\x1f\x7f/\\]+$/),
+      kind: kinds,
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal('archive'),
+      documentId: z.string().uuid(),
+      expectedUpdatedAt: z.string().datetime({ offset: true }),
+      archived: z.boolean(),
+    })
+    .strict(),
+]);
+export const PATCH = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user, params }) => {
+    await authorize(user.id, params.id);
+    const input = editSchema.safeParse(await request.json().catch(() => null));
+    if (!input.success)
+      throw new BadRequestError(
+        'Choose a document, valid name and type. Refresh if its details have changed.'
+      );
+    const value = input.data;
+    const update =
+      value.action === 'edit'
+        ? {
+            name: value.name,
+            kind: value.kind,
+            updated_at: new Date().toISOString(),
+          }
+        : {
+            archived_at: value.archived ? new Date().toISOString() : null,
+            archived_by: value.archived ? user.id : null,
+            updated_at: new Date().toISOString(),
+          };
+    const result = await serverSupabase
+      .from('property_document_files')
+      .update(update)
+      .eq('id', value.documentId)
+      .eq('property_id', params.id)
+      .eq('status', 'ready')
+      .eq('updated_at', value.expectedUpdatedAt)
+      .select('id,name,kind,created_at,updated_at,archived_at')
+      .maybeSingle();
+    if (result.error) throw result.error;
+    if (!result.data)
+      throw new ConflictError(
+        'The document changed or is no longer available. Refresh before editing.'
+      );
+    return NextResponse.json({ document: result.data });
   }
 );

@@ -3,7 +3,13 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export function OpenJobDispute({ jobId }: { jobId: string }) {
+export function OpenJobDispute({
+  jobId,
+  label = 'Open a dispute instead',
+}: {
+  jobId: string;
+  label?: string;
+}) {
   const router = useRouter();
   const inFlight = useRef(false);
   const [loading, setLoading] = useState(false);
@@ -56,7 +62,7 @@ export function OpenJobDispute({ jobId }: { jobId: string }) {
         disabled={loading}
         onClick={openDispute}
       >
-        {loading ? 'Loading payment…' : 'Open a dispute instead'}
+        {loading ? 'Loading payment…' : label}
       </button>
       {error ? <p role='alert'>{error}</p> : null}
     </>

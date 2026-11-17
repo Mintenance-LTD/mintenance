@@ -51,6 +51,22 @@ beforeEach(() => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.startsWith('/api/admin/disputes/preview?'))
+        return json({
+          escrowId: dispute.id,
+          decision: 'split_50_50',
+          principalMinor: 50000,
+          refundMinor: 25000,
+          releaseMinor: 25000,
+          feeMinor: 2500,
+          payoutMinor: 22500,
+          confirmation: {
+            principalMinor: 50000,
+            feeRate: 0.1,
+            payerId: 'owner',
+            payeeId: 'contractor',
+          },
+        });
       if (url === '/api/csrf') return json({ token: 'synthetic-csrf' });
       if (url.startsWith('/api/admin/disputes?'))
         return json({
@@ -93,9 +109,11 @@ async function startResolution() {
     })
   );
   fireEvent.click(screen.getByRole('radio', { name: /Split 50\/50/ }));
-  fireEvent.change(
-    screen.getByPlaceholderText('Add resolution notes (optional)...'),
-    { target: { value: 'Agreed synthetic split' } }
+  fireEvent.change(screen.getByLabelText('Reason for this decision'), {
+    target: { value: 'Agreed synthetic split' },
+  });
+  fireEvent.click(
+    await screen.findByRole('checkbox', { name: /I have reviewed the case/ })
   );
   fireEvent.click(screen.getByRole('button', { name: 'Confirm Resolution' }));
   await screen.findByRole('dialog', { name: 'Confirm your identity' });
@@ -127,6 +145,12 @@ it('verifies with CSRF, then retries the exact decision and closes only on confi
     escrowId: dispute.id,
     decision: 'split_50_50',
     reason: 'Agreed synthetic split',
+    confirmation: {
+      principalMinor: 50000,
+      feeRate: 0.1,
+      payerId: 'owner',
+      payeeId: 'contractor',
+    },
   });
   expect(requests.every((r) => r.csrf === 'synthetic-csrf')).toBe(true);
 });
@@ -135,9 +159,9 @@ it('cancels verification without retrying or losing the selected decision', asyn
   fireEvent.click(screen.getByRole('button', { name: 'Cancel verification' }));
   await screen.findByRole('alertdialog', { name: 'Resolve Dispute' });
   expect(screen.getByRole('radio', { name: /Split 50\/50/ })).toBeChecked();
-  expect(
-    screen.getByPlaceholderText('Add resolution notes (optional)...')
-  ).toHaveValue('Agreed synthetic split');
+  expect(screen.getByLabelText('Reason for this decision')).toHaveValue(
+    'Agreed synthetic split'
+  );
   expect(requests).toHaveLength(1);
 });
 it('does not replay after failed MFA and does not report pending settlement as success', async () => {

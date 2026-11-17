@@ -13,6 +13,7 @@ interface CalendarViewProps {
   setView: (v: 'week' | 'month') => void;
   setSelectedDate: (date: Date) => void;
   appointments: Appointment[];
+  onEdit?: (appointment: Appointment) => void;
 }
 
 export function CalendarView({
@@ -21,6 +22,7 @@ export function CalendarView({
   setView,
   setSelectedDate,
   appointments,
+  onEdit,
 }: CalendarViewProps) {
   const days = calendarDays(selectedDate, view);
   const todayKey = dateKey(new Date());
@@ -135,8 +137,11 @@ export function CalendarView({
               </div>
               {dayAppointments.length > 0 && (
                 <div className='space-y-1'>
-                  {dayAppointments.slice(0, 2).map((apt) => (
-                    <div
+                  {dayAppointments.map((apt) => (
+                    <button
+                      type='button'
+                      onClick={() => onEdit?.(apt)}
+                      aria-label={'View or reschedule ' + apt.title}
                       key={apt.id}
                       className='px-2 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs truncate font-medium border border-teal-100'
                     >
@@ -145,13 +150,8 @@ export function CalendarView({
                       >
                         {appointmentTime(apt.time, apt.endTime)} · {apt.title}
                       </span>
-                    </div>
+                    </button>
                   ))}
-                  {dayAppointments.length > 2 && (
-                    <div className='text-xs text-center text-slate-500'>
-                      +{dayAppointments.length - 2} more
-                    </div>
-                  )}
                 </div>
               )}
             </div>

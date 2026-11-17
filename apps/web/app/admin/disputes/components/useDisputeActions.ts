@@ -3,14 +3,29 @@
 import { useRef, useState } from 'react';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 import { requireConfirmedDisputeAction } from './dispute-action-response';
+import type { SettlementConfirmation } from '@/lib/payments/settlement-breakdown';
 import type { Resolution } from './DisputesTable';
 
 type Action =
   | {
       kind: 'resolve';
-      body: { escrowId: string; decision: Resolution; reason: string };
+      body: {
+        escrowId: string;
+        decision: Resolution;
+        reason: string;
+        confirmation: SettlementConfirmation;
+      };
     }
-  | { kind: 'hold'; body: { escrowId: string; reason: string } };
+  | { kind: 'hold'; body: { escrowId: string; reason: string } }
+  | {
+      kind: 'close';
+      body: {
+        escrowId: string;
+        disputeId: string;
+        reason: string;
+        keepAdminHold: true;
+      };
+    };
 
 interface Callbacks {
   onConfirmed: (kind: Action['kind']) => void;
@@ -32,7 +47,9 @@ export function useDisputeActions({ onConfirmed, onError }: Callbacks) {
       const response = await fetchWithCsrf(
         action.kind === 'resolve'
           ? '/api/admin/disputes/resolve'
-          : '/api/admin/escrow/hold',
+          : action.kind === 'close'
+            ? '/api/admin/disputes/close'
+            : '/api/admin/escrow/hold',
         {
           method: 'POST',
           credentials: 'include',
@@ -55,14 +72,18 @@ export function useDisputeActions({ onConfirmed, onError }: Callbacks) {
         !response.ok ||
         response.status === 202 ||
         body?.success !== true ||
-        body.escrowId !== action.body.escrowId
+        body.escrowId !== action.body.escrowId ||
+        (action.kind === 'close' &&
+          (body.disputeId !== action.body.disputeId || !body.closureId))
       ) {
         const message =
           typeof body?.error === 'string' ? body.error : body?.error?.message;
         throw new Error(
           typeof message === 'string'
             ? message
-            : 'The hold was not confirmed. Please retry.'
+            : action.kind === 'close'
+              ? 'Case closure was not confirmed. Reload the case before retrying.'
+              : 'The hold was not confirmed. Please retry.'
         );
       }
       onConfirmed(action.kind);

@@ -752,6 +752,7 @@ function ScheduleEditor({
                   </button>
                   <button
                     disabled={blocked}
+                    aria-label={`${s.is_active ? 'Pause' : 'Resume'} ${s.title}`}
                     onClick={() => handleToggle(s)}
                     className='min-h-11 text-sm text-gray-700 hover:text-gray-900 disabled:opacity-50'
                   >

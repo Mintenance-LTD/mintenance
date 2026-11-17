@@ -98,7 +98,7 @@ it('uses UK daylight saving for visit slots and excludes cancelled visits', () =
   ).toEqual([]);
 });
 it.each(['homeowner', 'contractor'] as const)(
-  'scopes visit reads for %s and excludes closed jobs',
+  'scopes visit reads for %s and retains independently scheduled visits',
   async (role) => {
     const query = {
       select: vi.fn().mockReturnThis(),
@@ -120,7 +120,7 @@ it.each(['homeowner', 'contractor'] as const)(
     db.from.mockImplementation((table) =>
       table === 'jobs' ? ownership : query
     );
-    expect(await fetchCalendarAppointments('actor', role)).toHaveLength(1);
+    expect(await fetchCalendarAppointments('actor', role)).toHaveLength(2);
     if (role === 'contractor')
       expect(query.eq).toHaveBeenCalledWith('contractor_id', 'actor');
     else {

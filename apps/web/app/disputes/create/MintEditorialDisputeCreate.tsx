@@ -1,490 +1,352 @@
 'use client';
 
-/**
- * Mint Editorial "Open dispute" surface — canonical from
- * design-system/project/redesign-v2/dispute-flow.html lines 60-156.
- *
- * Stays self-contained inside the existing `/disputes/create/page.tsx`
- * theme branch. Mounts inside HomeownerPageWrapper (the parent
- * /disputes/layout.tsx already wraps in the universal shell).
- */
-
-import React, { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, Plus, Loader2 } from 'lucide-react';
-import { StepStrip } from '../components/StepStrip';
 import { fetchWithCsrf } from '@/lib/csrf-client';
+import { formatMoney } from '@/lib/utils/currency';
 
-const REASONS: {
-  id: string;
-  apiValue: string;
-  title: string;
-  description: string;
-}[] = [
-  {
-    id: 'quality',
-    apiValue: 'poor_quality',
-    title: 'Quality of work',
-    description: "Result isn't up to standard or didn't last",
-  },
-  {
-    id: 'incomplete',
-    apiValue: 'incomplete_work',
-    title: 'Job not finished',
-    description: "Contractor didn't complete what was agreed",
-  },
-  {
-    id: 'scope',
-    apiValue: 'not_as_described',
-    title: 'Wrong scope or extras charged',
-    description: "Bill doesn't match the agreed bid",
-  },
-  {
-    id: 'damage',
-    apiValue: 'damage',
-    title: 'Damage to property',
-    description: 'Something was broken or marked',
-  },
-  {
-    id: 'behaviour',
-    apiValue: 'other',
-    title: 'Behaviour or no-show',
-    description: "Contractor was rude, late or didn't turn up",
-  },
-  {
-    id: 'other',
-    apiValue: 'other',
-    title: 'Something else',
-    description: "I'll explain in my own words",
-  },
-];
-
+const REASONS = [
+  ['poor_quality', 'Quality of work'],
+  ['incomplete_work', 'Job not finished'],
+  ['not_as_described', 'Wrong scope or extras charged'],
+  ['damage', 'Damage to property'],
+  ['other', 'Something else'],
+] as const;
 const OUTCOMES = [
   'Redo the work, no extra cost',
   'Partial refund',
   'Full refund',
   'Different contractor finishes it',
+  'Other — explain in my statement',
 ];
-
+interface Context {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  amount: number;
+  status: string;
+}
 interface Props {
   escrowId: string | null;
   jobTitle?: string;
   escrowAmount?: number;
+  jobId?: string;
 }
+const errorMessage = (data: unknown, fallback: string) => {
+  if (!data || typeof data !== 'object' || !('error' in data)) return fallback;
+  const error = data.error;
+  return typeof error === 'string'
+    ? error
+    : error &&
+        typeof error === 'object' &&
+        'message' in error &&
+        typeof error.message === 'string'
+      ? error.message
+      : fallback;
+};
 
-export function MintEditorialDisputeCreate({
-  escrowId,
-  jobTitle,
-  escrowAmount,
-}: Props) {
+export function MintEditorialDisputeCreate({ escrowId }: Props) {
   const router = useRouter();
-  const [reasonId, setReasonId] = useState<string>('');
+  const [context, setContext] = useState<Context | null>(null);
+  const [loadError, setLoadError] = useState('');
+  const [reload, setReload] = useState(0);
+  const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
-  const [outcome, setOutcome] = useState<string>(OUTCOMES[0]);
+  const [outcome, setOutcome] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-
-  const charCount = description.length;
-  const charMax = 600;
-
-  const handleSubmit = async () => {
+  const uploaded = useRef(new Map<File, string>());
+  const inFlight = useRef(false);
+  useEffect(() => {
+    let active = true;
+    setContext(null);
+    setLoadError('');
     if (!escrowId) {
-      setError(
-        'Missing escrow reference. Open this page from a job to start a dispute.'
+      setLoadError(
+        'Open this form from the payment or job you want to dispute.'
       );
       return;
     }
-    const reason = REASONS.find((r) => r.id === reasonId);
-    if (!reason || !description.trim()) {
-      setError('Pick a reason and add your statement before submitting.');
+    fetch('/api/disputes/context?escrowId=' + encodeURIComponent(escrowId), {
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null);
+        if (
+          !response.ok ||
+          data?.id !== escrowId ||
+          typeof data?.jobId !== 'string' ||
+          !Number.isFinite(data?.amount)
+        )
+          throw new Error(
+            errorMessage(
+              data,
+              'Unable to load the job and payment. Please retry.'
+            )
+          );
+        if (active) setContext(data);
+      })
+      .catch((cause) => {
+        if (active)
+          setLoadError(
+            cause instanceof Error
+              ? cause.message
+              : 'Unable to load this payment.'
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [escrowId, reload]);
+
+  async function submit() {
+    if (!context || inFlight.current) return;
+    if (!reason || !outcome || description.trim().length < 10) {
+      setError(
+        'Choose a reason and requested outcome, and write a statement of at least 10 characters.'
+      );
       return;
     }
+    inFlight.current = true;
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetchWithCsrf('/api/disputes/create', {
+      const evidence: string[] = [];
+      for (const file of files) {
+        let reference = uploaded.current.get(file);
+        if (!reference) {
+          const form = new FormData();
+          form.set('escrowId', context.id);
+          form.set('file', file);
+          const response = await fetchWithCsrf('/api/disputes/evidence', {
+            method: 'POST',
+            body: form,
+          });
+          const data = await response.json().catch(() => null);
+          if (!response.ok || typeof data?.reference !== 'string')
+            throw new Error(
+              errorMessage(
+                data,
+                'Photo upload failed. Your dispute has not been submitted. Please retry.'
+              )
+            );
+          reference = data.reference as string;
+          uploaded.current.set(file, reference);
+        }
+        evidence.push(reference);
+      }
+      const response = await fetchWithCsrf('/api/disputes/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          escrowId,
-          reason: reason.apiValue,
-          // Stash the canonical outcome + display reason as a meta line
-          // at the top of the free-text description so the dispute
-          // detail page surfaces them. The API doesn't have dedicated
-          // columns yet — follow-up to add `desired_outcome` enum to
-          // the disputes schema.
-          description: `[Outcome wanted: ${outcome}]\n[Issue: ${reason.title}]\n\n${description}`,
-          evidence: [],
+          escrowId: context.id,
+          reason,
+          description:
+            '[Outcome wanted: ' + outcome + ']\n\n' + description.trim(),
+          evidence,
           priority: 'medium',
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create dispute');
-      router.push(`/disputes/${data.disputeId}`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create dispute');
+      const data = await response.json().catch(() => null);
+      if (!response.ok || data?.disputeId !== context.id)
+        throw new Error(
+          errorMessage(
+            data,
+            'The dispute could not be confirmed. Please retry.'
+          )
+        );
+      router.push('/disputes/' + encodeURIComponent(data.disputeId));
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Unable to submit the dispute.'
+      );
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
-  };
-
-  return (
-    <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-      <Link
-        href='/jobs'
-        style={{
-          fontSize: 12,
-          color: 'var(--me-ink-3)',
-          textDecoration: 'none',
-        }}
-      >
-        ← Back to {jobTitle || 'job'}
-      </Link>
-      <h1
-        className='t-h1'
-        style={{ marginTop: 8, marginBottom: 6, fontSize: 36 }}
-      >
-        Something went <em style={{ color: 'var(--me-brand)' }}>wrong.</em> Tell
-        us what.
-      </h1>
-      <p
-        className='t-body'
-        style={{ marginBottom: 22, maxWidth: 600, lineHeight: 1.55 }}
-      >
-        Funds for this job are still in escrow. Opening a dispute pauses the
-        release while we look into it. Most resolve within 48 hours, no calls
-        needed.
-      </p>
-
-      <StepStrip on={0} />
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)',
-          gap: 22,
-        }}
-      >
-        <div className='card card-pad-lg'>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14 }}>
-            What's the issue?
-          </div>
-          <div className='col' style={{ gap: 8 }}>
-            {REASONS.map((r) => {
-              const on = r.id === reasonId;
-              return (
-                <label
-                  key={r.id}
-                  style={{
-                    display: 'flex',
-                    gap: 12,
-                    padding: 14,
-                    border:
-                      '1.5px solid ' +
-                      (on ? 'var(--me-brand)' : 'var(--me-line)'),
-                    borderRadius: 12,
-                    cursor: 'pointer',
-                    background: on
-                      ? 'var(--me-brand-soft)'
-                      : 'var(--me-surface)',
-                  }}
-                >
-                  <input
-                    type='radio'
-                    name='reason'
-                    checked={on}
-                    onChange={() => setReasonId(r.id)}
-                    style={{ display: 'none' }}
-                  />
-                  <div
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 9999,
-                      border:
-                        '2px solid ' +
-                        (on ? 'var(--me-brand)' : 'var(--me-line)'),
-                      display: 'grid',
-                      placeItems: 'center',
-                      marginTop: 1,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {on ? (
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 9999,
-                          background: 'var(--me-brand)',
-                        }}
-                      />
-                    ) : null}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>
-                      {r.title}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--me-ink-2)',
-                        marginTop: 2,
-                      }}
-                    >
-                      {r.description}
-                    </div>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-
-          <div style={{ marginTop: 22 }}>
-            <div
-              className='row'
-              style={{ alignItems: 'baseline', marginBottom: 8 }}
-            >
-              <div style={{ fontWeight: 600, fontSize: 14 }}>
-                In your own words
-              </div>
-              <span className='t-meta' style={{ marginLeft: 'auto' }}>
-                {charCount}/{charMax}
-              </span>
-            </div>
-            <textarea
-              className='field'
-              rows={5}
-              maxLength={charMax}
-              placeholder='What happened? When did you notice the issue? What would resolve it?'
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              style={{ resize: 'vertical', fontFamily: 'inherit' }}
-            />
-          </div>
-
-          <div style={{ marginTop: 22 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>
-              Photo evidence{' '}
-              <span className='t-meta' style={{ fontWeight: 400 }}>
-                · strongly recommended · coming soon
-              </span>
-            </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(5, 1fr)',
-                gap: 8,
-              }}
-            >
-              {[1, 2, 3, 4].map((n) => (
-                <div
-                  key={n}
-                  className='placeholder-img'
-                  style={{
-                    height: 80,
-                    background:
-                      'repeating-linear-gradient(135deg, transparent 0 9px, rgba(0,0,0,0.04) 9px 10px), var(--me-bg-2)',
-                    border: '1px solid var(--me-line)',
-                    borderRadius: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--me-ink-3)',
-                    fontSize: 11,
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  EVID {n}
-                </div>
-              ))}
-              <div
-                style={{
-                  height: 80,
-                  border: '1.5px dashed var(--me-line)',
-                  borderRadius: 10,
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: 'var(--me-ink-3)',
-                  cursor: 'not-allowed',
-                  opacity: 0.6,
-                }}
-                title='Photo evidence upload — coming soon'
-              >
-                <Plus size={20} strokeWidth={1.75} />
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 22 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>
-              What outcome do you want?
-            </div>
-            <div className='row' style={{ gap: 6, flexWrap: 'wrap' }}>
-              {OUTCOMES.map((o) => (
-                <button
-                  key={o}
-                  type='button'
-                  className={'chip ' + (outcome === o ? 'on' : '')}
-                  onClick={() => setOutcome(o)}
-                >
-                  {o}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className='col' style={{ gap: 14 }}>
-          <div
-            className='card card-pad'
-            style={{ borderColor: 'var(--me-brand)', borderWidth: 1.5 }}
-          >
-            <div className='row' style={{ marginBottom: 10 }}>
-              <Sparkles
-                size={18}
-                strokeWidth={1.75}
-                style={{ color: 'var(--me-brand)' }}
-              />
-              <div style={{ fontWeight: 600, fontSize: 14 }}>
-                Mint AI: try mediation first
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: 13,
-                color: 'var(--me-ink-2)',
-                lineHeight: 1.55,
-                marginBottom: 12,
-              }}
-            >
-              Most quality disputes resolve faster when the contractor offers a
-              redo or partial refund — about 70% of similar issues close this
-              way without ops involvement. Worth a message before opening a
-              formal dispute.
-            </div>
-            <div className='col' style={{ gap: 6 }}>
-              <Link
-                href='/messages'
-                className='btn btn-secondary btn-sm'
-                style={{ justifyContent: 'center' }}
-              >
-                Message the contractor first
-              </Link>
-            </div>
-          </div>
-
-          <div className='card card-pad'>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
-              What happens next
-            </div>
-            <div
-              className='col'
-              style={{
-                gap: 12,
-                fontSize: 13,
-                color: 'var(--me-ink-2)',
-                lineHeight: 1.5,
-              }}
-            >
-              {[
-                [
-                  escrowAmount
-                    ? `£${escrowAmount.toLocaleString('en-GB')} stays in escrow`
-                    : 'Funds stay in escrow',
-                  'Nothing moves until this is resolved.',
-                ],
-                [
-                  'Contractor has 48h to respond',
-                  "They'll see your statement & photos.",
-                ],
-                [
-                  'Mint ops mediates',
-                  'Our trust team will reach out if needed.',
-                ],
-                [
-                  'Decision within 5 days',
-                  'Refund, redo, split — or fully released.',
-                ],
-              ].map(([h, b], i) => (
-                <div
-                  key={i}
-                  className='row'
-                  style={{ alignItems: 'flex-start', gap: 10 }}
-                >
-                  <div
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 9999,
-                      background: 'var(--me-bg-2)',
-                      display: 'grid',
-                      placeItems: 'center',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: 'var(--me-ink-2)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {i + 1}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, color: 'var(--me-ink)' }}>
-                      {h}
-                    </div>
-                    <div>{b}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {error ? (
-            <div
-              className='card card-pad'
-              style={{
-                borderColor: 'var(--me-err-fg)',
-                background: 'var(--me-err-bg)',
-                color: 'var(--me-err-fg)',
-                fontSize: 13,
-              }}
-            >
-              {error}
-            </div>
-          ) : null}
-
-          <button
-            type='button'
-            className='btn btn-primary'
-            onClick={handleSubmit}
-            disabled={submitting}
-            style={{
-              justifyContent: 'center',
-              padding: '14px 0',
-              fontSize: 15,
-              width: '100%',
-            }}
-          >
-            {submitting ? (
-              <Loader2 size={16} strokeWidth={1.75} className='animate-spin' />
-            ) : escrowAmount ? (
-              `Open dispute · pause £${escrowAmount.toLocaleString('en-GB')}`
-            ) : (
-              'Open dispute'
-            )}
-          </button>
-          <button
-            type='button'
-            className='btn btn-ghost'
-            style={{ justifyContent: 'center', width: '100%' }}
-            onClick={() => router.back()}
-          >
-            Cancel
-          </button>
-        </div>
+  }
+  if (loadError)
+    return (
+      <div role='alert' className='card card-pad'>
+        <p>{loadError}</p>
+        <button onClick={() => setReload((n) => n + 1)}>
+          Retry loading payment
+        </button>
+        <Link href='/jobs'>Back to jobs</Link>
       </div>
-    </div>
+    );
+  if (!context) return <p role='status'>Loading job and payment…</p>;
+  if (context.status === 'disputed')
+    return (
+      <section className='card card-pad'>
+        <h1>A dispute is already open</h1>
+        <Link href={'/disputes/' + context.id}>View this payment’s case</Link>
+        <p>
+          <Link href={'/jobs/' + context.jobId}>
+            Back to {context.jobTitle}
+          </Link>
+        </p>
+      </section>
+    );
+  if (context.status !== 'held')
+    return (
+      <section className='card card-pad'>
+        <h1>This payment cannot be disputed here</h1>
+        <p>
+          Current payment state: {context.status}. Contact support if you need
+          help.
+        </p>
+        <Link href={'/jobs/' + context.jobId}>Back to {context.jobTitle}</Link>
+      </section>
+    );
+  return (
+    <main className='mx-auto max-w-3xl space-y-6 p-4 sm:p-6'>
+      <Link href={'/jobs/' + context.jobId} className='underline'>
+        Back to {context.jobTitle}
+      </Link>
+      <header>
+        <h1 className='text-3xl font-bold'>Open a dispute</h1>
+        <p className='mt-2'>
+          {context.jobTitle} ·{' '}
+          <strong>{formatMoney(context.amount, 'GBP')}</strong> held
+        </p>
+        <p>
+          Opening a case pauses release for review. Your requested outcome is
+          not a settlement decision. No refund or payout happens when you submit
+          this form.
+        </p>
+      </header>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+        className='card card-pad space-y-6'
+      >
+        <fieldset disabled={submitting}>
+          <legend className='font-semibold'>What happened?</legend>
+          <div className='mt-3 space-y-2'>
+            {REASONS.map(([value, title]) => (
+              <label
+                key={value}
+                className='flex items-center gap-3 rounded-lg border p-3'
+              >
+                <input
+                  type='radio'
+                  name='reason'
+                  value={value}
+                  checked={reason === value}
+                  onChange={() => setReason(value)}
+                  required
+                />
+                {title}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div>
+          <label htmlFor='dispute-statement' className='font-semibold'>
+            Your statement
+          </label>
+          <textarea
+            id='dispute-statement'
+            rows={6}
+            minLength={10}
+            maxLength={9000}
+            required
+            disabled={submitting}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className='field mt-2 w-full'
+            placeholder='Describe what happened, dates, and what you would like us to review.'
+          />
+        </div>
+        <fieldset disabled={submitting}>
+          <legend className='font-semibold'>What outcome do you want?</legend>
+          <p>You must choose; none is selected for you.</p>
+          <div className='mt-3 space-y-2'>
+            {OUTCOMES.map((value) => (
+              <label className='flex items-center gap-3' key={value}>
+                <input
+                  type='radio'
+                  name='outcome'
+                  checked={outcome === value}
+                  onChange={() => setOutcome(value)}
+                  required
+                />
+                {value}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div>
+          <label htmlFor='dispute-evidence' className='font-semibold'>
+            Photo evidence (optional)
+          </label>
+          <p id='evidence-guidance'>
+            Up to 10 photos, maximum 3 MB each. Files upload individually when
+            you submit. If an upload fails, your statement stays here for retry.
+          </p>
+          <input
+            id='dispute-evidence'
+            aria-describedby='evidence-guidance'
+            type='file'
+            accept='image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,image/bmp'
+            multiple
+            disabled={submitting}
+            onChange={(e) => {
+              const selected = Array.from(e.target.files ?? []);
+              if (
+                selected.length + files.length > 10 ||
+                selected.some((f) => f.size > 3 * 1024 * 1024 || !f.size)
+              ) {
+                setError('Choose up to 10 photos, each no larger than 3 MB.');
+                e.target.value = '';
+                return;
+              }
+              setFiles((previous) => [...previous, ...selected]);
+              setError('');
+              e.target.value = '';
+            }}
+          />
+          <ul>
+            {files.map((file, index) => (
+              <li key={index}>
+                {file.name}{' '}
+                <button
+                  type='button'
+                  disabled={submitting}
+                  aria-label={'Remove ' + file.name}
+                  onClick={() =>
+                    setFiles((previous) =>
+                      previous.filter((_, i) => i !== index)
+                    )
+                  }
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p>
+          The review target is shown on the case after submission. Keep your
+          evidence; bank settlement and provider delivery are tracked
+          separately.
+        </p>
+        {error && <p role='alert'>{error}</p>}
+        <button
+          type='submit'
+          className='btn btn-primary'
+          disabled={
+            submitting || !reason || !outcome || description.trim().length < 10
+          }
+        >
+          {submitting ? 'Submitting evidence and case…' : 'Open dispute'}
+        </button>
+      </form>
+    </main>
   );
 }

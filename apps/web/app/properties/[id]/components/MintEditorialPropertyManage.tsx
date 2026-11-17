@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   CalendarDays,
@@ -48,7 +48,19 @@ export function MintEditorialPropertyManage({
   onOpenDocuments,
 }: Props) {
   const { view } = usePropertyView();
-  const [section, setSection] = useState('work');
+  const search = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const requestedSection = search.get('manage');
+  const section = ['work', 'people', 'records'].includes(requestedSection ?? '')
+    ? requestedSection!
+    : 'work';
+  function setSection(value: string) {
+    const next = new URLSearchParams(search.toString());
+    next.set('tab', 'manage');
+    next.set('manage', value);
+    router.replace(pathname + '?' + next.toString(), { scroll: false });
+  }
   const visibleSection =
     view === 'home' && section === 'people' ? 'records' : section;
   const sections = [

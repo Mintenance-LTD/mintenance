@@ -35,11 +35,12 @@ vi.mock('@/lib/api/supabaseServer', () => ({
                 ? { role: s.role }
                 : null
               : table === 'property_document_files'
-                ? { object_path: 'synthetic/document', name: 'test.pdf' }
+                ? { object_path: `${property}/${document}`, name: 'test.pdf' }
                 : null,
       });
       const q = {
         select: () => q,
+        is: () => q,
         eq: (k: string, v: unknown) => {
           filters[k] = v;
           s.filters(table, k, v);
@@ -81,7 +82,7 @@ it.each(['owner', 'admin', 'manager'])(
     const r = await download();
     expect(r.status).toBe(200);
     expect(r.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(s.signed).toHaveBeenCalledWith('synthetic/document', 60, {
+    expect(s.signed).toHaveBeenCalledWith(`${property}/${document}`, 60, {
       download: 'test.pdf',
     });
     expect(s.filters).toHaveBeenCalledWith(

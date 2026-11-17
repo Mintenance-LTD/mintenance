@@ -11,6 +11,9 @@ const mock = vi.hoisted(() => ({
   update: vi.fn(),
   del: vi.fn(),
   filters: vi.fn(),
+  result: { id: '00000000-0000-4000-8000-000000000001' } as {
+    id: string;
+  } | null,
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler: (_: unknown, handler: unknown) => handler,
@@ -30,11 +33,12 @@ vi.mock('@/lib/api/supabaseServer', () => ({
     },
   },
 }));
-import { GET, POST } from '@/app/api/properties/[id]/documents/route';
+import { GET, POST, PATCH } from '@/app/api/properties/[id]/documents/route';
 import { cleanupPropertyDocumentFiles } from '@/lib/properties/cleanup-document-files';
 const id = '00000000-0000-4000-8000-000000000001';
 beforeEach(() => {
   vi.clearAllMocks();
+  mock.result = { id };
   mock.authorize.mockResolvedValue({ authorized: true });
   mock.upload.mockResolvedValue({ error: null });
   mock.signed.mockResolvedValue({
@@ -45,6 +49,8 @@ beforeEach(() => {
   mock.from.mockImplementation(() => {
     const chain = {
       select: () => chain,
+      is: () => chain,
+      not: () => chain,
       eq: (key: string, value: unknown) => {
         mock.filters(key, value);
         return chain;
@@ -66,12 +72,14 @@ beforeEach(() => {
         return chain;
       },
       maybeSingle: async () => ({
-        data: { id, object_path: 'synthetic/path', name: 'file.pdf' },
+        data: mock.result
+          ? { ...mock.result, object_path: `${id}/${id}`, name: 'file.pdf' }
+          : null,
         error: null,
       }),
       then: (resolve: (value: unknown) => unknown) =>
         Promise.resolve({
-          data: [{ id, object_path: 'synthetic/path' }],
+          data: [{ id, object_path: `${id}/${id}` }],
           error: null,
           count: 1,
         }).then(resolve),
@@ -82,7 +90,7 @@ beforeEach(() => {
 const call = (handler: unknown, request: NextRequest) =>
   (handler as (request: NextRequest, context: unknown) => Promise<Response>)(
     request,
-    { user: { id: 'actor' }, params: { id: 'property' } }
+    { user: { id: 'actor' }, params: { id } }
   );
 function upload(content = '%PDF-1.7 synthetic', type = 'application/pdf') {
   const body = new FormData();
@@ -132,9 +140,9 @@ it('scopes short-lived downloads to the requested property', async () => {
       `http://localhost/api/properties/property/documents?documentId=${id}`
     )
   );
-  expect(mock.filters).toHaveBeenCalledWith('property_id', 'property');
+  expect(mock.filters).toHaveBeenCalledWith('property_id', id);
   expect(mock.filters).toHaveBeenCalledWith('status', 'ready');
-  expect(mock.signed).toHaveBeenCalledWith('synthetic/path', 60, {
+  expect(mock.signed).toHaveBeenCalledWith(`${id}/${id}`, 60, {
     download: 'file.pdf',
   });
 });
@@ -144,4 +152,85 @@ it('retains cleanup tracking when storage removal fails', async () => {
     'storage offline'
   );
   expect(mock.del).not.toHaveBeenCalled();
+});
+
+const changedAt = '2026-11-17T00:00:00.000Z';
+const patch = (body: unknown) =>
+  call(
+    PATCH,
+    new NextRequest('http://localhost/api/properties/' + id + '/documents', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    })
+  );
+it('archives metadata only with an exact property and optimistic version check', async () => {
+  expect(
+    (
+      await patch({
+        action: 'archive',
+        documentId: id,
+        expectedUpdatedAt: changedAt,
+        archived: true,
+      })
+    ).status
+  ).toBe(200);
+  expect(mock.filters).toHaveBeenCalledWith('property_id', id);
+  expect(mock.filters).toHaveBeenCalledWith('updated_at', changedAt);
+  expect(mock.update).toHaveBeenCalledWith(
+    expect.objectContaining({
+      archived_by: 'actor',
+      archived_at: expect.any(String),
+    })
+  );
+  expect(mock.remove).not.toHaveBeenCalled();
+  expect(mock.del).not.toHaveBeenCalled();
+});
+it('restores an archived file without rewriting its stored contents', async () => {
+  await patch({
+    action: 'archive',
+    documentId: id,
+    expectedUpdatedAt: changedAt,
+    archived: false,
+  });
+  expect(mock.update).toHaveBeenCalledWith(
+    expect.objectContaining({ archived_at: null, archived_by: null })
+  );
+  expect(mock.upload).not.toHaveBeenCalled();
+});
+it('rejects a stale edit with no success response', async () => {
+  mock.result = null;
+  await expect(
+    patch({
+      action: 'edit',
+      documentId: id,
+      expectedUpdatedAt: changedAt,
+      name: 'Renamed.pdf',
+      kind: 'lease',
+    })
+  ).rejects.toMatchObject({ statusCode: 409 });
+});
+it('denies metadata changes when property membership was revoked', async () => {
+  mock.authorize.mockResolvedValue({ authorized: false });
+  await expect(
+    patch({
+      action: 'archive',
+      documentId: id,
+      expectedUpdatedAt: changedAt,
+      archived: true,
+    })
+  ).rejects.toMatchObject({ statusCode: 403 });
+  expect(mock.update).not.toHaveBeenCalled();
+});
+it('rejects path names and unexpected object-path writes', async () => {
+  await expect(
+    patch({
+      action: 'edit',
+      documentId: id,
+      expectedUpdatedAt: changedAt,
+      name: '../bad.pdf',
+      kind: 'lease',
+      object_path: 'another/file',
+    })
+  ).rejects.toMatchObject({ statusCode: 400 });
+  expect(mock.update).not.toHaveBeenCalled();
 });

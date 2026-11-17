@@ -35,10 +35,5 @@ export async function fetchCalendarAppointments(
     ascending: true,
   });
   if (error) throw new Error('Unable to load visit appointments');
-  return (data || []).filter((appointment) => {
-    const job = Array.isArray(appointment.job)
-      ? appointment.job[0]
-      : appointment.job;
-    return !job || !['completed', 'cancelled'].includes(job.status);
-  });
+  return data || [];
 }

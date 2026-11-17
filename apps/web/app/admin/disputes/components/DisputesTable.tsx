@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { theme } from '@/lib/admin-theme';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -277,6 +278,12 @@ export function DisputesTable({
                       justifyContent: 'flex-end',
                     }}
                   >
+                    <Link
+                      className='text-sm underline self-center'
+                      href={`/admin/disputes/${dispute.id}`}
+                    >
+                      View case
+                    </Link>
                     {dispute.adminHoldStatus === 'pending_review' && (
                       <Button
                         variant='ghost'
@@ -286,7 +293,7 @@ export function DisputesTable({
                         style={{ fontSize: '13px' }}
                         aria-label={`Hold dispute for ${dispute.jobTitle} for review`}
                       >
-                        <Icon name='search' size={14} /> Review
+                        <Icon name='search' size={14} /> Place on hold
                       </Button>
                     )}
                     <Button

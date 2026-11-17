@@ -1,3 +1,29 @@
+import { useSyncExternalStore } from 'react';
+const navigation = vi.hoisted(() => ({
+  query: 'tab=manage',
+  listeners: new Set<() => void>(),
+  replace: vi.fn(),
+}));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/properties/property',
+  useSearchParams: () =>
+    new URLSearchParams(
+      useSyncExternalStore(
+        (listener) => {
+          navigation.listeners.add(listener);
+          return () => navigation.listeners.delete(listener);
+        },
+        () => navigation.query
+      )
+    ),
+  useRouter: () => ({
+    replace: (url: string) => {
+      navigation.replace(url);
+      navigation.query = url.split('?')[1] ?? '';
+      navigation.listeners.forEach((fn) => fn());
+    },
+  }),
+}));
 vi.mock('@/app/properties/[id]/components/TenancyInspections', () => ({
   default: () => null,
 }));
@@ -37,6 +63,7 @@ const token = {
 };
 beforeEach(() => {
   vi.clearAllMocks();
+  navigation.query = 'tab=manage';
   vi.stubGlobal('fetch', fetchMock);
 });
 const show = () =>

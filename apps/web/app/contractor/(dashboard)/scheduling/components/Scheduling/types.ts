@@ -9,7 +9,13 @@ export interface Appointment {
   duration: string;
   location?: string;
   type: 'onsite' | 'remote' | 'phone';
-  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  status:
+    | 'scheduled'
+    | 'confirmed'
+    | 'rescheduled'
+    | 'in_progress'
+    | 'completed'
+    | 'cancelled';
   jobTitle?: string;
 }
 
@@ -24,7 +30,13 @@ export interface AppointmentApiResponse {
   duration?: string;
   location?: string;
   type?: 'onsite' | 'remote' | 'phone';
-  status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  status?:
+    | 'scheduled'
+    | 'confirmed'
+    | 'rescheduled'
+    | 'in_progress'
+    | 'completed'
+    | 'cancelled';
   jobTitle?: string;
 }
 

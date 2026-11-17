@@ -23,6 +23,7 @@ interface DisputeTimelineEntry {
 }
 
 interface Dispute {
+  dispute_record_status?: string;
   status: string;
   priority: string;
   sla_deadline?: string;
@@ -76,6 +77,9 @@ export function MintEditorialDisputeDetail({
 }: Props) {
   const mediation = useMediationRequest(disputeId, onMediationUpdated);
   const step = deriveStep(dispute);
+  const closedWithoutSettlement =
+    dispute.dispute_record_status === 'closed' &&
+    dispute.resolution?.startsWith('Closed without settlement.');
 
   // Build a canonical "Status" checklist from the timeline entries we
   // already have, padding out the four canonical states. Items past
@@ -141,7 +145,13 @@ export function MintEditorialDisputeDetail({
           </>
         ) : dispute.resolved_at ? (
           <>
-            — <em style={{ color: 'var(--me-brand)' }}>resolved</em>.
+            —{' '}
+            <em style={{ color: 'var(--me-brand)' }}>
+              {closedWithoutSettlement
+                ? 'closed without settlement'
+                : 'resolved'}
+            </em>
+            .
           </>
         ) : (
           <>opened.</>
@@ -151,11 +161,13 @@ export function MintEditorialDisputeDetail({
         className='t-body'
         style={{ marginBottom: 22, maxWidth: 600, lineHeight: 1.55 }}
       >
-        {dispute.resolved_at
-          ? 'This case is closed. Reach out if you need anything else.'
-          : isUnderReview
-            ? "Our trust team is on it. We'll message you the moment there's a decision."
-            : "Your statement is in. We'll let you know when the contractor responds or when mediation is needed."}
+        {closedWithoutSettlement
+          ? 'The case was closed without paying or refunding. The payment was kept on administrator hold; a separate payment decision is required. Check Payments for its current status.'
+          : dispute.resolved_at
+            ? 'This case is closed. Reach out if you need anything else.'
+            : isUnderReview
+              ? "Our trust team is on it. We'll message you the moment there's a decision."
+              : "Your statement is in. We'll let you know when the contractor responds or when mediation is needed."}
       </p>
 
       <StepStrip on={step} />

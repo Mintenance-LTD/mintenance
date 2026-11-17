@@ -33,6 +33,8 @@ export function summarizePayments(payments: PaymentAmountsInput[]) {
     paidTransactionCount: 0,
     inEscrowAmount: 0,
     refundedAmount: 0,
+    disputedAmount: 0,
+    releasedAmount: 0,
   };
   for (const payment of payments) {
     const amounts = paymentAmounts(payment);
@@ -44,6 +46,7 @@ export function summarizePayments(payments: PaymentAmountsInput[]) {
         'release_pending',
         'held',
         'awaiting_homeowner_approval',
+        'disputed',
       ].includes(payment.status)
     ) {
       totals.totalPaid += Math.round(amounts.remaining * 100);
@@ -56,11 +59,17 @@ export function summarizePayments(payments: PaymentAmountsInput[]) {
     ) {
       totals.inEscrowAmount += Math.round(amounts.remaining * 100);
     }
+    if (payment.status === 'disputed')
+      totals.disputedAmount += Math.round(amounts.remaining * 100);
+    if (['completed', 'released'].includes(payment.status))
+      totals.releasedAmount += Math.round(amounts.remaining * 100);
   }
   return {
     ...totals,
     totalPaid: totals.totalPaid / 100,
     inEscrowAmount: totals.inEscrowAmount / 100,
     refundedAmount: totals.refundedAmount / 100,
+    disputedAmount: totals.disputedAmount / 100,
+    releasedAmount: totals.releasedAmount / 100,
   };
 }

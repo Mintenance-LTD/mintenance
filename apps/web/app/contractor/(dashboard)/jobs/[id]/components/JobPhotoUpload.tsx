@@ -1,4 +1,5 @@
 'use client';
+import { LegacyReworkRecovery } from './LegacyReworkRecovery';
 import { useJobRework } from '@/lib/hooks/useJobRework';
 import { ReworkHistory } from '@/components/jobs/ReworkHistory';
 
@@ -319,6 +320,9 @@ export function JobPhotoUpload({
           </div>
         )}
         {/* Completed state */}
+        {isCompleted && rework.latest?.submitted_at === null && (
+          <LegacyReworkRecovery jobId={jobId} reworkId={rework.latest.id} />
+        )}
         {isCompleted && (
           <div className='flex items-center gap-2 p-3 bg-green-50 rounded-lg'>
             <CheckCircle className='h-5 w-5 text-green-600' />

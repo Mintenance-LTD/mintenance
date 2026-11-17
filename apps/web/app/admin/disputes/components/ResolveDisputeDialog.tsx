@@ -1,4 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type {
+  SettlementConfirmation,
+  SettlementPreview,
+} from '@/lib/payments/settlement-breakdown';
+import Link from 'next/link';
 import { theme } from '@/lib/admin-theme';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -17,13 +23,13 @@ import { formatCurrency, type Dispute, type Resolution } from './DisputesTable';
 interface ResolveDisputeDialogProps {
   open: boolean;
   selectedDispute: Dispute | null;
-  resolution: Resolution;
+  resolution: Resolution | '';
   resolveNotes: string;
   actionLoading: boolean;
   onOpenChange: (open: boolean) => void;
   onResolutionChange: (resolution: Resolution) => void;
   onNotesChange: (notes: string) => void;
-  onResolve: () => void;
+  onResolve: (confirmation: SettlementConfirmation) => void;
 }
 
 const RESOLUTION_OPTIONS: {
@@ -59,9 +65,64 @@ export function ResolveDisputeDialog({
   onNotesChange,
   onResolve,
 }: ResolveDisputeDialogProps) {
+  const [confirmed, setConfirmed] = useState('');
+  const preview = useQuery<SettlementPreview>({
+    queryKey: [
+      'admin',
+      'dispute-preview',
+      selectedDispute?.id,
+      selectedDispute?.homeownerId,
+      selectedDispute?.contractorId,
+      resolution,
+    ],
+    enabled: open && !!selectedDispute && !!resolution,
+    retry: false,
+    queryFn: async () => {
+      const response = await fetch(
+        '/api/admin/disputes/preview?' +
+          new URLSearchParams({
+            escrowId: selectedDispute!.id,
+            decision: resolution,
+          }),
+        { cache: 'no-store' }
+      );
+      const body = await response.json().catch(() => null);
+      if (
+        !response.ok ||
+        body?.escrowId !== selectedDispute?.id ||
+        body?.decision !== resolution ||
+        !body?.confirmation ||
+        body.confirmation.payerId !== selectedDispute?.homeownerId ||
+        body.confirmation.payeeId !== selectedDispute?.contractorId ||
+        !Number.isSafeInteger(body.payoutMinor)
+      )
+        throw new Error(
+          'Unable to verify the current settlement amounts. Reload the case before deciding.'
+        );
+      return body;
+    },
+  });
+  const confirmationKey = JSON.stringify([
+    selectedDispute?.id,
+    resolution,
+    resolveNotes,
+    preview.data,
+  ]);
+  const ready =
+    !!resolution &&
+    !!preview.data &&
+    !preview.isError &&
+    !preview.isFetching &&
+    resolveNotes.trim().length >= 5;
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+    <AlertDialog
+      open={open}
+      onOpenChange={(value) => {
+        setConfirmed('');
+        onOpenChange(value);
+      }}
+    >
+      <AlertDialogContent className='max-h-[calc(100dvh-2rem)] overflow-y-auto'>
         <AlertDialogHeader>
           <AlertDialogTitle>Resolve Dispute</AlertDialogTitle>
           <AlertDialogDescription>
@@ -75,6 +136,14 @@ export function ResolveDisputeDialog({
               </>
             )}
           </AlertDialogDescription>
+          {selectedDispute && (
+            <Link
+              className='underline'
+              href={`/admin/disputes/${selectedDispute.id}`}
+            >
+              View full case, evidence and agreement before deciding
+            </Link>
+          )}
         </AlertDialogHeader>
 
         <div
@@ -166,11 +235,14 @@ export function ResolveDisputeDialog({
               color: '#0F172A',
             }}
           >
-            Notes
+            Reason for this decision (required)
           </label>
           <Input
             disabled={actionLoading || !!selectedDispute?.resolution}
-            placeholder='Add resolution notes (optional)...'
+            id='resolution-reason'
+            aria-label='Reason for this decision'
+            maxLength={500}
+            placeholder='Explain the decision (at least 5 characters)...'
             value={resolveNotes}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               onNotesChange(e.target.value)
@@ -178,9 +250,78 @@ export function ResolveDisputeDialog({
           />
         </div>
 
+        {resolution && (
+          <section
+            aria-label='Settlement preview'
+            className='rounded-lg border p-3 space-y-2'
+          >
+            {preview.isFetching && (
+              <p role='status'>Checking current balance and fees…</p>
+            )}
+            {preview.isError && (
+              <p role='alert'>
+                Unable to verify settlement amounts.{' '}
+                <button
+                  onClick={() => {
+                    setConfirmed('');
+                    void preview.refetch();
+                  }}
+                >
+                  Retry preview
+                </button>
+              </p>
+            )}
+            {preview.data && !preview.isError && (
+              <>
+                <p>
+                  Remaining principal:{' '}
+                  <strong>
+                    {formatCurrency(preview.data.principalMinor / 100)}
+                  </strong>
+                </p>
+                <p>
+                  Refund to {selectedDispute?.homeownerName}:{' '}
+                  <strong>
+                    {formatCurrency(preview.data.refundMinor / 100)}
+                  </strong>
+                </p>
+                <p>
+                  Contractor {selectedDispute?.contractorName} receives:{' '}
+                  <strong>
+                    {formatCurrency(preview.data.payoutMinor / 100)}
+                  </strong>
+                </p>
+                <p>
+                  Platform fee from released principal:{' '}
+                  {formatCurrency(preview.data.feeMinor / 100)}
+                </p>
+                <p>
+                  Provider processing and bank arrival may take additional time.
+                </p>
+                <label className='flex gap-2'>
+                  <input
+                    type='checkbox'
+                    disabled={!ready || actionLoading}
+                    checked={ready && confirmed === confirmationKey}
+                    onChange={(event) =>
+                      setConfirmed(event.target.checked ? confirmationKey : '')
+                    }
+                  />
+                  I have reviewed the case, recipients, amounts and reason.
+                </label>
+              </>
+            )}
+          </section>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <Button onClick={onResolve} disabled={actionLoading}>
+          <Button
+            onClick={() => {
+              if (ready && confirmed === confirmationKey && preview.data)
+                onResolve(preview.data.confirmation);
+            }}
+            disabled={actionLoading || !ready || confirmed !== confirmationKey}
+          >
             {actionLoading ? (
               <Spinner size='sm' />
             ) : selectedDispute?.resolution ? (

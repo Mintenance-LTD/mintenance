@@ -289,6 +289,15 @@ describe('MeetingService', () => {
   });
 
   describe('rescheduleMeeting', () => {
+    beforeEach(() => {
+      mockedApiClient.get.mockResolvedValue({
+        appointment: createMockAppointment({
+          start_time: '09:00:00',
+          end_time: '10:30:00',
+          duration_minutes: 90,
+        }),
+      });
+    });
     it('should reschedule meeting', async () => {
       mockedApiClient.patch.mockResolvedValueOnce({
         appointment: createMockAppointment({
@@ -307,7 +316,11 @@ describe('MeetingService', () => {
 
       expect(mockedApiClient.patch).toHaveBeenCalledWith(
         '/api/contractor/appointments/meeting-123',
-        expect.objectContaining({ status: 'rescheduled' })
+        expect.objectContaining({
+          status: 'rescheduled',
+          startTime: '15:00',
+          endTime: '16:30',
+        })
       );
       expect(result.status).toBe('rescheduled');
     });

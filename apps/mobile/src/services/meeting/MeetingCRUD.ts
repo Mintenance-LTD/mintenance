@@ -1,3 +1,4 @@
+import { rescheduledVisitFields } from './rescheduledVisitFields';
 import {
   ContractorMeeting,
   MeetingUpdate,
@@ -202,22 +203,19 @@ export async function rescheduleMeeting(
   reason?: string
 ): Promise<ContractorMeeting> {
   try {
-    // appointments PATCH expects HH:MM[:SS] start/end times (audit-43
-    // P2 regex). Slice the ISO datetime back into the date + time
-    // components the schema accepts. The duration trigger keeps
-    // duration_minutes in sync on the server side.
-    const d = new Date(newDateTime);
-    const appointmentDate = d.toISOString().split('T')[0];
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    const startTime = `${hh}:${mm}`;
-    // Preserve the original duration by adding 60 min if we don't have
-    // the prior end_time on hand; the trigger will recompute regardless.
-    const endTotal = d.getHours() * 60 + d.getMinutes() + 60;
-    const endHh = String(Math.floor(endTotal / 60) % 24).padStart(2, '0');
-    const endMm = String(endTotal % 60).padStart(2, '0');
-    const endTime = `${endHh}:${endMm}`;
-
+    const current = await mobileApiClient.get<{ appointment: AppointmentRow }>(
+      `/api/contractor/appointments/${meetingId}`
+    );
+    const original = current.appointment;
+    if (!original || original.id !== meetingId || !original.end_time)
+      throw new Error('Reload this visit before rescheduling.');
+    const minutes = (time: string) =>
+      Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+    const duration = minutes(original.end_time) - minutes(original.start_time);
+    const { appointmentDate, startTime, endTime } = rescheduledVisitFields(
+      newDateTime,
+      duration
+    );
     const response = await mobileApiClient.patch<{
       appointment: AppointmentRow;
     }>(`/api/contractor/appointments/${meetingId}`, {
@@ -225,7 +223,12 @@ export async function rescheduleMeeting(
       startTime,
       endTime,
       status: 'rescheduled',
-      notes: reason || undefined,
+      rescheduleReason: reason || undefined,
+      expected: {
+        date: original.appointment_date,
+        start: original.start_time,
+        end: original.end_time,
+      },
     });
     return mapAppointmentToMeeting(response.appointment);
   } catch (error) {
