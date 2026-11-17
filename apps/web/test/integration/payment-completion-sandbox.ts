@@ -261,8 +261,8 @@ export async function verifySandboxDispute(journey: SandboxJourney) {
   assert.equal(preview.escrowId, escrow.id);
   assert.equal(preview.decision, 'refund_homeowner');
   assert.equal(preview.refundMinor, Math.round(Number(escrow.amount) * 100));
-  assert.equal(preview.confirmation.payerId, journey.owner.id);
-  assert.equal(preview.confirmation.payeeId, journey.contractor.id);
+  assert.equal(preview.confirmation.payerId, journey.ownerId);
+  assert.equal(preview.confirmation.payeeId, journey.contractorId);
   const resolution = {
     confirmation: preview.confirmation,
     escrowId: escrow.id,
