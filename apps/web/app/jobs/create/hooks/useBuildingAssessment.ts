@@ -8,6 +8,41 @@ import { clientErrorMessage } from '@/lib/errors/client-message';
 
 // Validate the fields rendered by the form before accepting an API response.
 // Retain additional evidence and identifiers for the existing submission flow.
+const safetySchema = z.union([
+  z
+    .looseObject({
+      hazards: z.array(z.looseObject({ description: z.string() })),
+      hasCriticalHazards: z.boolean(),
+      overallSafetyScore: z.number(),
+    })
+    .transform((value) => ({
+      ...value,
+      hasSafetyHazards: value.hasCriticalHazards || value.hazards.length > 0,
+      criticalFlags:
+        value.hazards.length > 0
+          ? value.hazards.map((hazard) => hazard.description)
+          : value.hasCriticalHazards
+            ? ['Critical hazards reported; professional review required.']
+            : [],
+    })),
+  z.looseObject({
+    hasSafetyHazards: z.boolean(),
+    overallSafetyScore: z.number(),
+    criticalFlags: z.array(z.string()),
+  }),
+]);
+const complianceSchema = z.union([
+  z
+    .looseObject({
+      complianceScore: z.number(),
+      complianceIssues: z.array(z.looseObject({ issue: z.string() })),
+    })
+    .transform((value) => ({
+      ...value,
+      flags: value.complianceIssues.map((issue) => issue.issue),
+    })),
+  z.looseObject({ complianceScore: z.number(), flags: z.array(z.string()) }),
+]);
 const assessmentSchema = z.looseObject({
   damageAssessment: z.looseObject({
     damageType: z.string(),
@@ -15,11 +50,7 @@ const assessmentSchema = z.looseObject({
     confidence: z.number(),
     description: z.string(),
   }),
-  safetyHazards: z.looseObject({
-    hasSafetyHazards: z.boolean(),
-    overallSafetyScore: z.number(),
-    criticalFlags: z.array(z.string()),
-  }),
+  safetyHazards: safetySchema,
   urgency: z.looseObject({ urgency: z.string(), reasoning: z.string() }),
   estimatedCost: z
     .looseObject({
@@ -28,16 +59,11 @@ const assessmentSchema = z.looseObject({
       confidence: z.number(),
     })
     .optional(),
-  compliance: z
-    .looseObject({
-      complianceScore: z.number(),
-      flags: z.array(z.string()),
-    })
-    .optional(),
+  compliance: complianceSchema.optional(),
   decisionResult: z
     .looseObject({
       decision: z.enum(['automate', 'escalate']),
-      reason: z.string(),
+      reason: z.string().default(''),
       safetyUcb: z.number().optional(),
       rewardUcb: z.number().optional(),
     })
