@@ -8,6 +8,9 @@
  * is asserted EXACTLY. Every public method and every private branch is exercised.
  */
 
+import { MarketRateCalculator } from '../MarketRateCalculator';
+import { logger } from '../../../utils/logger';
+
 jest.mock('../../../utils/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -16,9 +19,6 @@ jest.mock('../../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { MarketRateCalculator } from '../MarketRateCalculator';
-import { logger } from '../../../utils/logger';
 
 // Private-method access handles for exact-value assertions.
 type MarketContext = {

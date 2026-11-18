@@ -18,6 +18,8 @@ import { Platform } from 'react-native';
 import { SEOManager } from '../SEOManager';
 import { SEOConfig } from '../types';
 
+import { logger } from '../../logger';
+
 jest.mock('../../logger', () => ({
   logger: {
     debug: jest.fn(),
@@ -26,8 +28,6 @@ jest.mock('../../logger', () => ({
     error: jest.fn(),
   },
 }));
-
-import { logger } from '../../logger';
 
 // ---------------------------------------------------------------------------
 // Minimal DOM element + document stub

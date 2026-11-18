@@ -8,6 +8,16 @@
  * of the real source.)
  */
 
+import * as Sentry from '@sentry/react-native';
+import { setSentryFunctions, logger } from '../../utils/logger';
+import { config, isFeatureEnabled } from '../environment';
+import {
+  initSentry,
+  captureException,
+  addBreadcrumb,
+  trackUserAction,
+} from '../sentry';
+
 jest.mock('@sentry/react-native', () => ({
   __esModule: true,
   init: jest.fn(),
@@ -39,16 +49,6 @@ jest.mock('../environment', () => ({
 }));
 
 jest.unmock('../sentry');
-
-import * as Sentry from '@sentry/react-native';
-import { setSentryFunctions, logger } from '../../utils/logger';
-import { config, isFeatureEnabled } from '../environment';
-import {
-  initSentry,
-  captureException,
-  addBreadcrumb,
-  trackUserAction,
-} from '../sentry';
 
 const mockInit = Sentry.init as jest.Mock;
 const mockSetFns = setSentryFunctions as jest.Mock;

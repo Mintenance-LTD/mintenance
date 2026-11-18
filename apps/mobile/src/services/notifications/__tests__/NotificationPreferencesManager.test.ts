@@ -17,6 +17,14 @@
  * Externals mocked: mobileApiClient (get/patch), logger, sentry.
  */
 
+import {
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  shouldSendNotification,
+  getChannelId,
+} from '../NotificationPreferencesManager';
+import type { NotificationPreferences } from '../types';
+
 const mockGet = jest.fn();
 const mockPatch = jest.fn();
 const mockPost = jest.fn();
@@ -47,14 +55,6 @@ jest.mock('../../../config/sentry', () => ({
   addBreadcrumb: (...args: unknown[]) => mockAddBreadcrumb(...args),
   captureException: jest.fn(),
 }));
-
-import {
-  getNotificationPreferences,
-  updateNotificationPreferences,
-  shouldSendNotification,
-  getChannelId,
-} from '../NotificationPreferencesManager';
-import type { NotificationPreferences } from '../types';
 
 interface CanonicalPrefs {
   push_enabled: boolean;

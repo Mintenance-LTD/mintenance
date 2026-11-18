@@ -12,11 +12,11 @@ import {
   supabase,
 } from '../../config/supabase';
 
+import { mobileApiClient } from '../../utils/mobileApiClient';
+
 jest.mock('../../utils/mobileApiClient', () => ({
   mobileApiClient: { post: jest.fn() },
 }));
-
-import { mobileApiClient } from '../../utils/mobileApiClient';
 
 const mockPost = mobileApiClient.post as jest.Mock;
 

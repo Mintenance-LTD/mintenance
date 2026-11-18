@@ -1,6 +1,8 @@
 import { saveUser, getUser, getAllUsers } from '../UserStore';
 import type { DatabaseUserRow } from '../types';
 
+import { logger } from '../../../utils/logger';
+
 jest.mock('../../../utils/logger', () => ({
   logger: {
     debug: jest.fn(),
@@ -9,8 +11,6 @@ jest.mock('../../../utils/logger', () => ({
     error: jest.fn(),
   },
 }));
-
-import { logger } from '../../../utils/logger';
 
 type FakeDb = {
   runAsync: jest.Mock;

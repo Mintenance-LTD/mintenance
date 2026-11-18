@@ -1,6 +1,8 @@
 import React from 'react';
 import { render } from '../test-utils';
 
+import { HomeScreen } from '../../screens/home';
+
 // Role-router tests isolate every destination, including the admin guide.
 jest.mock('../../screens/onboarding/GettingStartedScreen', () => ({
   GettingStartedScreen: () => null,
@@ -61,8 +63,6 @@ jest.mock('../../screens/home/HomeScreenLoading', () => {
     HomeScreenLoading: () => <Text testID='home-loading'>Loading</Text>,
   };
 });
-
-import { HomeScreen } from '../../screens/home';
 
 const { useAuth } = require('../../contexts/AuthContext');
 

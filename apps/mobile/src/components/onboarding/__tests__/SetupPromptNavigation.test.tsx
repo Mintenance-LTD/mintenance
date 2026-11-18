@@ -1,10 +1,10 @@
-jest.mock('../../../design-system/theme', () => ({
-  useTheme: () => ({ colorScheme: 'light' }),
-}));
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { ServiceAreaPromptModal } from '../ServiceAreaPromptModal';
 import { IdentitySetupPromptModal } from '../IdentitySetupPromptModal';
+jest.mock('../../../design-system/theme', () => ({
+  useTheme: () => ({ colorScheme: 'light' }),
+}));
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),

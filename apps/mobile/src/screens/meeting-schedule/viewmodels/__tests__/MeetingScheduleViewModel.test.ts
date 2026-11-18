@@ -7,6 +7,8 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 
+import { useMeetingScheduleViewModel } from '../MeetingScheduleViewModel';
+
 const mockReqPerm = jest.fn();
 const mockGetPos = jest.fn();
 const mockReverseGeocode = jest.fn();
@@ -41,8 +43,6 @@ jest.mock('@/contexts/AuthContext-fallback', () => ({
   useAuth: () => mockUseAuth(),
   AuthProvider: ({ children }: { children: unknown }) => children,
 }));
-
-import { useMeetingScheduleViewModel } from '../MeetingScheduleViewModel';
 
 let alertSpy: jest.SpyInstance;
 

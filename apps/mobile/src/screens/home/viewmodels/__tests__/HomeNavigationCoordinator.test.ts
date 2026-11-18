@@ -4,12 +4,12 @@
  * render needed. haptics + navigation are injected, so we pass mocks.
  */
 
+import { HomeNavigationCoordinator } from '../HomeNavigationCoordinator';
+
 jest.mock('../../../../utils/haptics', () => ({
   __esModule: true,
   useHaptics: () => ({ light: jest.fn(), selection: jest.fn() }),
 }));
-
-import { HomeNavigationCoordinator } from '../HomeNavigationCoordinator';
 
 function setup(parent?: { navigate: jest.Mock }) {
   const navigate = jest.fn();

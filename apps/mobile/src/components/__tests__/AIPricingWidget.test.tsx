@@ -157,6 +157,21 @@ describe('AIPricingWidget Component', () => {
     ]);
   });
 
+  it('refreshes automatic pricing when location, urgency or budget changes', () => {
+    const ui = render(<AIPricingWidget jobInput={mockJobInput} autoAnalyze />);
+    expect(mockAnalyzePricing).toHaveBeenCalledTimes(1);
+    const revised = { ...mockJobInput, location: 'York', urgency: 'high' as const, homeownerBudget: 350 };
+    ui.rerender(<AIPricingWidget jobInput={revised} autoAnalyze />);
+    expect(mockAnalyzePricing).toHaveBeenLastCalledWith(revised);
+    expect(mockAnalyzePricing).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not repeat pricing for a new object containing the same values', () => {
+    const ui = render(<AIPricingWidget jobInput={{ ...mockJobInput }} autoAnalyze />);
+    ui.rerender(<AIPricingWidget jobInput={{ ...mockJobInput }} autoAnalyze />);
+    expect(mockAnalyzePricing).toHaveBeenCalledTimes(1);
+  });
+
   describe('Initial State (No Analysis)', () => {
     it('should render initial state without analysis', () => {
       const { getByText } = render(<AIPricingWidget jobInput={mockJobInput} />);

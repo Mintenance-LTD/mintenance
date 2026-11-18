@@ -10,6 +10,9 @@
 
 // ---- Mock externals (the ONLY mocks) -------------------------------------
 
+import { EmailTemplatesService } from '../EmailTemplatesService';
+import type { EmailTemplate } from '../email-templates/types';
+
 const mockGet = jest.fn();
 const mockPost = jest.fn();
 const mockPut = jest.fn();
@@ -33,9 +36,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { EmailTemplatesService } from '../EmailTemplatesService';
-import type { EmailTemplate } from '../email-templates/types';
 
 // ---- Helpers --------------------------------------------------------------
 

@@ -3,23 +3,19 @@
  * `.design-bundle/.../redesign-v2/mobile-auth.html` screen 01).
  *
  * Brand-gradient full-bleed first impression. Watermark leaf, large
- * serif-styled headline, three ranked CTAs:
+ * serif-styled headline, two ranked CTAs:
  *   1. Create account (primary, white-on-mint)
  *   2. Sign in (secondary, glass)
- *   3. Continue as guest (ghost link)
  *
  * Sits ahead of the existing role-picker (WelcomeScreen) as the new
  * AuthNavigator initial route. Returning users tap "Sign in" → Login;
  * new users tap "Create account" → Welcome (role pick) → Register.
  *
- * "Continue as guest" is a no-op placeholder — the app doesn't yet
- * have an anonymous browse mode wired, so the tile surfaces a
- * "coming soon" alert rather than dead-ending the user.
+ * Only available account journeys are advertised here.
  */
 
 import React from 'react';
 import {
-  Alert,
   Image,
   StatusBar,
   StyleSheet,
@@ -54,13 +50,6 @@ export const SplashScreen: React.FC = () => {
 
   const handleSignIn = () => {
     navigation.navigate('Login');
-  };
-
-  const handleGuest = () => {
-    Alert.alert(
-      'Continue as guest',
-      'Guest browsing is coming soon. For now, create a free account to post jobs or sign in to your existing one.'
-    );
   };
 
   return (
@@ -131,16 +120,6 @@ export const SplashScreen: React.FC = () => {
               <Text style={styles.secondaryBtnText}>Sign in</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.guestBtn}
-              onPress={handleGuest}
-              activeOpacity={0.7}
-              accessibilityRole='button'
-              accessibilityLabel='Continue as guest'
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              <Text style={styles.guestBtnText}>Continue as guest →</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </SafeAreaView>
@@ -234,13 +213,5 @@ const styles = StyleSheet.create({
     color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
-  },
-  guestBtn: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  guestBtnText: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 13,
   },
 });

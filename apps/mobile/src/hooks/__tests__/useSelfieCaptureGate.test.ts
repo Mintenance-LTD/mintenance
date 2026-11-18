@@ -6,6 +6,8 @@
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
+import { useSelfieCaptureGate } from '../useSelfieCaptureGate';
+
 const mockGetItem = jest.fn();
 const mockSetItem = jest.fn();
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -40,8 +42,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { useSelfieCaptureGate } from '../useSelfieCaptureGate';
 
 const STORAGE_KEY = 'selfie_capture_prompt_dismissed_at:u1';
 const onboardedContractor = {

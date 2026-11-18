@@ -3,6 +3,9 @@ import { Alert } from 'react-native';
 import { render, fireEvent, waitFor, act } from '../../__tests__/test-utils';
 import { theme } from '../../theme';
 
+import ProductionMonitoringDashboard from '../ProductionMonitoringDashboard';
+import { logger } from '../../utils/logger';
+
 // ---- Mock externals only (never the component under test) ----
 
 const mockGetCompleteStatus = jest.fn();
@@ -40,9 +43,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import ProductionMonitoringDashboard from '../ProductionMonitoringDashboard';
-import { logger } from '../../utils/logger';
 
 /** Flatten an element's style array and return the resolved `color`. */
 function colorOf(element: { props: { style?: unknown } }): string | undefined {

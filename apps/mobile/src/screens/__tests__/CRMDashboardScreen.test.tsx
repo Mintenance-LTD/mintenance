@@ -4,6 +4,8 @@ import { render, waitFor, fireEvent } from '../../__tests__/test-utils';
 import { CRMDashboardScreen } from '../CRMDashboardScreen';
 import type { DerivedClient } from '../CRMDashboardData';
 
+import { logger } from '../../utils/logger';
+
 // ---- External mocks (never the screen under test) ----
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -120,8 +122,6 @@ jest.mock('@expo/vector-icons', () => {
       React.createElement(Text, null, name),
   };
 });
-
-import { logger } from '../../utils/logger';
 
 // ---- Fixtures ----
 

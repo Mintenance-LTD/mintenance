@@ -11,6 +11,8 @@ import type {
   PerformanceEvent,
 } from '../types';
 
+import { logger } from '../../logger';
+
 // --- Mock externals only ---------------------------------------------------
 
 jest.mock('../../logger', () => ({
@@ -33,8 +35,6 @@ jest.mock('../../memoryManager', () => ({
     return mockMemoryManagerImpl;
   },
 }));
-
-import { logger } from '../../logger';
 
 // --- Helpers ---------------------------------------------------------------
 

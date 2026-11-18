@@ -7,7 +7,7 @@
 
 import React, { useEffect, useCallback } from 'react';
 import { NotificationService } from './NotificationService';
-import type { NotificationData } from './notifications/types';
+
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import {

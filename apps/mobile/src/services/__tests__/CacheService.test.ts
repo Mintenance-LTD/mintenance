@@ -8,6 +8,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Import after the mock is registered.
+
+import { CacheService } from '../CacheService';
+
 // Isolate the performance util so mockRecordMetric calls are inert + assertable.
 const mockRecordMetric = jest.fn();
 jest.mock('../../utils/performance', () => ({
@@ -15,10 +19,6 @@ jest.mock('../../utils/performance', () => ({
     recordMetric: (...a: unknown[]) => mockRecordMetric(...a),
   },
 }));
-
-// Import after the mock is registered.
-
-import { CacheService } from '../CacheService';
 
 const CACHE_PREFIX = '@mintenance_cache:';
 

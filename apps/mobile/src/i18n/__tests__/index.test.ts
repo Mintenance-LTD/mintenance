@@ -25,6 +25,9 @@
 // `let`s is NOT allowed, so we attach to globalThis instead).
 // ---------------------------------------------------------------------------
 
+// Import once (module init runs here). Helpers read live i18n.language.
+import * as i18nModule from '../index';
+
 interface FakeI18n {
   language: string;
   use: jest.Mock;
@@ -124,9 +127,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 const STORAGE_KEY = 'user_language_preference';
 
 const getFake = (): FakeI18n => (globalThis as any).__fakeI18n;
-
-// Import once (module init runs here). Helpers read live i18n.language.
-import * as i18nModule from '../index';
 
 beforeEach(() => {
   jest.clearAllMocks();

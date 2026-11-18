@@ -2,7 +2,7 @@
  * Tests for Data Validation Utilities
  */
 
-import {
+import DefaultSchemas, {
   ValidationError,
   validateRequired,
   validateStringLength,
@@ -23,7 +23,7 @@ import {
   sanitizeNumber,
   ValidationSchemas,
 } from '../validation';
-import DefaultSchemas from '../validation';
+
 
 describe('ValidationError', () => {
   it('should create error with field and value', () => {

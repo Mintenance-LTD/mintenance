@@ -9,6 +9,12 @@
  * (e) never break app start.
  */
 
+import {
+  drainLegacySqliteQueue,
+  __resetLegacyDrainForTests,
+} from '../LegacyQueueDrain';
+import { logger } from '../../../utils/logger';
+
 const mockLocalDatabase = {
   init: jest.fn(),
   getOfflineActions: jest.fn(),
@@ -37,12 +43,6 @@ jest.mock('../../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import {
-  drainLegacySqliteQueue,
-  __resetLegacyDrainForTests,
-} from '../LegacyQueueDrain';
-import { logger } from '../../../utils/logger';
 
 const USER = 'user-1';
 

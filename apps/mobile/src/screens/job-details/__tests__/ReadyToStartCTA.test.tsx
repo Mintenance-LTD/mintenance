@@ -7,6 +7,8 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 
+import { ReadyToStartCTA } from '../ReadyToStartCTA';
+
 const mockStartJob = jest.fn();
 jest.mock('../../../services/JobService', () => ({
   __esModule: true,
@@ -46,8 +48,6 @@ jest.mock('../../../components/ui/StickyBottomCTA', () => {
       ),
   };
 });
-
-import { ReadyToStartCTA } from '../ReadyToStartCTA';
 
 let alertSpy: jest.SpyInstance;
 

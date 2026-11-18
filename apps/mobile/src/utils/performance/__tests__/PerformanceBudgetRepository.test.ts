@@ -21,6 +21,13 @@
  *     each of the 4 recommendation thresholds, critical-alert threshold)
  */
 
+import { PerformanceBudgetRepository } from '../PerformanceBudgetRepository';
+import type {
+  PerformanceMetrics,
+  PerformanceAlert,
+  PerformanceBudget,
+} from '../types';
+
 jest.mock('../../logger', () => ({
   logger: {
     debug: jest.fn(),
@@ -30,19 +37,12 @@ jest.mock('../../logger', () => ({
   },
 }));
 
-import { PerformanceBudgetRepository } from '../PerformanceBudgetRepository';
-
 const loggerMock = require('../../logger').logger as {
   debug: jest.Mock;
   info: jest.Mock;
   warn: jest.Mock;
   error: jest.Mock;
 };
-import type {
-  PerformanceMetrics,
-  PerformanceAlert,
-  PerformanceBudget,
-} from '../types';
 
 const NOW = 1_700_000_000_000;
 

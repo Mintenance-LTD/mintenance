@@ -13,6 +13,9 @@
 // returns supabase.auth.getSession()'s session. Assertions below match the
 // current implementation.
 
+import { supabase } from '../../../config/supabase';
+import { AuthService } from '../../../services/AuthService';
+
 jest.mock('../../../config/supabase', () => ({
   supabase: {
     auth: {
@@ -26,9 +29,6 @@ jest.mock('../../../config/supabase', () => ({
     },
   },
 }));
-
-import { supabase } from '../../../config/supabase';
-import { AuthService } from '../../../services/AuthService';
 
 const mockAuth = supabase.auth as unknown as {
   getSession: jest.Mock;

@@ -7,6 +7,15 @@
 
 import React from 'react';
 
+// Import after mocks are registered.
+import {
+  errorMonitoring,
+  withErrorMonitoring,
+  useErrorReporting,
+  ErrorReport,
+} from '../errorMonitoring';
+import { logger } from '../logger';
+
 // ---- Mock externals BEFORE importing the unit under test ----
 
 jest.mock('../logger', () => ({
@@ -39,15 +48,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
     setItem: (key: string, value: string) => mockSetItem(key, value),
   },
 }));
-
-// Import after mocks are registered.
-import {
-  errorMonitoring,
-  withErrorMonitoring,
-  useErrorReporting,
-  ErrorReport,
-} from '../errorMonitoring';
-import { logger } from '../logger';
 
 const mockedLogger = logger as jest.Mocked<typeof logger>;
 

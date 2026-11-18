@@ -2,11 +2,6 @@
  * ImageCompressionService — thin facade over the image/ subdirectory modules.
  * All implementation lives in image/*.ts; this file is the public API surface.
  */
-export type {
-  CompressionResult,
-  BatchCompressionResult,
-  ProgressCallback,
-} from './image/types';
 import {
   compress,
   compressBatch,
@@ -18,6 +13,11 @@ import {
   generateThumbnail,
   generateMultipleThumbnails,
 } from './image/ThumbnailGenerator';
+export type {
+  CompressionResult,
+  BatchCompressionResult,
+  ProgressCallback,
+} from './image/types';
 
 class ImageCompressionService {
   static compress = compress;

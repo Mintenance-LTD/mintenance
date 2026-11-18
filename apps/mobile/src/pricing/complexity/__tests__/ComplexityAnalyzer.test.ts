@@ -6,6 +6,9 @@
  * outputs for inputs that exercise every method and branch.
  */
 
+import { ComplexityAnalyzer, complexityAnalyzer } from '../ComplexityAnalyzer';
+import { logger } from '../../../utils/logger';
+
 jest.mock('../../../utils/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -14,9 +17,6 @@ jest.mock('../../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { ComplexityAnalyzer, complexityAnalyzer } from '../ComplexityAnalyzer';
-import { logger } from '../../../utils/logger';
 
 // Helper handles to access private methods with exact-value assertions.
 type AnyAnalyzer = ComplexityAnalyzer & {

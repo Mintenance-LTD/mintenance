@@ -15,6 +15,8 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 
+import { BidReviewCard } from '../BidReviewCard';
+
 const mockNavigate = jest.fn();
 const mockParentNavigate = jest.fn();
 /** Flipped per-test to exercise the card's no-parent fallback path. */
@@ -27,8 +29,6 @@ jest.mock('@react-navigation/native', () => ({
       mockHasParentNavigator ? { navigate: mockParentNavigate } : undefined,
   }),
 }));
-
-import { BidReviewCard } from '../BidReviewCard';
 
 const BID = {
   id: 'bid-1',

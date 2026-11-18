@@ -14,6 +14,16 @@ import type {
   SecurityVulnerability,
 } from '../../types';
 
+import { logger } from '../../../logger';
+import { ComplianceManager } from '../../managers/ComplianceManager';
+import { RecommendationEngine } from '../../managers/RecommendationEngine';
+import { AuditSummaryCalculator } from '../../managers/AuditSummaryCalculator';
+import { SqlInjectionTestSuite } from '../../testSuites/SqlInjectionTests';
+import { XssTestSuite } from '../../testSuites/XssTests';
+import { AuthenticationTestSuite } from '../../testSuites/AuthenticationTests';
+import { AuthorizationTestSuite } from '../../testSuites/AuthorizationTests';
+import { SecurityAuditService } from '../SecurityAuditService';
+
 // ---- logger mock -----------------------------------------------------------
 jest.mock('../../../logger', () => ({
   logger: {
@@ -82,16 +92,6 @@ jest.mock('../../testSuites/AuthorizationTests', () => ({
     createResourceAccessTest: jest.fn(),
   },
 }));
-
-import { logger } from '../../../logger';
-import { ComplianceManager } from '../../managers/ComplianceManager';
-import { RecommendationEngine } from '../../managers/RecommendationEngine';
-import { AuditSummaryCalculator } from '../../managers/AuditSummaryCalculator';
-import { SqlInjectionTestSuite } from '../../testSuites/SqlInjectionTests';
-import { XssTestSuite } from '../../testSuites/XssTests';
-import { AuthenticationTestSuite } from '../../testSuites/AuthenticationTests';
-import { AuthorizationTestSuite } from '../../testSuites/AuthorizationTests';
-import { SecurityAuditService } from '../SecurityAuditService';
 
 // ---- helpers ---------------------------------------------------------------
 

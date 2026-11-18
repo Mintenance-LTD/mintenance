@@ -1,10 +1,10 @@
-jest.mock('../../../design-system/theme', () => ({
-  useTheme: () => ({ colorScheme: 'light' }),
-}));
-
 import React from 'react';
 import { render, fireEvent } from '../../test-utils';
 import { ProfileCompletionCard } from '../ProfileCompletionCard';
+
+jest.mock('../../../design-system/theme', () => ({
+  useTheme: () => ({ colorScheme: 'light' }),
+}));
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,

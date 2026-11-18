@@ -13,6 +13,9 @@
  * `test` to exercise the non-simple-mode conversion + topic-name branches.
  */
 
+import { RealtimeService } from '../RealtimeService';
+import { logger } from '../../utils/logger';
+
 jest.mock('../../utils/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -126,9 +129,6 @@ jest.mock('../../config/supabase', () => ({
     getChannels: () => mockGetChannels(),
   },
 }));
-
-import { RealtimeService } from '../RealtimeService';
-import { logger } from '../../utils/logger';
 
 const mockedLogger = logger as unknown as {
   info: jest.Mock;

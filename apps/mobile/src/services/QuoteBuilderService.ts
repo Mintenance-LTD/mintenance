@@ -2,13 +2,6 @@
  * QuoteBuilderService — thin facade over the quotes/ subdirectory modules.
  * All implementation lives in quotes/*.ts; this file is the public API surface.
  */
-export type {
-  QuoteTemplate,
-  ContractorQuote,
-  CreateQuoteData,
-  QuoteSummaryStats,
-} from './quotes/types';
-
 import {
   createQuoteTemplate,
   getQuoteTemplates,
@@ -38,6 +31,13 @@ import {
   getQuoteRevisions,
   createQuoteRevision,
 } from './quotes/QuoteRevisions';
+
+export type {
+  QuoteTemplate,
+  ContractorQuote,
+  CreateQuoteData,
+  QuoteSummaryStats,
+} from './quotes/types';
 
 export class QuoteBuilderService {
   // Template methods

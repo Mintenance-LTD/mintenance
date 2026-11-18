@@ -8,6 +8,12 @@
  * replaced a broken upsert on the partial unique index).
  */
 
+import * as TaskManager from 'expo-task-manager';
+import {
+  BackgroundLocationTask,
+  BACKGROUND_LOCATION_TASK,
+} from '../BackgroundLocationTask';
+
 const mockGetBackgroundPermissionsAsync = jest.fn();
 const mockRequestBackgroundPermissionsAsync = jest.fn();
 const mockHasStarted = jest.fn();
@@ -73,12 +79,6 @@ jest.mock('../../config/supabase', () => {
     },
   };
 });
-
-import * as TaskManager from 'expo-task-manager';
-import {
-  BackgroundLocationTask,
-  BACKGROUND_LOCATION_TASK,
-} from '../BackgroundLocationTask';
 
 // The module registers its task at load — pull the executor it handed to
 // TaskManager.defineTask so we can drive it directly.

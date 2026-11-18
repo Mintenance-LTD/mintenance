@@ -1,5 +1,9 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { useAuth } from '../../../contexts/AuthContext';
+import { JobService } from '../../../services/JobService';
+
+import JobsScreen from '../JobsScreen';
 
 // ---------------------------------------------------------------------------
 // Mock ONLY externals — never the screen under test.
@@ -100,7 +104,6 @@ jest.mock('@expo/vector-icons', () => ({
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
-import { useAuth } from '../../../contexts/AuthContext';
 
 // JobService — main data source.
 jest.mock('../../../services/JobService', () => ({
@@ -109,7 +112,6 @@ jest.mock('../../../services/JobService', () => ({
     getJobsByUser: jest.fn(),
   },
 }));
-import { JobService } from '../../../services/JobService';
 
 // BidService — dynamically imported by the bid-pending query.
 const mockGetBidsByContractor = jest.fn();
@@ -409,8 +411,6 @@ jest.mock('../../../lib/queryClient', () => ({
     },
   },
 }));
-
-import JobsScreen from '../JobsScreen';
 
 const HOMEOWNER = { id: 'ho-1', role: 'homeowner', email: 'h@x.com' };
 const CONTRACTOR = { id: 'co-1', role: 'contractor', email: 'c@x.com' };

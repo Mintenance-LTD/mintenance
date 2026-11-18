@@ -6,6 +6,8 @@
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
+import { useBackgroundCheckGate } from '../useBackgroundCheckGate';
+
 const mockGetItem = jest.fn();
 const mockSetItem = jest.fn();
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -40,8 +42,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { useBackgroundCheckGate } from '../useBackgroundCheckGate';
 
 const STORAGE_KEY = 'background_check_prompt_dismissed_at:u1';
 const onboardedContractor = {

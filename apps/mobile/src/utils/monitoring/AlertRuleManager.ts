@@ -1,8 +1,8 @@
 import { logger } from '../logger';
 import { performanceMonitor } from '../performanceMonitor';
 import { dispatchAlert } from './alertDispatchers';
-import type { AlertRule, Alert, AlertChannel, SystemHealth } from './types';
-import type { HealthCheck } from './types';
+import type { AlertRule, Alert, AlertChannel, SystemHealth , HealthCheck } from './types';
+
 
 export class AlertRuleManager {
   private alertRules = new Map<string, AlertRule>();

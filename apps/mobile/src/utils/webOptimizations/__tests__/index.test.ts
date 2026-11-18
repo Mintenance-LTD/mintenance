@@ -20,6 +20,14 @@
 
 import { Platform } from 'react-native';
 
+import { WebOptimizationsManager } from '../index';
+import { logger } from '../../logger';
+import { PWAManager } from '../PWAManager';
+import { SEOManager } from '../SEOManager';
+import { PerformanceTracker } from '../PerformanceTracker';
+import { ImageOptimizer } from '../ImageOptimizer';
+import { AccessibilityManager } from '../AccessibilityManager';
+
 // ---------------------------------------------------------------------------
 // External mocks (logger + the five sub-managers)
 // ---------------------------------------------------------------------------
@@ -86,14 +94,6 @@ jest.mock('../ImageOptimizer', () => ({
 jest.mock('../AccessibilityManager', () => ({
   AccessibilityManager: jest.fn().mockImplementation(() => mockA11yInstance),
 }));
-
-import { WebOptimizationsManager } from '../index';
-import { logger } from '../../logger';
-import { PWAManager } from '../PWAManager';
-import { SEOManager } from '../SEOManager';
-import { PerformanceTracker } from '../PerformanceTracker';
-import { ImageOptimizer } from '../ImageOptimizer';
-import { AccessibilityManager } from '../AccessibilityManager';
 
 const PWAManagerMock = PWAManager as unknown as jest.Mock;
 const SEOManagerMock = SEOManager as unknown as jest.Mock;

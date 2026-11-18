@@ -73,7 +73,7 @@ export default function MFAVerificationScreen() {
     if (biometricAvailable && !biometricVerified) {
       promptBiometric();
     }
-  }, [biometricAvailable]);
+  }, [biometricAvailable, biometricVerified]);
 
   const checkBiometricAvailability = async () => {
     try {

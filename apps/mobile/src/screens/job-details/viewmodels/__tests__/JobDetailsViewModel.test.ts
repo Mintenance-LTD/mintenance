@@ -7,6 +7,8 @@
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
+import { useJobDetailsViewModel } from '../JobDetailsViewModel';
+
 const mockGet = jest.fn();
 jest.mock('@/utils/mobileApiClient', () => ({
   mobileApiClient: { get: (...a: unknown[]) => mockGet(...a) },
@@ -42,8 +44,6 @@ jest.mock('@/contexts/AuthContext-fallback', () => ({
   useAuth: () => mockUseAuth(),
   AuthProvider: ({ children }: { children: unknown }) => children,
 }));
-
-import { useJobDetailsViewModel } from '../JobDetailsViewModel';
 
 const mockRefetch = jest.fn();
 

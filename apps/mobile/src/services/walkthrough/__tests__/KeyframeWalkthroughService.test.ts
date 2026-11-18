@@ -6,6 +6,14 @@
  * Here we pin down the deterministic frame-planning maths. The module's native
  * / network deps are mocked only so the file imports cleanly.
  */
+import {
+  frameTimestampsMs,
+  frameCountForDuration,
+  MIN_WALKTHROUGH_FRAMES,
+  MAX_WALKTHROUGH_FRAMES,
+  type WalkthroughRunResult,
+} from '../KeyframeWalkthroughService';
+
 jest.mock('expo-video-thumbnails', () => ({ getThumbnailAsync: jest.fn() }));
 jest.mock('../../../config/supabase', () => ({ supabase: { storage: {} } }));
 jest.mock('../../../utils/mobileApiClient', () => ({
@@ -14,14 +22,6 @@ jest.mock('../../../utils/mobileApiClient', () => ({
 jest.mock('@mintenance/shared', () => ({
   logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));
-
-import {
-  frameTimestampsMs,
-  frameCountForDuration,
-  MIN_WALKTHROUGH_FRAMES,
-  MAX_WALKTHROUGH_FRAMES,
-  type WalkthroughRunResult,
-} from '../KeyframeWalkthroughService';
 
 /**
  * Regression: the walkthrough route responds with the merged survey spread at

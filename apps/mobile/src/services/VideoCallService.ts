@@ -2,13 +2,6 @@
  * VideoCallService — thin facade over the video/ subdirectory modules.
  * All implementation lives in video/*.ts; this file is the public API surface.
  */
-export type {
-  VideoCall,
-  CallParticipant,
-  CallSession,
-  CallStatistics,
-} from './video/types';
-
 import {
   scheduleCall,
   startInstantCall,
@@ -28,6 +21,13 @@ import {
   getCallStatistics,
   getCallHistory,
 } from './video/CallRecordingService';
+
+export type {
+  VideoCall,
+  CallParticipant,
+  CallSession,
+  CallStatistics,
+} from './video/types';
 
 export class VideoCallService {
   static scheduleCall = scheduleCall;

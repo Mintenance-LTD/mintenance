@@ -1,4 +1,5 @@
 import type { Property } from '@mintenance/types';
+import { me } from '../../../design-system/mint-editorial';
 
 export const JOB_CATEGORIES = [
   { id: 'plumbing', label: 'Plumbing', icon: 'water-outline' as const },
@@ -14,7 +15,6 @@ export const JOB_CATEGORIES = [
     icon: 'construct-outline' as const,
   },
 ] as const;
-import { me } from '../../../design-system/mint-editorial';
 
 export const URGENCY_OPTIONS = [
   { value: 'today', label: 'Today', color: me.errBg, textColor: me.errFg },

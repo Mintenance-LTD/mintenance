@@ -5,6 +5,8 @@
  * only because the module re-exports ServiceAreasGeo (which pulls supabase
  * transitively); the helpers under test touch none of it.
  */
+import { ServiceAreasService, type ServiceArea } from '../ServiceAreasService';
+
 jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
@@ -25,8 +27,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { ServiceAreasService, type ServiceArea } from '../ServiceAreasService';
 
 const validRadius: Partial<ServiceArea> = {
   area_name: 'North London',

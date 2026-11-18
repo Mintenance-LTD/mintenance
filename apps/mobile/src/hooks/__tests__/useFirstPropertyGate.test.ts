@@ -5,6 +5,8 @@
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
+import { useFirstPropertyGate } from '../useFirstPropertyGate';
+
 const mockGetItem = jest.fn();
 const mockSetItem = jest.fn();
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -38,8 +40,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { useFirstPropertyGate } from '../useFirstPropertyGate';
 
 const STORAGE_KEY = 'first_property_prompt_dismissed_at:u1';
 const onboardedHomeowner = {

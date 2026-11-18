@@ -15,6 +15,12 @@
 
 // ---- Mocks (inlined factories; refs grabbed via requireMock below) ----
 
+// Import AFTER mocks. Default export is the singleton instance.
+import aiService from '../UnifiedAIServiceMobile';
+import AsyncStorageDefault from '@react-native-async-storage/async-storage';
+import { logger } from '@mintenance/shared';
+import { buildFallbackAssessment } from '../aiFallbacks';
+
 jest.mock('@mintenance/ai-core', () => ({
   UnifiedAIService: jest.fn().mockImplementation(function (cfg: unknown) {
     // Expose the config the singleton was constructed with for assertions.
@@ -60,12 +66,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
     removeItem: jest.fn(),
   },
 }));
-
-// Import AFTER mocks. Default export is the singleton instance.
-import aiService from '../UnifiedAIServiceMobile';
-import AsyncStorageDefault from '@react-native-async-storage/async-storage';
-import { logger } from '@mintenance/shared';
-import { buildFallbackAssessment } from '../aiFallbacks';
 
 // Resolve mock references.
 const mockAsyncStorage = AsyncStorageDefault as unknown as {

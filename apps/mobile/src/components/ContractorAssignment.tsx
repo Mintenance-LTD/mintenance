@@ -15,6 +15,9 @@ import { useNavigation } from '@react-navigation/native';
 import type { Job } from '@mintenance/types';
 import type { Bid } from '../services/BidService';
 import { useJobBids, useAcceptBid } from '../hooks/useJobs';
+import { useAuth } from '../contexts/AuthContext';
+import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 const contractorDisplayName = (bid: Bid): string => {
   const c = bid.contractor;
@@ -22,9 +25,6 @@ const contractorDisplayName = (bid: Bid): string => {
   const full = `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim();
   return full || c.company_name || 'Anonymous Contractor';
 };
-import { useAuth } from '../contexts/AuthContext';
-import { logger } from '../utils/logger';
-import { theme } from '../theme';
 
 interface ContractorAssignmentProps {
   job: Job;

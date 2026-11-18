@@ -12,6 +12,16 @@
  * never weakening token/expiry security checks.
  */
 
+import * as SecureStore from 'expo-secure-store';
+import { logger } from '../../utils/logger';
+import {
+  isTokenExpiredOrExpiring,
+  saveSessionToSecureStore,
+  loadSessionFromSecureStore,
+  clearSessionFromSecureStore,
+  clearAppCachesOnLogout,
+} from '../auth-session-manager';
+
 jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(),
   getItemAsync: jest.fn(),
@@ -40,16 +50,6 @@ jest.mock(
   () => ({ OfflineManager: { clearQueue: mockOfflineClearQueue } }),
   { virtual: true }
 );
-
-import * as SecureStore from 'expo-secure-store';
-import { logger } from '../../utils/logger';
-import {
-  isTokenExpiredOrExpiring,
-  saveSessionToSecureStore,
-  loadSessionFromSecureStore,
-  clearSessionFromSecureStore,
-  clearAppCachesOnLogout,
-} from '../auth-session-manager';
 
 const mockedSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
 

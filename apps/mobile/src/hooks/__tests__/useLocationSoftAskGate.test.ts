@@ -6,6 +6,8 @@
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
+import { useLocationSoftAskGate } from '../useLocationSoftAskGate';
+
 const mockGetItem = jest.fn();
 const mockSetItem = jest.fn();
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -45,8 +47,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { useLocationSoftAskGate } from '../useLocationSoftAskGate';
 
 const STORAGE_KEY = 'location_soft_ask_dismissed_at:u1';
 const onboardedContractor = {

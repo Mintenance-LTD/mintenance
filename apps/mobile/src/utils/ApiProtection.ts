@@ -3,6 +3,8 @@
  * Re-exports all public API from sub-modules. No consumer import changes needed.
  */
 
+import { apiProtectionService as apiProtectionServiceDefault } from './api-protection/ApiProtectionService';
+
 export type {
   ApiRequest,
   ApiResponse,
@@ -12,5 +14,3 @@ export {
   ApiProtectionService,
   apiProtectionService,
 } from './api-protection/ApiProtectionService';
-
-import { apiProtectionService as apiProtectionServiceDefault } from './api-protection/ApiProtectionService';

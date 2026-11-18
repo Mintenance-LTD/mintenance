@@ -5,6 +5,10 @@
  * Facade — all implementation lives in utils/monitoring/
  */
 
+import { MonitoringAndAlerting } from './monitoring/MonitoringAndAlerting';
+import { performanceMonitor } from './performanceMonitor';
+import { logger } from './logger';
+import type { SystemHealth, Alert } from './monitoring/types';
 export type {
   HealthCheck,
   HealthStatus,
@@ -13,10 +17,6 @@ export type {
   Alert,
 } from './monitoring/types';
 export { MonitoringAndAlerting } from './monitoring/MonitoringAndAlerting';
-import { MonitoringAndAlerting } from './monitoring/MonitoringAndAlerting';
-import { performanceMonitor } from './performanceMonitor';
-import { logger } from './logger';
-import type { SystemHealth, Alert } from './monitoring/types';
 
 // Singleton instance
 export const monitoringAndAlerting = MonitoringAndAlerting.getInstance();

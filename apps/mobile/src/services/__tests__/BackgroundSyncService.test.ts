@@ -11,6 +11,9 @@
  * pending-actions branches.
  */
 
+import * as TaskManager from 'expo-task-manager';
+import { BackgroundSyncService } from '../BackgroundSyncService';
+
 const mockGetStatusAsync = jest.fn();
 const mockRegisterTaskAsync = jest.fn();
 const mockUnregisterTaskAsync = jest.fn();
@@ -58,9 +61,6 @@ jest.mock('../OfflineManager', () => ({
     syncQueue: (...a: unknown[]) => mockSyncQueue(...a),
   },
 }));
-
-import * as TaskManager from 'expo-task-manager';
-import { BackgroundSyncService } from '../BackgroundSyncService';
 
 type TaskExecutor = () => Promise<number>;
 

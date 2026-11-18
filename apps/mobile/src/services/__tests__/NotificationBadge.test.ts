@@ -26,6 +26,12 @@
 
 // Mock all native + side-effect dependencies BEFORE importing the SUT
 // so the static class methods don't blow up on import.
+import * as Notifications from 'expo-notifications';
+import { supabase } from '../../config/supabase';
+import * as notificationCrud from '../notifications/NotificationCRUD';
+import { logger } from '../../utils/logger';
+import { NotificationService } from '../NotificationService';
+
 jest.mock('expo-notifications', () => ({
   setBadgeCountAsync: jest.fn(() => Promise.resolve()),
   setNotificationHandler: jest.fn(),
@@ -102,12 +108,6 @@ jest.mock('../notifications/NotificationPushSender', () => ({
   sendPushNotification: jest.fn(() => Promise.resolve()),
   sendBulkNotification: jest.fn(() => Promise.resolve()),
 }));
-
-import * as Notifications from 'expo-notifications';
-import { supabase } from '../../config/supabase';
-import * as notificationCrud from '../notifications/NotificationCRUD';
-import { logger } from '../../utils/logger';
-import { NotificationService } from '../NotificationService';
 
 describe('NotificationService — badge count', () => {
   beforeEach(() => {

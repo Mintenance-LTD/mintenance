@@ -1,5 +1,8 @@
 import { renderHook, act } from '@testing-library/react-native';
 
+// Import AFTER mocks are registered.
+import { useI18n } from '../useI18n';
+
 // ---------------------------------------------------------------------------
 // Mock externals ONLY. The unit under test (useI18n) is never mocked.
 // ---------------------------------------------------------------------------
@@ -96,9 +99,6 @@ jest.mock('react-native', () => ({
     forceRTL: (...a: unknown[]) => mockForceRTL(...a),
   },
 }));
-
-// Import AFTER mocks are registered.
-import { useI18n } from '../useI18n';
 
 const { I18nManager } = require('react-native');
 

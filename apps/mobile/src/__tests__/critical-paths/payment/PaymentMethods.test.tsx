@@ -1,8 +1,8 @@
 import React from 'react';
-import { fireEvent, render, waitFor } from '../../test-utils';
+import { fireEvent, render, waitFor , createMockNavigation } from '../../test-utils';
 import { PaymentMethodsScreen } from '../../../screens/payment-methods';
 import { PaymentService } from '../../../services/PaymentService';
-import { createMockNavigation } from '../../test-utils';
+
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
