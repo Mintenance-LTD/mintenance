@@ -159,3 +159,22 @@ test('the fixture can accept an explicitly active exception without changing pro
   assert.deepEqual(result.failedLevelsFound, []);
   assert.ok(result.allowlistedPathsFound.includes(leaf));
 });
+
+test('the withdrawn picomatch advisory has a short, exact exception', async (t) => {
+  const id = 'GHSA-fc5q-39xc-vjpf';
+  const entry = policy.allowlist.find(value => Object.hasOwn(value, id));
+  assert.equal(entry[id].expiry, '2026-11-21T00:00:00Z');
+  assert.match(entry[id].notes, /Withdrawn by GitHub/);
+  const result = await audit(t, { id, name: 'picomatch', effect: 'metro' });
+  assert.deepEqual(result.failedLevelsFound, []);
+  for (const change of [{ expiry: '2000-01-01' }, { active: false }]) {
+    const config = { ...policy, allowlist: [{ [id]: { ...entry[id], ...change } }] };
+    await assert.rejects(audit(t, { config, id, name: 'picomatch', effect: 'metro' }), /Failed security audit/);
+  }
+});
+
+test('another advisory on picomatch still blocks, including transitive consumers', async (t) => {
+  for (const effect of [undefined, 'metro']) {
+    await assert.rejects(audit(t, { id: 'GHSA-2222-3333-4444', name: 'picomatch', effect }), /Failed security audit/);
+  }
+});
