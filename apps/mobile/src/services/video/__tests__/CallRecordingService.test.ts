@@ -10,6 +10,16 @@
 
 // ---- External mocks -------------------------------------------------------
 
+import { supabase } from '../../../config/supabase';
+import { logger } from '../../../utils/logger';
+import { transformVideoCallData } from '../VideoCallHelpers';
+import {
+  getCallHistory,
+  startRecording,
+  stopRecording,
+  getCallStatistics,
+} from '../CallRecordingService';
+
 jest.mock('../../../utils/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -69,16 +79,6 @@ jest.mock('../../../config/supabase', () => {
     },
   };
 });
-
-import { supabase } from '../../../config/supabase';
-import { logger } from '../../../utils/logger';
-import { transformVideoCallData } from '../VideoCallHelpers';
-import {
-  getCallHistory,
-  startRecording,
-  stopRecording,
-  getCallStatistics,
-} from '../CallRecordingService';
 
 const mockedFrom = supabase.from as jest.Mock;
 

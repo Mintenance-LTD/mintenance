@@ -26,6 +26,9 @@
 
 import type { Job } from '@mintenance/types';
 
+import { analyzeWithOpenAI } from '../openai-provider';
+import { logger } from '../../../utils/logger';
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -53,9 +56,6 @@ jest.mock('../../../config/ai.config', () => ({
     },
   },
 }));
-
-import { analyzeWithOpenAI } from '../openai-provider';
-import { logger } from '../../../utils/logger';
 
 // ---------------------------------------------------------------------------
 // Helpers

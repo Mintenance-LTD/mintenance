@@ -23,6 +23,9 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
+// SUT must be imported AFTER the mocks
+import { usePushSoftAskGate } from '../usePushSoftAskGate';
+
 // ---------------------------------------------------------------------------
 // Hoisted mocks (survive vitest mockReset, jest defaults too — use vi.hoisted
 // where available; mobile uses jest, so do the equivalent with module mocks).
@@ -89,9 +92,6 @@ jest.mock('../../config/sentry', () => ({
   __esModule: true,
   captureException: jest.fn(),
 }));
-
-// SUT must be imported AFTER the mocks
-import { usePushSoftAskGate } from '../usePushSoftAskGate';
 
 // ---------------------------------------------------------------------------
 // Helpers

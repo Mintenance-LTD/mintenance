@@ -8,6 +8,8 @@
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
+import { useStripeConnectPromptGate } from '../useStripeConnectPromptGate';
+
 const mockGetItem = jest.fn();
 const mockSetItem = jest.fn();
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -52,8 +54,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { useStripeConnectPromptGate } from '../useStripeConnectPromptGate';
 
 const STORAGE_KEY = 'stripe_connect_prompt_dismissed_at:u1';
 const contractor = { id: 'u1', role: 'contractor' };

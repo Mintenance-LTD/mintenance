@@ -20,6 +20,8 @@
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
+import { useEnsurePushTokenRegistered } from '../useEnsurePushTokenRegistered';
+
 const mockUseAuth = jest.fn();
 jest.mock('../../contexts/AuthContext', () => ({
   __esModule: true,
@@ -63,8 +65,6 @@ jest.mock('react-native', () => ({
     ),
   },
 }));
-
-import { useEnsurePushTokenRegistered } from '../useEnsurePushTokenRegistered';
 
 function triggerForeground(): void {
   appStateHandler?.('active');

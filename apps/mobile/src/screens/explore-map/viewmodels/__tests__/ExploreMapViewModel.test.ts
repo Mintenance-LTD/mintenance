@@ -6,6 +6,8 @@
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
+import { useExploreMapViewModel } from '../ExploreMapViewModel';
+
 // ---- Mocks (declared before importing the unit under test) ----
 
 const mockGet = jest.fn();
@@ -42,8 +44,6 @@ jest.mock('expo-location', () => ({
     mockGetCurrentPositionAsync(...a),
   Accuracy: { Balanced: 3 },
 }));
-
-import { useExploreMapViewModel } from '../ExploreMapViewModel';
 
 // ---- Helpers ----
 

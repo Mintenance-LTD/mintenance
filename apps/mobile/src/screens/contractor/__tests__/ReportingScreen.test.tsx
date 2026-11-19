@@ -1,6 +1,10 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Share, Alert } from 'react-native';
+import { useAuth } from '../../../contexts/AuthContext';
+
+import ReportingScreen from '../ReportingScreen';
+import { EMPTY_STATS } from '../reportingData';
 
 // ---------------------------------------------------------------------------
 // Mock ONLY externals — never the screen under test.
@@ -36,7 +40,6 @@ jest.mock('../../../utils/mobileApiClient', () => ({
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
-import { useAuth } from '../../../contexts/AuthContext';
 
 // ---- React Query: drive the reporting query deterministically ----
 const mockRefetch = jest.fn();
@@ -61,9 +64,6 @@ jest.mock('@tanstack/react-query', () => ({
     return { ...mockQueryState, refetch: mockRefetch };
   },
 }));
-
-import ReportingScreen from '../ReportingScreen';
-import { EMPTY_STATS } from '../reportingData';
 
 const CONTRACTOR = { id: 'co-1', role: 'contractor', email: 'c@x.com' };
 

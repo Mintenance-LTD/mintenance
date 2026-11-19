@@ -7,6 +7,8 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 
+import { useCreateQuoteViewModel } from '../CreateQuoteViewModel';
+
 const mockGetQuoteTemplates = jest.fn();
 const mockCreateQuote = jest.fn();
 jest.mock('@/services/QuoteBuilderService', () => ({
@@ -30,8 +32,6 @@ jest.mock('@/contexts/AuthContext-fallback', () => ({
   useAuth: () => mockUseAuth(),
   AuthProvider: ({ children }: { children: unknown }) => children,
 }));
-
-import { useCreateQuoteViewModel } from '../CreateQuoteViewModel';
 
 const lineItem = (over: Record<string, unknown> = {}) =>
   ({

@@ -11,6 +11,36 @@
 
 // ---- External mocks -------------------------------------------------------
 
+import { supabase } from '../../../config/supabase';
+import { logger } from '../../../utils/logger';
+import {
+  validateRequired,
+  handleDatabaseOperation,
+} from '../../../utils/serviceHelper';
+import {
+  transformVideoCallData,
+  generateSessionToken,
+  getIceServers,
+} from '../VideoCallHelpers';
+import {
+  notifyParticipants,
+  recordParticipantAction,
+  getCallById,
+} from '../CallNotifier';
+import {
+  getActiveCall,
+  isUserInCall,
+  scheduleCall,
+  startInstantCall,
+  joinCall,
+  endCall,
+  toggleMute,
+  toggleVideo,
+  startScreenShare,
+  stopScreenShare,
+  cancelCall,
+} from '../CallManager';
+
 jest.mock('../../../utils/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -74,36 +104,6 @@ jest.mock('../CallNotifier', () => ({
   recordParticipantAction: jest.fn(async () => undefined),
   getCallById: jest.fn(async () => null),
 }));
-
-import { supabase } from '../../../config/supabase';
-import { logger } from '../../../utils/logger';
-import {
-  validateRequired,
-  handleDatabaseOperation,
-} from '../../../utils/serviceHelper';
-import {
-  transformVideoCallData,
-  generateSessionToken,
-  getIceServers,
-} from '../VideoCallHelpers';
-import {
-  notifyParticipants,
-  recordParticipantAction,
-  getCallById,
-} from '../CallNotifier';
-import {
-  getActiveCall,
-  isUserInCall,
-  scheduleCall,
-  startInstantCall,
-  joinCall,
-  endCall,
-  toggleMute,
-  toggleVideo,
-  startScreenShare,
-  stopScreenShare,
-  cancelCall,
-} from '../CallManager';
 
 const mockedSupabase = supabase as unknown as {
   from: jest.Mock;

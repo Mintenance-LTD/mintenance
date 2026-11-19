@@ -6,7 +6,10 @@ import {
 import { TenancyInspections } from './components/TenancyInspections';
 import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSwitcher';
 import { usePropertyView } from '../../hooks/usePropertyView';
-import { showPropertyTool } from '@mintenance/shared';
+import { showPropertyTool ,
+  isOpenPropertyJob,
+  PROPERTY_JOB_STATUS_LABELS,
+} from '@mintenance/shared';
 import { RoomPhotoAlbums } from './components/RoomPhotoAlbums';
 import React, { useState, useRef } from 'react';
 import {
@@ -39,10 +42,7 @@ import { goBackSafe } from '../../navigation/hooks';
 import { Badge } from '../../components/ui/Badge/Badge';
 import { me } from '../../design-system/mint-editorial';
 import { styles, CATEGORY_ICONS } from './PropertyDetailStyles';
-import {
-  isOpenPropertyJob,
-  PROPERTY_JOB_STATUS_LABELS,
-} from '@mintenance/shared';
+
 import { SpendingAnalytics } from './components/SpendingAnalytics';
 import { RecurringMaintenance } from './components/RecurringMaintenance';
 import { TenantContacts } from './components/TenantContacts';

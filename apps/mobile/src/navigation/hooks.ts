@@ -9,7 +9,7 @@ import type {
   ProfileStackParamList,
 } from './types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RouteProp } from '@react-navigation/native';
+
 
 // ============================================================================
 // TYPE-SAFE NAVIGATION HOOKS

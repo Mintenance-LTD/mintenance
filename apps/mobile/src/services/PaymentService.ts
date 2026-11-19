@@ -7,13 +7,13 @@
  *   services/payment/JobPaymentService.ts
  *   services/payment/FeeCalculator.ts
  */
-export type { PaymentMethod } from './payment/types';
-
 import { PaymentIntentService } from './payment/PaymentIntentService';
 import { EscrowService } from './payment/EscrowService';
 import { PaymentMethodService } from './payment/PaymentMethodService';
 import { JobPaymentService } from './payment/JobPaymentService';
 import { FeeCalculator } from './payment/FeeCalculator';
+
+export type { PaymentMethod } from './payment/types';
 
 export class PaymentService {
   // ── Payment Intents ──────────────────────────────────────────────────────

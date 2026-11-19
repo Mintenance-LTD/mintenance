@@ -7,6 +7,8 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { Linking, Share, Alert } from 'react-native';
 
+import { useContractorProfileViewModel } from '../ContractorProfileViewModel';
+
 const mockGet = jest.fn();
 jest.mock('@/utils/mobileApiClient', () => ({
   mobileApiClient: { get: (...a: unknown[]) => mockGet(...a) },
@@ -26,8 +28,6 @@ const mockGetParent = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate, getParent: mockGetParent }),
 }));
-
-import { useContractorProfileViewModel } from '../ContractorProfileViewModel';
 
 const contractorPayload = {
   contractor: {

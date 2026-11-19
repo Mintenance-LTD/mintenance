@@ -3,6 +3,9 @@ import { Text } from 'react-native';
 import { render } from '../test-utils';
 import { useAuth } from '../../contexts/AuthContext';
 
+// Import after mocks so HomeScreen picks up the stubbed children.
+import { HomeScreen } from '../../screens/home';
+
 // ---------------------------------------------------------------------------
 // Realigned 2026-06-03 to the Mint Editorial v2 architecture.
 //
@@ -57,9 +60,6 @@ jest.mock('../../screens/home/HomeScreenLoading', () => {
     HomeScreenLoading: () => <RNText testID='home-loading'>Loading…</RNText>,
   };
 });
-
-// Import after mocks so HomeScreen picks up the stubbed children.
-import { HomeScreen } from '../../screens/home';
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 

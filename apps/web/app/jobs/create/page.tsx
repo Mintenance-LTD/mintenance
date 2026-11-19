@@ -11,6 +11,7 @@ import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWr
 import { useJobDraft } from './hooks/useJobDraft';
 import { useImageUpload } from './hooks/useImageUpload';
 import { useBuildingAssessment } from './hooks/useBuildingAssessment';
+import { usePhotoAssessmentTrigger } from './hooks/usePhotoAssessmentTrigger';
 import { HireAgainBanner } from './components/HireAgainBanner';
 import {
   validateJobForm,
@@ -202,39 +203,16 @@ export default function CreateJobPage2025() {
     }
   }, [user, loadingUser, router]);
 
-  // AUDIT_PUNCH_LIST P2 #66 (A-P2-4) — narrow deps are deliberate.
-  // The Mint AI building-assessment call is expensive (10-60s
-  // Modal cold start, OpenAI tokens, eats budget). Re-running on
-  // every `imageUpload.uploadedImages` array reassignment, every
-  // `properties` refetch, or every `formData` keystroke would
-  // burn money and rate limit. The contract: fire ONLY when the
-  // image count changes (i.e. user uploaded or removed an image),
-  // and read the latest snapshot of the other fields at fire-time.
-  // Keep the deps narrow; do not "fix" by adding more.
-
-  useEffect(() => {
-    const runAssessment = async () => {
-      if (
-        imageUpload.uploadedImages.length > 0 &&
-        !buildingAssessment.isAssessing
-      ) {
-        const selectedProp = properties.find(
-          (p) => p.id === formData.property_id
-        );
-        await buildingAssessment.assessBuilding(imageUpload.uploadedImages, {
-          location: formData.location || selectedProp?.address || undefined,
-          propertyType: selectedProp?.property_type as
-            | 'residential'
-            | 'commercial'
-            | undefined,
-          ageOfProperty: undefined,
-        });
-      }
-    };
-
-    runAssessment();
-  }, [imageUpload.uploadedImages.length]);
-
+  const assessmentProperty = properties.find(
+    (p) => p.id === formData.property_id
+  );
+  usePhotoAssessmentTrigger({
+    images: imageUpload.uploadedImages,
+    isAssessing: buildingAssessment.isAssessing,
+    location: formData.location || assessmentProperty?.address || undefined,
+    propertyType: assessmentProperty?.property_type || undefined,
+    assess: buildingAssessment.assessBuilding,
+  });
   // Auto-fill form fields from AI assessment results.
   //
   // AUDIT_PUNCH_LIST P2 #66 (A-P2-4) — `mapDamageTypeToCategory` and

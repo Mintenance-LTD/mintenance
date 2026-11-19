@@ -1,5 +1,10 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
+import { useAuth } from '../../../contexts/AuthContext';
+
+import TimeTrackingScreen from '../TimeTrackingScreen';
+// jest.config maps config/supabase to the chainable manual mock.
+import { supabase, __setMockData } from '../../../config/supabase';
 
 // ---------------------------------------------------------------------------
 // Mock ONLY externals — never the screen under test.
@@ -100,7 +105,6 @@ jest.mock('@expo/vector-icons', () => ({
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
-import { useAuth } from '../../../contexts/AuthContext';
 
 // Toast — surface the convenience methods the screen calls.
 const mockToastSuccess = jest.fn();
@@ -146,10 +150,6 @@ jest.mock('@tanstack/react-query', () => ({
     return { ...mockQueryState, refetch: mockRefetch };
   },
 }));
-
-import TimeTrackingScreen from '../TimeTrackingScreen';
-// jest.config maps config/supabase to the chainable manual mock.
-import { supabase, __setMockData } from '../../../config/supabase';
 
 const CONTRACTOR = { id: 'co-1', role: 'contractor', email: 'c@x.com' };
 

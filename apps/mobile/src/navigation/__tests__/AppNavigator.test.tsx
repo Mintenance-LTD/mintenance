@@ -2,6 +2,8 @@
 // undefined under jest (the JS-only test runtime has no native module
 // host). deepLinking.ts → AppNavigator import it at module load, so stub
 // the handful of methods deepLinking touches.
+import AppNavigator from '../AppNavigator';
+
 jest.mock('expo-linking', () => ({
   getInitialURL: jest.fn(() => Promise.resolve(null)),
   addEventListener: jest.fn(() => ({ remove: jest.fn() })),
@@ -184,8 +186,6 @@ jest.mock('../../hooks/useEnsurePushTokenRegistered', () => ({
 jest.mock('../../hooks/useAssignedJobLocationAutoStart', () => ({
   useAssignedJobLocationAutoStart: jest.fn(),
 }));
-
-import AppNavigator from '../AppNavigator';
 
 describe('AppNavigator', () => {
   it('exports a component', () => {

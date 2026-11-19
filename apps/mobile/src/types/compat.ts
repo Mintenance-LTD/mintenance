@@ -4,7 +4,7 @@
 export type { User, Job } from '@mintenance/types';
 
 // Mobile-specific type additions (temporary until fully migrated)
-import type { User } from '@mintenance/types';
+
 
 
 

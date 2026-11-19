@@ -52,6 +52,7 @@ import { ContractTermsView } from './components/ContractTermsView';
 import { ContractRevisionRequest } from './components/ContractRevisionRequest';
 import { ContractPartiesSection } from './components/ContractPartiesSection';
 import { ContractTimeline } from './components/ContractTimeline';
+import { ContractStartChoices } from './components/ContractStartChoices';
 import { styles } from './contractViewStyles';
 import {
   type Contract,
@@ -481,6 +482,12 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         )}
+        <ContractStartChoices
+          key={`${contract.id}:${contract.updated_at}:${user?.id}`}
+          contract={contract}
+          homeowner={userRole === 'homeowner' && user?.id === contract.homeowner_id}
+          onSaved={() => { void fetchContract(); }}
+        />
         {userRole === 'homeowner' && contract.status !== 'draft' && (
           <CustomerCancellation contractId={contract.id} />
         )}

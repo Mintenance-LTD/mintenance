@@ -12,6 +12,11 @@
  */
 
 // Force the web platform before importing the unit under test.
+import { PerformanceTracker } from '../PerformanceTracker';
+import { AnalyticsConfig } from '../types';
+import { logger } from '../../logger';
+import { performanceMonitor } from '../../performanceMonitor';
+
 jest.mock('react-native', () => ({
   Platform: { OS: 'web' },
 }));
@@ -30,11 +35,6 @@ jest.mock('../../performanceMonitor', () => ({
     recordMetric: jest.fn(),
   },
 }));
-
-import { PerformanceTracker } from '../PerformanceTracker';
-import { AnalyticsConfig } from '../types';
-import { logger } from '../../logger';
-import { performanceMonitor } from '../../performanceMonitor';
 
 const mockLogger = logger as jest.Mocked<typeof logger>;
 const mockRecordMetric = (performanceMonitor as { recordMetric: jest.Mock })

@@ -5,6 +5,8 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 
+import { ThemeToggle } from '../ThemeToggle';
+
 const mockToggle = jest.fn();
 const mockUseTheme = jest.fn();
 jest.mock('../../../../design-system/theme', () => ({
@@ -12,8 +14,6 @@ jest.mock('../../../../design-system/theme', () => ({
   useTheme: () => mockUseTheme(),
 }));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
-
-import { ThemeToggle } from '../ThemeToggle';
 
 beforeEach(() => {
   jest.clearAllMocks();

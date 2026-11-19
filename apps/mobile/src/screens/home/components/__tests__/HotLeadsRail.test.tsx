@@ -12,6 +12,8 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 
+import { HotLeadsRail } from '../HotLeadsRail';
+
 // ---- Mutable query state the mocked useQuery reads from ----
 const queryState: { data: any; isLoading: boolean } = {
   data: [],
@@ -50,8 +52,6 @@ jest.mock('../../../../design-system/mint-editorial', () => ({
     bg3: '#ddd',
   },
 }));
-
-import { HotLeadsRail } from '../HotLeadsRail';
 
 const HOUR = 1000 * 60 * 60;
 

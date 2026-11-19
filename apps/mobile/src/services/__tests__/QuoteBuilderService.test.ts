@@ -14,6 +14,8 @@
 import { QuoteBuilderService } from '../QuoteBuilderService';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
+import { logger } from '../../utils/logger';
+
 // Auto-mock mobileApiClient (picks up __mocks__/mobileApiClient.ts)
 jest.mock('../../utils/mobileApiClient');
 
@@ -26,8 +28,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { logger } from '../../utils/logger';
 
 const api = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
 const mockedLogger = logger as jest.Mocked<typeof logger>;

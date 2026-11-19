@@ -14,6 +14,11 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 
+import { Alert } from 'react-native';
+
+import { NotificationScreen } from '../NotificationScreen';
+import { logger } from '../../utils/logger';
+
 // ---- react-native: keep the global mock but give FlatList real behaviour --
 jest.mock('react-native', () => {
   const RealReact = require('react');
@@ -42,8 +47,6 @@ jest.mock('react-native', () => {
   };
   return { ...actual, FlatList };
 });
-
-import { Alert } from 'react-native';
 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 10, bottom: 0, left: 0, right: 0 }),
@@ -96,9 +99,6 @@ const mockChannel = jest.fn(() => ({ on: mockOn }));
 jest.mock('../../config/supabase', () => ({
   supabase: { channel: (...a: unknown[]) => mockChannel(...a) },
 }));
-
-import { NotificationScreen } from '../NotificationScreen';
-import { logger } from '../../utils/logger';
 
 // ---- fixtures ----------------------------------------------------------
 

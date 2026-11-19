@@ -11,6 +11,37 @@
 // Mocks for external collaborators
 // ---------------------------------------------------------------------------
 
+import {
+  initializePushNotifications,
+  restoreSession,
+  performSignIn,
+  performSignUp,
+  performSignOut,
+  performUpdateProfile,
+} from '../auth-actions';
+
+import { AuthService } from '../../services/AuthService';
+import { NotificationService } from '../../services/NotificationService';
+import { supabase } from '../../config/supabase';
+import { handleError } from '../../utils/errorHandler';
+import { logger } from '../../utils/logger';
+import {
+  setUserContext,
+  trackUserAction,
+  addBreadcrumb,
+  measureAsyncPerformance,
+} from '../../utils/sentryUtils';
+import { captureException } from '../../config/sentry';
+import {
+  isTokenExpiredOrExpiring,
+  saveSessionToSecureStore,
+  loadSessionFromSecureStore,
+  clearSessionFromSecureStore,
+  clearAppCachesOnLogout,
+} from '../auth-session-manager';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+import { BiometricService } from '../../services/BiometricService';
+
 jest.mock('../../services/AuthService', () => ({
   AuthService: {
     signIn: jest.fn(),
@@ -75,37 +106,6 @@ jest.mock('../../utils/mobileApiClient', () => ({
 jest.mock('../../services/BiometricService', () => ({
   BiometricService: { clearBiometricData: jest.fn() },
 }));
-
-import {
-  initializePushNotifications,
-  restoreSession,
-  performSignIn,
-  performSignUp,
-  performSignOut,
-  performUpdateProfile,
-} from '../auth-actions';
-
-import { AuthService } from '../../services/AuthService';
-import { NotificationService } from '../../services/NotificationService';
-import { supabase } from '../../config/supabase';
-import { handleError } from '../../utils/errorHandler';
-import { logger } from '../../utils/logger';
-import {
-  setUserContext,
-  trackUserAction,
-  addBreadcrumb,
-  measureAsyncPerformance,
-} from '../../utils/sentryUtils';
-import { captureException } from '../../config/sentry';
-import {
-  isTokenExpiredOrExpiring,
-  saveSessionToSecureStore,
-  loadSessionFromSecureStore,
-  clearSessionFromSecureStore,
-  clearAppCachesOnLogout,
-} from '../auth-session-manager';
-import { mobileApiClient } from '../../utils/mobileApiClient';
-import { BiometricService } from '../../services/BiometricService';
 
 // Typed mock helpers
 const mockAuthService = AuthService as jest.Mocked<typeof AuthService>;

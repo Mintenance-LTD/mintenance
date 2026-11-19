@@ -19,10 +19,12 @@ export function CustomerConsent({
   value,
   onChange,
   homeowner,
+  supplemental = false,
 }: {
   value: ConsentChoices;
   onChange: (v: ConsentChoices) => void;
   homeowner: boolean;
+  supplemental?: boolean;
 }) {
   const [show, setShow] = useState(false);
   const choice = (
@@ -75,7 +77,9 @@ export function CustomerConsent({
       </Pressable>
       {choice(
         homeowner
-          ? 'I have read and accept the customer terms and this job agreement.'
+          ? supplemental
+            ? 'I have reviewed the customer terms and my existing job agreement for this early-start request.'
+            : 'I have read and accept the customer terms and this job agreement.'
           : 'I have reviewed the platform terms, the customer cancellation information, and the materials and warranty terms. I agree to carry out the work under this job agreement.',
         value.termsAccepted,
         () => onChange({ ...value, termsAccepted: !value.termsAccepted })
@@ -83,8 +87,9 @@ export function CustomerConsent({
       {homeowner && (
         <>
           <Text>
-            You can sign without requesting an early start; work must then wait
-            until the cancellation period ends.
+            {supplemental
+              ? 'This request is optional. Without it, work must wait until the cancellation period ends.'
+              : 'You can sign without requesting an early start; work must then wait until the cancellation period ends.'}
           </Text>
           {choice(EARLY_START_REQUEST, value.earlyStartRequested, () =>
             onChange({

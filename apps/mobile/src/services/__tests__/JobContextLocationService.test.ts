@@ -12,6 +12,13 @@
  *     contractor/job; stop only fires when the last holder releases).
  */
 
+import {
+  JobContextLocationService,
+  ContractorLocationContext,
+  acquireJobTrackingService,
+  releaseJobTrackingService,
+} from '../JobContextLocationService';
+
 const mockRequestForeground = jest.fn();
 const mockGetCurrentPosition = jest.fn();
 const mockWatchPosition = jest.fn();
@@ -82,13 +89,6 @@ jest.mock('../../config/supabase', () => {
     },
   };
 });
-
-import {
-  JobContextLocationService,
-  ContractorLocationContext,
-  acquireJobTrackingService,
-  releaseJobTrackingService,
-} from '../JobContextLocationService';
 
 const destination = { latitude: 51.5, longitude: -0.12 };
 

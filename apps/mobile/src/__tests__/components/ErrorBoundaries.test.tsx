@@ -2,10 +2,6 @@
 // be set; without it react-test-renderer aborts the recoverable-error retry
 // render and unmounts ("Can't access .root on unmounted test renderer"). The
 // node test environment used by this suite doesn't set it automatically.
-(
-  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true;
-
 import React from 'react';
 import { render, fireEvent, act } from '../test-utils';
 import { Text } from 'react-native';
@@ -16,6 +12,10 @@ import {
   AsyncErrorBoundary,
   useErrorHandler,
 } from '../../components/ErrorBoundaryProvider';
+
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,

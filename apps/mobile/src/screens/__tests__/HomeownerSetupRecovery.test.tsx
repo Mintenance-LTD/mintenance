@@ -1,9 +1,9 @@
-jest.mock('../../design-system/theme', () => ({
-  useTheme: () => ({ colorScheme: 'light' }),
-}));
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { HomeownerSetupScreen } from '../auth/HomeownerSetupScreen';
+jest.mock('../../design-system/theme', () => ({
+  useTheme: () => ({ colorScheme: 'light' }),
+}));
 const mockPost = jest.fn();
 jest.mock('../../utils/mobileApiClient', () => ({
   mobileApiClient: { post: (...args: unknown[]) => mockPost(...args) },

@@ -2,45 +2,76 @@
 
 import { useState, useCallback } from 'react';
 import { logger } from '@mintenance/shared';
+import { z } from 'zod';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { clientErrorMessage } from '@/lib/errors/client-message';
 
-interface DamageAssessment {
-  damageType: string;
-  severity: string;
-  confidence: number;
-  description: string;
-}
-
-interface SafetyHazards {
-  hasSafetyHazards: boolean;
-  overallSafetyScore: number;
-  criticalFlags: string[];
-}
-
-interface BuildingAssessmentResult {
-  damageAssessment: DamageAssessment;
-  safetyHazards: SafetyHazards;
-  urgency: {
-    urgency: string;
-    reasoning: string;
-  };
-  estimatedCost?: {
-    min: number;
-    max: number;
-    confidence: number;
-  };
-  compliance?: {
-    complianceScore: number;
-    flags: string[];
-  };
-  decisionResult?: {
-    decision: 'automate' | 'escalate';
-    reason: string;
-    safetyUcb?: number;
-    rewardUcb?: number;
-  };
-}
+// Validate the fields rendered by the form before accepting an API response.
+// Retain additional evidence and identifiers for the existing submission flow.
+const safetySchema = z.union([
+  z
+    .looseObject({
+      hazards: z.array(z.looseObject({ description: z.string() })),
+      hasCriticalHazards: z.boolean(),
+      overallSafetyScore: z.number(),
+    })
+    .transform((value) => ({
+      ...value,
+      hasSafetyHazards: value.hasCriticalHazards || value.hazards.length > 0,
+      criticalFlags:
+        value.hazards.length > 0
+          ? value.hazards.map((hazard) => hazard.description)
+          : value.hasCriticalHazards
+            ? ['Critical hazards reported; professional review required.']
+            : [],
+    })),
+  z.looseObject({
+    hasSafetyHazards: z.boolean(),
+    overallSafetyScore: z.number(),
+    criticalFlags: z.array(z.string()),
+  }),
+]);
+const complianceSchema = z.union([
+  z
+    .looseObject({
+      complianceScore: z.number(),
+      complianceIssues: z.array(z.looseObject({ issue: z.string() })),
+    })
+    .transform((value) => ({
+      ...value,
+      flags: value.complianceIssues.map((issue) => issue.issue),
+    })),
+  z.looseObject({ complianceScore: z.number(), flags: z.array(z.string()) }),
+]);
+const assessmentSchema = z.looseObject({
+  damageAssessment: z.looseObject({
+    damageType: z.string(),
+    severity: z.string(),
+    confidence: z.number(),
+    description: z.string(),
+  }),
+  safetyHazards: safetySchema,
+  urgency: z.looseObject({ urgency: z.string(), reasoning: z.string() }),
+  estimatedCost: z
+    .looseObject({
+      min: z.number(),
+      max: z.number(),
+      confidence: z.number(),
+    })
+    .optional(),
+  compliance: complianceSchema.optional(),
+  decisionResult: z
+    .looseObject({
+      decision: z.enum(['automate', 'escalate']),
+      reason: z.string().default(''),
+      safetyUcb: z.number().optional(),
+      rewardUcb: z.number().optional(),
+    })
+    .optional(),
+});
+type BuildingAssessmentResult = z.infer<typeof assessmentSchema>;
+const invalidAssessmentMessage =
+  'Photo analysis returned an incomplete result. Try again or continue with a written description.';
 
 interface UseBuildingAssessmentOptions {
   onError?: (error: string) => void;
@@ -91,6 +122,7 @@ export function useBuildingAssessment({
       }
 
       setIsAssessing(true);
+      setAssessment(null);
       setAssessmentError(null);
 
       try {
@@ -125,9 +157,13 @@ export function useBuildingAssessment({
           throw new Error(errorMessage);
         }
 
-        const data = await response.json();
-        setAssessment(data);
-        return data;
+        const data: unknown = await response.json().catch(() => {
+          throw new Error(invalidAssessmentMessage);
+        });
+        const parsed = assessmentSchema.safeParse(data);
+        if (!parsed.success) throw new Error(invalidAssessmentMessage);
+        setAssessment(parsed.data);
+        return parsed.data;
       } catch (error) {
         logger.error('Error assessing building damage', error, {
           service: 'building-assessment',

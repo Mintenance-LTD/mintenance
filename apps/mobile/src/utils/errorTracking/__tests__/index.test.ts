@@ -19,6 +19,10 @@
 // import. We therefore build the instances *inside* each factory (which runs
 // lazily at first require) and stash them on `var` holders (var has no TDZ).
 /* eslint-disable no-var */
+import { enhancedErrorAnalytics } from '../index';
+import { ErrorCategory, ErrorSeverity } from '../../errorTracking';
+import { logger } from '../../logger';
+
 var mockCapture: Record<string, jest.Mock>;
 var mockReporting: Record<string, jest.Mock>;
 var mockAnalytics: Record<string, jest.Mock>;
@@ -86,10 +90,6 @@ jest.mock('../ErrorRecovery', () => ({
 // an out-of-scope object does not reliably apply to the legacy errorTracking.ts
 // `./logger` import that gets pulled in transitively via ErrorTypes.
 jest.mock('../../logger');
-
-import { enhancedErrorAnalytics } from '../index';
-import { ErrorCategory, ErrorSeverity } from '../../errorTracking';
-import { logger } from '../../logger';
 
 const mockLogger = logger as jest.Mocked<typeof logger>;
 

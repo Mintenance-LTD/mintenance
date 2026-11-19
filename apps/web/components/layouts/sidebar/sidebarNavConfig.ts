@@ -9,7 +9,6 @@ import {
   Calendar,
   Briefcase,
   MessageSquare,
-  User,
   Settings,
   Bell,
   Building2,

@@ -4,6 +4,8 @@
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
+import { useServiceAreaGate } from '../useServiceAreaGate';
+
 const mockGetItem = jest.fn();
 const mockSetItem = jest.fn();
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -37,8 +39,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { useServiceAreaGate } from '../useServiceAreaGate';
 
 const STORAGE_KEY = 'service_area_prompt_dismissed_at:u1';
 const onboardedContractor = {

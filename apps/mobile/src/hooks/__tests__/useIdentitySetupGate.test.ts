@@ -6,6 +6,8 @@
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
+import { useIdentitySetupGate } from '../useIdentitySetupGate';
+
 const mockGetItem = jest.fn();
 const mockSetItem = jest.fn();
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -40,8 +42,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { useIdentitySetupGate } from '../useIdentitySetupGate';
 
 const STORAGE_KEY = 'identity_setup_prompt_dismissed_at:u1';
 const onboardedContractor = {

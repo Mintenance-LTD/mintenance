@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAIPricing } from '../hooks/useAIPricing';
 import { JobPricingInput, PricingAnalysis } from '../services/AIPricingEngine';
-import { logger } from '../utils/logger';
 import { theme } from '../theme';
 
 interface AIPricingWidgetProps {
@@ -27,35 +34,42 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
     getHomeownerInsights,
   } = useAIPricing();
   const [expanded, setExpanded] = useState(false);
+  const { title, description, category, location, urgency, homeownerBudget } =
+    jobInput;
+  const pricingInput = useMemo(
+    () => ({
+      title,
+      description,
+      category,
+      location,
+      urgency,
+      homeownerBudget,
+    }),
+    [title, description, category, location, urgency, homeownerBudget]
+  );
 
-  useEffect(() => {
-    if (
-      autoAnalyze &&
-      jobInput.title &&
-      jobInput.description &&
-      jobInput.category
-    ) {
-      handleAnalyzePricing();
-    }
-  }, [autoAnalyze, jobInput.title, jobInput.description, jobInput.category]);
-
-  useEffect(() => {
-    if (analysis && onPricingUpdate) {
-      onPricingUpdate(analysis);
-    }
-  }, [analysis, onPricingUpdate]);
-
-  const handleAnalyzePricing = () => {
-    if (!jobInput.title.trim() || !jobInput.description.trim()) {
+  const handleAnalyzePricing = useCallback(() => {
+    if (!pricingInput.title.trim() || !pricingInput.description.trim()) {
       Alert.alert(
         'Incomplete Information',
         'Please provide a job title and description for accurate pricing analysis.'
       );
       return;
     }
+    analyzePricing(pricingInput);
+  }, [analyzePricing, pricingInput]);
 
-    analyzePricing(jobInput);
-  };
+  useEffect(() => {
+    if (autoAnalyze && title && description && category) {
+      handleAnalyzePricing();
+    }
+  }, [autoAnalyze, title, description, category, handleAnalyzePricing]);
+
+  useEffect(() => {
+    if (analysis && onPricingUpdate) {
+      onPricingUpdate(analysis);
+    }
+  }, [analysis, onPricingUpdate]);
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8) return theme.colors.primary;
