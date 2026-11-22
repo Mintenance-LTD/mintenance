@@ -12,6 +12,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { theme } from '@/lib/theme';
+import type { ContractorPaymentPresentation } from './payment-presentation';
 
 export type JobStage =
   | 'contract_preparing'
@@ -99,13 +100,30 @@ export function getStageConfig(stage: JobStage): StageConfig {
       };
     case 'completed':
       return {
-        title: 'Awaiting Review',
-        subtitle:
-          'Your completion photos have been submitted. Payment remains subject to the recorded approval hold and release checks.',
+        title: 'Work completed',
+        subtitle: 'The completion evidence is available below.',
         accentColor: theme.colors.success,
         icon: Award,
       };
   }
+}
+
+export function contractorStageUsesPaymentMessage(
+  stage: JobStage,
+  payment: ContractorPaymentPresentation
+) {
+  return (
+    stage === 'completed' ||
+    [
+      'disputed',
+      'on_hold',
+      'release_pending',
+      'released',
+      'refunded',
+      'payment_issue',
+      'unavailable',
+    ].includes(payment.kind)
+  );
 }
 
 export interface JobStatusConfig {
@@ -142,23 +160,15 @@ export interface ProgressStep {
   icon: LucideIcon;
 }
 
-/**
- * Builds the stepper for the contractor's view of a single job.
- *
- * "Paid" is completed when escrow reaches a terminal state — some
- * release paths flip the row to 'released' while the auto-release
- * path uses 'completed'. Matching on just one label left the stepper
- * stuck at "not paid yet" for auto-released jobs.
- */
 export function buildContractorProgressSteps(args: {
   jobStatus: string;
   contractStatus: string;
   currentStage: JobStage;
-  escrowHeld: boolean;
-  escrowStatus: string;
+  payment: ContractorPaymentPresentation;
 }): ProgressStep[] {
-  const { jobStatus, contractStatus, currentStage, escrowHeld, escrowStatus } =
-    args;
+  const { jobStatus, contractStatus, currentStage, payment } = args;
+  const releasePaused =
+    payment.kind === 'disputed' || payment.kind === 'on_hold';
   return [
     {
       id: 'bid',
@@ -178,9 +188,9 @@ export function buildContractorProgressSteps(args: {
     },
     {
       id: 'payment',
-      label: 'Payment',
-      completed: escrowHeld,
-      active: currentStage === 'awaiting_payment',
+      label: 'Funding',
+      completed: payment.funded,
+      active: currentStage === 'awaiting_payment' && payment.kind === 'pending',
       icon: CreditCard,
     },
     {
@@ -199,9 +209,12 @@ export function buildContractorProgressSteps(args: {
     },
     {
       id: 'paid',
-      label: 'Paid',
-      completed: ['released', 'completed'].includes(escrowStatus),
-      active: currentStage === 'completed',
+      label: releasePaused ? 'Release paused' : 'Release',
+      completed: payment.kind === 'released',
+      active:
+        releasePaused ||
+        payment.kind === 'release_pending' ||
+        (currentStage === 'completed' && payment.kind === 'held'),
       icon: Award,
     },
   ];

@@ -3,13 +3,5 @@
   "critical": true,
   "skip-dev": true,
   "report-type": "important",
-  "allowlist": [
-    {
-      "GHSA-fc5q-39xc-vjpf": {
-        "active": true,
-        "expiry": "2026-11-21T00:00:00Z",
-        "notes": "Withdrawn by GitHub on 2026-11-18T15:38:56Z; npm still reports the stale record. https://github.com/advisories/GHSA-fc5q-39xc-vjpf and maintainer https://github.com/micromatch/picomatch/pull/235#issuecomment-6315749381. Repository source has no direct picomatch/micromatch calls accepting user-defined patterns. This exception covers only this withdrawn advisory, never the package or other advisories. Remove when npm's feed catches up; expires 21 November. Aikido issue-level launch gate remains OPEN."
-      }
-    }
-  ]
+  "allowlist": []
 }
