@@ -98,6 +98,40 @@ it('compares captured cash, not gross principal, and persists with the claim tok
     })
   );
 });
+it('matches a captured payment held for a Mintenance dispute', () => {
+  const row = source();
+  row.status = 'disputed';
+
+  expect(compareReconciliationFunding(row, intent())).toMatchObject({
+    matched: true,
+    evidence: { mismatch_type: null, status_match: true },
+  });
+});
+
+it('still flags a Stripe chargeback on a Mintenance dispute', () => {
+  const row = source();
+  row.status = 'disputed';
+  const pi = intent();
+  Object.assign(pi.latest_charge as object, { disputed: true });
+
+  expect(compareReconciliationFunding(row, pi)).toMatchObject({
+    matched: false,
+    evidence: { refund_match: false },
+  });
+});
+
+it('still flags a disputed payment that has not been captured', () => {
+  const row = source();
+  row.status = 'disputed';
+  const pi = intent();
+  pi.status = 'requires_capture';
+
+  expect(compareReconciliationFunding(row, pi)).toMatchObject({
+    matched: false,
+    evidence: { mismatch_type: 'status', status_match: false },
+  });
+});
+
 it('checks fully refunded retired funding without inventing an outstanding amount', () => {
   const row = source();
   row.status = 'refunded';

@@ -39,6 +39,8 @@ const STATUS_MAP: Record<string, string[]> = {
   release_pending: ['succeeded'],
   pending_review: ['succeeded'],
   awaiting_homeowner_approval: ['succeeded'],
+  // A Mintenance dispute holds captured funds. Stripe chargebacks are checked separately.
+  disputed: ['succeeded'],
   refunded: ['succeeded'],
   failed: ['canceled', 'requires_payment_method'],
   cancelled: ['canceled'],
