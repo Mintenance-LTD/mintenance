@@ -78,6 +78,7 @@ interface BuildingAssessmentData {
 
 interface SubmitJobOptions {
   submissionId?: string;
+  tenantReportId?: string;
   formData: JobFormData;
   photoUrls: string[];
   csrfToken: string;
@@ -109,6 +110,7 @@ interface SubmitJobResult {
  */
 export async function submitJob({
   submissionId,
+  tenantReportId,
   formData,
   photoUrls,
   csrfToken,
@@ -161,6 +163,7 @@ export async function submitJob({
     urgency?: 'low' | 'medium' | 'high' | 'emergency';
     requiredSkills: string[];
     property_id: string | null;
+    source_tenant_report_id?: string;
     photoUrls: string[];
     latitude?: number;
     longitude?: number;
@@ -180,6 +183,7 @@ export async function submitJob({
   };
 
   if (formData.urgency) requestBody.urgency = formData.urgency;
+  if (tenantReportId) requestBody.source_tenant_report_id = tenantReportId;
 
   // R6 #19 landlord / tenancy fields. We forward the booleans + email
   // intent; the server can look up payer_user_id from the email in a

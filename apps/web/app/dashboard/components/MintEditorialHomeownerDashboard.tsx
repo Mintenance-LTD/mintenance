@@ -8,6 +8,7 @@ import styles from './HomeownerDashboard.module.css';
 import { MintEditorialShell } from './mint-editorial/MintEditorialShell';
 import { MintEditorialJobsPanel } from './mint-editorial/MintEditorialJobsPanel';
 import { MintEditorialSidePanel } from './mint-editorial/MintEditorialSidePanel';
+import { AgencyDashboardStart } from './AgencyDashboardStart';
 import {
   formatGBP,
   type DashboardData,
@@ -47,6 +48,7 @@ export function MintEditorialHomeownerDashboard({
       postcode={homeowner.postcode}
       profileImageUrl={homeowner.avatar}
     >
+      <AgencyDashboardStart />
       {/* Greeting */}
       <div className={styles.greeting}>
         <div className='col' style={{ gap: 6 }}>

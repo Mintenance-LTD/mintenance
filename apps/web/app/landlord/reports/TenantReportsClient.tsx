@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { ReportConversationLink } from './ReportConversationLink';
+import { TenantReportCreateJobLink } from './TenantReportCreateJobLink';
 import {
   CheckCircle2,
-  FileText,
   MessageSquare,
   RotateCcw,
   X,
@@ -370,26 +369,10 @@ export function TenantReportsClient({
                 )}
               </div>
               <div className='flex gap-2 pt-2'>
-                {selectedReport.properties &&
-                  !selectedReport.job_id &&
-                  selectedReport.status !== 'converted' &&
-                  selectedReport.status !== 'dismissed' && (
-                    <Link
-                      href={{
-                        pathname: '/jobs/create',
-                        query: {
-                          is_rental_property: 'true',
-                          property_id: selectedReport.properties.id,
-                          category: selectedReport.category,
-                          description: selectedReport.description,
-                          urgency: selectedReport.urgency,
-                        },
-                      }}
-                      className='flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2 px-3 text-sm font-medium'
-                    >
-                      <FileText className='w-4 h-4' /> Create Job
-                    </Link>
-                  )}
+                <TenantReportCreateJobLink
+                  report={selectedReport}
+                  className='flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2 px-3 text-sm font-medium'
+                />
                 <button
                   type='button'
                   onClick={() => setSelectedReport(null)}

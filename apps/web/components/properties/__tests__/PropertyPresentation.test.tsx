@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { PropertyViewSwitcher } from '../PropertyViewSwitcher';
 import RoomPhotoGallery from '@/app/properties/[id]/components/RoomPhotoGallery';
 import { useNavSections } from '@/components/layouts/sidebar/sidebarNavConfig';
+import { AgencyDashboardStart } from '@/app/dashboard/components/AgencyDashboardStart';
 const state = vi.hoisted(() => ({
   view: 'home',
   enabled: true,
@@ -59,6 +60,21 @@ function Navigation({
   );
 }
 describe('property view controls', () => {
+  it('puts the queue and team-access guidance first in the Agency view', () => {
+    const view = render(<AgencyDashboardStart />);
+    expect(
+      screen.queryByRole('heading', { name: 'Portfolio action queue' })
+    ).toBeNull();
+    state.view = 'agency';
+    view.rerender(<AgencyDashboardStart />);
+    expect(
+      screen.getByRole('link', { name: 'Open action queue' })
+    ).toHaveAttribute('href', '/properties/work-queue');
+    expect(
+      screen.getByRole('link', { name: 'Tenant reports' })
+    ).toHaveAttribute('href', '/landlord/reports');
+    expect(screen.getByText(/Manage, then People and access/)).toBeVisible();
+  });
   it('selects a presentation preference without checkout or permission writes', () => {
     render(<PropertyViewSwitcher />);
     fireEvent.click(

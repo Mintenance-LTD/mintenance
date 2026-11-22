@@ -95,6 +95,8 @@ const mockProperties = [
 describe('CreateJobPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    for (const key of Array.from(mockSearchParams.keys()))
+      mockSearchParams.delete(key);
     sessionStorage.clear();
     vi.mocked(useRouter).mockReturnValue(mockRouter);
     vi.mocked(useCurrentUser).mockReturnValue({
@@ -300,8 +302,12 @@ describe('CreateJobPage', () => {
       expect(screen.getByText('Urgent')).toBeInTheDocument();
     });
 
-    it('should submit job successfully', async () => {
+    it('submits a tenant-report job with the report ID and the edited category', async () => {
       const user = userEvent.setup();
+      const reportId = '44444444-4444-4444-8444-444444444444';
+      mockSearchParams.set('tenant_report_id', reportId);
+      mockSearchParams.set('category', 'garden_exterior');
+      mockSearchParams.set('is_rental_property', 'true');
       vi.mocked(submitJob).mockResolvedValue({
         success: true,
         jobId: 'job-123',
@@ -309,6 +315,9 @@ describe('CreateJobPage', () => {
 
       render(<CreateJobPage />);
 
+      expect(
+        screen.getByTestId('category-gardening').getAttribute('style')
+      ).toContain('background: var(--me-brand-soft)');
       await completeAllSteps(user);
 
       // Submit button copy is "Post job" in the Mint Editorial redesign.
@@ -320,6 +329,7 @@ describe('CreateJobPage', () => {
         // their own price, so it is no longer part of the submit payload.
         expect(submitJob).toHaveBeenCalledWith(
           expect.objectContaining({
+            tenantReportId: reportId,
             formData: expect.objectContaining({
               title: 'Fix bathroom leak',
               category: 'plumbing',

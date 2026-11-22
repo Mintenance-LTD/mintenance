@@ -140,6 +140,26 @@ export function MintEditorialJobTabBody({
         )
       ) : null}
 
+      {tab === 'photos' && (
+        <div className='card card-pad'>
+          <h2 className='t-h4'>Photos attached to the job</h2>
+          <p className='t-body'>
+            {photos.length
+              ? `${photos.length} job photos`
+              : 'No job photos were attached.'}
+          </p>
+          <p className='t-meta'>
+            Work evidence is tracked separately in the timeline.{' '}
+            {beforePhotos?.length ?? 0} before · {afterPhotos?.length ?? 0}{' '}
+            after.
+          </p>
+          {job.status === 'completed' && Boolean(afterPhotos?.length) && (
+            <a href='#photo-review' className='t-meta underline'>
+              View completion evidence
+            </a>
+          )}
+        </div>
+      )}
       {(tab === 'overview' || tab === 'photos') && photos.length > 0 ? (
         <div
           style={{

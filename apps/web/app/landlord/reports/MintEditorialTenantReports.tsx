@@ -1,28 +1,11 @@
 'use client';
 
-/**
- * Mint Editorial port of /landlord/reports (Tenant Reports).
- *
- * Same data shape + filter logic as TenantReportsClient.tsx — only
- * the chrome changes:
- *   - Header → .t-h1 + .t-body
- *   - Filter row → .chip / .chip.on with full per-tab counts
- *     (audit fix: legacy view only counted `all` + `new`)
- *   - Report rows → .card with .badge-{info,warn,ok,mute} status
- *     pills + .badge-{warn,err} urgency pills
- *   - Empty state → <MintEditorialEmptyState> primitive with a
- *     real CTA to /landlord/reporting-links (audit fix: legacy
- *     empty state was a dead end)
- *   - Detail modal → mint-tinted overlay with .card body and
- *     proper next/link nav (audit fix: was raw <a>)
- */
-
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ReportConversationLink } from './ReportConversationLink';
+import { TenantReportCreateJobLink } from './TenantReportCreateJobLink';
 import {
   MessageSquare,
-  FileText,
   X,
   Link2,
   CheckCircle2,
@@ -480,26 +463,10 @@ export function MintEditorialTenantReports({
                   ) : null}
                 </div>
                 <div className='row' style={{ gap: 8, flexWrap: 'wrap' }}>
-                  {selected.properties &&
-                  !selected.job_id &&
-                  selected.status !== 'converted' &&
-                  selected.status !== 'dismissed' ? (
-                    <Link
-                      href={{
-                        pathname: '/jobs/create',
-                        query: {
-                          is_rental_property: 'true',
-                          property_id: selected.properties.id,
-                          category: selected.category,
-                          description: selected.description,
-                          urgency: selected.urgency,
-                        },
-                      }}
-                      className='btn btn-primary btn-sm'
-                    >
-                      <FileText size={13} strokeWidth={1.75} /> Create job
-                    </Link>
-                  ) : null}
+                  <TenantReportCreateJobLink
+                    report={selected}
+                    className='btn btn-primary btn-sm'
+                  />
                   <Link
                     href='/landlord/reporting-links'
                     className='btn btn-ghost btn-sm'

@@ -28,6 +28,7 @@
  */
 
 import React from 'react';
+import Link from 'next/link';
 import { useJobRework } from '@/lib/hooks/useJobRework';
 import {
   Briefcase,
@@ -369,6 +370,21 @@ export function MintEditorialJobTimeline({
         </span>
       </div>
       <div>
+        {(lifecycle.escrowStatus === 'disputed' ||
+          job.status === 'disputed') && (
+          <div className='px-5 py-4 border-b border-amber-200 bg-amber-50'>
+            <h3 className='t-h4'>Dispute under review</h3>
+            <p className='t-body'>
+              Payment release is paused while Mintenance reviews the dispute.
+            </p>
+            <Link
+              href={`/payments?jobId=${job.id}`}
+              className='t-meta underline'
+            >
+              View payment and dispute status
+            </Link>
+          </div>
+        )}
         {events.map((e, i) => (
           <div
             key={e.id}

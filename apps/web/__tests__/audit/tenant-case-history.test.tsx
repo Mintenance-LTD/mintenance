@@ -161,6 +161,7 @@ it.each([
     render(<Component reports={[report]} initialReportId={report.id} />);
     const link = screen.getByRole('link', { name: /Create Job/i });
     expect(link.getAttribute('href')).toContain('property_id=home');
+    expect(link.getAttribute('href')).toContain('tenant_report_id=report-1');
     fireEvent.click(link);
     expect(fetcher).not.toHaveBeenCalled();
     expect(

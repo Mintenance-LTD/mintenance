@@ -14,8 +14,35 @@
  * collection no longer happens on this form.
  */
 import type { JobFormData } from './validation';
+import { SERVICE_CATEGORIES } from '../_components/types';
 
 type Params = Pick<URLSearchParams, 'get'> | null | undefined;
+
+const reportCategories: Readonly<Record<string, string>> = {
+  damp_mould: 'damp',
+  garden_exterior: 'gardening',
+  roof_guttering: 'roofing',
+  door_window: 'carpentry',
+  general: 'other',
+  structural: 'other',
+  appliance: 'other',
+  fire_safety: 'other',
+  pest_control: 'other',
+};
+
+function pickCategory(raw: string | null | undefined): string {
+  if (!raw) return '';
+  const normalized = raw.trim().toLowerCase();
+  const category = Object.prototype.hasOwnProperty.call(
+    reportCategories,
+    normalized
+  )
+    ? reportCategories[normalized]
+    : normalized;
+  return SERVICE_CATEGORIES.some((option) => option.value === category)
+    ? category
+    : '';
+}
 
 const ALLOWED_URGENCY: JobFormData['urgency'][] = [
   'low',
@@ -40,10 +67,7 @@ export function initialFormDataFromParams(params: Params): JobFormData {
     title: params?.get('title') ?? '',
     description: params?.get('description') ?? '',
     location: params?.get('location') ?? '',
-    category:
-      params?.get('category') === 'damp_mould'
-        ? 'damp'
-        : (params?.get('category') ?? ''),
+    category: pickCategory(params?.get('category')),
     is_rental_property: params?.get('is_rental_property') === 'true',
     urgency: pickUrgency(params?.get('urgency')),
     requiredSkills: [],
@@ -64,7 +88,7 @@ export function formDataPatchFromParams(
 ): Partial<JobFormData> | null {
   const title = params?.get('title') ?? undefined;
   const description = params?.get('description') ?? undefined;
-  const category = params?.get('category') ?? undefined;
+  const category = pickCategory(params?.get('category'));
   const location = params?.get('location') ?? undefined;
   const urgencyRaw = params?.get('urgency') ?? undefined;
   // 2026-05-23 audit: property_id was being read on initial mount
@@ -87,7 +111,7 @@ export function formDataPatchFromParams(
   const patch: Partial<JobFormData> = {};
   if (title) patch.title = title;
   if (description) patch.description = description;
-  if (category) patch.category = category === 'damp_mould' ? 'damp' : category;
+  if (category) patch.category = category;
   if (params?.get('is_rental_property') === 'true')
     patch.is_rental_property = true;
   if (location) patch.location = location;
