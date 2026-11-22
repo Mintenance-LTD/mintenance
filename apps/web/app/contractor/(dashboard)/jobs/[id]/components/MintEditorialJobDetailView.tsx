@@ -53,6 +53,7 @@ import { JobIssueButton } from './JobIssueButton';
 import { JobMapCard } from './JobMapCard';
 import { ContractorTipsReceivedCard } from './ContractorTipsReceivedCard';
 import { PreArrivalPhotoGallery } from './PreArrivalPhotoGallery';
+import type { ContractorPaymentPresentation } from '../payment-presentation';
 import {
   platformFeeBreakdown,
   formatPlatformFeePercent,
@@ -134,8 +135,7 @@ interface MintEditorialJobDetailViewProps {
   stageTitle: string;
   stageSubtitle: string;
   steps: ProgressStep[];
-  escrowHeld: boolean;
-  escrowStatus: string;
+  payment: ContractorPaymentPresentation;
   escrowId: string | null;
   paymentAmounts?: {
     gross: number;
@@ -202,8 +202,7 @@ export function MintEditorialJobDetailView({
   stageTitle,
   stageSubtitle,
   steps,
-  escrowHeld,
-  escrowStatus,
+  payment,
   escrowId,
   paymentAmounts,
   jobPhotoUrls,
@@ -229,8 +228,7 @@ export function MintEditorialJobDetailView({
   // + platformFeeBreakdown are the shared helpers mobile uses too, so the
   // label and the maths can never diverge across platforms.
   const feeBreakdown = platformFeeBreakdown(budgetNum, platformFeeRate);
-  const isReleased =
-    escrowStatus === 'released' || escrowStatus === 'completed';
+  const isReleased = payment.kind === 'released';
   const hasRecordedAmounts =
     isReleased && paymentAmounts?.fee != null && paymentAmounts?.net != null;
   const platformFee = hasRecordedAmounts
@@ -299,7 +297,7 @@ export function MintEditorialJobDetailView({
               Posted {formatPostedDate(job.created_at)}
             </span>
           ) : null}
-          {escrowHeld ? (
+          {payment.kind !== 'pending' ? (
             <span
               className='t-meta'
               style={{
@@ -310,8 +308,8 @@ export function MintEditorialJobDetailView({
                 fontWeight: 600,
               }}
             >
-              <ShieldCheck size={12} strokeWidth={1.75} />£
-              {budgetNum.toFixed(2)} held in escrow
+              <ShieldCheck size={12} strokeWidth={1.75} aria-hidden />
+              {payment.label}
             </span>
           ) : null}
         </div>
@@ -381,6 +379,14 @@ export function MintEditorialJobDetailView({
                 <div className='col' style={{ gap: 4 }}>
                   <h2 className='t-h2'>{stageTitle}</h2>
                   <p className='t-body'>{stageSubtitle}</p>
+                  {(isReleased || payment.kind === 'release_pending') && (
+                    <Link
+                      href='/contractor/payouts'
+                      className='t-meta underline'
+                    >
+                      View Payouts
+                    </Link>
+                  )}
                 </div>
 
                 {currentStage === 'contract_pending' ? (
@@ -428,18 +434,20 @@ export function MintEditorialJobDetailView({
                   </div>
                 )}
 
-                {currentStage === 'awaiting_payment' && messageHref && (
-                  <Link href={messageHref} className='block'>
-                    <button
-                      type='button'
-                      className='btn btn-primary'
-                      style={{ width: '100%', justifyContent: 'center' }}
-                    >
-                      <MessageCircle size={15} strokeWidth={1.75} /> Message
-                      homeowner
-                    </button>
-                  </Link>
-                )}
+                {currentStage === 'awaiting_payment' &&
+                  payment.kind === 'pending' &&
+                  messageHref && (
+                    <Link href={messageHref} className='block'>
+                      <button
+                        type='button'
+                        className='btn btn-primary'
+                        style={{ width: '100%', justifyContent: 'center' }}
+                      >
+                        <MessageCircle size={15} strokeWidth={1.75} /> Message
+                        homeowner
+                      </button>
+                    </Link>
+                  )}
 
                 {/* Secondary actions — "I'm running late" + "Issue
                     with this job". Only shown once the work is
@@ -982,7 +990,7 @@ export function MintEditorialJobDetailView({
           )}
 
           {/* You'll be paid */}
-          {budgetNum > 0 ? (
+          {budgetNum > 0 && payment.kind !== 'refunded' ? (
             <div className='card card-pad'>
               <div className='col' style={{ gap: 12 }}>
                 <div className='row' style={{ gap: 8, alignItems: 'center' }}>
@@ -1062,18 +1070,10 @@ export function MintEditorialJobDetailView({
                 <p
                   className='t-meta'
                   style={{
-                    color:
-                      escrowStatus === 'released' ||
-                      escrowStatus === 'completed'
-                        ? 'var(--me-ok)'
-                        : 'var(--me-ink-3)',
+                    color: isReleased ? 'var(--me-ok)' : 'var(--me-ink-3)',
                   }}
                 >
-                  {escrowStatus === 'released' || escrowStatus === 'completed'
-                    ? 'Released earnings. Check Payouts for transfer and bank status.'
-                    : escrowHeld
-                      ? 'Held until the review period and payment checks are complete.'
-                      : 'Payment moves to escrow once the homeowner pays.'}
+                  {payment.detail}
                 </p>
               </div>
             </div>
