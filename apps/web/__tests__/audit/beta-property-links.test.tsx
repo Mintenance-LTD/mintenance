@@ -44,3 +44,17 @@ it('prefills tenant reports as rental work with an available damp category', () 
     });
   expect(JOB_CATEGORIES.some((c) => c.value === 'damp')).toBe(true);
 });
+
+it('selects Gardening from the tenant report category on load and soft navigation', () => {
+  const params = new URLSearchParams({
+    property_id: 'property',
+    category: 'garden_exterior',
+    is_rental_property: 'true',
+  });
+  expect(initialFormDataFromParams(params)).toMatchObject({
+    category: 'gardening',
+    property_id: 'property',
+    is_rental_property: true,
+  });
+  expect(formDataPatchFromParams(params)?.category).toBe('gardening');
+});

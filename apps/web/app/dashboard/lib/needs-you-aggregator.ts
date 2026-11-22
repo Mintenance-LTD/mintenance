@@ -61,12 +61,14 @@ export function buildNeedsYouFeed({
   allBids,
   postedJobs,
   completedJobs = [],
+  paymentStatuses,
   maxItems = 4,
 }: {
   pendingBids: PendingBidInput[];
   allBids: BidInput[];
   postedJobs: Job[];
   completedJobs?: Job[];
+  paymentStatuses?: ReadonlyMap<string, string>;
   properties: PropertyInput[];
   maxItems?: number;
 }): NeedsYouItem[] {
@@ -75,7 +77,8 @@ export function buildNeedsYouFeed({
     if (items.length >= maxItems) break;
     if (
       job.status !== 'completed' ||
-      job.completion_confirmed_by_homeowner === true
+      job.completion_confirmed_by_homeowner === true ||
+      paymentStatuses?.get(job.id) === 'refunded'
     )
       continue;
     items.push({

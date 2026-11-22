@@ -84,7 +84,10 @@ export async function testReview48(db, config) {
       'SELECT * FROM win_back_deliveries',
     ])
       await assert.rejects(db.query(query), (error) => error.code === '42501');
-    await assert.rejects(db.query('SELECT claim_win_back_delivery($1)', [actor]), error => error.code === '42501');
+    await assert.rejects(
+      db.query('SELECT claim_win_back_delivery($1)', [actor]),
+      (error) => error.code === '42501'
+    );
     await db.query('RESET ROLE');
   }
   console.log(
@@ -115,4 +118,7 @@ export async function testReview48(db, config) {
   );
   const { testJobRetries } = await import('./job-retry-cases.mjs');
   await testJobRetries(db, config, actor);
+  const { testTenantReportJobCreation } =
+    await import('./tenant-report-job-cases.mjs');
+  await testTenantReportJobCreation(db, config, actor, property);
 }

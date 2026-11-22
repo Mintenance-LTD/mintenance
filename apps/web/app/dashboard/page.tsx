@@ -344,8 +344,27 @@ export default async function DashboardPage2025() {
   // page.tsx under the 500-line MDC cap. Same heuristics as before:
   // pending bids, posted jobs with stale bid windows, unverified
   // properties.
+  // These job IDs come from the homeowner jobs query. Include payments
+  // from designated payers, without adding their spend to this dashboard.
+  const reviewPayments = completedJobs.length
+    ? await serverSupabase
+        .from('escrow_transactions')
+        .select('job_id, status')
+        .in(
+          'job_id',
+          completedJobs.map((job) => job.id)
+        )
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+    : { data: [], error: null };
+  const paymentStatuses = new Map<string, string>();
+  for (const row of reviewPayments.data ?? []) {
+    if (row.job_id && row.status && !paymentStatuses.has(row.job_id))
+      paymentStatuses.set(row.job_id, row.status);
+  }
   const needsYou = buildNeedsYouFeed({
-    completedJobs,
+    completedJobs: reviewPayments.error ? [] : completedJobs,
+    paymentStatuses,
     pendingBids,
     allBids,
     postedJobs,

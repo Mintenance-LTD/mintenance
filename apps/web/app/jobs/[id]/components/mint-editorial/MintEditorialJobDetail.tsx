@@ -107,7 +107,7 @@ const TABS: {
 }[] = [
   { id: 'overview', label: () => 'Overview' },
   { id: 'bids', label: (c) => `Bids · ${c.bids}` },
-  { id: 'photos', label: (c) => `Photos · ${c.photos}` },
+  { id: 'photos', label: (c) => `Job photos · ${c.photos}` },
   { id: 'messages', label: () => 'Messages' },
   { id: 'payments', label: () => 'Payments' },
   { id: 'timeline', label: () => 'Timeline' },

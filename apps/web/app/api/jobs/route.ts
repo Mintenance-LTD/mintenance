@@ -216,6 +216,8 @@ export const POST = withApiHandler(
     const requestId = request.headers.get('x-job-submission-id');
     if (requestId && !z.uuid().safeParse(requestId).success)
       throw new BadRequestError('Invalid job submission ID');
+    if (payload.source_tenant_report_id && !requestId)
+      throw new BadRequestError('A tenant report needs a job submission ID.');
     const service = JobCreationService.getInstance();
     const job = requestId
       ? await service.createJob(user, payload, {

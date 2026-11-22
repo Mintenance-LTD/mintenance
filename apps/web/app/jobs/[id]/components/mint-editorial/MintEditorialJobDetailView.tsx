@@ -108,6 +108,7 @@ export function MintEditorialJobDetailView({
                     beforePhotos={beforePhotos}
                     afterPhotos={afterPhotos}
                     isConfirmed={completionConfirmed}
+                    paymentRefunded={escrowStatus === 'refunded'}
                     completedAt={job.completed_at}
                   />
                 </div>

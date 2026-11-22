@@ -139,6 +139,7 @@ const baseJobSchema = z.object({
     .optional(),
   requiredSkills: z.array(z.string().max(100)).max(10).optional(),
   property_id: z.string().uuid().optional(),
+  source_tenant_report_id: z.string().uuid().optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   // R6 #19 landlord / tenancy

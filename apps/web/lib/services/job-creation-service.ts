@@ -24,6 +24,7 @@ interface JobCreationPayload {
   photoUrls?: string[];
   requiredSkills?: string[];
   property_id?: string;
+  source_tenant_report_id?: string;
   urgency?: string;
   latitude?: number;
   longitude?: number;
@@ -113,6 +114,8 @@ export class JobCreationService {
     payload: JobCreationPayload,
     retry?: { requestId: string; fingerprint: string }
   ): Promise<JobDetail> {
+    if (payload.source_tenant_report_id && !retry)
+      throw new BadRequestError('A tenant report needs a job submission ID.');
     this.enforcePhotoRequirement(user.id, payload);
     await this.validatePhotoUrls(user.id, payload);
     await this.validatePropertyOwnership(user.id, payload);
@@ -147,7 +150,8 @@ export class JobCreationService {
           retry.requestId,
           retry.fingerprint,
           insertPayload,
-          payload.photoUrls || []
+          payload.photoUrls || [],
+          payload.source_tenant_report_id
         )
       : null;
     if (atomic && !atomic.created) return mapRowToJobDetail(atomic.job);

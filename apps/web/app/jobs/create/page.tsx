@@ -315,6 +315,7 @@ export default function CreateJobPage2025() {
 
       const result = await submitJob({
         submissionId: draft.submissionId(),
+        tenantReportId: searchParams?.get('tenant_report_id') ?? undefined,
         formData,
         photoUrls: imageUrls,
         csrfToken: csrfToken || '',

@@ -184,6 +184,7 @@ export default async function JobDetailPage2025({
       .select('id, status, funded_at, released_at')
       .eq('job_id', resolvedParams.id)
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .limit(1)
       .maybeSingle(),
     serverSupabase
@@ -466,6 +467,7 @@ export default async function JobDetailPage2025({
                     beforePhotos={beforePhotos}
                     afterPhotos={afterPhotos}
                     isConfirmed={!!job.completion_confirmed_by_homeowner}
+                    paymentRefunded={escrowStatus === 'refunded'}
                     completedAt={job.completed_at}
                   />
                 </div>

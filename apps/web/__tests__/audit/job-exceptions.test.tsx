@@ -104,7 +104,14 @@ it('prioritises unapproved completed work and excludes approved work', () => {
     postedJobs: [],
     properties: [],
     maxItems: 1,
+    paymentStatuses: new Map([['refunded', 'refunded']]),
     completedJobs: [
+      {
+        id: 'refunded',
+        status: 'completed',
+        created_at: '',
+        completion_confirmed_by_homeowner: false,
+      },
       {
         id: 'approved',
         status: 'completed',
@@ -128,6 +135,26 @@ it('prioritises unapproved completed work and excludes approved work', () => {
       jobTitle: 'Fix tap',
     },
   ]);
+});
+it('keeps refunded completion evidence available while removing review actions', () => {
+  render(
+    <HomeownerPhotoReview
+      jobId='refunded'
+      beforePhotos={[]}
+      afterPhotos={[{ id: 'a', photo_url: '/after.jpg' }]}
+      isConfirmed={false}
+      paymentRefunded
+    />
+  );
+  expect(
+    screen.getByRole('heading', { name: 'Completion evidence' })
+  ).toBeVisible();
+  expect(screen.getByText(/payment was refunded/i)).toBeVisible();
+  expect(
+    screen.getByRole('img', { name: 'Completed work photo' })
+  ).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Approve Work' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request Changes' })).toBeNull();
 });
 it('makes all three after photos available when there is only one before photo', async () => {
   render(
