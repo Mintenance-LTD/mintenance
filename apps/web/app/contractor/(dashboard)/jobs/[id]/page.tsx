@@ -29,9 +29,11 @@ import { JobProgressStepper } from './components/JobProgressStepper';
 import { MintEditorialJobDetailView } from './components/MintEditorialJobDetailView';
 import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
 import { platformFeeRateForTier } from '@mintenance/shared';
+import { contractorPaymentPresentation } from './payment-presentation';
 import {
   JOB_STATUS_CONFIG,
   buildContractorProgressSteps,
+  contractorStageUsesPaymentMessage,
   determineStage,
   getStageConfig,
 } from './stage-helpers';
@@ -155,29 +157,23 @@ export default async function ContractorJobDetailPage({
         ? 'none' // Draft contracts are treated as "not prepared yet"
         : 'pending';
 
-  const { data: escrowTransaction } = await serverSupabase
+  const { data: escrowTransaction, error: escrowError } = await serverSupabase
     .from('escrow_transactions')
     .select(
-      'id, status, amount, platform_fee, contractor_payout, stripe_processing_fee'
+      'id, status, amount, platform_fee, contractor_payout, stripe_processing_fee, homeowner_approval, admin_hold_status'
     )
     .eq('job_id', resolvedParams.id)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const escrowStatus = escrowTransaction?.status || 'none';
-  // 2026-05-27 audit-83 P2: include 'completed' so the contractor's
-  // Payment step doesn't show incomplete after an auto-released
-  // escrow (the auto-release path lands on 'completed', the legacy
-  // path lands on 'released'). Matches isEscrowFunded() on the
-  // homeowner side (apps/web/app/jobs/[id]/components/mint-editorial/
-  // jobDetailHelpers.ts) so both roles see consistent stepper state.
-  const escrowHeld = [
-    'held',
-    'release_pending',
-    'released',
-    'completed',
-  ].includes(escrowStatus);
+  const payment = contractorPaymentPresentation({
+    status: escrowTransaction?.status,
+    adminHold: escrowTransaction?.admin_hold_status,
+    homeownerApproved: escrowTransaction?.homeowner_approval,
+    jobStatus: job.status,
+    unavailable: Boolean(escrowError),
+  });
 
   // Fetch job photos for AI assessment display.
   // Re-sign Job-storage URLs at render time — the bucket is now private
@@ -218,8 +214,10 @@ export default async function ContractorJobDetailPage({
   const currentStage = determineStage(
     job.status || 'posted',
     contractStatus,
-    escrowHeld,
-    startRestriction === null
+    payment.funded,
+    startRestriction === null &&
+      payment.kind === 'held' &&
+      escrowTransaction?.status === 'held'
   );
   const stageConfig = {
     ...getStageConfig(currentStage),
@@ -239,6 +237,9 @@ export default async function ContractorJobDetailPage({
     ...(currentStage === 'waiting_to_start' && startRestriction
       ? { subtitle: startRestriction }
       : {}),
+    ...(contractorStageUsesPaymentMessage(currentStage, payment)
+      ? { title: payment.label, subtitle: payment.detail }
+      : {}),
   };
 
   const currentStatus =
@@ -248,8 +249,7 @@ export default async function ContractorJobDetailPage({
     jobStatus: job.status || 'posted',
     contractStatus,
     currentStage,
-    escrowHeld,
-    escrowStatus,
+    payment,
   });
 
   const messageHref = homeowner
@@ -361,8 +361,7 @@ export default async function ContractorJobDetailPage({
                 ? ('current' as const)
                 : ('pending' as const),
           }))}
-          escrowHeld={escrowHeld}
-          escrowStatus={escrowStatus}
+          payment={payment}
           escrowId={escrowTransaction?.id ?? null}
           paymentAmounts={
             escrowTransaction
@@ -478,6 +477,9 @@ export default async function ContractorJobDetailPage({
               {cleanAddress(job.location)}
             </p>
           )}
+          {payment.kind !== 'pending' && (
+            <span className='text-sm font-semibold'>{payment.label}</span>
+          )}
         </div>
       </div>
 
@@ -542,6 +544,15 @@ export default async function ContractorJobDetailPage({
           </div>
 
           {/* Stage-specific primary content */}
+          {(payment.kind === 'released' ||
+            payment.kind === 'release_pending') && (
+            <Link
+              href='/contractor/payouts'
+              className='mb-4 inline-block underline'
+            >
+              View Payouts
+            </Link>
+          )}
           {currentStage === 'contract_pending' && (
             <ContractManagement
               jobId={resolvedParams.id}
@@ -589,21 +600,23 @@ export default async function ContractorJobDetailPage({
               )}
             </div>
           )}
-          {currentStage === 'awaiting_payment' && messageHref && (
-            <Link
-              href={messageHref}
-              className='block'
-              style={{ marginTop: theme.spacing[2] }}
-            >
-              <Button
-                variant='primary'
-                fullWidth
-                leftIcon={<MessageCircle className='h-5 w-5' />}
+          {currentStage === 'awaiting_payment' &&
+            payment.kind === 'pending' &&
+            messageHref && (
+              <Link
+                href={messageHref}
+                className='block'
+                style={{ marginTop: theme.spacing[2] }}
               >
-                Message Homeowner
-              </Button>
-            </Link>
-          )}
+                <Button
+                  variant='primary'
+                  fullWidth
+                  leftIcon={<MessageCircle className='h-5 w-5' />}
+                >
+                  Message Homeowner
+                </Button>
+              </Link>
+            )}
         </Card>
       )}
 
