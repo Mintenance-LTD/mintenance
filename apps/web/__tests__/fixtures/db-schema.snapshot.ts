@@ -57,6 +57,11 @@ export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
     'accepted_at,client_address,client_email,client_name,client_phone,contractor_id,created_at,description,id,job_id,line_items,notes,quote_date,quote_number,sent_at,status,subtotal,tax_amount,tax_rate,template_id,terms,title,total_amount,updated_at,valid_until,viewed_at'.split(
       ','
     ),
+  // Generated from the production schema on 2026-11-23.
+  disputes:
+    'against,created_at,description,id,job_id,raised_by,reason,resolution,resolved_at,status,updated_at'.split(
+      ','
+    ),
   escrow_transactions:
     'admin_approved_at,admin_hold_at,admin_hold_by,admin_hold_reason,admin_hold_status,amount,auto_approval_date,auto_release_date,auto_release_enabled,before_after_comparison_score,contractor_payout,cooling_off_ends_at,created_at,currency,description,dispute_priority,dispute_window_ends_at,escalation_level,fee_hold_reason,fee_transfer_id,fee_transfer_status,fee_transferred_at,funded_at,geolocation_verified,homeowner_approval,homeowner_approval_at,homeowner_inspection_at,homeowner_inspection_completed,id,job_id,mediation_completed_at,mediation_mediator_id,mediation_outcome,mediation_requested,mediation_requested_at,mediation_requested_by,mediation_scheduled_at,mediation_status,metadata,payee_id,payer_id,payment_intent_id,payment_type,photo_quality_passed,photo_verification_score,photo_verification_status,platform_fee,reconciliation_id,refunded_at,release_blocked_reason,release_reason,released_at,risk_hold_extended,risk_hold_reason,sla_deadline,status,stripe_charge_id,stripe_checkout_session_id,stripe_processing_fee,timestamp_verified,transfer_attempted_at,transfer_id,trust_score,updated_at'.split(
       ','
