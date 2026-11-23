@@ -2,6 +2,10 @@ const service = vi.hoisted(() => ({
   queue: vi.fn(),
   learning: vi.fn(),
   email: vi.fn(),
+  emergency: vi.fn(),
+}));
+vi.mock('@/lib/services/notifications/EmergencyReportService', () => ({
+  advanceEmergencyReports: service.emergency,
 }));
 vi.mock('@/lib/services/notifications/QuoteAmendmentEmailService', () => ({
   QuoteAmendmentEmailService: { process: service.email },
@@ -23,6 +27,7 @@ const request = new NextRequest(
 );
 beforeEach(() => {
   vi.clearAllMocks();
+  service.emergency.mockResolvedValue(2);
   service.email.mockResolvedValue({
     emailSent: 1,
     emailErrors: 0,
@@ -33,6 +38,7 @@ beforeEach(() => {
 it('processes delivery without repeating daily learning', async () => {
   service.queue.mockResolvedValue({ queuedProcessed: 2, queuedErrors: 0 });
   expect(await processQueue(request)).toEqual({
+    emergencyReportsAdvanced: 2,
     queuedProcessed: 2,
     queuedErrors: 0,
     emailSent: 1,
@@ -40,6 +46,18 @@ it('processes delivery without repeating daily learning', async () => {
     emailNeedsReview: 0,
   });
   expect(service.learning).not.toHaveBeenCalled();
+  expect(service.emergency.mock.invocationCallOrder[0]).toBeLessThan(
+    service.queue.mock.invocationCallOrder[0]
+  );
+});
+it('surfaces emergency escalation failures as failed cron runs', async () => {
+  service.emergency.mockRejectedValueOnce(
+    new Error('Emergency escalation failed')
+  );
+  await expect(processQueue(request)).rejects.toThrow(
+    'Emergency escalation failed'
+  );
+  expect(service.queue).not.toHaveBeenCalled();
 });
 it.each(['emailErrors', 'emailNeedsReview'])(
   'surfaces %s without skipping push processing',

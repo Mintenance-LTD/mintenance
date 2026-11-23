@@ -183,43 +183,49 @@ export const POST = withApiHandler(
     // 2026-05-21 Mint Editorial voice — name the issue category in the
     // title so the owner knows whether to act immediately.
     const categoryLabel = safeCategory.replace(/_/g, ' ');
-    await NotificationService.createNotification({
-      userId: tokenRecord.owner_id,
-      type: 'tenant_report',
-      title: `Tenant flagged ${categoryLabel} at your property`,
-      message:
-        safeUrgency === 'emergency' || safeUrgency === 'high'
-          ? `Urgent — tap to review and post a job.`
-          : `Tap to review and post a job.`,
-      // 2026-05-23 audit: /property-manager/reports/... was a dead
-      // route — the real landlord-side path is /landlord/reports.
-      // Passing ?reportId so the client can scroll the row into
-      // view + open the detail modal (TenantReportsClient inspects
-      // searchParams). Owners tapping the notification now land
-      // on the right surface.
-      actionUrl: `/landlord/reports?reportId=${report.id}`,
-      metadata: {
-        report_id: report.id,
-        conversation_url: `/maintenance/reports/${report.id}#${receipt}`,
-        category: safeCategory,
-        urgency: safeUrgency,
-      },
-    }).catch((err) => {
-      logger.warn('Tenant-report notification failed (non-critical)', {
-        service: 'report-token',
-        ownerId: tokenRecord.owner_id,
-        reportId: report.id,
-        error: err instanceof Error ? err.message : String(err),
+    // Emergency ownership and its outbox item are committed by the report
+    // trigger. Never send those through the best-effort routine preferences path.
+    if (safeUrgency !== 'emergency')
+      await NotificationService.createNotification({
+        userId: tokenRecord.owner_id,
+        type: 'tenant_report',
+        title: `Tenant flagged ${categoryLabel} at your property`,
+        message:
+          safeUrgency === 'high'
+            ? `Urgent — tap to review and post a job.`
+            : `Tap to review and post a job.`,
+        // 2026-05-23 audit: /property-manager/reports/... was a dead
+        // route — the real landlord-side path is /landlord/reports.
+        // Passing ?reportId so the client can scroll the row into
+        // view + open the detail modal (TenantReportsClient inspects
+        // searchParams). Owners tapping the notification now land
+        // on the right surface.
+        actionUrl: `/landlord/reports?reportId=${report.id}`,
+        metadata: {
+          report_id: report.id,
+          conversation_url: `/maintenance/reports/${report.id}#${receipt}`,
+          category: safeCategory,
+          urgency: safeUrgency,
+        },
+      }).catch((err) => {
+        logger.warn('Tenant-report notification failed (non-critical)', {
+          service: 'report-token',
+          ownerId: tokenRecord.owner_id,
+          reportId: report.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
       });
-    });
 
     return NextResponse.json(
       {
         success: true,
         conversation_url: `/maintenance/reports/${report.id}#${receipt}`,
         report_id: report.id,
+        ...(safeUrgency === 'emergency' ? { acknowledgment: 'pending' } : {}),
         message:
-          'Your report has been submitted. The property manager will be notified.',
+          safeUrgency === 'emergency'
+            ? 'Your report has been saved and is awaiting human acknowledgment. Do not wait for a reply in an emergency.'
+            : 'Your report has been submitted for the property manager to review.',
       },
       { status: 201 }
     );

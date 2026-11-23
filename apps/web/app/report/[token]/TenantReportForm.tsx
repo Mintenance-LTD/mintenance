@@ -221,6 +221,16 @@ export function TenantReportForm({ token }: { token: string }) {
           Your property manager can now review the issue. A repair appointment
           has not been booked.
         </p>
+        {urgency === 'emergency' ? (
+          <p
+            role='alert'
+            className='mt-4 rounded-xl bg-amber-50 p-4 text-amber-950'
+          >
+            Your emergency report is saved and awaiting human acknowledgment. Do
+            not wait for a reply if anyone is in danger. Contact the appropriate
+            emergency service and your property manager directly.
+          </p>
+        ) : null}
         {reportId && (
           <p className='my-4 break-all text-sm text-slate-600'>
             Report reference: <span className='font-mono'>{reportId}</span>

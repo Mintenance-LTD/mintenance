@@ -184,6 +184,7 @@ jobs:
           node scripts/test-dispute-closure-migration.mjs
           node scripts/test-dispute-confirmation-migration.mjs
           node scripts/test-appointment-reschedule-migration.mjs
+          node scripts/test-emergency-report-migration.mjs
           node scripts/test-legacy-rework-recovery.mjs
 
       - name: Install Supabase CLI

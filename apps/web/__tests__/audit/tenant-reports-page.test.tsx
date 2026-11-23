@@ -6,6 +6,7 @@ const mock = vi.hoisted(() => ({
   order: vi.fn(),
   eq: vi.fn(),
   theme: '',
+  renderClient: vi.fn(),
 }));
 vi.mock('@/lib/auth', () => ({ getCurrentUserFromCookies: mock.user }));
 vi.mock('next/headers', () => ({
@@ -32,10 +33,16 @@ vi.mock('@/lib/api/supabaseServer', () => ({
   },
 }));
 vi.mock('@/app/landlord/reports/TenantReportsClient', () => ({
-  TenantReportsClient: () => null,
+  TenantReportsClient: (props: unknown) => {
+    mock.renderClient(props);
+    return null;
+  },
 }));
 vi.mock('@/app/landlord/reports/MintEditorialTenantReports', () => ({
-  MintEditorialTenantReports: () => null,
+  MintEditorialTenantReports: (props: unknown) => {
+    mock.renderClient(props);
+    return null;
+  },
 }));
 import Page from '@/app/landlord/reports/page';
 beforeEach(() => {
@@ -51,10 +58,15 @@ it.each(['', 'mint-editorial'])(
     const page = await Page({
       searchParams: Promise.resolve({ reportId: 'report-1' }),
     });
-    expect(page.props).toMatchObject({
-      initialReportId: 'report-1',
-      reports: [],
-    });
+    expect(renderToStaticMarkup(page)).toContain(
+      'href="/maintenance/emergencies"'
+    );
+    expect(mock.renderClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialReportId: 'report-1',
+        reports: [],
+      })
+    );
     expect(mock.eq).toHaveBeenCalledWith(
       'anonymous_report_tokens.owner_id',
       'owner'
