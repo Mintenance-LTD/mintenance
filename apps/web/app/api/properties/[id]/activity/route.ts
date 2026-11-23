@@ -43,7 +43,7 @@ export const GET = withApiHandler(
       );
 
     const { data, error } = await serverSupabase.rpc(
-      'read_property_activity_page',
+      'read_property_record_activity_page',
       {
         p_actor: user.id,
         p_property: params.id,

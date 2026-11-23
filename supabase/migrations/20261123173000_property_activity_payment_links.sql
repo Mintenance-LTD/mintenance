@@ -1,5 +1,5 @@
--- Link activity to exact records and retain dispute openings in the cursor order.
-CREATE OR REPLACE FUNCTION public.read_property_activity_page(
+-- Keep the previous activity function available during the web rollout.
+CREATE OR REPLACE FUNCTION public.read_property_record_activity_page(
   p_actor uuid, p_property uuid, p_before timestamptz, p_event_key text
 ) RETURNS TABLE(id text, title text, date timestamptz, href text, kind text)
 LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path='' AS $$
@@ -69,5 +69,5 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.read_property_activity_page(uuid,uuid,timestamptz,text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.read_property_activity_page(uuid,uuid,timestamptz,text) TO service_role;
+REVOKE ALL ON FUNCTION public.read_property_record_activity_page(uuid,uuid,timestamptz,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.read_property_record_activity_page(uuid,uuid,timestamptz,text) TO service_role;

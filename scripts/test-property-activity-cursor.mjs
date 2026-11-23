@@ -87,7 +87,7 @@ try {
 
   const read = (actor = owner, before = null, key = null) =>
     db.query(
-      'SELECT id,title,date::text,kind,href FROM public.read_property_activity_page($1,$2,$3,$4)',
+      'SELECT id,title,date::text,kind,href FROM public.read_property_record_activity_page($1,$2,$3,$4)',
       [actor, property, before, key]
     );
   await db.exec('SET ROLE service_role');
@@ -96,6 +96,11 @@ try {
   assert.equal(first[0].title, 'Payment released');
   assert.equal(first[0].kind, 'payment');
   assert.equal(first[0].href, '/payments/' + payment);
+  const priorPage = await db.query(
+    'SELECT href FROM public.read_property_activity_page($1,$2,NULL,NULL)',
+    [owner, property]
+  );
+  assert.equal(priorPage.rows[0].href, '/payments?paymentId=' + payment);
   await db.exec('RESET ROLE');
   await db.query(
     "INSERT INTO jobs VALUES(gen_random_uuid(),$1,'Newer concurrent insert',now(),NULL)",

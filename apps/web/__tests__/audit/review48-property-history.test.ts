@@ -36,7 +36,7 @@ it('preserves timestamp precision and stops at the exact last event on the page'
   expect(page.events).toEqual(events.slice(0, 25));
   expect(page.hasMore).toBe(true);
   await GET(request('?cursor=' + encodeURIComponent(page.nextCursor)), context);
-  expect(state.rpc).toHaveBeenLastCalledWith('read_property_activity_page', {
+  expect(state.rpc).toHaveBeenLastCalledWith('read_property_record_activity_page', {
     p_actor: 'owner',
     p_property: 'property',
     p_before: date,
@@ -69,7 +69,7 @@ it('can continue an older page after the last item is a dispute', async () => {
     context
   );
   expect(state.rpc).toHaveBeenLastCalledWith(
-    'read_property_activity_page',
+    'read_property_record_activity_page',
     expect.objectContaining({ p_before: date, p_event_key: dispute.id })
   );
 });
