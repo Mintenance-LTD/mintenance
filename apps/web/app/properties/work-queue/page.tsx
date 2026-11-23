@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { reportConversationHref } from '@/lib/reports/conversation-navigation';
 import { FollowupForm } from './FollowupForm';
 import { PortfolioReport } from './PortfolioReport';
 import { OperationsPage } from '@/components/property-operations/OperationsPage';
@@ -29,6 +30,7 @@ interface Item {
   assigned_to: string | null;
   assignee_name: string | null;
   assignment_status: 'assigned' | 'unassigned' | 'needs_reassignment';
+  unassigned_report_age_days?: number | null;
 }
 interface Queue {
   properties?: { id: string; name: string }[];
@@ -126,8 +128,9 @@ export default function PropertyWorkQueuePage() {
         <summary>How the queue works</summary>
         <p>
           Review opens the job or property. Manage follow-up assigns
-          responsibility and records updates. Maintenance and renewals cover the
-          next 30 days.
+          responsibility and records updates. Tenant reports at least seven days
+          old without an assigned team member are prioritised. Maintenance and
+          renewals cover the next 30 days.
         </p>
       </details>
       <section
@@ -303,11 +306,13 @@ export default function PropertyWorkQueuePage() {
                         className={styles.queuePriority}
                         data-priority={item.urgency}
                       >
-                        {item.urgency === 0
-                          ? 'Priority / overdue'
-                          : item.urgency === 1
-                            ? 'Needs attention'
-                            : 'Upcoming / routine'}
+                        {item.unassigned_report_age_days != null
+                          ? `Unassigned report · ${item.unassigned_report_age_days} days old`
+                          : item.urgency === 0
+                            ? 'Priority / overdue'
+                            : item.urgency === 1
+                              ? 'Needs attention'
+                              : 'Upcoming / routine'}
                       </span>
                       <h2>{item.title}</h2>
                     </div>
@@ -352,7 +357,7 @@ export default function PropertyWorkQueuePage() {
                         item.kind === 'job' && item.can_open_job
                           ? `/jobs/${item.id}`
                           : item.kind === 'report'
-                            ? `/maintenance/reports/${item.id}`
+                            ? reportConversationHref(item.id)
                             : `/properties/${item.property_id}`
                       }
                     >

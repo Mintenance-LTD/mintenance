@@ -22,6 +22,8 @@ const fetcher = vi.fn();
 const item = {
   id: 'job',
   kind: 'job',
+  urgency: 1,
+  unassigned_report_age_days: null as number | null,
   property_id: 'home',
   property_name: 'Test property',
   title: 'Fix tap',
@@ -90,6 +92,32 @@ it('requests a server-filtered first page and clears the previous editor', async
     '/api/portfolio/queue?offset=0&limit=25&scope=mine&sort=priority',
     expect.anything()
   );
+});
+it('shows the age and missing assignment on a prioritised tenant report', async () => {
+  fetcher.mockResolvedValue(
+    response('team', [
+      {
+        ...item,
+        id: 'report',
+        kind: 'report',
+        title: 'Damp and mould in a bedroom',
+        status: 'new',
+        urgency: 0,
+        assignment_status: 'unassigned',
+        unassigned_report_age_days: 32,
+        can_manage_followup: true,
+      },
+    ])
+  );
+  render(<Page />);
+  expect(
+    await screen.findByText('Unassigned report · 32 days old')
+  ).toHaveAttribute('data-priority', '0');
+  expect(screen.getByRole('link', { name: 'Review report' })).toHaveAttribute(
+    'href',
+    '/maintenance/reports/report'
+  );
+  expect(screen.getByRole('button', { name: 'Manage follow-up' })).toBeVisible();
 });
 it('rejects a response for the wrong scope instead of showing an unfiltered queue', async () => {
   render(<Page />);

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { reportConversationHref } from '@/lib/reports/conversation-navigation';
 
 export function ReportConversationLink({
   reportId,
@@ -11,7 +12,10 @@ export function ReportConversationLink({
 }) {
   return (
     <nav aria-label='Case links' className='flex flex-wrap gap-4'>
-      <Link className='underline' href={`/maintenance/reports/${reportId}`}>
+      <Link
+        className='underline'
+        href={reportConversationHref(reportId, 'tenant-reports')}
+      >
         Open shared issue conversation
       </Link>
       {propertyId && (
