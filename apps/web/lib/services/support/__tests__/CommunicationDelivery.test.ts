@@ -67,10 +67,10 @@ beforeEach(() => {
   vi.stubGlobal('fetch', mocks.fetch);
 });
 afterEach(() => vi.unstubAllGlobals());
-function queued() {
+function queued(message = row) {
   mocks.results.push(
     { error: null },
-    { data: [row], error: null },
+    { data: [message], error: null },
     { data: { id: row.id }, error: null },
     { error: null }
   );
@@ -82,12 +82,68 @@ describe('customer communication delivery', () => {
     await drainCustomerCommunications();
     const body = JSON.parse(mocks.fetch.mock.calls[0][1].body);
     expect(body.htmlContent).toContain('&lt;script&gt;');
+    expect(body.textContent).toBe(row.body);
+    expect(body).not.toHaveProperty('attachment');
     expect(body.replyTo.email).toBe('admin@mintenance.co.uk');
     expect(mocks.updates.at(-1)).toMatchObject({
       status: 'accepted',
       provider_id: 'provider-1',
     });
   });
+  it('renders consent choices with the original durable record attached', async () => {
+    const snapshot = JSON.stringify(
+      {
+        contract: {
+          id: 'agreement-1',
+          title: 'Garden & exterior',
+          amount: 2.4,
+        },
+        quote: { total_amount: 1.2 },
+      },
+      null,
+      2
+    );
+    const record = `Contract reference: agreement-1\nAccepted at: 2026-07-16 15:29:33.692924+00\nEarly start requested: false\nFull-performance acknowledgement: false\n\nAgreement snapshot:\n${snapshot}\n\nCancellation information from the signed record.`;
+    queued({
+      ...row,
+      event_key: 'contract-consent:agreement-1:user',
+      body: record,
+    });
+    mocks.fetch.mockResolvedValue(Response.json({ messageId: 'provider-1' }));
+    await drainCustomerCommunications();
+    const body = JSON.parse(mocks.fetch.mock.calls[0][1].body);
+    expect(body.to).toEqual([{ email: row.recipient_email }]);
+    expect(body.textContent).toContain('Agreed price: £2.40');
+    expect(body.textContent).toContain('16:29 UK time');
+    expect(body.textContent).toContain('Early start requested: No');
+    expect(body.textContent).not.toContain('"quote"');
+    expect(body.htmlContent).toContain('Garden &amp; exterior');
+    expect(body.attachment).toHaveLength(1);
+    expect(body.attachment[0].name).toBe('Mintenance-agreement-record.txt');
+    expect(
+      Buffer.from(body.attachment[0].content, 'base64').toString('utf8')
+    ).toBe(record);
+  });
+  it.each([
+    'agreement-formed',
+    'legacy-cancellation-information',
+    'early-start-request',
+  ])(
+    'retains the complete %s record outside the message body',
+    async (event) => {
+      const record =
+        'Cancellation deadline (exclusive): 2026-11-29 00:00:00+00\n\n{\n  "legacy_snapshot": true\n}\n\nExact retained wording.';
+      queued({ ...row, event_key: `${event}:agreement-1:user`, body: record });
+      mocks.fetch.mockResolvedValue(Response.json({ messageId: 'provider-1' }));
+      await drainCustomerCommunications();
+      const body = JSON.parse(mocks.fetch.mock.calls[0][1].body);
+      expect(body.textContent).toContain('Cancellation deadline (before)');
+      expect(body.textContent).not.toContain('legacy_snapshot');
+      expect(
+        Buffer.from(body.attachment[0].content, 'base64').toString('utf8')
+      ).toBe(record);
+    }
+  );
   it('holds ambiguous provider errors for review', async () => {
     queued();
     mocks.fetch.mockRejectedValue(new Error('timeout'));

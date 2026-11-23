@@ -88,7 +88,7 @@ export function postJobNudgeTemplate(
     .map((s) => `<li>${e(s)}</li>`)
     .join('');
 
-  const subject = `Ninety days since "${data.jobTitle}" — what's next?`;
+  const subject = `What's next after ${data.jobTitle}?`;
   const preview = `Most UK homes need a handful of small jobs a year. Here are a few worth thinking about.`;
 
   const html = mintEmailShell(

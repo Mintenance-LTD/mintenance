@@ -44,7 +44,7 @@ export function tenantJobNotificationTemplate(data: {
 }): { subject: string; html: string; text: string } {
   const e = escapeHtml;
   const statusLine: Record<string, string> = {
-    assigned: `Your landlord found someone for "${data.jobTitle}" — they'll be in touch about timing.`,
+    assigned: `Your landlord found someone for "${data.jobTitle}". They'll be in touch about timing.`,
     in_progress: `Work has started on "${data.jobTitle}". You'll get an update when it's done.`,
     completed: `"${data.jobTitle}" is done. Anything not right? Reply on the job thread and we'll sort it.`,
   };
@@ -53,7 +53,7 @@ export function tenantJobNotificationTemplate(data: {
     in_progress: `Work has started on ${data.jobTitle}`,
     completed: `${data.jobTitle} is done`,
   };
-  const subject = statusSubject[data.status] || `${data.jobTitle} — update`;
+  const subject = statusSubject[data.status] || `Update on ${data.jobTitle}`;
   const message =
     statusLine[data.status] ||
     `Status updated to ${data.status} on "${data.jobTitle}".`;

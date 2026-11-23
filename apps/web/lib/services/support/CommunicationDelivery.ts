@@ -3,6 +3,7 @@ import { env } from '@/lib/env';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { loadPreferences } from '@/lib/services/notifications/NotificationPreferenceResolver';
 import { escapeHtml } from '@/lib/email-templates';
+import { agreementRecordEmail } from '@/lib/email-templates/agreement-record';
 
 export async function drainCustomerCommunications() {
   const deadline = Date.now() + 22000;
@@ -58,6 +59,10 @@ export async function drainCustomerCommunications() {
             status = 'accepted';
             failure = 'Suppressed by recipient email preference';
           } else {
+            const content = agreementRecordEmail(row.event_key, row.subject, row.body) ?? {
+              textContent: row.body,
+              htmlContent: `<div style="white-space:pre-wrap;font-family:Arial,sans-serif">${escapeHtml(row.body)}</div>`,
+            };
             const r = await fetch('https://api.brevo.com/v3/smtp/email', {
               method: 'POST',
               signal: AbortSignal.timeout(8000),
@@ -73,8 +78,7 @@ export async function drainCustomerCommunications() {
                 },
                 to: [{ email: row.recipient_email }],
                 subject: row.subject,
-                textContent: row.body,
-                htmlContent: `<div style="white-space:pre-wrap;font-family:Arial,sans-serif">${escapeHtml(row.body)}</div>`,
+                ...content,
                 tags: ['customer-service'],
                 headers: { 'X-Mintenance-Delivery-Id': row.id },
               }),

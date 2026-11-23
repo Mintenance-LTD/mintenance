@@ -30,7 +30,8 @@ export function cashFlowDigestTemplate(
   const e = escapeHtml;
   const range = `${fmtShortDate(data.weekStart)} – ${fmtShortDate(data.weekEnd)}`;
   const subject = `${fmtGBP(data.earnedThisWeek)} earned · ${range}`;
-  const preview = `${fmtGBP(data.releasingNextWeek)} releasing next week, ${fmtGBP(data.activeEscrowTotal)} held against active jobs.`;
+  const preview = `${fmtGBP(data.releasingNextWeek)} expected to release next week, ${fmtGBP(data.activeEscrowTotal)} held for active jobs.`;
+  const releaseNote = 'Release estimates depend on the review, cooling-off period and final checks. Open your payments for the current status.';
 
   const statCard = (value: string, label: string) => `
     <div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:16px;text-align:center">
@@ -42,11 +43,11 @@ export function cashFlowDigestTemplate(
     subject,
     preview,
     `<p>Hi ${e(data.contractorName)},</p>
-     <p>Your week on Mintenance — every number below is money already secured. No invoices to chase.</p>
+     <p>Here is your weekly summary of completed jobs and payments.</p>
      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0">
        <tr>
          <td style="padding:6px;width:50%">${statCard(fmtGBP(data.earnedThisWeek), 'Earned this week')}</td>
-         <td style="padding:6px;width:50%">${statCard(fmtGBP(data.releasingNextWeek), 'Releasing next week')}</td>
+         <td style="padding:6px;width:50%">${statCard(fmtGBP(data.releasingNextWeek), 'Expected release next week')}</td>
        </tr>
        <tr>
          <td style="padding:6px;width:50%">${statCard(String(data.jobsCompleted), 'Jobs completed')}</td>
@@ -54,11 +55,11 @@ export function cashFlowDigestTemplate(
        </tr>
      </table>
      <a href="${e(data.viewUrl)}" class="cta">Open your payments →</a>
-     <div class="note">Escrow holds the money before you arrive and releases it on approval — or automatically after 7 days if the homeowner doesn't act. That's it.</div>`,
+     <div class="note">${releaseNote}</div>`,
     unsubscribeFooter
   );
 
-  const text = `Hi ${data.contractorName},\n\nYour week on Mintenance (${range}):\n- Earned this week: ${fmtGBP(data.earnedThisWeek)}\n- Releasing next week: ${fmtGBP(data.releasingNextWeek)}\n- Jobs completed: ${data.jobsCompleted}\n- Held in escrow: ${fmtGBP(data.activeEscrowTotal)} across ${data.activeEscrowCount} job${data.activeEscrowCount === 1 ? '' : 's'}\n\nEvery number is money already secured. No invoices to chase.\n\nOpen your payments: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
+  const text = `Hi ${data.contractorName},\n\nYour week on Mintenance (${range}):\n- Earned this week: ${fmtGBP(data.earnedThisWeek)}\n- Expected release next week: ${fmtGBP(data.releasingNextWeek)}\n- Jobs completed: ${data.jobsCompleted}\n- Held in escrow: ${fmtGBP(data.activeEscrowTotal)} across ${data.activeEscrowCount} job${data.activeEscrowCount === 1 ? '' : 's'}\n\n${releaseNote}\n\nOpen your payments: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
 
   return { subject, html, text };
 }
