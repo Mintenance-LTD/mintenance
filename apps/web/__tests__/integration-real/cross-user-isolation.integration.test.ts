@@ -1,6 +1,7 @@
 // @vitest-environment node
 /** Real-DB isolation tests for the private beta data boundaries. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { randomBytes } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   createAnonClient,
@@ -450,5 +451,54 @@ describe('cross-user data isolation (real DB)', () => {
       .eq('id', tokenBId)
       .maybeSingle();
     expect(anonToken.data).toBeNull();
+  });
+
+  it('commits one tenant report and one counter increment for concurrent retries', async () => {
+    const service = createServiceClient();
+    const { data: link, error: readError } = await service
+      .from('anonymous_report_tokens')
+      .select('token, total_reports')
+      .eq('id', tokenBId)
+      .single();
+    if (readError || !link)
+      throw new Error(readError?.message || 'Missing test reporting link');
+    const reporter = 'itest concurrent tenant';
+    const args = {
+      p_token: link.token,
+      p_key_hash: randomBytes(32).toString('hex'),
+      p_receipt_hash: randomBytes(32).toString('hex'),
+      p_payload_hash: randomBytes(32).toString('hex'),
+      p_report: {
+        reporter_name: reporter,
+        category: 'plumbing',
+        urgency: 'medium',
+        description: 'Synthetic leak for retry regression',
+      },
+    };
+
+    try {
+      const attempts = await Promise.all([
+        service.rpc('submit_tenant_report_once', args),
+        createServiceClient().rpc('submit_tenant_report_once', args),
+      ]);
+      expect(attempts.map((attempt) => attempt.error)).toEqual([null, null]);
+      expect(attempts.map((attempt) => attempt.data.created).sort()).toEqual([
+        false,
+        true,
+      ]);
+      expect(attempts[0].data.id).toBe(attempts[1].data.id);
+      const { data: refreshed } = await service
+        .from('anonymous_report_tokens')
+        .select('total_reports')
+        .eq('id', tokenBId)
+        .single();
+      expect(refreshed?.total_reports).toBe((link.total_reports ?? 0) + 1);
+    } finally {
+      await service
+        .from('anonymous_reports')
+        .delete()
+        .eq('token_id', tokenBId)
+        .eq('reporter_name', reporter);
+    }
   });
 });
