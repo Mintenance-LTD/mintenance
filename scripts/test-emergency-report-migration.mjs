@@ -20,6 +20,11 @@ await db.exec(`
   CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
   CREATE TABLE profiles(id uuid PRIMARY KEY,deleted_at timestamptz,first_name text,last_name text);
   CREATE TABLE properties(id uuid PRIMARY KEY,owner_id uuid REFERENCES profiles,property_name text);
+  CREATE TABLE anonymous_report_tokens(
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), property_id uuid REFERENCES properties,
+    owner_id uuid REFERENCES profiles, token text UNIQUE NOT NULL,
+    is_active boolean DEFAULT true, total_reports int DEFAULT 0, last_report_at timestamptz
+  );
   CREATE TABLE property_team_members(property_id uuid,user_id uuid,role text,status text);
   CREATE TABLE anonymous_reports(id uuid PRIMARY KEY,property_id uuid REFERENCES properties,urgency text,status text,description text,category text,acknowledged_at timestamptz,updated_at timestamptz);
   CREATE TABLE notification_queue(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid,notification_type text,priority text,title text,message text,action_url text,metadata jsonb,scheduled_for timestamptz,status text DEFAULT 'pending');
@@ -66,7 +71,39 @@ await db.exec(
     'utf8'
   )
 );
+for (const migration of [
+  '20261123141053_tenant_emergency_contact.sql',
+  '20261123215732_emergency_report_coverage.sql',
+]) {
+  await db.exec(
+    readFileSync(
+      new URL('../supabase/migrations/' + migration, import.meta.url),
+      'utf8'
+    )
+  );
+}
+await db.query('UPDATE properties SET tenant_emergency_phone=$1 WHERE id=$2', [
+  '+442079460958',
+  id(10),
+]);
+await db.query(
+  "INSERT INTO anonymous_report_tokens(property_id,owner_id,token) VALUES($1,$2,'coverage-test-link')",
+  [id(10), id(1)]
+);
 await db.exec('SET ROLE service_role');
+const coverage = (actor) =>
+  db.query('SELECT * FROM emergency_report_coverage($1)', [id(actor)]);
+const expectedCoverage = {
+  property_id: id(10),
+  property_name: 'Test property',
+  initial_responder: 'Person 1',
+  fallback_responder: 'Person 2',
+  emergency_phone: '+442079460958',
+  has_active_link: true,
+};
+eq((await coverage(1)).rows, [expectedCoverage]);
+eq((await coverage(2)).rows, [expectedCoverage]);
+for (const actor of [3, 4, 5, 6]) eq((await coverage(actor)).rows, []);
 const incident = (n) =>
   row('SELECT * FROM emergency_report_incidents WHERE report_id=$1', [id(n)]);
 const due = (n) =>
@@ -89,6 +126,17 @@ eq((await incident(99)).assigned_to, id(1));
 await advance();
 eq((await incident(99)).assigned_to, id(2));
 await ack(99, 2);
+
+await db.query(
+  "UPDATE property_team_members SET status='removed' WHERE user_id=$1",
+  [id(2)]
+);
+eq((await coverage(1)).rows[0].fallback_responder, null);
+eq((await coverage(2)).rows, []);
+await db.query(
+  "UPDATE property_team_members SET status='accepted' WHERE user_id=$1",
+  [id(2)]
+);
 
 await insert(100, 'medium');
 eq(await incident(100), undefined);
@@ -314,16 +362,10 @@ console.log(
 assertions = 0;
 await db.exec(`
   RESET ROLE;
-  CREATE TABLE anonymous_report_tokens(
-    id uuid PRIMARY KEY, property_id uuid REFERENCES properties, owner_id uuid REFERENCES profiles,
-    token text UNIQUE NOT NULL, is_active boolean DEFAULT true, total_reports int DEFAULT 0,
-    last_report_at timestamptz
-  );
   ALTER TABLE anonymous_reports ALTER COLUMN id SET DEFAULT gen_random_uuid(),
     ADD COLUMN token_id uuid REFERENCES anonymous_report_tokens,
     ADD COLUMN reporter_name text, ADD COLUMN reporter_email text, ADD COLUMN reporter_phone text,
     ADD COLUMN reporter_unit text, ADD COLUMN photos text[], ADD COLUMN conversation_key_hash text;
-  GRANT SELECT, UPDATE ON anonymous_report_tokens TO service_role;
 `);
 await db.query('INSERT INTO properties VALUES($1,$2,$3)', [
   id(200),

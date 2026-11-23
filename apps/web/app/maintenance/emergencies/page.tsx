@@ -2,27 +2,28 @@ import { redirect } from 'next/navigation';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { EmergencyReportsClient } from './EmergencyReportsClient';
+import type { EmergencyCoverageRow } from './EmergencyCoverage';
 
 export const metadata = { title: 'Emergency reports | Mintenance' };
 
 export default async function EmergencyReportsPage() {
   const user = await getCurrentUserFromCookies();
   if (!user) redirect('/login?redirect=%2Fmaintenance%2Femergencies');
-  const { data, error } = await serverSupabase.rpc('emergency_report_inbox', {
-    p_actor: user.id,
-  });
-  if (error)
-    return (
-      <main className='mx-auto max-w-3xl p-6'>
-        <h1 className='text-2xl font-semibold'>Emergency reports</h1>
-        <p role='alert'>
-          The emergency inbox could not be loaded. It has not been confirmed
-          empty.
-        </p>
-        <a href='/maintenance/emergencies' className='underline'>
-          Retry emergency inbox
-        </a>
-      </main>
-    );
-  return <EmergencyReportsClient initialReports={data ?? []} />;
+  const [inbox, coverage] = await Promise.all([
+    serverSupabase.rpc('emergency_report_inbox', { p_actor: user.id }),
+    serverSupabase.rpc('emergency_report_coverage', { p_actor: user.id }),
+  ]);
+
+  return (
+    <EmergencyReportsClient
+      initialReports={
+        !inbox.error && Array.isArray(inbox.data) ? inbox.data : null
+      }
+      coverage={
+        !coverage.error && Array.isArray(coverage.data)
+          ? (coverage.data as EmergencyCoverageRow[])
+          : null
+      }
+    />
+  );
 }

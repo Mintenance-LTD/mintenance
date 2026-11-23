@@ -43,6 +43,29 @@ it('distinguishes a deactivated link from a temporary failure', async () => {
     screen.queryByRole('button', { name: 'Try again' })
   ).not.toBeInTheDocument();
 });
+it.each([null, 'invalid-unsupported-number'])(
+  'plainly flags missing emergency coverage for value %s',
+  async (emergencyPhone) => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        response({ property, emergency_phone: emergencyPhone })
+      );
+    vi.stubGlobal('fetch', fetcher);
+    render(<TenantReportForm token='test' />);
+    await screen.findByText('Test property');
+    fireEvent.click(screen.getByRole('radio', { name: /Emergency/ }));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'No emergency or out-of-hours number is listed for this property.'
+    );
+    expect(
+      screen.queryByRole('link', {
+        name: /Call the property emergency contact/,
+      })
+    ).toBeNull();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  }
+);
 it('submits urgency and shows the private receipt link and reference', async () => {
   const fetcher = vi
     .fn()
