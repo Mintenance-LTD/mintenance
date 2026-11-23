@@ -60,7 +60,7 @@ export function CalendarEvent({ event, eventColor }: CalendarEventProps) {
         fontSize: theme.typography.fontSize.xs,
         fontWeight: theme.typography.fontWeight.medium,
         color: theme.colors.textPrimary,
-        cursor: isJobEvent && jobId ? 'pointer' : 'default',
+        cursor: href ? 'pointer' : 'default',
         transition: 'all 0.2s ease',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
@@ -74,7 +74,7 @@ export function CalendarEvent({ event, eventColor }: CalendarEventProps) {
         boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
       }}
       onMouseEnter={(e) => {
-        if (isJobEvent && jobId) {
+        if (href) {
           e.currentTarget.style.transform = 'translateX(2px)';
           e.currentTarget.style.opacity = '0.9';
           e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
@@ -89,7 +89,11 @@ export function CalendarEvent({ event, eventColor }: CalendarEventProps) {
       }}
       title={event.title}
       aria-label={
-        isJobEvent && jobId ? `View job: ${event.title}` : event.title
+        event.id.startsWith('visit-')
+          ? `View visit: ${event.title}`
+          : isJobEvent && jobId
+            ? `View job: ${event.title}`
+            : event.title
       }
     >
       {event.title}

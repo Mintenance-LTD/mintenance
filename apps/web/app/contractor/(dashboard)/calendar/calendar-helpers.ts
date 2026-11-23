@@ -84,7 +84,9 @@ async function fetchJobEvents(): Promise<CalendarEvent[]> {
 
 async function fetchAppointmentEvents(): Promise<CalendarEvent[]> {
   try {
-    const res = await fetch('/api/appointments', { credentials: 'include' });
+    const res = await fetch('/api/appointments?view=calendar&limit=500', {
+      credentials: 'include',
+    });
     if (!res.ok) return [];
     const data = await res.json();
     const items = data.appointments || [];

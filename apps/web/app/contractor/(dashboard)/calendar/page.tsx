@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { visitHref } from '@/lib/scheduling/visit-history';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -355,7 +357,16 @@ export default function ContractorCalendarPage() {
                                 <div className='font-medium truncate'>
                                   {event.startTime}
                                 </div>
-                                <div className='truncate'>{event.title}</div>
+                                {event.type === 'appointment' ? (
+                                  <Link
+                                    className='block truncate hover:underline'
+                                    href={visitHref(event.id, 'contractor')}
+                                  >
+                                    {event.title}
+                                  </Link>
+                                ) : (
+                                  <div className='truncate'>{event.title}</div>
+                                )}
                               </div>
                             ))}
                             {dayEvents.length > 2 && (
@@ -403,7 +414,18 @@ export default function ContractorCalendarPage() {
                       className={`p-4 rounded-lg ${getEventColor(event.type)}`}
                     >
                       <div className='flex items-start justify-between mb-2'>
-                        <h4 className='font-semibold'>{event.title}</h4>
+                        <h4 className='font-semibold'>
+                          {event.type === 'appointment' ? (
+                            <Link
+                              className='hover:underline'
+                              href={visitHref(event.id, 'contractor')}
+                            >
+                              {event.title}
+                            </Link>
+                          ) : (
+                            event.title
+                          )}
+                        </h4>
                         {event.status && (
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}

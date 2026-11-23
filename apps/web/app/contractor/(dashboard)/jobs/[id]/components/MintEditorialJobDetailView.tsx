@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { ContractManagement } from '@/app/jobs/[id]/components/ContractManagement';
 import { JobScheduling } from '@/app/jobs/[id]/components/JobScheduling';
+import { JobVisitHistory } from '@/components/scheduling/JobVisitHistory';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
 import { JobPhotoUpload } from './JobPhotoUpload';
 import { OnMyWayButton } from './OnMyWayButton';
@@ -602,6 +603,7 @@ export function MintEditorialJobDetailView({
             )}
 
           {/* Scheduling */}
+          <JobVisitHistory jobId={job.id} role='contractor' />
           {(currentStage === 'waiting_to_start' ||
             currentStage === 'ready_to_start' ||
             currentStage === 'in_progress') && (

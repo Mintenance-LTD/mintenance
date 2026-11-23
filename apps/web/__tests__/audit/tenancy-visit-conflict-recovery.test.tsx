@@ -43,9 +43,10 @@ const originalFolder = {
 const originalVisit = {
   id: 'visit',
   title: 'Original visit',
-  date: '2026-11-10',
+  date: '2099-11-10',
   time: '09:00:00',
   endTime: '10:00:00',
+  status: 'scheduled',
   clientResponse: 'pending',
   canRespond: true,
 };
@@ -173,7 +174,7 @@ it('requires a fresh visit after conflict, then submits the changed time once', 
   await screen.findByText(/11:00–12:00/);
   expect(posts).toHaveLength(1);
   fireEvent.click(screen.getByRole('button', { name: 'Confirm visit' }));
-  await screen.findByText('Visit confirmed');
+  await screen.findByText('Confirmed by the client');
   expect(posts.map((p) => p.start)).toEqual(['09:00:00', '11:00:00']);
 });
 

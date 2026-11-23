@@ -2,6 +2,13 @@ import { appointmentLocalTime } from '@/lib/utils/appointment-local-time';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
+import { isValidUUID } from '@/lib/validation/uuid';
+import { readVisitRecords } from '@/lib/queries/visit-history';
+import {
+  activeVisitStatuses,
+  closedVisitStatuses,
+} from '@/lib/scheduling/visit-history';
 
 /**
  * GET /api/appointments
@@ -12,7 +19,8 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 60 }, csrf: false },
   async (request, { user }) => {
-    const today = appointmentLocalTime(new Date()).date;
+    const now = new Date();
+    const { date: today, time: nowTime } = appointmentLocalTime(now);
     const isContractor = user.role === 'contractor';
 
     // 2026-05-23 audit-21 P1: CalendarScreen used to call the
@@ -24,6 +32,19 @@ export const GET = withApiHandler(
     // Defaults preserve the historical "next 10 upcoming" behaviour
     // for the older dashboard widgets that don't pass either param.
     const { searchParams } = new URL(request.url);
+    const view = searchParams.get('view');
+    if (view && !['homeowner', 'contractor'].includes(user.role)) {
+      throw new ForbiddenError('Visit unavailable');
+    }
+    if (view === 'job') {
+      const jobId = searchParams.get('jobId');
+      if (!jobId || !isValidUUID(jobId))
+        throw new BadRequestError('Invalid job ID');
+      return NextResponse.json({
+        appointments: await readVisitRecords(user, { jobId }),
+      });
+    }
+    const past = view === 'past';
     const daysAheadRaw = searchParams.get('daysAhead');
     const limitRaw = searchParams.get('limit');
     const daysAhead = (() => {
@@ -42,22 +63,42 @@ export const GET = withApiHandler(
       .select(
         `
         id, title, appointment_date, start_time, end_time,
-        location_type, location_address, video_call_url, status, notes, client_id, client_response,
+        location_type, location_address, video_call_url, status, notes, client_id, client_response, client_response_at,
         contractor:profiles!contractor_id(id, first_name, last_name),
         client:profiles!client_id(id, first_name, last_name),
         job:jobs!job_id(id, title, status)
       `
       )
-      .gte('appointment_date', today)
-      .in('status', ['scheduled', 'confirmed', 'rescheduled'])
-      .order('appointment_date', { ascending: true })
-      .order('start_time', { ascending: true })
+      .order('appointment_date', { ascending: !past && view !== 'calendar' })
+      .order('start_time', { ascending: !past && view !== 'calendar' })
       .limit(limit);
 
-    if (daysAhead != null) {
-      const upper = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0];
+    if (past) {
+      query = query.or(
+        `status.in.(${closedVisitStatuses.join(',')}),appointment_date.lt.${today},and(appointment_date.eq.${today},end_time.lte.${nowTime})`
+      );
+    } else if (view === 'upcoming') {
+      query = query
+        .in('status', activeVisitStatuses)
+        .or(
+          `appointment_date.gt.${today},and(appointment_date.eq.${today},end_time.gt.${nowTime})`
+        );
+    } else if (view === 'calendar') {
+      query = query.in('status', [
+        ...activeVisitStatuses,
+        'completed',
+        'no_show',
+      ]);
+    } else {
+      query = query
+        .gte('appointment_date', today)
+        .in('status', ['scheduled', 'confirmed', 'rescheduled']);
+    }
+
+    if (!past && daysAhead != null) {
+      const upper = appointmentLocalTime(
+        new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000)
+      ).date;
       query = query.lte('appointment_date', upper);
     }
 
@@ -83,7 +124,8 @@ export const GET = withApiHandler(
       if (user.email) {
         // sanitise: client_email is just an EQ filter, escape with
         // standard PostgREST syntax (no wildcards needed).
-        orFilters.push(`client_email.eq.${user.email}`);
+        const email = user.email.replace(/["\\]/g, '\\$&');
+        orFilters.push(`and(client_id.is.null,client_email.eq."${email}")`);
       }
 
       // Look up jobs this homeowner owns so we can pick up
@@ -125,7 +167,8 @@ export const GET = withApiHandler(
         locationAddress: apt.location_address,
         status: apt.status,
         clientResponse: apt.client_response,
-        canRespond: apt.client_id === user.id,
+        clientResponseAt: apt.client_response_at,
+        canRespond: !past && apt.client_id === user.id,
         notes: apt.notes,
         contractor: contractor
           ? {

@@ -4,8 +4,7 @@
  * Per-job Timeline for the Mint Editorial /jobs/[id] surface.
  *
  * Replaces the static "Timeline is being rebuilt" placeholder with
- * a real event list derived from data we already fetch in page.tsx
- * (no extra DB queries). Events are real-data only — if we don't
+ * a real event list based on job and visit records. If we don't
  * have a timestamp for a phase yet, we render nothing for it
  * rather than fabricating a placeholder.
  *
@@ -30,8 +29,20 @@
 import React from 'react';
 import Link from 'next/link';
 import { useJobRework } from '@/lib/hooks/useJobRework';
+import { useJobVisits } from '@/lib/hooks/useJobVisits';
+import { VisitEventDetails } from '@/components/scheduling/VisitEventDetails';
+import { ukDateTimeToISO } from '@/lib/scheduling/uk-date-time';
+import {
+  currentVisitSlot,
+  formatVisitSlot,
+  visitEventLabel,
+  visitHref,
+  visitResponseLabel,
+  visitStatusLabel,
+} from '@/lib/scheduling/visit-history';
 import {
   Briefcase,
+  CalendarClock,
   Clock,
   CheckCircle2,
   FileText,
@@ -70,6 +81,8 @@ interface TimelineEvent {
   icon: React.ReactNode;
   title: string;
   meta?: string;
+  details?: React.ReactNode;
+  href?: string;
   tone: 'brand' | 'ok' | 'mute';
 }
 
@@ -110,7 +123,48 @@ export function MintEditorialJobTimeline({
   lifecycle,
 }: Props) {
   const rework = useJobRework(job.id, job.completed_at);
+  const visitRecords = useJobVisits(job.id);
   const events: TimelineEvent[] = [];
+  for (const visit of visitRecords?.visits ?? []) {
+    const href = visitHref(visit.id);
+    if (visit.history?.length) {
+      for (const event of visit.history) {
+        events.push({
+          id: `visit-event-${event.id}`,
+          ts: Date.parse(event.recordedAt),
+          hasRealTs: true,
+          icon: <CalendarClock size={14} />,
+          title: `${visit.title} · ${visitEventLabel(event)}`,
+          meta: `${formatEventDate(event.recordedAt)} UK time`,
+          details: <VisitEventDetails event={event} />,
+          href,
+          tone: 'brand',
+        });
+      }
+    } else {
+      const slot = currentVisitSlot(visit);
+      let ts = Date.parse(visit.clientResponseAt || slot.date);
+      if (!visit.clientResponseAt) {
+        try {
+          ts = Date.parse(
+            ukDateTimeToISO(`${slot.date}T${slot.start.slice(0, 5)}`)
+          );
+        } catch {
+          // Historic slots may have an ambiguous wall-clock time. Keep their date.
+        }
+      }
+      events.push({
+        id: `visit-${visit.id}`,
+        ts,
+        hasRealTs: true,
+        icon: <CalendarClock size={14} />,
+        title: `${visit.title} · ${visitStatusLabel(slot)}`,
+        meta: `${formatVisitSlot(slot)} · ${visitResponseLabel(slot)}`,
+        href,
+        tone: 'brand',
+      });
+    }
+  }
   for (const request of rework.requests) {
     if (request.completion_version)
       events.push({
@@ -370,6 +424,11 @@ export function MintEditorialJobTimeline({
         </span>
       </div>
       <div>
+        {visitRecords?.failed && (
+          <p role='status' className='px-5 py-3 text-sm'>
+            Visit history is temporarily unavailable.
+          </p>
+        )}
         {(lifecycle.escrowStatus === 'disputed' ||
           job.status === 'disputed') && (
           <div className='px-5 py-4 border-b border-amber-200 bg-amber-50'>
@@ -431,6 +490,12 @@ export function MintEditorialJobTimeline({
                   {e.meta}
                 </span>
               ) : null}
+              {e.details}
+              {e.href && (
+                <Link href={e.href} className='t-meta font-semibold underline'>
+                  View visit
+                </Link>
+              )}
             </div>
             {!e.hasRealTs ? (
               <span

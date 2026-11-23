@@ -5,6 +5,7 @@
 
 import { logger } from '@mintenance/shared';
 import { ukDateTimeToISO } from '@/lib/scheduling/uk-date-time';
+import { visitHref, activeVisitStatuses } from '@/lib/scheduling/visit-history';
 import type {
   CalendarEvent,
   JobWithContract,
@@ -158,7 +159,11 @@ export function transformAppointmentsToEvents(
   role: 'homeowner' | 'contractor'
 ): CalendarEvent[] {
   return appointments.flatMap((appointment) => {
-    if (!['scheduled', 'confirmed', 'rescheduled'].includes(appointment.status))
+    if (
+      ![...activeVisitStatuses, 'completed', 'no_show'].includes(
+        appointment.status
+      )
+    )
       return [];
     try {
       const date = ukDateTimeToISO(
@@ -171,9 +176,7 @@ export function transformAppointmentsToEvents(
           date,
           type: 'inspection' as const,
           status: appointment.status,
-          href: appointment.job_id
-            ? `${role === 'contractor' ? '/contractor' : ''}/jobs/${appointment.job_id}`
-            : '/appointments',
+          href: visitHref(appointment.id, role),
         },
       ];
     } catch {

@@ -20,6 +20,7 @@ import { MapPin, MessageCircle, ArrowLeft } from 'lucide-react';
 import { ContractManagement } from '@/app/jobs/[id]/components/ContractManagement';
 import { LocationSharing } from './components/LocationSharing';
 import { JobScheduling } from '@/app/jobs/[id]/components/JobScheduling';
+import { JobVisitHistory } from '@/components/scheduling/JobVisitHistory';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
@@ -722,6 +723,8 @@ export default async function ContractorJobDetailPage({
             )}
 
           {/* Scheduling - only after contract accepted */}
+          <JobVisitHistory jobId={job.id} role='contractor' />
+
           {(currentStage === 'awaiting_payment' ||
             currentStage === 'waiting_to_start' ||
             currentStage === 'ready_to_start' ||

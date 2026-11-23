@@ -56,7 +56,7 @@ it.each(['homeowner', 'contractor'] as const)(
     expect(visits[0]).toMatchObject({
       date: '2026-11-16T09:00:00.000Z',
       title: 'Repair (Visit 09:00–17:00 UK)',
-      href: `${role === 'contractor' ? '/contractor' : ''}/jobs/job`,
+      href: `${role === 'contractor' ? '/contractor' : ''}/appointments/visit`,
     });
     const jobs = transformJobsToEvents(
       [
@@ -96,6 +96,12 @@ it('uses UK daylight saving for visit slots and excludes cancelled visits', () =
       'homeowner'
     )
   ).toEqual([]);
+  expect(
+    transformAppointmentsToEvents(
+      [{ ...visit, status: 'completed' }],
+      'homeowner'
+    )[0]
+  ).toMatchObject({ status: 'completed', href: '/appointments/visit' });
 });
 it.each(['homeowner', 'contractor'] as const)(
   'scopes visit reads for %s and retains independently scheduled visits',

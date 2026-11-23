@@ -26,6 +26,15 @@ await db.query(
   `INSERT INTO appointments(id,contractor_id,title,appointment_date,start_time,end_time,status) VALUES($1,$2,'Other visit','2099-01-01','12:00','13:00','rescheduled')`,
   [id(4), id(2)]
 );
+await db.exec(
+  readFileSync(
+    new URL(
+      '../supabase/migrations/20261123231656_appointment_visit_history.sql',
+      import.meta.url
+    ),
+    'utf8'
+  )
+);
 const change = {
   appointmentDate: '2099-01-01',
   startTime: '10:00',
@@ -50,6 +59,10 @@ const rejects = async (p, re) => {
 };
 await db.exec('SET ROLE authenticated');
 await rejects(update(), /permission denied/);
+await rejects(
+  db.query('SELECT * FROM appointment_visit_history'),
+  /permission denied/
+);
 await db.exec('RESET ROLE;SET ROLE service_role');
 await rejects(update(change, id(8)), /unavailable/);
 await rejects(update({ ...change, endTime: '09:30' }), /End time/);
@@ -71,6 +84,33 @@ eq(row.status, 'rescheduled');
 eq(row.client_response, 'pending');
 eq(row.client_response_at, null);
 eq(row.notes, 'Original access instructions\n\nRescheduled: Client requested');
+const readHistory = async () =>
+  (
+    await db.query(
+      'SELECT kind, previous_slot, slot FROM appointment_visit_history WHERE appointment_id=$1 ORDER BY id',
+      [id(1)]
+    )
+  ).rows;
+const [rescheduled] = await readHistory();
+eq(rescheduled.kind, 'rescheduled');
+eq(rescheduled.previous_slot.start, '09:00:00');
+eq(rescheduled.previous_slot.end, '10:30:00');
+eq(rescheduled.previous_slot.respondedBy, id(3));
+eq(rescheduled.slot.start, '10:00:00');
+eq(rescheduled.slot.end, '11:30:00');
+eq(rescheduled.slot.response, 'pending');
+eq(rescheduled.slot.respondedBy, null);
+const respond = (actor, start, end) =>
+  db.query('SELECT respond_to_visit($1,$2,$3,$4,$5,$6)', [
+    actor,
+    id(1),
+    '2099-01-01',
+    start,
+    end,
+    'confirmed',
+  ]);
+await rejects(respond(id(3), '09:00', '10:30'), /Visit changed/);
+await rejects(respond(id(8), '10:00', '11:30'), /Visit unavailable/);
 eq(
   (await db.query('SELECT count(*)::int AS n FROM notification_queue')).rows[0]
     .n,
@@ -82,6 +122,7 @@ eq(
   '/appointments/response'
 );
 await update();
+eq((await readHistory()).length, 1);
 eq(
   (await db.query('SELECT count(*)::int AS n FROM notification_queue')).rows[0]
     .n,
@@ -102,7 +143,16 @@ eq(
   (await db.query('SELECT count(*)::int AS n FROM appointments')).rows[0].n,
   3
 );
+await respond(id(3), '10:00', '11:30');
+await respond(id(3), '10:00', '11:30');
+const [, confirmed] = await readHistory();
+eq((await readHistory()).length, 2);
+eq(confirmed.kind, 'response');
+eq(confirmed.slot.response, 'confirmed');
+eq(confirmed.slot.start, '10:00:00');
+eq(confirmed.slot.respondedBy, id(3));
 await update({ status: 'completed' });
+eq((await readHistory()).at(-1).slot.status, 'completed');
 await rejects(
   update({ ...change, startTime: '08:00', endTime: '09:00' }),
   /visit has ended/
@@ -123,7 +173,46 @@ await db
       n++;
     }
   );
+await db.query(
+  `INSERT INTO appointments(id,contractor_id,client_id,title,appointment_date,start_time,end_time,status) VALUES($1,$2,$3,'Earlier visit','2020-11-17','09:00','17:00','scheduled')`,
+  [id(10), id(2), id(3)]
+);
+await rejects(
+  db.query('SELECT respond_to_visit($1,$2,$3,$4,$5,$6)', [
+    id(3),
+    id(10),
+    '2020-11-17',
+    '09:00',
+    '17:00',
+    'confirmed',
+  ]),
+  /visit has ended/
+);
+eq(
+  (
+    await db.query('SELECT client_response FROM appointments WHERE id=$1', [
+      id(10),
+    ])
+  ).rows[0].client_response,
+  'pending'
+);
+eq(
+  (
+    await db.query(
+      'SELECT count(*)::int AS n FROM appointment_visit_history WHERE appointment_id=$1',
+      [id(10)]
+    )
+  ).rows[0].n,
+  1
+);
+await rejects(
+  db.query(
+    `UPDATE appointment_visit_history SET kind='status' WHERE appointment_id=$1`,
+    [id(10)]
+  ),
+  /permission denied/
+);
 await db.close();
 console.log(
-  `${n} PostgreSQL visit assertions passed: scope, stale edits, overlaps, duration, response reset, terminal states and single durable notification.`
+  `${n} PostgreSQL visit assertions passed: scope, concurrent-edit guards, response reset, slot history, confirmation attribution and idempotency.`
 );
