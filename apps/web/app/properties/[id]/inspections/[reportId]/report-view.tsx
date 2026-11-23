@@ -42,6 +42,9 @@ export default function InspectionReportView({
       controller.signal
     )
       .then((value) => {
+        if (value?.report?.id !== reportId) {
+          throw new Error('This inspection report is unavailable.');
+        }
         if (!controller.signal.aborted) setData(value);
       })
       .catch((e: Error) => {
@@ -64,14 +67,21 @@ export default function InspectionReportView({
   const kind = INSPECTION_KINDS.find(
     (item) => item.value === data?.report.kind
   )?.label;
+  const propertyPath = '/properties/' + encodeURIComponent(propertyId);
+  const folderId = data?.report.folder_id || data?.folder.id;
   return (
     <main className={styles.page}>
       <div className={styles.container}>
         <Link
           className={styles.back}
-          href={'/properties/' + propertyId + '?tab=manage'}
+          href={
+            folderId
+              ? propertyPath + '/tenancies/' + encodeURIComponent(folderId)
+              : propertyPath + '?tab=manage&manage=records'
+          }
         >
-          <ArrowLeft size={17} aria-hidden='true' /> Back to property
+          <ArrowLeft size={17} aria-hidden='true' />{' '}
+          {folderId ? 'Back to tenancy folder' : 'Back to property records'}
         </Link>
         {!data && !error && (
           <div className={styles.card} role='status'>

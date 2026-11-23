@@ -20,6 +20,28 @@ beforeEach(() => {
 });
 const ok = (body: unknown) =>
   Promise.resolve({ ok: true, json: async () => body });
+it('restores the exact tenancy and its report list on a direct folder visit', async () => {
+  request.mockImplementation((url: string) =>
+    ok({
+      items: url.includes('/tenancies?') ? [folder] : [],
+      canCreate: false,
+      hasMore: false,
+    })
+  );
+  render(<TenancyInspections propertyId='property' initialFolderId='folder' />);
+  expect(await screen.findByLabelText('Tenancy folder')).toHaveValue('folder');
+  await screen.findByText('No inspections in this tenancy yet.');
+  expect(request).toHaveBeenNthCalledWith(
+    1,
+    '/api/properties/property/tenancies?folder=folder',
+    expect.anything()
+  );
+  expect(request).toHaveBeenNthCalledWith(
+    2,
+    '/api/properties/property/inspections?folder=folder&offset=0',
+    expect.anything()
+  );
+});
 it('keeps viewers out of creation forms', async () => {
   request.mockImplementation(() =>
     ok({ items: [folder], canCreate: false, hasMore: false })
@@ -152,6 +174,9 @@ it('preserves deleted-photo history and escapes report notes', async () => {
     <InspectionReportView propertyId='property' reportId='report' />
   );
   await screen.findByText('Original photo deleted or unavailable.');
+  expect(
+    screen.getByRole('link', { name: 'Back to tenancy folder' })
+  ).toHaveAttribute('href', '/properties/property/tenancies/folder');
   expect(container.querySelector('script')).toBeNull();
   expect(screen.getByText('<script>untrusted</script>')).toBeDefined();
   expect(

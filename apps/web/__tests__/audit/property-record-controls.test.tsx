@@ -404,6 +404,9 @@ it('requires deletion confirmation and keeps the photo after a failed deletion',
   render(<RoomPhotoGallery propertyId='property' />);
   await kitchen();
   fireEvent.click(screen.getByRole('button', { name: 'Delete Kitchen.png' }));
+  expect(confirm).toHaveBeenCalledWith(
+    expect.stringContaining('it will become unavailable in that report')
+  );
   expect(
     request.mock.calls.some(([, options]) => options?.method === 'DELETE')
   ).toBe(false);

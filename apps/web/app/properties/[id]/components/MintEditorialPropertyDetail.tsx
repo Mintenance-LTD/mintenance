@@ -18,8 +18,9 @@ import { PropertyMaintenanceWorkspace } from './PropertyMaintenanceWorkspace';
  * rail with health score.
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import PropertyAssessments from './PropertyAssessments';
@@ -69,29 +70,15 @@ interface TabDef {
   count?: number;
 }
 
-// 2026-05-23 audit: read initial tab from ?tab= so deep-links from
-// the job-detail Right-Rail "Edit access" CTA actually land on the
-// Access tab instead of dropping the user on Overview. Validates
-// the value against the Tab union so an unknown / stale tab key
-// silently falls back to 'overview' rather than rendering an empty
-// pane. Lives in a static lookup outside the component so successive
-// renders don't recompute the set.
-const VALID_TABS = new Set<Tab>([
-  'overview',
-  'maintenance',
-  'documents',
-  'timeline',
-  'access',
-  'assessments',
-  'manage',
-]);
-
-function initialTabFromUrl(): Tab {
-  if (typeof window === 'undefined') return 'overview';
-  const raw = new URL(window.location.href).searchParams.get('tab');
-  if (raw && (VALID_TABS as Set<string>).has(raw)) return raw as Tab;
-  return 'overview';
-}
+const tabs: TabDef[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'maintenance', label: 'Maintenance' },
+  { id: 'documents', label: 'Documents' },
+  { id: 'timeline', label: 'Timeline' },
+  { id: 'access', label: 'Access & contacts' },
+  { id: 'assessments', label: 'Assessments' },
+  { id: 'manage', label: 'Manage' },
+];
 
 export function MintEditorialPropertyDetail({
   property,
@@ -99,35 +86,16 @@ export function MintEditorialPropertyDetail({
   stats,
   certificates = [],
 }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
-  useEffect(() => {
-    setActiveTab(initialTabFromUrl());
-    const onBack = () => setActiveTab(initialTabFromUrl());
-    window.addEventListener('popstate', onBack);
-    return () => window.removeEventListener('popstate', onBack);
-  }, []);
+  const search = useSearchParams();
+  const requestedTab = search.get('tab');
+  const activeTab =
+    tabs.find(({ id }) => id === requestedTab)?.id ?? 'overview';
   const selectTab = (tab: Tab) => {
-    setActiveTab(tab);
+    if (tab === activeTab) return;
     const url = new URL(window.location.href);
     url.searchParams.set('tab', tab);
     window.history.pushState(null, '', url);
   };
-
-  const tabs: TabDef[] = [
-    { id: 'overview', label: 'Overview' },
-    {
-      id: 'maintenance',
-      label: 'Maintenance',
-    },
-    {
-      id: 'documents',
-      label: 'Documents',
-    },
-    { id: 'timeline', label: 'Timeline' },
-    { id: 'access', label: 'Access & contacts' },
-    { id: 'assessments', label: 'Assessments' },
-    { id: 'manage', label: 'Manage' },
-  ];
 
   return (
     <HomeownerPageWrapper>

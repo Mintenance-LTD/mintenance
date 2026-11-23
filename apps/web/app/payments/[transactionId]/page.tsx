@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { readPendingRefund, submitRefund } from '@/lib/payments/refund-request';
 import { useParams, useRouter } from 'next/navigation';
+import { disputeHref } from '@/lib/disputes/presentation';
 import {
   ArrowLeft,
   Download,
@@ -80,34 +82,56 @@ interface Transaction {
 
 export default function TransactionDetailPage2025() {
   const params = useParams();
-  const router = useRouter();
-  const { user } = useCurrentUser();
   const transactionId = params.transactionId as string;
+  return (
+    <TransactionReceipt key={transactionId} transactionId={transactionId} />
+  );
+}
+
+function TransactionReceipt({ transactionId }: { transactionId: string }) {
+  const router = useRouter();
+  const { user, loading: loadingUser } = useCurrentUser();
 
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
+  const [receiptError, setReceiptError] = useState('');
+  const [attempt, setAttempt] = useState(0);
 
   // Fetch transaction data
   useEffect(() => {
     if (!user) return;
+    const controller = new AbortController();
+    setLoading(true);
+    setReceiptError('');
     const fetchTransaction = async () => {
       try {
         const response = await fetch(
-          `/api/payments/history?transactionId=${encodeURIComponent(transactionId)}`
+          `/api/payments/history?transactionId=${encodeURIComponent(transactionId)}`,
+          { signal: controller.signal, cache: 'no-store' }
         );
-        if (!response.ok) throw new Error('Failed to fetch');
+        if ([400, 403, 404].includes(response.status)) {
+          throw new Error(
+            'This receipt is unavailable or you no longer have access.'
+          );
+        }
+        if (!response.ok)
+          throw new Error('The receipt could not be loaded. Please retry.');
 
-        const { payments } = await response.json();
-        const found = payments.find(
+        const data = await response.json().catch(() => null);
+        if (!Array.isArray(data?.payments)) {
+          throw new Error('The receipt could not be loaded. Please retry.');
+        }
+        const found = data.payments.find(
           (p: { id: string }) => p.id === transactionId
         );
 
         if (!found) {
-          toast.error('Transaction not found');
-          router.push('/payments');
-          return;
+          throw new Error(
+            'This receipt is unavailable or you no longer have access.'
+          );
         }
 
+        if (controller.signal.aborted) return;
         // Mock some additional data that would normally come from the API
         setTransaction({
           id: found.id,
@@ -155,16 +179,22 @@ export default function TransactionDetailPage2025() {
             },
           ],
         });
-      } catch {
-        toast.error('Failed to load transaction details');
-        router.push('/payments');
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setReceiptError(
+            error instanceof Error
+              ? error.message
+              : 'The receipt could not be loaded.'
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
-    if (user) fetchTransaction();
-  }, [user, transactionId, router]);
+    void fetchTransaction();
+    return () => controller.abort();
+  }, [user, transactionId, attempt]);
 
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundLimit, setRefundLimit] = useState(0);
@@ -293,7 +323,7 @@ export default function TransactionDetailPage2025() {
     }
   };
 
-  if (loading) {
+  if (loadingUser || (user && loading)) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
@@ -304,8 +334,43 @@ export default function TransactionDetailPage2025() {
     );
   }
 
-  if (!transaction) {
-    return null;
+  if (!user || !transaction || receiptError) {
+    return (
+      <div className='mx-auto max-w-3xl p-6'>
+        <section className='card card-pad' role='alert'>
+          <h1 className='t-h2'>Unable to open receipt</h1>
+          <p className='mt-2'>
+            {!user
+              ? 'Sign in to view this receipt.'
+              : receiptError || 'This receipt is unavailable.'}
+          </p>
+          <div className='mt-4 flex items-center gap-3'>
+            {user ? (
+              <button
+                type='button'
+                className='btn btn-secondary'
+                onClick={() => setAttempt((value) => value + 1)}
+              >
+                Retry
+              </button>
+            ) : (
+              <Link
+                className='btn btn-primary'
+                href={
+                  '/login?redirect=' +
+                  encodeURIComponent(`/payments/${transactionId}`)
+                }
+              >
+                Sign in
+              </Link>
+            )}
+            <Link href='/payments' className='btn btn-ghost'>
+              Back to Payments
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -319,13 +384,13 @@ export default function TransactionDetailPage2025() {
             variants={fadeIn}
             className='mb-6'
           >
-            <button
-              onClick={() => router.back()}
+            <Link
+              href='/payments'
               className='flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors'
             >
               <ArrowLeft className='w-5 h-5' />
               Back to Payments
-            </button>
+            </Link>
 
             <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
               <div>
@@ -340,7 +405,7 @@ export default function TransactionDetailPage2025() {
               <div className='flex flex-wrap gap-3'>
                 {transaction.status === 'disputed' && (
                   <button
-                    onClick={() => router.push(`/disputes/${transaction.id}`)}
+                    onClick={() => router.push(disputeHref(transaction.id))}
                     className='px-4 py-2 border rounded-lg'
                   >
                     View dispute

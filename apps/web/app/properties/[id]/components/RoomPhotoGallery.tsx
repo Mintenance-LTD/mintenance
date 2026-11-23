@@ -150,7 +150,11 @@ function RoomPhotos({ propertyId }: RoomPhotoGalleryProps) {
 
   const handleDelete = async (photoId: string) => {
     if (mutation.current || loading || error) return;
-    if (!window.confirm('Delete this room photo? This cannot be undone.'))
+    if (
+      !window.confirm(
+        'Delete this room photo? If it is attached to a saved inspection, it will become unavailable in that report. This cannot be undone.'
+      )
+    )
       return;
     mutation.current = true;
     setDeleting(photoId);

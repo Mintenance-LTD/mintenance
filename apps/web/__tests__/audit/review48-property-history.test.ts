@@ -36,7 +36,7 @@ it('preserves timestamp precision and stops at the exact last event on the page'
   expect(page.events).toEqual(events.slice(0, 25));
   expect(page.hasMore).toBe(true);
   await GET(request('?cursor=' + encodeURIComponent(page.nextCursor)), context);
-  expect(state.rpc).toHaveBeenLastCalledWith('read_property_activity_page', {
+  expect(state.rpc).toHaveBeenLastCalledWith('read_property_record_activity_page', {
     p_actor: 'owner',
     p_property: 'property',
     p_before: date,
@@ -49,6 +49,29 @@ it('denies combined private history to delegated viewers', async () => {
     'Only the property owner'
   );
   expect(state.rpc).not.toHaveBeenCalled();
+});
+it('can continue an older page after the last item is a dispute', async () => {
+  const dispute = {
+    ...events[24],
+    id: events[24].id.replace('job-', 'dispute-'),
+    kind: 'dispute',
+    title: 'Dispute opened',
+    href: '/disputes/payment',
+  };
+  state.rpc.mockResolvedValue({
+    data: [...events.slice(0, 24), dispute, events[25]],
+    error: null,
+  });
+  const first = await (await GET(request(), context)).json();
+  expect(first.events.at(-1)).toEqual(dispute);
+  await GET(
+    request('?cursor=' + encodeURIComponent(first.nextCursor)),
+    context
+  );
+  expect(state.rpc).toHaveBeenLastCalledWith(
+    'read_property_record_activity_page',
+    expect.objectContaining({ p_before: date, p_event_key: dispute.id })
+  );
 });
 it('rejects invalid cursors before reading private history', async () => {
   await expect(GET(request('?cursor=invalid'), context)).rejects.toThrow(
