@@ -3,6 +3,10 @@ const service = vi.hoisted(() => ({
   learning: vi.fn(),
   email: vi.fn(),
   emergency: vi.fn(),
+  dispatch: vi.fn(),
+}));
+vi.mock('@/lib/services/jobs/JobDispatchService', () => ({
+  processJobDispatch: service.dispatch,
 }));
 vi.mock('@/lib/services/notifications/EmergencyReportService', () => ({
   advanceEmergencyReports: service.emergency,
@@ -28,6 +32,11 @@ const request = new NextRequest(
 beforeEach(() => {
   vi.clearAllMocks();
   service.emergency.mockResolvedValue(2);
+  service.dispatch.mockResolvedValue({
+    jobDispatchProcessed: 1,
+    jobDispatchErrors: 0,
+    jobDispatchNeedsAttention: false,
+  });
   service.email.mockResolvedValue({
     emailSent: 1,
     emailErrors: 0,
@@ -41,6 +50,9 @@ it('processes delivery without repeating daily learning', async () => {
     emergencyReportsAdvanced: 2,
     queuedProcessed: 2,
     queuedErrors: 0,
+    jobDispatchProcessed: 1,
+    jobDispatchErrors: 0,
+    jobDispatchNeedsAttention: false,
     emailSent: 1,
     emailErrors: 0,
     emailNeedsReview: 0,
@@ -80,6 +92,18 @@ it('surfaces queue database failures as failed cron runs', async () => {
   await expect(processQueue(request)).rejects.toMatchObject({
     statusCode: 503,
   });
+});
+it('surfaces dispatch failures for operator recovery while draining the delivery queue', async () => {
+  service.queue.mockResolvedValue({ queuedProcessed: 2, queuedErrors: 0 });
+  service.dispatch.mockResolvedValue({
+    jobDispatchProcessed: 0,
+    jobDispatchErrors: 0,
+    jobDispatchNeedsAttention: true,
+  });
+  await expect(processQueue(request)).rejects.toMatchObject({
+    statusCode: 503,
+  });
+  expect(service.queue).toHaveBeenCalledOnce();
 });
 it('runs daily learning independently of the delivery queue', async () => {
   service.learning.mockResolvedValue({

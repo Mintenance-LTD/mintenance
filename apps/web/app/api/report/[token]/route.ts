@@ -208,7 +208,7 @@ export const GET = withApiHandler(
       .select(
         `
         id, is_active, label,
-        properties:property_id (id, property_name, address)
+        properties:property_id (id, property_name, address, tenant_emergency_phone)
       `
       )
       .eq('token', tokenValue)
@@ -246,7 +246,12 @@ export const GET = withApiHandler(
 
     return NextResponse.json({
       valid: true,
-      property: linkedProperty,
+      property: {
+        id: linkedProperty.id,
+        property_name: linkedProperty.property_name,
+        address: linkedProperty.address,
+      },
+      emergency_phone: linkedProperty.tenant_emergency_phone ?? null,
       label: tokenRecord.label,
     });
   }

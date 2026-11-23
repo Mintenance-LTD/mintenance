@@ -29,6 +29,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
           return q;
         },
         order: () => q,
+        limit: () => q,
         in: () => q,
         then: (resolve: Function) =>
           resolve(
@@ -37,6 +38,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
               : {
                   data: [
                     {
+                      id: 'accepted-membership',
                       role: 'viewer',
                       property_id: 'shared',
                       properties: {

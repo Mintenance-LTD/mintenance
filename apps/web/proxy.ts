@@ -20,6 +20,7 @@ import { getConfigManager, getConfigInitError } from './middleware/config';
 import { validateCsrf, setCsrfCookie } from './middleware/csrf';
 import { handleApiRateLimit } from './middleware/rate-limit';
 import { verifySupabaseBearer } from '@/lib/auth/supabase-bearer';
+import { isLiveWebSession } from '@/lib/auth/web-session-profile';
 import { requireCronAuth } from '@/lib/cron-auth';
 import {
   handleSupabaseAuth,
@@ -206,9 +207,14 @@ export async function proxy(request: NextRequest) {
     bearerToken
   ) {
     // Signature check — same as cookie path.
+    const webPayload = await verifyJwtToken(
+      bearerToken,
+      cfg,
+      request,
+      pathname
+    );
     const bearerPayload =
-      (await verifyJwtToken(bearerToken, cfg, request, pathname)) ??
-      (await verifySupabaseBearer(bearerToken));
+      webPayload ?? (await verifySupabaseBearer(bearerToken));
     if (!bearerPayload) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
@@ -219,7 +225,10 @@ export async function proxy(request: NextRequest) {
       pathname,
       bearerPayload.sub
     );
-    if (isBlacklisted) {
+    if (
+      isBlacklisted ||
+      (webPayload && !(await isLiveWebSession(webPayload)))
+    ) {
       return NextResponse.json({ error: 'Token revoked' }, { status: 401 });
     }
 
@@ -293,7 +302,7 @@ export async function proxy(request: NextRequest) {
       pathname,
       jwtPayload.sub
     );
-    if (isBlacklisted) {
+    if (isBlacklisted || !(await isLiveWebSession(jwtPayload))) {
       return redirectToLogin(request);
     }
 

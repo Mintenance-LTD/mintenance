@@ -1,14 +1,12 @@
 import { matchesRecurringTrade } from './recurring/recurring-category';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
-import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import {
   fetchNearbyContractors,
   type AudienceContractor,
 } from '@/lib/services/job-notification-audience';
 import { nextPreferredWindowStart } from '@/lib/services/matching/preferred-hours';
 
-interface NotificationJobContext {
+export interface NotificationJobContext {
   id: string;
   title: string;
   location?: string | null;
@@ -18,159 +16,106 @@ interface NotificationJobContext {
   city?: string | null;
 }
 
-interface NotificationPayload {
+export interface NotificationPayload {
   recurring?: { category: string; contractorId?: string };
   required_skills?: string[] | null;
 }
 
+export interface JobInvite {
+  user_id: string;
+  type: 'job_nearby' | 'job_invitation_from_repeat_client';
+  title: string;
+  message: string;
+  scheduled_for?: string;
+}
+
 export class JobNotificationService {
-  private static instance: JobNotificationService;
+  private static instance = new JobNotificationService();
   private constructor() {}
 
   static getInstance(): JobNotificationService {
-    if (!JobNotificationService.instance) {
-      JobNotificationService.instance = new JobNotificationService();
-    }
     return JobNotificationService.instance;
   }
 
-  async notifyNearbyContractors(
+  async planNearbyInvites(
     job: NotificationJobContext,
     payload: NotificationPayload
-  ): Promise<void> {
-    if (!job.location && (!job.latitude || !job.longitude)) {
-      return;
-    }
+  ): Promise<JobInvite[]> {
+    const coordinates = await this.resolveCoordinates(job);
+    if (!coordinates) return [];
+    let audience = await fetchNearbyContractors(coordinates, job.city);
+    if (!audience.length) return [];
 
-    try {
-      const coordinates = await this.resolveCoordinates(job);
-      if (!coordinates) return;
-
-      // 2026-07-17 Phase 2: audience is service-area-aware (each
-      // contractor's own coverage) with a legacy-scan fallback — see
-      // job-notification-audience.ts.
-      const contractors = await fetchNearbyContractors(coordinates, job.city);
-      if (contractors.length === 0) return;
-
-      let audience = contractors;
-      if (payload.recurring) {
-        const { data: skills, error } = await serverSupabase
-          .from('contractor_skills')
-          .select('contractor_id,skill_name')
-          .in(
-            'contractor_id',
-            contractors.map((c) => c.id)
-          );
-        if (error)
-          throw new Error('Recurring trade audience could not be checked');
-        audience = contractors.filter(
-          (c) =>
-            (!payload.recurring?.contractorId ||
-              c.id === payload.recurring.contractorId) &&
-            skills?.some(
-              (s) =>
-                s.contractor_id === c.id &&
-                matchesRecurringTrade(payload.recurring!.category, s.skill_name)
-            )
+    if (payload.recurring) {
+      const { category, contractorId } = payload.recurring;
+      const { data: skills, error } = await serverSupabase
+        .from('contractor_skills')
+        .select('contractor_id,skill_name')
+        .in(
+          'contractor_id',
+          audience.map((contractor) => contractor.id)
         );
-      }
-      const contractorsToNotify = await this.filterContractorsBySkills(
-        audience,
-        payload.required_skills
+      if (error)
+        throw new Error('Recurring trade audience could not be checked');
+      audience = audience.filter(
+        (contractor) =>
+          (!contractorId || contractor.id === contractorId) &&
+          skills?.some(
+            (skill) =>
+              skill.contractor_id === contractor.id &&
+              matchesRecurringTrade(category, skill.skill_name)
+          )
       );
-      await this.createNotifications(job, payload, contractorsToNotify);
-    } catch (error) {
-      logger.error('Error creating job_nearby notifications', error, {
-        service: 'jobs',
-        jobId: job.id,
-      });
     }
+    if (!audience.length) return [];
+
+    const matches = await this.filterContractorsBySkills(
+      audience,
+      payload.required_skills
+    );
+    const skillsText = payload.required_skills?.length
+      ? ' Requires: ' + payload.required_skills.join(', ') + '.'
+      : '';
+    return matches
+      .sort(
+        (a, b) =>
+          (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity) ||
+          a.id.localeCompare(b.id)
+      )
+      .slice(0, 50)
+      .map((contractor) => {
+        const deferUntil =
+          contractor.matchedVia === 'service_area'
+            ? nextPreferredWindowStart(
+                contractor.preferredDays,
+                contractor.preferredHours
+              )
+            : null;
+        return {
+          user_id: contractor.id,
+          type: 'job_nearby',
+          title: 'New Job Near You',
+          message:
+            'New job "' +
+            job.title +
+            '" posted near you.' +
+            skillsText +
+            ' Submit your bid to be considered.',
+          scheduled_for: deferUntil?.toISOString(),
+        };
+      });
   }
 
-  private async resolveCoordinates(
-    job: NotificationJobContext
-  ): Promise<{ lat: number; lng: number } | null> {
-    if (job.latitude && job.longitude) {
+  private async resolveCoordinates(job: NotificationJobContext) {
+    if (job.latitude != null && job.longitude != null)
       return { lat: job.latitude, lng: job.longitude };
-    }
-
-    if (!job.location) {
-      return null;
-    }
+    if (!job.location) return null;
 
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      return null;
-    }
-
-    if (typeof job.location === 'string') {
-      try {
-        const { geocodeWithTimeout } = await import('@/lib/utils/api-timeout');
-        const geocodeResult = await geocodeWithTimeout(
-          job.location,
-          apiKey,
-          5000
-        );
-        const coordinates = {
-          lat: geocodeResult.latitude,
-          lng: geocodeResult.longitude,
-        };
-        await this.saveCoordinates(job.id, coordinates.lat, coordinates.lng);
-        return coordinates;
-      } catch (error) {
-        logger.warn(
-          'Geocoding failed or timed out, continuing without coordinates',
-          {
-            service: 'jobs',
-            error,
-            location: job.location,
-          }
-        );
-        return null;
-      }
-    }
-
-    if (
-      typeof job.location === 'object' &&
-      job.location !== null &&
-      'lat' in (job.location as Record<string, unknown>) &&
-      'lng' in (job.location as Record<string, unknown>)
-    ) {
-      const lat = (job.location as unknown as { lat: unknown }).lat;
-      const lng = (job.location as unknown as { lng: unknown }).lng;
-      if (typeof lat === 'number' && typeof lng === 'number') {
-        await this.saveCoordinates(job.id, lat, lng);
-        return { lat, lng };
-      }
-    }
-
-    return null;
-  }
-
-  private async saveCoordinates(
-    jobId: string,
-    latitude: number,
-    longitude: number
-  ): Promise<void> {
-    try {
-      await serverSupabase
-        .from('jobs')
-        .update({ latitude, longitude })
-        .eq('id', jobId);
-
-      logger.info('Updated job with geocoding data', {
-        service: 'jobs',
-        jobId,
-        lat: latitude,
-        lng: longitude,
-      });
-    } catch (error) {
-      logger.warn('Failed to update job coordinates', {
-        service: 'jobs',
-        jobId,
-        error,
-      });
-    }
+    if (!apiKey) throw new Error('Job geocoding is unavailable');
+    const { geocodeWithTimeout } = await import('@/lib/utils/api-timeout');
+    const result = await geocodeWithTimeout(job.location, apiKey, 5000);
+    return { lat: result.latitude, lng: result.longitude };
   }
 
   private async filterContractorsBySkills(
@@ -182,11 +127,12 @@ export class JobNotificationService {
     }
 
     const contractorIds = contractors.map((c) => c.id);
-    const { data: contractorSkills } = await serverSupabase
+    const { data: contractorSkills, error } = await serverSupabase
       .from('contractor_skills')
       .select('contractor_id, skill_name')
       .in('contractor_id', contractorIds);
 
+    if (error) throw new Error('Matching skills could not be loaded');
     interface ContractorSkillRecord {
       contractor_id: string;
       skill_name: string;
@@ -207,148 +153,39 @@ export class JobNotificationService {
     return matches.length > 0 ? matches : contractors;
   }
 
-  private async createNotifications(
-    job: NotificationJobContext,
-    payload: NotificationPayload,
-    contractors: AudienceContractor[]
-  ): Promise<void> {
-    if (contractors.length === 0) return;
-
-    // 2026-05-01 audit follow-up: previous version wrote a bulk insert
-    // with `read: false` (canonical column is `read` ✓) but bypassed
-    // `NotificationService.createNotification` so push + preference
-    // checks didn't fire. Fan out per-contractor through the service so
-    // every recipient gets the same push pipeline as a 1:1 notification.
-    // Fan-out is parallel via Promise.allSettled so a single contractor's
-    // preference / push failure doesn't block the rest.
-    // 2026-05-22: budget removed from broadcast text. Homeowner-set
-    // budgets stopped being collected on new jobs, and legacy budgets
-    // shouldn't anchor contractors either. They quote based on the
-    // job description + photos.
-    const skillsText =
-      payload.required_skills && payload.required_skills.length > 0
-        ? `Requires: ${payload.required_skills.join(', ')}. `
-        : '';
-
-    const results = await Promise.allSettled(
-      contractors.map((contractor: AudienceContractor) => {
-        // 2026-07-17 (deferred item 2.2): out-of-hours politeness —
-        // when the contractor's matched service area declares working
-        // hours and we're outside them, deliver at the next window
-        // start (capped in preferred-hours.ts; falls back to
-        // immediate). Soft signal only: never suppresses, and
-        // NotificationService exempts ALWAYS_ON types.
-        const deferUntil =
-          contractor.matchedVia === 'service_area'
-            ? (nextPreferredWindowStart(
-                contractor.preferredDays,
-                contractor.preferredHours
-              ) ?? undefined)
-            : undefined;
-
-        return NotificationService.createNotification({
-          userId: contractor.id,
-          type: 'job_nearby',
-          title: 'New Job Near You',
-          message: `New job "${job.title}" posted near you. ${skillsText}Submit your bid to be considered.`,
-          actionUrl: `/jobs/${job.id}`,
-          metadata: { jobId: job.id },
-          deferUntil,
-        });
-      })
-    );
-
-    const failures = results.filter((r) => r.status === 'rejected').length;
-    if (failures > 0) {
-      logger.warn('Some job_nearby notifications failed to send', {
-        service: 'jobs',
-        jobId: job.id,
-        failures,
-        total: contractors.length,
-      });
-    }
-
-    logger.info('Created job_nearby notifications', {
-      service: 'jobs',
-      jobId: job.id,
-      contractorCount: contractors.length,
-      failures,
-    });
-  }
-
-  /**
-   * Hire-Again loop closure (2026-05-13): direct, higher-priority
-   * invitation to a contractor the homeowner previously hired.
-   *
-   * Sends a distinct in-app notification (type:
-   * `job_invitation_from_repeat_client`) so the contractor's inbox
-   * surfaces it above the generic nearby-job feed. The homeowner's
-   * display name is resolved best-effort; on lookup failure we fall
-   * back to "a previous client".
-   *
-   * Side-effects only — return is void. Caller must wrap in
-   * `.catch()` because preferred-contractor failures must never
-   * block the primary job-creation flow.
-   */
-  async notifyPreferredContractor(
-    preferredContractorId: string,
-    jobId: string,
+  async planPreferredInvite(
+    contractorId: string,
     jobTitle: string,
-    homeownerId: string
-  ): Promise<void> {
-    // Skip if the contractor was deleted between hire and rebook
-    const { data: contractor, error: contractorErr } = await serverSupabase
+    requesterId: string
+  ): Promise<JobInvite | null> {
+    const { data: contractor, error: contractorError } = await serverSupabase
       .from('profiles')
-      .select('id, role')
-      .eq('id', preferredContractorId)
+      .select('id')
+      .eq('id', contractorId)
       .eq('role', 'contractor')
+      .is('deleted_at', null)
       .maybeSingle();
+    if (contractorError)
+      throw new Error('Preferred contractor could not be checked');
+    if (!contractor) return null;
 
-    if (contractorErr || !contractor) {
-      logger.info('Preferred contractor no longer exists — skipping invite', {
-        service: 'job-notification',
-        jobId,
-        preferredContractorId,
-      });
-      return;
-    }
-
-    // Resolve homeowner display name (best-effort)
-    const { data: homeowner } = await serverSupabase
+    const { data: requester, error: requesterError } = await serverSupabase
       .from('profiles')
-      .select('first_name, last_name')
-      .eq('id', homeownerId)
+      .select('first_name,last_name')
+      .eq('id', requesterId)
+      .is('deleted_at', null)
       .maybeSingle();
+    if (requesterError) throw new Error('Job requester could not be checked');
+    if (!requester) return null;
+    const name =
+      [requester.first_name, requester.last_name].filter(Boolean).join(' ') ||
+      'A previous client';
 
-    const homeownerName = homeowner
-      ? [homeowner.first_name, homeowner.last_name].filter(Boolean).join(' ') ||
-        'a previous client'
-      : 'a previous client';
-
-    await NotificationService.createNotification({
-      userId: preferredContractorId,
+    return {
+      user_id: contractorId,
       type: 'job_invitation_from_repeat_client',
-      title: `${homeownerName} wants to hire you again`,
-      message: `They've posted "${jobTitle}" and chose you specifically. Place your bid before other contractors are notified.`,
-      actionUrl: `/contractor/jobs/${jobId}`,
-      // 2026-07-17 Phase 4: `jobId` (camelCase) is the CANONICAL
-      // metadata key for job-scoped notifications — it matches
-      // job_nearby and is what the mobile routingTable normalizer
-      // checks first (it still absorbs legacy `job_id`). This emitter
-      // previously snake_cased, which made the two matching
-      // notifications inconsistent on the wire.
-      metadata: {
-        jobId,
-        homeownerId,
-        source: 'hire_again',
-      },
-    });
-
-    logger.info('Preferred contractor invited to bid', {
-      service: 'job-notification',
-      jobId,
-      preferredContractorId,
-      homeownerId,
-    });
+      title: name + ' invited you to bid',
+      message: 'You were invited to bid on "' + jobTitle + '".',
+    };
   }
 }

@@ -10,6 +10,7 @@ import {
 } from '@mintenance/auth';
 import { serverSupabase } from './api/supabaseServer';
 import { logger } from './logger';
+import { isLiveWebSession } from './auth/web-session-profile';
 import type { User, JWTPayload } from '@mintenance/types';
 
 // Lazy-initialize config manager to avoid module-level throws on Vercel serverless
@@ -346,80 +347,20 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 
   const secret = getConfig().getRequired('JWT_SECRET');
   const payload = await verifyJWT(token, secret);
-  if (
-    !payload ||
-    !payload.sub ||
-    !Number.isSafeInteger(payload.iat) ||
-    payload.iat <= 0
-  )
-    return null;
-  // Modern signed tokens preserve the original session start in milliseconds.
-  // JWT iat is rounded to seconds and changes on refresh, so it cannot identify
-  // whether the session itself predates a revocation. Legacy tokens fail closed
-  // at the less precise iat boundary until the user signs in again.
-  const sessionStartedAt = payload.sessionStart ?? payload.iat * 1000;
-  if (
-    !Number.isSafeInteger(sessionStartedAt) ||
-    sessionStartedAt <= 0 ||
-    sessionStartedAt > payload.iat * 1000 + 999
-  )
-    return null;
-
-  // 2026-05-26 audit-56 P0: durable per-user revocation backstop.
-  // The in-memory blacklist doesn't survive serverless cold starts /
-  // horizontal scaling. profiles.tokens_revoked_at is bumped on every
-  // logout and secured password change. Sessions established before
-  // that cutoff are rejected regardless of blacklist state or refresh.
+  if (!payload?.sub) return null;
   try {
-    if (payload.sub && payload.iat) {
-      // Reject sessions issued by older registration code before email ownership
-      // was confirmed. Profile flags and editable token metadata are not proof.
-      const { data: identity, error: identityError } =
-        await serverSupabase.auth.admin.getUserById(payload.sub);
-      if (identityError || !identity.user?.email_confirmed_at) return null;
-      const { data: profile, error: revocationLookupError } =
-        await serverSupabase
-          .from('profiles')
-          .select('tokens_revoked_at')
-          .eq('id', payload.sub)
-          .maybeSingle();
-      if (revocationLookupError) {
-        throw revocationLookupError;
-      }
-      if (!profile) {
-        logger.warn('Token verification failed: profile no longer exists', {
-          service: 'auth',
-          userId: payload.sub,
-        });
-        return null;
-      }
-      const revokedAt = profile?.tokens_revoked_at
-        ? new Date(profile.tokens_revoked_at as string).getTime()
-        : 0;
-      if (!Number.isFinite(revokedAt)) return null;
-      if (revokedAt > 0 && sessionStartedAt < revokedAt) {
-        logger.warn(
-          'Token verification failed: session started before tokens_revoked_at',
-          {
-            service: 'auth',
-            userId: payload.sub,
-            iat: payload.iat,
-            revokedAt,
-          }
-        );
-        return null;
-      }
-    }
+    const { data: identity, error } =
+      await serverSupabase.auth.admin.getUserById(payload.sub);
+    if (
+      error ||
+      !identity.user?.email_confirmed_at ||
+      !(await isLiveWebSession(payload))
+    )
+      return null;
   } catch (error) {
-    // SECURITY: Fail closed — if we can't confirm the revocation
-    // cutoff, treat the token as suspect. Production correctness
-    // matters more than the rare false-reject from a transient DB
-    // hiccup. The user can re-login.
-    logger.error(
-      'tokens_revoked_at lookup failed - rejecting token for safety',
-      error,
-      { service: 'auth' }
-    );
+    logger.error('Unable to verify the current web session', error, {
+      service: 'auth',
+    });
     return null;
   }
 
@@ -615,10 +556,15 @@ export async function getCurrentUserFromCookies(): Promise<Pick<
     // access until the access token expires.
     const { data: profile, error: profileError } = await serverSupabase
       .from('profiles')
-      .select('role, first_name, last_name')
+      .select('role, first_name, last_name, deleted_at')
       .eq('id', jwtPayload.sub)
       .single();
-    if (profileError || !profile?.role || profile.role !== jwtPayload.role) {
+    if (
+      profileError ||
+      !profile?.role ||
+      profile.deleted_at ||
+      profile.role !== jwtPayload.role
+    ) {
       logger.warn('Cookie session rejected because its role is stale', {
         service: 'auth',
         userId: jwtPayload.sub,
@@ -709,14 +655,14 @@ export async function getCurrentUserFromBearerToken(
     // to escalate privileges if we trusted user_metadata. See middleware.ts for same pattern.
     const { data: profile, error: profileError } = await serverSupabase
       .from('profiles')
-      .select('role, first_name, last_name')
+      .select('role, first_name, last_name, deleted_at')
       .eq('id', user.id)
       .single();
 
     // A missing or unreadable profile cannot establish the user's role.
     // Defaulting to homeowner would let a contractor bearer token enter
     // homeowner-only routes whenever the profile lookup is degraded.
-    if (profileError || !profile?.role) {
+    if (profileError || !profile?.role || profile.deleted_at) {
       logger.warn('Bearer token rejected because profile role is unavailable', {
         service: 'auth',
         userId: user.id,

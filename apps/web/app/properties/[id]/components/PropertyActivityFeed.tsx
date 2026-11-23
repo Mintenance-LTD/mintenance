@@ -32,18 +32,20 @@ const monthFormat = new Intl.DateTimeFormat('en-GB', {
 });
 
 export function PropertyActivityFeed({ propertyId }: { propertyId: string }) {
-  const [offset, setOffset] = useState(0);
+  const [pages, setPages] = useState<Array<string | null>>([null]);
+  const cursor = pages.at(-1) ?? null;
   const [attempt, setAttempt] = useState(0);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError('');
     setEvents([]);
-    fetch(`/api/properties/${propertyId}/activity?offset=${offset}`, {
+    const query = cursor ? '?' + new URLSearchParams({ cursor }) : '';
+    fetch(`/api/properties/${propertyId}/activity${query}`, {
       signal: controller.signal,
     })
       .then(async (response) => {
@@ -52,9 +54,13 @@ export function PropertyActivityFeed({ propertyId }: { propertyId: string }) {
         return response.json();
       })
       .then((data) => {
+        if (!Array.isArray(data.events))
+          throw new Error('Property history could not be loaded.');
         if (!controller.signal.aborted) {
           setEvents(data.events);
-          setHasMore(data.hasMore && !data.limitReached);
+          setNextCursor(
+            typeof data.nextCursor === 'string' ? data.nextCursor : null
+          );
         }
       })
       .catch((error) => {
@@ -64,7 +70,7 @@ export function PropertyActivityFeed({ propertyId }: { propertyId: string }) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [propertyId, offset, attempt]);
+  }, [propertyId, cursor, attempt]);
   const groups = new Map<string, Event[]>();
   for (const event of events) {
     const month = monthFormat.format(new Date(event.date));
@@ -153,16 +159,18 @@ export function PropertyActivityFeed({ propertyId }: { propertyId: string }) {
           >
             <button
               className='pw-btn pw-btn-small'
-              disabled={!offset}
-              onClick={() => setOffset((v) => Math.max(0, v - 25))}
+              disabled={pages.length <= 1}
+              onClick={() => setPages((current) => current.slice(0, -1))}
             >
               Newer
             </button>
-            <span>Page {offset / 25 + 1}</span>
+            <span>Page {pages.length}</span>
             <button
               className='pw-btn pw-btn-small'
-              disabled={!hasMore}
-              onClick={() => setOffset((v) => v + 25)}
+              disabled={!nextCursor}
+              onClick={() => {
+                if (nextCursor) setPages((current) => [...current, nextCursor]);
+              }}
             >
               Older
             </button>

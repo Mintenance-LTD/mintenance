@@ -46,7 +46,9 @@ it('distinguishes a deactivated link from a temporary failure', async () => {
 it('submits urgency and shows the private receipt link and reference', async () => {
   const fetcher = vi
     .fn()
-    .mockResolvedValueOnce(response({ property }))
+    .mockResolvedValueOnce(
+      response({ property, emergency_phone: '+442079460958' })
+    )
     .mockResolvedValueOnce(
       response(
         {
@@ -68,6 +70,9 @@ it('submits urgency and shows the private receipt link and reference', async () 
   });
   fireEvent.click(screen.getByRole('radio', { name: /Emergency/ }));
   expect(screen.getByRole('alert')).toHaveTextContent('Do not wait');
+  expect(
+    screen.getByRole('link', { name: /Call the property emergency contact/ })
+  ).toHaveAttribute('href', 'tel:+442079460958');
   fireEvent.click(
     screen.getByRole('button', { name: 'Send maintenance report' })
   );

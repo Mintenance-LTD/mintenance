@@ -141,7 +141,11 @@ export default function QuickJobPage() {
     });
 
     if (result.ok) {
-      toast.success('Job posted successfully!');
+      toast.success(
+        result.dispatchStatus === 'pending'
+          ? 'Job posted. Contractor invitations are pending.'
+          : 'Job posted successfully!'
+      );
       router.push(`/jobs/${result.jobId}`);
       // intentionally leave isSubmitting=true to prevent double-submit during nav
       return;
