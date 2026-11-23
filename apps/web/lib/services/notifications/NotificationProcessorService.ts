@@ -39,6 +39,7 @@
 
 import { shouldDeliverPhoneCall } from './PhoneCallService';
 import { shouldDeliverEmergencyReport } from './EmergencyReportService';
+import { shouldDeliverJobInvite } from '@/lib/services/jobs/JobDispatchService';
 import { shouldDeliverQuoteAmendment } from './QuoteAmendmentNotification';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
@@ -124,6 +125,21 @@ export class NotificationProcessorService {
         try {
           if (!(await claimQueuedNotification(queuedNotif))) continue;
           if (
+            queuedNotif.metadata?._job_dispatch &&
+            !(await shouldDeliverJobInvite(queuedNotif.metadata.jobId))
+          ) {
+            const { error } = await serverSupabase
+              .from('notification_queue')
+              .update({
+                status: 'cancelled',
+                error_message: 'job_no_longer_open',
+              })
+              .eq('id', queuedNotif.id)
+              .eq('scheduled_for', queuedNotif.scheduled_for);
+            if (error) throw error;
+            continue;
+          }
+          if (
             !(await shouldDeliverEmergencyReport(
               queuedNotif.notification_type,
               queuedNotif.metadata ?? {},
@@ -177,7 +193,8 @@ export class NotificationProcessorService {
           }
           if (
             queuedNotif.metadata?.phone_call_id ||
-            queuedNotif.metadata?.quote_amendment_id
+            queuedNotif.metadata?.quote_amendment_id ||
+            queuedNotif.metadata?._job_dispatch
           ) {
             const prefs = await loadPreferences(queuedNotif.user_id);
             const quietUntil = nextQuietHoursEndUTC(prefs);
@@ -267,6 +284,7 @@ export class NotificationProcessorService {
     // hint for this service, not user-visible metadata.
     const cleanMetadata: Record<string, unknown> = { ...metadata };
     delete cleanMetadata._in_app_only;
+    delete cleanMetadata._job_dispatch;
     const hasMetadata = Object.keys(cleanMetadata).length > 0;
 
     let notificationId: string | null = null;
@@ -329,6 +347,7 @@ export class NotificationProcessorService {
     const needsPush = prefs.push_enabled && !inAppOnly;
     const retryMetadata = {
       ...cleanMetadata,
+      ...(metadata._job_dispatch ? { _job_dispatch: true } : {}),
       original_notification_id: notificationId,
       push_accepted_device_ids: [],
     };
@@ -419,6 +438,7 @@ export class NotificationProcessorService {
     const pushData: Record<string, unknown> = { ...metadata };
     delete pushData.original_notification_id;
     delete pushData.push_accepted_device_ids;
+    delete pushData._job_dispatch;
     if (queuedNotif.action_url) {
       pushData.actionUrl = queuedNotif.action_url;
     }

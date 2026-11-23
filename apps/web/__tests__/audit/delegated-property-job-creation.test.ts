@@ -7,7 +7,6 @@ const mocks = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
   updateScore: vi.fn(),
-  notifyNearbyContractors: vi.fn(),
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: { from: mocks.from, rpc: mocks.rpc },
@@ -25,13 +24,6 @@ vi.mock('@/lib/services/verification/HomeownerVerificationService', () => ({
 }));
 vi.mock('@/lib/services/jobs/SeriousBuyerService', () => ({
   SeriousBuyerService: { updateScore: mocks.updateScore },
-}));
-vi.mock('@/lib/services/job-notification-service', () => ({
-  JobNotificationService: {
-    getInstance: () => ({
-      notifyNearbyContractors: mocks.notifyNearbyContractors,
-    }),
-  },
 }));
 import { POST } from '@/app/api/jobs/route';
 import { GET as propertyJobs } from '@/app/api/properties/[id]/jobs/route';
@@ -124,16 +116,25 @@ it.each(['manager', 'admin'])(
     const response = await submit();
     expect(response.status).toBe(201);
     expect(await response.json()).toMatchObject({ job: { id: jobId } });
-    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith('create_job_once', {
-      p_user_id: actorId,
-      p_request_id: expect.stringMatching(/^[a-f0-9-]{36}$/),
-      p_fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
-      p_job: expect.objectContaining({
-        homeowner_id: ownerId,
-        property_id: propertyId,
-      }),
-      p_photo_urls: [],
-    });
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith(
+      'create_job_with_dispatch_once',
+      {
+        p_user_id: actorId,
+        p_request_id: expect.stringMatching(/^[a-f0-9-]{36}$/),
+        p_fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+        p_job: expect.objectContaining({
+          homeowner_id: ownerId,
+          property_id: propertyId,
+        }),
+        p_photo_urls: [],
+        p_report_id: null,
+        p_room_ids: [],
+        p_dispatch_options: {
+          preferredContractorId: undefined,
+          recurring: undefined,
+        },
+      }
+    );
     expect(mocks.rpc.mock.calls[0][1].p_job).not.toHaveProperty(
       'payer_user_id'
     );
@@ -170,13 +171,13 @@ it('passes the owner and submission ID through for an owner retry', async () => 
   });
   expect((await submit(form, ownerId, requestId)).status).toBe(201);
   expect(mocks.rpc).toHaveBeenCalledWith(
-    'create_job_once',
+    'create_job_with_dispatch_once',
     expect.objectContaining({
       p_user_id: ownerId,
       p_request_id: requestId,
     })
   );
-  expect(mocks.notifyNearbyContractors).not.toHaveBeenCalled();
+  expect(mocks.updateScore).not.toHaveBeenCalled();
 });
 
 it('refuses to change the payer or record completed work as a delegate', async () => {
@@ -197,7 +198,7 @@ it('refuses to change the payer or record completed work as a delegate', async (
 it('reports revocation at commit time without dispatching the job', async () => {
   mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501' } });
   expect((await submit()).status).toBe(403);
-  expect(mocks.notifyNearbyContractors).not.toHaveBeenCalled();
+  expect(mocks.updateScore).not.toHaveBeenCalled();
 });
 
 it('keeps internal owner-only creation calls and report conversion scoped to the owner', async () => {

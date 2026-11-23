@@ -89,7 +89,7 @@ const intakeErrors: Record<
   },
 };
 
-// POST /api/report/[token] - Save a new report or recover a committed response.
+// public: tenants use their reporting link without an account. Recovery also requires the submission key.
 export const POST = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 5, windowMs: 60_000 }, csrf: false },
   async (req, { params }) => {
@@ -208,7 +208,7 @@ export const GET = withApiHandler(
       .select(
         `
         id, is_active, label,
-        properties:property_id (id, property_name, address)
+        properties:property_id (id, property_name, address, tenant_emergency_phone)
       `
       )
       .eq('token', tokenValue)
@@ -246,7 +246,12 @@ export const GET = withApiHandler(
 
     return NextResponse.json({
       valid: true,
-      property: linkedProperty,
+      property: {
+        id: linkedProperty.id,
+        property_name: linkedProperty.property_name,
+        address: linkedProperty.address,
+      },
+      emergency_phone: linkedProperty.tenant_emergency_phone ?? null,
       label: tokenRecord.label,
     });
   }

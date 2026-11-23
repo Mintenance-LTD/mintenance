@@ -117,7 +117,7 @@ export function HireAgainBanner({
           }}
         >
           {loaded
-            ? "They'll receive an invitation when you post this job. Other contractors can still bid."
+            ? 'Posting queues an invitation for your previous contractor. Other contractors can still bid.'
             : 'Loading contractor details…'}
         </div>
       </div>

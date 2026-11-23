@@ -115,10 +115,18 @@ export class AuthManager {
       const { data: userProfile, error: profileError } = await serverSupabase
         .from('profiles')
         .select(
-          'id, email, first_name, last_name, role, created_at, updated_at, verified, phone'
+          'id, email, first_name, last_name, role, created_at, updated_at, verified, phone, deleted_at'
         )
         .eq('id', authData.user.id)
         .single();
+
+      if (userProfile?.deleted_at) {
+        return {
+          success: false,
+          error:
+            'This account is deactivated. See the Privacy Policy for help with your data.',
+        };
+      }
 
       if (profileError || !userProfile) {
         logger.warn('User profile not found in profiles table', {

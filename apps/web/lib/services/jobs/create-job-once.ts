@@ -10,21 +10,31 @@ export async function createJobOnce(
   fingerprint: string,
   job: Record<string, unknown>,
   photos: string[],
-  tenantReportId?: string
+  options?: {
+    tenantReportId?: string;
+    roomIds?: string[];
+    preferredContractorId?: string;
+    recurring?: { category: string; contractorId?: string };
+  }
 ) {
+  const tenantReportId = options?.tenantReportId;
   const args = {
     p_user_id: userId,
     p_request_id: requestId,
     p_fingerprint: fingerprint,
     p_job: job,
     p_photo_urls: photos,
+    p_report_id: tenantReportId ?? null,
+    p_room_ids: options?.roomIds ?? [],
+    p_dispatch_options: {
+      preferredContractorId: options?.preferredContractorId,
+      recurring: options?.recurring,
+    },
   };
-  const { data, error } = tenantReportId
-    ? await serverSupabase.rpc('create_job_from_tenant_report_once', {
-        ...args,
-        p_report_id: tenantReportId,
-      })
-    : await serverSupabase.rpc('create_job_once', args);
+  const { data, error } = await serverSupabase.rpc(
+    'create_job_with_dispatch_once',
+    args
+  );
   if (error?.code === '42501')
     throw new ForbiddenError(
       tenantReportId
@@ -56,5 +66,11 @@ export async function createJobOnce(
       city?: string;
     };
     created: boolean;
+    dispatch_status?:
+      | 'pending'
+      | 'queued'
+      | 'cancelled'
+      | 'needs_attention'
+      | null;
   };
 }

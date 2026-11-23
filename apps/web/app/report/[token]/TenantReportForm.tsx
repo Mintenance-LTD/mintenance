@@ -19,6 +19,7 @@ import {
 interface PropertyInfo {
   property_name: string;
   address: string;
+  emergencyPhone?: string;
 }
 const CATEGORIES = [
   { value: 'plumbing', label: 'Plumbing' },
@@ -104,7 +105,14 @@ export function TenantReportForm({ token }: { token: string }) {
         const data = await response.json();
         if (!data.property) throw new Error('Missing property');
         if (active) {
-          setProperty(data.property);
+          setProperty({
+            ...data.property,
+            emergencyPhone:
+              typeof data.emergency_phone === 'string' &&
+              /^\+?[0-9]{7,15}$/.test(data.emergency_phone)
+                ? data.emergency_phone
+                : undefined,
+          });
           setState('ready');
         }
       } catch {
@@ -264,6 +272,14 @@ export function TenantReportForm({ token }: { token: string }) {
             Your emergency report is saved and awaiting human acknowledgment. Do
             not wait for a reply if anyone is in danger. Contact the appropriate
             emergency service and your property manager directly.
+            {property?.emergencyPhone && (
+              <a
+                className='mt-2 block font-semibold underline'
+                href={`tel:${property.emergencyPhone}`}
+              >
+                Call the property emergency contact {property.emergencyPhone}
+              </a>
+            )}
           </p>
         ) : null}
         {reportId && (
@@ -496,6 +512,15 @@ export function TenantReportForm({ token }: { token: string }) {
                 Do not wait for a reply here if there is immediate danger.
                 Contact the appropriate emergency service and your property
                 manager using their emergency contact details.
+                {property?.emergencyPhone && (
+                  <a
+                    className='mt-2 block font-semibold underline'
+                    href={`tel:${property.emergencyPhone}`}
+                  >
+                    Call the property emergency contact{' '}
+                    {property.emergencyPhone}
+                  </a>
+                )}
               </p>
             )}
           </fieldset>

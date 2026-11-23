@@ -111,9 +111,8 @@ async function legacyHaversineScan(coordinates: {
     .not('longitude', 'is', null)
     .eq('is_available', true);
 
-  if (error || !data) {
-    return [];
-  }
+  if (error || !data)
+    throw new Error('Nearby contractor audience could not be loaded');
 
   const results: AudienceContractor[] = [];
   for (const contractor of data as LegacyProfileRow[]) {

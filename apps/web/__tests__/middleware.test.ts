@@ -38,6 +38,7 @@ const {
   mockLoggerInfo,
   mockLoggerWarn,
   mockLoggerError,
+  mockIsLiveWebSession,
 } = vi.hoisted(() => ({
   mockVerifyJWT: vi.fn(),
   // Default return values MUST be set here because middleware.ts calls
@@ -65,6 +66,7 @@ const {
   mockLoggerInfo: vi.fn(),
   mockLoggerWarn: vi.fn(),
   mockLoggerError: vi.fn(),
+  mockIsLiveWebSession: vi.fn(),
 }));
 
 // Mock dependencies BEFORE importing middleware.
@@ -97,6 +99,9 @@ vi.mock('@/lib/auth/token-blacklist', () => ({
     isTokenBlacklisted: mockIsTokenBlacklisted,
     blacklistToken: mockBlacklistToken,
   },
+}));
+vi.mock('@/lib/auth/web-session-profile', () => ({
+  isLiveWebSession: mockIsLiveWebSession,
 }));
 
 vi.mock('@/lib/rate-limiter-enhanced', () => ({
@@ -133,6 +138,7 @@ describe('Middleware Security', () => {
     mockValidateSession.mockReturnValue({ isValid: true });
     mockGetTimeoutMessage.mockReturnValue('');
     mockIsTokenBlacklisted.mockResolvedValue(false);
+    mockIsLiveWebSession.mockResolvedValue(true);
     mockBlacklistToken.mockResolvedValue(undefined);
     mockCheckRateLimit.mockResolvedValue({
       allowed: true,
@@ -150,6 +156,21 @@ describe('Middleware Security', () => {
   });
 
   describe('Authentication', () => {
+    it('blocks a signed web cookie for a deactivated profile before forwarding user headers', async () => {
+      mockVerifyJWT.mockResolvedValue({
+        sub: 'user-123',
+        email: 'test@example.com',
+        role: 'homeowner',
+      });
+      mockIsLiveWebSession.mockResolvedValueOnce(false);
+      const request = new NextRequest('https://example.com/dashboard', {
+        headers: { cookie: 'mintenance-auth=valid-jwt-token' },
+      });
+      const response = await proxy(request);
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toContain('/login');
+      expect(response.headers.get('x-middleware-request-x-user-id')).toBeNull();
+    });
     it('should allow authenticated requests with valid JWT', async () => {
       mockVerifyJWT.mockResolvedValue({
         sub: 'user-123',

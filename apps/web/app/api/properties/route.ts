@@ -1,3 +1,8 @@
+import {
+  primaryAndNewestFirst,
+  propertyPageSize,
+  readPropertyPages,
+} from '@/lib/services/property-team/read-property-pages';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import {
@@ -5,7 +10,7 @@ import {
   createRequestScopedClient,
 } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { ConflictError, InternalServerError } from '@/lib/errors/api-error';
+import { ConflictError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { sanitizeText } from '@/lib/sanitizer';
 import { validateRequest } from '@/lib/validation/validator';
@@ -86,32 +91,20 @@ export const GET = withApiHandler(
     const PROPERTY_COLS =
       'id, property_name, address, property_type, is_primary, photos, city, postcode, country, bedrooms, bathrooms, latitude, longitude, created_at, updated_at';
 
-    const { data: ownProperties, error } = await userDb
-      .from('properties')
-      .select(
-        // R6 step 13 (2026-04-29): include `country`, `latitude`,
-        // `longitude` so the edit screen + map view can pre-fill /
-        // render markers without a second round-trip. Was missing
-        // from the column list even though the DB has them.
-        PROPERTY_COLS
-      )
-      .eq('owner_id', user.id)
-      .order('is_primary', { ascending: false })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      logger.error('Failed to fetch properties', error, {
-        userId: user.id,
-        service: 'properties',
-      });
-      throw error;
-    }
+    const ownProperties = await readPropertyPages((after) => {
+      const query = userDb
+        .from('properties')
+        .select(PROPERTY_COLS)
+        .eq('owner_id', user.id)
+        .order('id')
+        .limit(propertyPageSize);
+      return after === null ? query : query.gt('id', after);
+    });
 
     type PropertyRow = Record<string, unknown> & { id: string };
-    const ownTagged: PropertyRow[] = (ownProperties || []).map((p) => ({
-      ...(p as PropertyRow),
-      _role: 'owner' as const,
-    }));
+    const ownTagged: PropertyRow[] = ownProperties
+      .sort(primaryAndNewestFirst)
+      .map((property) => ({ ...property, _role: 'owner' as const }));
 
     let result = ownTagged;
 
@@ -136,23 +129,20 @@ export const GET = withApiHandler(
         includeShared === 'create_job'
           ? ['admin', 'manager'] // owner already covered by the own-properties block
           : ['admin', 'manager', 'viewer'];
-      const { data: memberships, error: memErr } = await serverSupabase
-        .from('property_team_members')
-        .select(`role, property_id, properties:property_id (${PROPERTY_COLS})`)
-        .eq('user_id', user.id)
-        .eq('status', 'accepted')
-        .in('role', ROLES_WITH_CREATE_JOB);
-
-      if (memErr) {
-        logger.warn('Failed to load shared property memberships', {
-          service: 'properties',
-          userId: user.id,
-          err: memErr.message,
-        });
-        throw new InternalServerError(
-          'Shared properties could not be loaded. Please retry.'
-        );
-      } else if (memberships) {
+      const memberships = await readPropertyPages((after) => {
+        const query = serverSupabase
+          .from('property_team_members')
+          .select(
+            `id, role, property_id, properties:property_id (${PROPERTY_COLS})`
+          )
+          .eq('user_id', user.id)
+          .eq('status', 'accepted')
+          .in('role', ROLES_WITH_CREATE_JOB)
+          .order('id')
+          .limit(propertyPageSize);
+        return after === null ? query : query.gt('id', after);
+      });
+      {
         // supabase-js types the embedded `properties:property_id (...)`
         // relation as an array even though it's a many-to-one FK; each
         // membership row carries at most one property. Defensively
@@ -189,19 +179,24 @@ export const GET = withApiHandler(
     // rows. The upload endpoint returns signed URLs for compatibility, but
     // those URLs eventually expire; the stored object path is re-signed only
     // for this authorized response. External/CDN URLs pass through unchanged.
-    const propertiesWithFreshPhotos = await Promise.all(
-      result.map(async (property) => {
-        const storedPhotos = Array.isArray(property.photos)
-          ? property.photos.filter(
-              (photo): photo is string => typeof photo === 'string'
-            )
-          : [];
-        return {
-          ...property,
-          photos: await resignJobStorageUrls(storedPhotos, user.id),
-        };
-      })
-    );
+    const propertiesWithFreshPhotos = [];
+    for (let start = 0; start < result.length; start += 50) {
+      propertiesWithFreshPhotos.push(
+        ...(await Promise.all(
+          result.slice(start, start + 50).map(async (property) => {
+            const storedPhotos = Array.isArray(property.photos)
+              ? property.photos.filter(
+                  (photo): photo is string => typeof photo === 'string'
+                )
+              : [];
+            return {
+              ...property,
+              photos: await resignJobStorageUrls(storedPhotos, user.id),
+            };
+          })
+        ))
+      );
+    }
 
     return NextResponse.json({
       properties: propertiesWithFreshPhotos,

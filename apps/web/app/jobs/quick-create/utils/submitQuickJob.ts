@@ -25,7 +25,7 @@ const URGENCY_BY_TOKEN: Record<
 };
 
 export type SubmitQuickJobResult =
-  | { ok: true; jobId: string }
+  | { ok: true; jobId: string; dispatchStatus?: string }
   | {
       ok: false;
       code:
@@ -145,7 +145,11 @@ export async function submitQuickJob(args: {
       };
     }
 
-    return { ok: true, jobId: result.jobId };
+    return {
+      ok: true,
+      jobId: result.jobId,
+      dispatchStatus: result.dispatchStatus,
+    };
   } catch (error) {
     logger.error('Error posting quick job', error, { service: 'app' });
     const message =

@@ -98,7 +98,8 @@ export function registerReview48Journeys() {
       true
     );
     await page.setViewportSize({ width: 360, height: 800 });
-    await page.goto(`/properties/${process.env.E2E_REVIEW_PROPERTY_ID}`);
+    const propertyPath = `/properties/${process.env.E2E_REVIEW_PROPERTY_ID}`;
+    await page.goto(propertyPath);
     const tabs = page.getByRole('tablist', { name: 'Property sections' });
     await expect(tabs).toBeVisible();
     for (const name of [
@@ -120,7 +121,9 @@ export function registerReview48Journeys() {
       expect(box!.x + box!.width).toBeLessThanOrEqual(361);
     }
     const history = page.waitForResponse(
-      (r) => r.url().includes('/activity?') && r.request().method() === 'GET'
+      (r) =>
+        new URL(r.url()).pathname === `/api${propertyPath}/activity` &&
+        r.request().method() === 'GET'
     );
     await tabs.getByRole('tab', { name: 'Timeline', exact: true }).click();
     expect((await history).ok()).toBe(true);

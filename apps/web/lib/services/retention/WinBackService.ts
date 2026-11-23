@@ -145,12 +145,8 @@ export class WinBackService {
       .order('id')
       .limit(BATCH_LIMIT * 6);
 
-    if (profileError || !profiles || profiles.length === 0) {
-      logger.error('Failed to fetch profiles for win-back', profileError, {
-        service: 'win-back',
-      });
-      return [];
-    }
+    if (profileError) throw new Error('Win-back profile lookup unavailable');
+    if (!profiles?.length) return [];
 
     const contractorIds = profiles
       .filter((p) => p.role === 'contractor')
