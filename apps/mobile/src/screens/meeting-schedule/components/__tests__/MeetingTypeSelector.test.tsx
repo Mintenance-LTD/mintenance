@@ -142,14 +142,14 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should render container view', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('MEETING TYPE')).toBeTruthy();
     });
 
     it('should render section title "Meeting Type"', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const title = getByText('MEETING TYPE');
@@ -157,7 +157,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should render all meeting type options', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('Site Visit')).toBeTruthy();
@@ -166,14 +166,14 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should render duration section label', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('Duration (minutes)')).toBeTruthy();
     });
 
     it('should render all duration options', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('30')).toBeTruthy();
@@ -187,7 +187,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Section Title Styling', () => {
     it('should apply correct font size to section title', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const title = getByText('MEETING TYPE');
@@ -199,7 +199,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply semibold font weight to section title', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const title = getByText('MEETING TYPE');
@@ -211,7 +211,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply primary text color to section title', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const title = getByText('MEETING TYPE');
@@ -223,7 +223,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply bottom margin to section title', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const title = getByText('MEETING TYPE');
@@ -237,14 +237,14 @@ describe('MeetingTypeSelector', () => {
 
   describe('Meeting Type Cards - Site Visit', () => {
     it('should render Site Visit name', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('Site Visit')).toBeTruthy();
     });
 
     it('should render Site Visit description', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('Contractor visits to assess the work')).toBeTruthy();
@@ -295,14 +295,14 @@ describe('MeetingTypeSelector', () => {
 
   describe('Meeting Type Cards - Consultation', () => {
     it('should render Consultation name', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('Consultation')).toBeTruthy();
     });
 
     it('should render Consultation description', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(
@@ -341,14 +341,14 @@ describe('MeetingTypeSelector', () => {
 
   describe('Meeting Type Cards - Work Session', () => {
     it('should render Work Session name', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('Work Session')).toBeTruthy();
     });
 
     it('should render Work Session description', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('Actual work or installation session')).toBeTruthy();
@@ -385,7 +385,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Meeting Type Name Styling', () => {
     it('should apply correct font size to type name', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const name = getByText('Site Visit');
@@ -399,7 +399,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply semibold font weight to type name', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const name = getByText('Site Visit');
@@ -413,7 +413,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply inverse text color when type is selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} selectedType='site_visit' />
       );
       const name = getByText('Site Visit');
@@ -427,7 +427,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply primary text color when type is not selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} selectedType='consultation' />
       );
       const name = getByText('Site Visit');
@@ -443,7 +443,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Meeting Type Description Styling', () => {
     it('should apply correct font size to description', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const description = getByText('Contractor visits to assess the work');
@@ -457,7 +457,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply center text alignment to description', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const description = getByText('Contractor visits to assess the work');
@@ -471,7 +471,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply inverse muted color when type is selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} selectedType='site_visit' />
       );
       const description = getByText('Contractor visits to assess the work');
@@ -485,7 +485,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply secondary color when type is not selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} selectedType='consultation' />
       );
       const description = getByText('Contractor visits to assess the work');
@@ -501,7 +501,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Duration Label Styling', () => {
     it('should apply correct font size to duration label', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const label = getByText('Duration (minutes)');
@@ -513,7 +513,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply medium font weight to duration label', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const label = getByText('Duration (minutes)');
@@ -525,7 +525,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply primary text color to duration label', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const label = getByText('Duration (minutes)');
@@ -537,7 +537,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply bottom margin to duration label', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const label = getByText('Duration (minutes)');
@@ -551,14 +551,14 @@ describe('MeetingTypeSelector', () => {
 
   describe('Duration Options - 30 minutes', () => {
     it('should render 30 minute option', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('30')).toBeTruthy();
     });
 
     it('should apply selected style when 30 is selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} duration={30} />
       );
       const button = getByTestId('duration-30');
@@ -572,7 +572,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should call onDurationChange with 30 when clicked', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-30');
@@ -583,14 +583,14 @@ describe('MeetingTypeSelector', () => {
 
   describe('Duration Options - 60 minutes', () => {
     it('should render 60 minute option', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('60')).toBeTruthy();
     });
 
     it('should apply selected style when 60 is selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} duration={60} />
       );
       const button = getByTestId('duration-60');
@@ -604,7 +604,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should call onDurationChange with 60 when clicked', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-60');
@@ -615,14 +615,14 @@ describe('MeetingTypeSelector', () => {
 
   describe('Duration Options - 90 minutes', () => {
     it('should render 90 minute option', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('90')).toBeTruthy();
     });
 
     it('should apply selected style when 90 is selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} duration={90} />
       );
       const button = getByTestId('duration-90');
@@ -636,7 +636,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should call onDurationChange with 90 when clicked', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-90');
@@ -647,14 +647,14 @@ describe('MeetingTypeSelector', () => {
 
   describe('Duration Options - 120 minutes', () => {
     it('should render 120 minute option', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('120')).toBeTruthy();
     });
 
     it('should apply selected style when 120 is selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} duration={120} />
       );
       const button = getByTestId('duration-120');
@@ -668,7 +668,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should call onDurationChange with 120 when clicked', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-120');
@@ -679,14 +679,14 @@ describe('MeetingTypeSelector', () => {
 
   describe('Duration Options - 180 minutes', () => {
     it('should render 180 minute option', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('180')).toBeTruthy();
     });
 
     it('should apply selected style when 180 is selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} duration={180} />
       );
       const button = getByTestId('duration-180');
@@ -700,7 +700,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should call onDurationChange with 180 when clicked', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-180');
@@ -711,14 +711,14 @@ describe('MeetingTypeSelector', () => {
 
   describe('Duration Options - 240 minutes', () => {
     it('should render 240 minute option', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       expect(getByText('240')).toBeTruthy();
     });
 
     it('should apply selected style when 240 is selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} duration={240} />
       );
       const button = getByTestId('duration-240');
@@ -732,7 +732,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should call onDurationChange with 240 when clicked', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-240');
@@ -743,7 +743,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Duration Text Styling', () => {
     it('should apply correct font size to duration text', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const text = getByText('60');
@@ -757,7 +757,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply medium font weight to duration text', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const text = getByText('60');
@@ -771,7 +771,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply inverse text color when duration is selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} duration={60} />
       );
       const text = getByText('60');
@@ -785,7 +785,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply primary text color when duration is not selected', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} duration={30} />
       );
       const text = getByText('60');
@@ -843,7 +843,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Multiple Meeting Type Selections', () => {
     it('should handle switching from site_visit to consultation', () => {
-      const { getByText, getByTestId, rerender } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} selectedType='site_visit' />
       );
 
@@ -855,7 +855,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should handle switching from consultation to work_session', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} selectedType='consultation' />
       );
 
@@ -867,7 +867,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should call callbacks only once per click', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
 
@@ -881,7 +881,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Multiple Duration Selections', () => {
     it('should handle switching from 60 to 90 minutes', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} duration={60} />
       );
 
@@ -892,7 +892,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should handle switching from 30 to 240 minutes', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} duration={30} />
       );
 
@@ -903,7 +903,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should call onDurationChange only once per duration click', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
 
@@ -916,7 +916,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Edge Cases - Empty Meeting Types', () => {
     it('should render without meeting types', () => {
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} meetingTypes={[]} />
       );
       expect(getByText('MEETING TYPE')).toBeTruthy();
@@ -933,7 +933,7 @@ describe('MeetingTypeSelector', () => {
   describe('Edge Cases - Single Meeting Type', () => {
     it('should render with only one meeting type', () => {
       const singleType: MeetingTypeOption[] = [mockMeetingTypes[0]];
-      const { getByText, getByTestId } = render(
+      const { getByText } = render(
         <MeetingTypeSelector {...defaultProps} meetingTypes={singleType} />
       );
       expect(getByText('Site Visit')).toBeTruthy();
@@ -941,7 +941,7 @@ describe('MeetingTypeSelector', () => {
 
     it('should allow selecting single meeting type', () => {
       const singleType: MeetingTypeOption[] = [mockMeetingTypes[0]];
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} meetingTypes={singleType} />
       );
 
@@ -954,7 +954,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Re-rendering', () => {
     it('should update selected type on prop change', () => {
-      const { getByText, getByTestId, rerender } = render(
+      const { getByTestId, rerender } = render(
         <MeetingTypeSelector {...defaultProps} selectedType='site_visit' />
       );
 
@@ -982,7 +982,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should update selected duration on prop change', () => {
-      const { getByText, getByTestId, rerender } = render(
+      const { getByTestId, rerender } = render(
         <MeetingTypeSelector {...defaultProps} duration={60} />
       );
 
@@ -1008,7 +1008,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should maintain structure on re-render', () => {
-      const { getByText, getByTestId, rerender } = render(
+      const { getByText, rerender } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
 
@@ -1031,7 +1031,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should call onTypeSelect with correct type for each meeting option', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
 
@@ -1050,7 +1050,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should call onDurationChange with correct duration for each option', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
 
@@ -1076,7 +1076,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Type Card Styling Details', () => {
     it('should apply tertiary surface background to unselected card', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} selectedType='site_visit' />
       );
       const card = getByTestId('meeting-type-consultation');
@@ -1091,7 +1091,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply medium border radius to type cards', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const card = getByTestId('meeting-type-site_visit');
@@ -1106,7 +1106,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply medium padding to type cards', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const card = getByTestId('meeting-type-site_visit');
@@ -1119,7 +1119,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should center align items in type cards', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const card = getByTestId('meeting-type-site_visit');
@@ -1134,7 +1134,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should not apply a border width to type cards (Mint Editorial uses fill, not stroke)', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const card = getByTestId('meeting-type-site_visit');
@@ -1146,7 +1146,7 @@ describe('MeetingTypeSelector', () => {
 
   describe('Duration Button Styling Details', () => {
     it('should apply tertiary surface background to unselected duration button', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} duration={60} />
       );
       const button = getByTestId('duration-30');
@@ -1161,7 +1161,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply medium border radius to duration buttons', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-60');
@@ -1176,7 +1176,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply horizontal padding to duration buttons', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-60');
@@ -1191,7 +1191,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply vertical padding to duration buttons', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-60');
@@ -1206,7 +1206,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should apply minimum width to duration buttons', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-60');
@@ -1219,7 +1219,7 @@ describe('MeetingTypeSelector', () => {
     });
 
     it('should center align items in duration buttons', () => {
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <MeetingTypeSelector {...defaultProps} />
       );
       const button = getByTestId('duration-60');

@@ -148,7 +148,7 @@
     "@react-native/debugger-frontend": "0.81.5",
     "@react-native/dev-middleware": "0.81.5",
     "@react-native/normalize-colors": "0.81.5",
-    "fast-xml-parser": "5.7.0",
+    "fast-xml-parser": "5.12.1",
     "fast-uri": "3.1.9",
     "qs": "6.17.1",
     "minimatch@>=9 <11.0.1": "11.0.3",

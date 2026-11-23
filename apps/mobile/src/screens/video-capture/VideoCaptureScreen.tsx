@@ -22,6 +22,7 @@ import { roomGuidancePhase } from '../../services/video/upload/roomGuidance';
 import { runWalkthrough } from '../../services/walkthrough/KeyframeWalkthroughService';
 import { logger } from '@mintenance/shared';
 import Reanimated, {
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -121,7 +122,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   }, []);
 
   useEffect(() => {
-    if (isRecording) {
+    if (isRecording && isFocused) {
       recordingPulse.value = withRepeat(
         withSequence(
           withTiming(1.2, { duration: 500 }),
@@ -132,7 +133,8 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     } else {
       recordingPulse.value = withTiming(1, { duration: 200 });
     }
-  }, [isRecording]);
+    return () => cancelAnimation(recordingPulse);
+  }, [isFocused, isRecording, recordingPulse]);
 
   const requestPermissions = async () => {
     await requestCameraPermission();

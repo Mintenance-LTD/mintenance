@@ -8,7 +8,12 @@ const mocks = vi.hoisted(() => ({
   quiet: vi.fn(),
   send: vi.fn(),
   notify: vi.fn(),
+  logError: vi.fn(),
 }));
+vi.mock('@mintenance/shared', async (importOriginal) => {
+  const shared = await importOriginal<typeof import('@mintenance/shared')>();
+  return { ...shared, logger: { error: mocks.logError, info: vi.fn(), warn: vi.fn() } };
+});
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: mocks.from,
@@ -49,6 +54,13 @@ beforeEach(() => {
       select: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      lte: vi.fn().mockReturnThis(),
+      not: vi.fn().mockReturnThis(),
+      contains: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
       maybeSingle: vi.fn(async () => ({
         data: table === 'profiles' ? profile : emailPrefs,
         error: null,
@@ -67,6 +79,26 @@ beforeEach(() => {
   mocks.rpc.mockResolvedValue({ data: true, error: null });
   mocks.notify.mockResolvedValue(null);
 });
+it('treats an empty opt-in list as a successful run without logging an error', async () => {
+  await expect(WinBackService.sendWinBackCampaign()).resolves.toEqual({
+    sent: 0,
+    failed: 0,
+  });
+  expect(mocks.logError).not.toHaveBeenCalled();
+  expect(mocks.send).not.toHaveBeenCalled();
+});
+
+it('reports a failed profile lookup to the cron handler', async () => {
+  const query = mocks.from.getMockImplementation()!('profiles');
+  query.limit.mockResolvedValueOnce({ data: null, error: { message: 'unavailable' } });
+  mocks.from.mockReturnValueOnce(query);
+
+  await expect(WinBackService.sendWinBackCampaign()).rejects.toThrow(
+    'Win-back profile lookup unavailable'
+  );
+  expect(mocks.send).not.toHaveBeenCalled();
+});
+
 it.each([
   'unsubscribe',
   'marketing opt out',
