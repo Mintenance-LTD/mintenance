@@ -46,6 +46,7 @@ interface DetailsStepProps {
   setFormData: React.Dispatch<React.SetStateAction<JobFormData>>;
   properties: Property[];
   loadingProperties: boolean;
+  ownerPays: boolean;
   validationErrors: Record<string, string>;
   uploadedImageUrls: string[];
   onNavigateToAddProperty: () => void;
@@ -64,6 +65,7 @@ export function DetailsStep({
   setFormData,
   properties,
   loadingProperties,
+  ownerPays,
   validationErrors,
   uploadedImageUrls,
   onNavigateToAddProperty,
@@ -414,7 +416,11 @@ export function DetailsStep({
       />
 
       {/* R6 #19 landlord / tenancy questions */}
-      <TenancyFields formData={formData} setFormData={setFormData} />
+      {ownerPays ? (
+        <p>The property owner handles payment for this job.</p>
+      ) : (
+        <TenancyFields formData={formData} setFormData={setFormData} />
+      )}
     </div>
   );
 }

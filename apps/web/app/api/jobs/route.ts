@@ -219,12 +219,14 @@ export const POST = withApiHandler(
     if (payload.source_tenant_report_id && !requestId)
       throw new BadRequestError('A tenant report needs a job submission ID.');
     const service = JobCreationService.getInstance();
-    const job = requestId
-      ? await service.createJob(user, payload, {
-          requestId,
-          fingerprint: fingerprintRequest(payload),
-        })
-      : await service.createJob(user, payload);
+    const job = await service.createJob(
+      user,
+      payload,
+      requestId
+        ? { requestId, fingerprint: fingerprintRequest(payload) }
+        : undefined,
+      { allowPropertyDelegation: true }
+    );
 
     logger.info('Job created successfully', {
       service: 'jobs',

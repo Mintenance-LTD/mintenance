@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { createJobOnce } from './jobs/create-job-once';
+import { fingerprintRequest } from '@/lib/idempotency';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateURLs } from '@/lib/security/url-validation';
 import { logger } from '@mintenance/shared';
@@ -9,6 +11,7 @@ import {
 } from '@/lib/errors/api-error';
 import type { JobDetail, JobSummary, User } from '@mintenance/types';
 import { JobNotificationService } from './job-notification-service';
+import { PropertyTeamService } from './property-team/PropertyTeamService';
 
 interface JobCreationPayload {
   title: string;
@@ -112,17 +115,44 @@ export class JobCreationService {
   async createJob(
     user: Pick<User, 'id' | 'role'>,
     payload: JobCreationPayload,
-    retry?: { requestId: string; fingerprint: string }
+    retry?: { requestId: string; fingerprint: string },
+    options?: { allowPropertyDelegation: boolean }
   ): Promise<JobDetail> {
     if (payload.source_tenant_report_id && !retry)
       throw new BadRequestError('A tenant report needs a job submission ID.');
     this.enforcePhotoRequirement(user.id, payload);
     await this.validatePhotoUrls(user.id, payload);
-    await this.validatePropertyOwnership(user.id, payload);
+    const ownerId = await this.resolveJobOwner(user.id, payload.property_id);
+    if (ownerId !== user.id) {
+      if (!options?.allowPropertyDelegation)
+        throw new ForbiddenError('Only the property owner can create this job');
+      if (payload.source_tenant_report_id)
+        throw new ForbiddenError(
+          'Only the property owner can convert a tenant report'
+        );
+      if (payload.tenancy_metadata?.payer_email)
+        throw new ForbiddenError(
+          'Only the property owner can designate a payer'
+        );
+      if (
+        payload.status &&
+        !['draft', 'open', 'posted'].includes(payload.status)
+      )
+        throw new BadRequestError(
+          'Shared property jobs must start as drafts or open for bids'
+        );
+    }
+    // Older clients omit a submission ID. Still use the transaction for
+    // property jobs so membership and ownership are checked at insertion.
+    const submission =
+      retry ??
+      (payload.property_id
+        ? { requestId: randomUUID(), fingerprint: fingerprintRequest(payload) }
+        : undefined);
     await this.resolvePayerFromEmail(user.id, payload);
     await this.validatePreferredContractor(user.id, payload);
 
-    const insertPayload = this.buildInsertPayload(user, payload);
+    const insertPayload = this.buildInsertPayload(ownerId, payload);
 
     // 2026-05-28 audit-90 P1: when the homeowner picked a property, the
     // property row already has city + postcode + (often) latitude +
@@ -144,11 +174,11 @@ export class JobCreationService {
     //      bias (defence-in-depth for property-less submissions).
     await this.resolveJobCoordinates(insertPayload);
 
-    const atomic = retry
+    const atomic = submission
       ? await createJobOnce(
           user.id,
-          retry.requestId,
-          retry.fingerprint,
+          submission.requestId,
+          submission.fingerprint,
           insertPayload,
           payload.photoUrls || [],
           payload.source_tenant_report_id
@@ -158,7 +188,7 @@ export class JobCreationService {
     const jobRow =
       atomic?.job || (await this.insertJob(user.id, insertPayload));
 
-    await this.updateSeriousBuyerScore(user.id, jobRow.id, payload);
+    await this.updateSeriousBuyerScore(ownerId, jobRow.id, payload);
     try {
       if (!atomic)
         await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
@@ -367,31 +397,35 @@ export class JobCreationService {
     payload.payer_user_id = profile.id as string;
   }
 
-  private async validatePropertyOwnership(
+  private async resolveJobOwner(
     userId: string,
-    payload: JobCreationPayload
-  ): Promise<void> {
-    if (!payload.property_id) return;
+    propertyId?: string
+  ): Promise<string> {
+    if (!propertyId) return userId;
 
     const { data: property, error } = await serverSupabase
       .from('properties')
-      .select('id, owner_id')
-      .eq('id', payload.property_id)
-      .single();
+      .select('owner_id')
+      .eq('id', propertyId)
+      .maybeSingle();
 
-    if (error || !property) {
-      throw new BadRequestError('Property not found');
+    if (error) {
+      throw new InternalServerError('Unable to verify property access');
     }
 
+    if (!property?.owner_id) {
+      throw new ForbiddenError('You cannot create jobs for this property');
+    }
     if (property.owner_id !== userId) {
-      logger.warn('User attempted to create job for property they do not own', {
-        service: 'jobs',
+      const { authorized } = await PropertyTeamService.authorize(
         userId,
-        propertyId: payload.property_id,
-        ownerId: property.owner_id,
-      });
-      throw new ForbiddenError('You do not own this property');
+        propertyId,
+        'create_job'
+      );
+      if (!authorized)
+        throw new ForbiddenError('You cannot create jobs for this property');
     }
+    return property.owner_id;
   }
 
   /**
@@ -439,7 +473,7 @@ export class JobCreationService {
   }
 
   private buildInsertPayload(
-    user: Pick<User, 'id'>,
+    ownerId: string,
     payload: JobCreationPayload
   ): {
     title: string;
@@ -486,7 +520,7 @@ export class JobCreationService {
       requirements?: Record<string, unknown>;
     } = {
       title: payload.title.trim(),
-      homeowner_id: user.id,
+      homeowner_id: ownerId,
       status: payload.status ? payload.status.trim() : 'posted',
     };
 
@@ -757,10 +791,8 @@ export class JobCreationService {
     if (!payload.property_id) return; // No property → no rooms to snapshot
 
     try {
-      // Re-fetch with ownership scope: rooms must belong to the
-      // job's property. `property_rooms` RLS already enforces owner
-      // = auth.uid() on read, but the serverSupabase client uses the
-      // service role so we enforce it ourselves here.
+      // Creation authorizes the property. Check the room IDs against that
+      // same property since this service-role query bypasses RLS.
       const { data: rooms, error: roomsError } = await serverSupabase
         .from('property_rooms')
         .select('id, name, room_type, size_sqm, property_id')
