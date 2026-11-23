@@ -51,15 +51,29 @@ function useRecords<T>(url: string, revision: number) {
 }
 export default function TenancyInspections({
   propertyId,
+  initialFolderId,
 }: {
   propertyId: string;
+  initialFolderId?: string;
 }) {
-  return <TenancyWorkspace key={propertyId} propertyId={propertyId} />;
+  return (
+    <TenancyWorkspace
+      key={`${propertyId}/${initialFolderId ?? ''}`}
+      propertyId={propertyId}
+      initialFolderId={initialFolderId}
+    />
+  );
 }
-function TenancyWorkspace({ propertyId }: { propertyId: string }) {
+function TenancyWorkspace({
+  propertyId,
+  initialFolderId,
+}: {
+  propertyId: string;
+  initialFolderId?: string;
+}) {
   const [revision, setRevision] = useState(0);
   const [page, setPage] = useState(0);
-  const [folder, setFolder] = useState<TenancyFolder | null>(null);
+  const [selectedFolder, setFolder] = useState<TenancyFolder | null>(null);
   const [create, setCreate] = useState(false);
   const [editing, setEditing] = useState<TenancyFolder | null>(null);
   const [draft, setDraft] = useState({ label: '', starts_on: '', ends_on: '' });
@@ -76,9 +90,17 @@ function TenancyWorkspace({ propertyId }: { propertyId: string }) {
   const [savedFolderId, setSavedFolderId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState('');
   const folders = useRecords<InspectionPage<TenancyFolder>>(
-    '/api/properties/' + propertyId + '/tenancies?offset=' + page,
+    '/api/properties/' +
+      propertyId +
+      '/tenancies?' +
+      (initialFolderId
+        ? 'folder=' + encodeURIComponent(initialFolderId)
+        : 'offset=' + page),
     revision
   );
+  const folder = initialFolderId
+    ? (folders.data?.items.find((item) => item.id === initialFolderId) ?? null)
+    : selectedFolder;
   useEffect(() => {
     if (!savedFolderId || !folders.data || folders.loadedRevision !== revision)
       return;
@@ -138,7 +160,7 @@ function TenancyWorkspace({ propertyId }: { propertyId: string }) {
         <h4 id='tenancy-folders-title' className='font-semibold'>
           Tenancy folders & inspections
         </h4>
-        {folders.data?.canCreate && (
+        {folders.data?.canCreate && !initialFolderId && (
           <button
             className={button}
             disabled={busy}
@@ -261,7 +283,7 @@ function TenancyWorkspace({ propertyId }: { propertyId: string }) {
             <label className='min-w-0 flex-1 text-sm'>
               Tenancy folder
               <select
-                disabled={busy}
+                disabled={busy || !!initialFolderId}
                 className={control}
                 value={folder?.id ?? ''}
                 onChange={(e) =>

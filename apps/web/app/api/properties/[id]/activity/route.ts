@@ -11,7 +11,7 @@ const cursorSchema = z.object({
   id: z
     .string()
     .regex(
-      /^(?:job|complete|document|inspection|payment|funded|released|message)-[0-9a-f-]{36}$/
+      /^(?:job|complete|document|inspection|payment|funded|released|dispute|message)-[0-9a-f-]{36}$/
     ),
 });
 

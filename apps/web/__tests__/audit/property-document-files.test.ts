@@ -146,6 +146,59 @@ it('scopes short-lived downloads to the requested property', async () => {
     download: 'file.pdf',
   });
 });
+it('opens only the requested active file and issues a short-lived inline URL', async () => {
+  const documentId = '00000000-0000-4000-8000-000000000002';
+  mock.from.mockReturnValueOnce({
+    select() {
+      return this;
+    },
+    eq(key: string, value: unknown) {
+      mock.filters(key, value);
+      return this;
+    },
+    is(key: string, value: unknown) {
+      mock.filters(key, value);
+      return this;
+    },
+    maybeSingle: async () => ({
+      data: {
+        id: documentId,
+        name: 'Exact file.pdf',
+        object_path: `${id}/${documentId}`,
+      },
+      error: null,
+    }),
+  });
+  const response = await call(
+    GET,
+    new NextRequest(
+      `http://localhost/api/properties/${id}/documents?documentId=${documentId}&inline=1`
+    )
+  );
+  expect(mock.filters).toHaveBeenCalledWith('id', documentId);
+  expect(mock.filters).toHaveBeenCalledWith('property_id', id);
+  expect(mock.filters).toHaveBeenCalledWith('archived_at', null);
+  expect(mock.signed).toHaveBeenCalledWith(`${id}/${documentId}`, 60, {
+    download: false,
+  });
+  expect(response.headers.get('cache-control')).toBe('private, no-store');
+  expect(await response.json()).toEqual({
+    document: { id: documentId, name: 'Exact file.pdf' },
+    url: 'https://example.invalid/file',
+  });
+});
+it('returns an unavailable result without signing an absent or archived file', async () => {
+  mock.result = null;
+  await expect(
+    call(
+      GET,
+      new NextRequest(
+        `http://localhost/api/properties/${id}/documents?documentId=${id}&inline=1`
+      )
+    )
+  ).rejects.toMatchObject({ statusCode: 404 });
+  expect(mock.signed).not.toHaveBeenCalled();
+});
 it('retains cleanup tracking when storage removal fails', async () => {
   mock.remove.mockResolvedValue({ error: new Error('storage offline') });
   await expect(cleanupPropertyDocumentFiles()).rejects.toThrow(

@@ -20,7 +20,9 @@ try {
       homeowner_id uuid,status text,budget numeric,category text,scheduled_start_date timestamptz,deleted_at timestamptz);
     CREATE TABLE property_document_files(id uuid PRIMARY KEY,property_id uuid,name text,status text,created_at timestamptz);
     CREATE TABLE property_inspection_reports(id uuid PRIMARY KEY,property_id uuid,title text,created_at timestamptz);
-    CREATE TABLE escrow_transactions(id uuid PRIMARY KEY,job_id uuid,payer_id uuid,created_at timestamptz,funded_at timestamptz,released_at timestamptz);
+    CREATE TABLE escrow_transactions(id uuid PRIMARY KEY,job_id uuid,payer_id uuid,created_at timestamptz,funded_at timestamptz,released_at timestamptz,disputed_at timestamptz);
+    CREATE TABLE disputes(id uuid PRIMARY KEY,job_id uuid,created_at timestamptz);
+    CREATE TABLE dispute_escrow_links(dispute_id uuid PRIMARY KEY,escrow_id uuid);
     CREATE TABLE messages(id uuid PRIMARY KEY,job_id uuid,sender_id uuid,receiver_id uuid,content text,created_at timestamptz);
     GRANT SELECT ON ALL TABLES IN SCHEMA public TO service_role;
   `);
@@ -37,15 +39,23 @@ try {
     [property, date]
   );
   await db.query(
-    "INSERT INTO property_inspection_reports VALUES(gen_random_uuid(),$1,'Inspection',$2)",
+    `INSERT INTO property_inspection_reports
+     SELECT gen_random_uuid(),$1,'Inspection ' || i,$2 FROM generate_series(1,2) i`,
     [property, date]
   );
+  const payment = randomUUID();
+  const dispute = randomUUID();
   await db.query(
-    "INSERT INTO escrow_transactions VALUES(gen_random_uuid(),$1,$2,$3::timestamptz,NULL,$3::timestamptz + interval '1 day')",
-    [job, owner, date]
+    "INSERT INTO escrow_transactions VALUES($1,$2,$3,$4::timestamptz,NULL,$4::timestamptz + interval '1 day',NULL)",
+    [payment, job, owner, date]
   );
+  await db.query('INSERT INTO disputes VALUES($1,$2,$3)', [dispute, job, date]);
+  await db.query('INSERT INTO dispute_escrow_links VALUES($1,$2)', [
+    dispute,
+    payment,
+  ]);
   await db.query(
-    "INSERT INTO escrow_transactions VALUES(gen_random_uuid(),$1,$2,$3::timestamptz,NULL,$3::timestamptz + interval '2 day')",
+    "INSERT INTO escrow_transactions VALUES(gen_random_uuid(),$1,$2,$3::timestamptz,NULL,$3::timestamptz + interval '2 day',$3::timestamptz)",
     [job, outsider, date]
   );
   await db.query(
@@ -65,6 +75,15 @@ try {
       'utf8'
     )
   );
+  await db.exec(
+    readFileSync(
+      new URL(
+        '../supabase/migrations/20261123173000_property_activity_payment_links.sql',
+        import.meta.url
+      ),
+      'utf8'
+    )
+  );
 
   const read = (actor = owner, before = null, key = null) =>
     db.query(
@@ -76,6 +95,7 @@ try {
   assert.equal(first.length, 26);
   assert.equal(first[0].title, 'Payment released');
   assert.equal(first[0].kind, 'payment');
+  assert.equal(first[0].href, '/payments/' + payment);
   await db.exec('RESET ROLE');
   await db.query(
     "INSERT INTO jobs VALUES(gen_random_uuid(),$1,'Newer concurrent insert',now(),NULL)",
@@ -90,10 +110,38 @@ try {
     received.push(...next.slice(0, 25));
     if (next.length <= 25) break;
   }
-  assert.equal(received.length, 1055);
-  assert.equal(new Set(received.map((event) => event.id)).size, 1055);
+  assert.equal(received.length, 1057);
+  assert.equal(new Set(received.map((event) => event.id)).size, 1057);
   assert.equal(received.filter((event) => event.kind === 'message').length, 1);
   assert.equal(received.filter((event) => event.kind === 'payment').length, 2);
+  const documents = received.filter((event) => event.kind === 'document');
+  assert.equal(documents.length, 1050);
+  for (const event of documents) {
+    assert.equal(
+      event.href,
+      `/properties/${property}/documents/${event.id.slice('document-'.length)}`
+    );
+  }
+  const inspections = received.filter((event) => event.kind === 'inspection');
+  assert.equal(inspections.length, 2);
+  for (const event of inspections) {
+    assert.equal(
+      event.href,
+      `/properties/${property}/inspections/${event.id.slice('inspection-'.length)}`
+    );
+  }
+  assert.deepEqual(
+    received.filter((event) => event.kind === 'dispute'),
+    [
+      {
+        id: 'dispute-' + payment,
+        title: 'Dispute opened',
+        date,
+        kind: 'dispute',
+        href: '/disputes/' + payment,
+      },
+    ]
+  );
   assert.ok(
     !received.some(
       (event) =>
@@ -126,7 +174,7 @@ try {
   await db.exec('RESET ROLE; SET ROLE anon');
   await assert.rejects(read(), { code: '42501' });
   console.log(
-    'PASS owner-scoped activity retains 1,055 events, stable ties and microseconds across pages after a newer insert'
+    'PASS owner-scoped activity retains 1,057 events with exact file, inspection, payment and dispute links and stable pagination'
   );
 } catch (error) {
   console.error(error.stack);

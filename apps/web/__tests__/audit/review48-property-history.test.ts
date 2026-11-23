@@ -50,6 +50,29 @@ it('denies combined private history to delegated viewers', async () => {
   );
   expect(state.rpc).not.toHaveBeenCalled();
 });
+it('can continue an older page after the last item is a dispute', async () => {
+  const dispute = {
+    ...events[24],
+    id: events[24].id.replace('job-', 'dispute-'),
+    kind: 'dispute',
+    title: 'Dispute opened',
+    href: '/disputes/payment',
+  };
+  state.rpc.mockResolvedValue({
+    data: [...events.slice(0, 24), dispute, events[25]],
+    error: null,
+  });
+  const first = await (await GET(request(), context)).json();
+  expect(first.events.at(-1)).toEqual(dispute);
+  await GET(
+    request('?cursor=' + encodeURIComponent(first.nextCursor)),
+    context
+  );
+  expect(state.rpc).toHaveBeenLastCalledWith(
+    'read_property_activity_page',
+    expect.objectContaining({ p_before: date, p_event_key: dispute.id })
+  );
+});
 it('rejects invalid cursors before reading private history', async () => {
   await expect(GET(request('?cursor=invalid'), context)).rejects.toThrow(
     'Invalid activity page'

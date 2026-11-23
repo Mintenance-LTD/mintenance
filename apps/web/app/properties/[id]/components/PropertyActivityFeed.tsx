@@ -8,6 +8,7 @@ import {
   FileText,
   History,
   MessageSquare,
+  ShieldAlert,
   Wallet,
 } from 'lucide-react';
 import styles from './property-activity.module.css';
@@ -23,6 +24,7 @@ const eventTypes = {
   document: { label: 'Document', Icon: FileText },
   inspection: { label: 'Inspection', Icon: ClipboardCheck },
   payment: { label: 'Payment', Icon: Wallet },
+  dispute: { label: 'Dispute', Icon: ShieldAlert },
   message: { label: 'Message', Icon: MessageSquare },
 };
 const monthFormat = new Intl.DateTimeFormat('en-GB', {
@@ -89,8 +91,8 @@ export function PropertyActivityFeed({ propertyId }: { propertyId: string }) {
         <span className={styles.timezone}>UK time</span>
       </header>
       <p className={styles.description}>
-        Recorded jobs, documents, inspections, payments and your job messages.
-        Signed agreements and original event times are preserved.
+        Recorded jobs, documents, inspections, payments, disputes and your job
+        messages.
       </p>
       {loading ? (
         <p role='status' className={styles.state}>
@@ -140,6 +142,9 @@ export function PropertyActivityFeed({ propertyId }: { propertyId: string }) {
                                 })}{' '}
                                 UK
                               </time>
+                              {event.kind === 'dispute' && (
+                                <span className='underline'>View dispute</span>
+                              )}
                             </span>
                             <ArrowUpRight size={18} aria-hidden='true' />
                           </Link>

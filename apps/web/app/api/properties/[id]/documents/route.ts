@@ -41,7 +41,7 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
       throw new BadRequestError('Invalid document');
     const { data: doc, error } = await serverSupabase
       .from('property_document_files')
-      .select('object_path,name')
+      .select('id,object_path,name')
       .eq('id', documentId)
       .eq('property_id', params.id)
       .eq('status', 'ready')
@@ -56,12 +56,15 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
       !/^[a-f0-9-]+\/[a-f0-9-]+$/i.test(expectedPath)
     )
       throw new BadRequestError('Document storage reference requires review');
+    const inline = request.nextUrl.searchParams.get('inline') === '1';
     const { data, error: signedError } = await serverSupabase.storage
       .from(BUCKET)
-      .createSignedUrl(expectedPath, 60, { download: doc.name });
+      .createSignedUrl(expectedPath, 60, {
+        download: inline ? false : doc.name,
+      });
     if (signedError) throw signedError;
     return NextResponse.json(
-      { url: data.signedUrl },
+      { url: data.signedUrl, document: { id: doc.id, name: doc.name } },
       { headers: { 'Cache-Control': 'private, no-store' } }
     );
   }

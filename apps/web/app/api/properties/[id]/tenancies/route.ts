@@ -1,6 +1,6 @@
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase as db } from '@/lib/api/supabaseServer';
-import { BadRequestError } from '@/lib/errors/api-error';
+import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import {
   inspectionBody,
   access,
@@ -12,9 +12,27 @@ import {
   folderColumns,
   databaseError,
   reply,
+  uuid,
 } from '@/lib/services/property-team/property-inspections';
 export const GET = withApiHandler({}, async (request, { user, params }) => {
   const { role } = await access(user.id, params.id);
+  const folderId = request.nextUrl.searchParams.get('folder');
+  if (folderId !== null) {
+    uuid(folderId);
+    const { data, error } = await db
+      .from('property_tenancy_folders')
+      .select(folderColumns)
+      .eq('property_id', params.id)
+      .eq('id', folderId)
+      .maybeSingle();
+    databaseError(error);
+    if (!data) throw new NotFoundError('Tenancy folder not found');
+    return reply({
+      items: [data],
+      hasMore: false,
+      canCreate: await mayCreate(params.id, role),
+    });
+  }
   const start = offset(request.nextUrl.searchParams.get('offset'));
   const { data, error } = await db
     .from('property_tenancy_folders')
