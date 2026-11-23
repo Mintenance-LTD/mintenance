@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { PropertyViewSwitcher } from '../PropertyViewSwitcher';
 import RoomPhotoGallery from '@/app/properties/[id]/components/RoomPhotoGallery';
 import { useNavSections } from '@/components/layouts/sidebar/sidebarNavConfig';
-import { AgencyDashboardStart } from '@/app/dashboard/components/AgencyDashboardStart';
+import { MintEditorialSidePanel } from '@/app/dashboard/components/mint-editorial/MintEditorialSidePanel';
 const state = vi.hoisted(() => ({
   view: 'home',
   enabled: true,
@@ -60,20 +60,40 @@ function Navigation({
   );
 }
 describe('property view controls', () => {
-  it('puts the queue and team-access guidance first in the Agency view', () => {
-    const view = render(<AgencyDashboardStart />);
+  it('shows the Agency shortcuts below Payment protected and hides them in Home view', () => {
+    const sidePanel = (
+      <MintEditorialSidePanel appointments={[]} escrowHeld={3.72} />
+    );
+    const view = render(sidePanel);
     expect(
-      screen.queryByRole('heading', { name: 'Portfolio action queue' })
+      screen.queryByRole('region', { name: 'Portfolio action queue' })
     ).toBeNull();
     state.view = 'agency';
-    view.rerender(<AgencyDashboardStart />);
+    view.rerender(
+      <MintEditorialSidePanel appointments={[]} escrowHeld={3.72} />
+    );
+    const queue = screen.getByRole('region', {
+      name: 'Portfolio action queue',
+    });
+    const payment = screen.getByRole('heading', { name: 'Payment protected' });
+    expect(
+      payment.compareDocumentPosition(queue) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Open action queue' })
     ).toHaveAttribute('href', '/properties/work-queue');
     expect(
       screen.getByRole('link', { name: 'Tenant reports' })
     ).toHaveAttribute('href', '/landlord/reports');
-    expect(screen.getByText(/Manage, then People and access/)).toBeVisible();
+    const properties = screen.getByRole('link', { name: 'Properties' });
+    expect(properties).toHaveAttribute('href', '/properties');
+    expect(
+      screen.getByText(/Manage tab under People and access/)
+    ).toBeVisible();
+    view.rerender(<MintEditorialSidePanel appointments={[]} escrowHeld={0} />);
+    expect(
+      screen.getByRole('region', { name: 'Portfolio action queue' })
+    ).toBeVisible();
   });
   it('selects a presentation preference without checkout or permission writes', () => {
     render(<PropertyViewSwitcher />);
