@@ -30,6 +30,7 @@ interface HomeownerPhotoReviewProps {
   afterPhotos: PhotoRecord[];
   isConfirmed: boolean;
   paymentRefunded?: boolean;
+  paymentDisputed?: boolean;
   /** Completion revision used to reject stale approval/change requests. */
   completedAt?: string | null;
 }
@@ -43,9 +44,11 @@ export function HomeownerPhotoReview({
   afterPhotos: allAfterPhotos,
   isConfirmed,
   paymentRefunded = false,
+  paymentDisputed = false,
   completedAt,
 }: HomeownerPhotoReviewProps) {
   const router = useRouter();
+  const reviewLocked = paymentRefunded || paymentDisputed;
   const rework = useJobRework(jobId, completedAt);
   const [showPrevious, setShowPrevious] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -161,7 +164,7 @@ export function HomeownerPhotoReview({
   return (
     <div className='space-y-4'>
       <h3 className='text-lg font-semibold text-gray-900'>
-        {paymentRefunded ? 'Completion evidence' : 'Review Completed Work'}
+        {reviewLocked ? 'Completion evidence' : 'Review Completed Work'}
       </h3>
 
       {rework.loading && (
@@ -192,7 +195,7 @@ export function HomeownerPhotoReview({
               ? 'Show current rework only'
               : 'Browse all photos including previous cycles'}
           </button>
-          {!paymentRefunded &&
+          {!reviewLocked &&
             !showPrevious &&
             afterPhotos.length > 0 &&
             afterPhotos.length < 3 && (
@@ -201,7 +204,7 @@ export function HomeownerPhotoReview({
                 this cycle can be approved.
               </p>
             )}
-          {!paymentRefunded && !showPrevious && afterPhotos.length === 0 && (
+          {!reviewLocked && !showPrevious && afterPhotos.length === 0 && (
             <p>
               No fresh after photos are available for this cycle. Request
               evidence before approving.
@@ -227,7 +230,9 @@ export function HomeownerPhotoReview({
             <p className='text-sm text-green-600'>
               {paymentRefunded
                 ? 'Approval is retained in the job record. The payment was refunded.'
-                : 'Payment release is subject to the cooling-off period and final checks.'}
+                : paymentDisputed
+                  ? 'Approval is recorded in the job history.'
+                  : 'Payment release is subject to the cooling-off period and final checks.'}
             </p>
           </div>
         </div>
@@ -305,12 +310,16 @@ export function HomeownerPhotoReview({
           Payment was refunded. You can still view the evidence. Approval and
           change requests for this completion are closed.
         </p>
+      ) : paymentDisputed ? (
+        <p className='text-sm text-gray-600'>
+          Payment release is paused. You can still view the completion evidence.
+        </p>
       ) : (
         <PaymentReviewMilestones jobId={jobId} approved={isApproved} />
       )}
 
       {/* Action buttons (only when not yet approved) */}
-      {!paymentRefunded && !isApproved && !successMessage && (
+      {!reviewLocked && !isApproved && !successMessage && (
         <>
           {!showChangesForm ? (
             <div className='flex gap-3'>

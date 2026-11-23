@@ -479,9 +479,11 @@ export function HowPaymentWorksCard({
 export function QuickActionsList({
   jobId,
   status,
+  hasDispute = false,
 }: {
   jobId: string;
   status?: string | null;
+  hasDispute?: boolean;
 }) {
   const items = [
     {
@@ -512,11 +514,8 @@ export function QuickActionsList({
         Quick actions
       </div>
       <div className='col' style={{ gap: 6 }}>
-        {['in_progress', 'completed', 'disputed'].includes(status ?? '') && (
-          <OpenJobDispute
-            jobId={jobId}
-            label={status === 'disputed' ? 'View dispute' : 'Open a dispute'}
-          />
+        {!hasDispute && ['in_progress', 'completed'].includes(status ?? '') && (
+          <OpenJobDispute jobId={jobId} label='Open a dispute' />
         )}
         {items.map((a, i) => (
           <Link
