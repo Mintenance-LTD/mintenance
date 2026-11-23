@@ -47,6 +47,7 @@ export interface InboxNotification {
   created_at: string;
   is_read: boolean;
   action_url?: string;
+  action_status?: 'no_longer_actionable';
   metadata?: Record<string, unknown>;
 }
 
@@ -65,6 +66,7 @@ interface NotificationsInboxViewProps {
   onFilterChange: (filter: InboxFilter) => void;
   /** Route for the Preferences button. Differs per role. */
   preferencesHref: string;
+  unreadTotal?: number;
   onMarkAllRead: () => void;
   onNotificationClick: (n: InboxNotification) => void;
   onDelete: (id: string) => void;
@@ -279,6 +281,16 @@ function NotificationRow({
             </>
           ) : null}
         </p>
+        {notification.action_status === 'no_longer_actionable' && (
+          <span className='w-fit rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700'>
+            No longer actionable
+          </span>
+        )}
+        {notification.action_url?.startsWith('/disputes/') && (
+          <span className='w-fit text-xs font-semibold text-teal-800'>
+            View dispute
+          </span>
+        )}
         <span
           className='t-meta'
           style={{ fontSize: 12, color: 'var(--me-ink-3)' }}
@@ -334,6 +346,7 @@ export function NotificationsInboxView({
   filter,
   onFilterChange,
   preferencesHref,
+  unreadTotal,
   onMarkAllRead,
   onNotificationClick,
   onDelete,
@@ -350,10 +363,11 @@ export function NotificationsInboxView({
   };
   for (const n of visible) buckets[bucketFor(n.created_at)].push(n);
 
+  const total = unreadTotal ?? counts.unread;
   const subtitle =
-    counts.unread > 0
-      ? `${counts.unread} unread in this loaded view. The sidebar counts all unread notifications.`
-      : 'No unread notifications in this loaded view. Older notifications may appear in the sidebar total.';
+    unreadTotal !== undefined && counts.unread < total
+      ? `${counts.unread} of ${total} unread notifications loaded`
+      : `${total} unread notification${total === 1 ? '' : 's'}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -366,7 +380,7 @@ export function NotificationsInboxView({
           </p>
         </div>
         <div className='row' style={{ gap: 8 }}>
-          {counts.unread > 0 ? (
+          {total > 0 ? (
             <button
               type='button'
               className='btn btn-secondary btn-sm'

@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import { updateWebNotificationGroup } from '@/lib/notifications/inbox';
 
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 60 } },
   async (request, { user, params }) => {
     const { id } = params;
+    if (request.nextUrl.searchParams.get('inbox') === '1') {
+      await updateWebNotificationGroup(user.id, id, false);
+      return NextResponse.json({ success: true });
+    }
 
     // Use RLS-enforced client for user-scoped operations; fall back to service role
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
@@ -24,7 +32,9 @@ export const POST = withApiHandler(
     }
 
     if (notification.user_id !== user.id) {
-      throw new ForbiddenError('You do not have permission to modify this notification');
+      throw new ForbiddenError(
+        'You do not have permission to modify this notification'
+      );
     }
 
     // Mark as read
@@ -44,5 +54,5 @@ export const POST = withApiHandler(
     }
 
     return NextResponse.json({ success: true });
-  },
+  }
 );

@@ -9,6 +9,10 @@ import { validateRequest } from '@/lib/validation/validator';
 import { notificationEngagementSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { fetchNotificationFeed } from '@/lib/notifications/feed';
+import {
+  fetchWebNotificationInbox,
+  updateWebNotificationGroups,
+} from '@/lib/notifications/inbox';
 import { z } from 'zod';
 
 const createNotificationSchema = z.object({
@@ -23,6 +27,13 @@ export const GET = withApiHandler(
   { rateLimit: { maxRequests: 120 }, csrf: false },
   async (request, { user }) => {
     const userId = user.id;
+    const url = new URL(request.url);
+    if (url.searchParams.get('inbox') === '1') {
+      const inbox = await fetchWebNotificationInbox(user, url.searchParams);
+      return NextResponse.json(inbox, {
+        headers: { 'Cache-Control': 'private, no-store' },
+      });
+    }
 
     // Sprint 7 (3.3): use the tagged resolver so telemetry flags when we fall
     // back to service role. This file applies an explicit `.eq('user_id',
@@ -39,7 +50,6 @@ export const GET = withApiHandler(
     // Mobile inbox passes `?history=1&limit=50&offset=0` to scroll past
     // read items. Default (no flag) keeps the recent-or-unread feed for
     // the web dashboard activity card.
-    const url = new URL(request.url);
     const includeHistory =
       url.searchParams.get('history') === '1' ||
       url.searchParams.get('history') === 'true';
@@ -365,6 +375,20 @@ export const GET = withApiHandler(
     );
 
     return NextResponse.json({ notifications: allNotifications.slice(0, 20) });
+  }
+);
+
+const clearLoadedSchema = z
+  .object({ ids: z.array(z.uuid()).min(1).max(100) })
+  .strict();
+
+export const DELETE = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
+    const parsed = await validateRequest(request, clearLoadedSchema);
+    if (parsed instanceof NextResponse) return parsed;
+    await updateWebNotificationGroups(user.id, parsed.data.ids, true);
+    return NextResponse.json({ success: true });
   }
 );
 

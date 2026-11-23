@@ -41,6 +41,7 @@ interface Props {
   filter: FilterType;
   onFilterChange: (f: FilterType) => void;
   counts: Counts;
+  hasOlder?: boolean;
   onClickNotification: (n: NotificationItem) => void;
   onMarkAllRead: () => void;
   onClearAll: () => void;
@@ -96,6 +97,7 @@ export function LegacyNotificationsView({
   filter,
   onFilterChange,
   counts,
+  hasOlder,
   onClickNotification,
   onMarkAllRead,
   onClearAll,
@@ -139,7 +141,7 @@ export function LegacyNotificationsView({
                   onClick={onClearAll}
                   className='px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all'
                 >
-                  Clear All
+                  Clear loaded
                 </button>
               )}
               {counts.unread > 0 && (
@@ -220,12 +222,16 @@ export function LegacyNotificationsView({
               </div>
               <h3 className='text-xl font-bold text-gray-900 mb-2'>
                 {filter === 'unread'
-                  ? 'No unread notifications'
+                  ? hasOlder && counts.unread
+                    ? 'No unread notifications loaded'
+                    : 'No unread notifications'
                   : 'No notifications'}
               </h3>
               <p className='text-gray-600'>
                 {filter === 'unread'
-                  ? "You're all caught up!"
+                  ? hasOlder && counts.unread
+                    ? 'Load older notifications to see more unread items.'
+                    : "You're all caught up!"
                   : 'Notifications will appear here'}
               </p>
             </MotionDiv>
@@ -268,6 +274,12 @@ export function LegacyNotificationsView({
                               <div className='w-3 h-3 bg-teal-600 rounded-full flex-shrink-0 mt-1 animate-pulse' />
                             )}
                           </div>
+                          {notification.action_status ===
+                            'no_longer_actionable' && (
+                            <p className='mb-2 text-xs font-semibold text-slate-600'>
+                              No longer actionable
+                            </p>
+                          )}
                           <p className='text-gray-700 mb-3 line-clamp-2'>
                             {notification.message}
                           </p>
@@ -299,7 +311,11 @@ export function LegacyNotificationsView({
                                   }}
                                   className='px-3 py-1.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors'
                                 >
-                                  View
+                                  {notification.action_url.startsWith(
+                                    '/disputes/'
+                                  )
+                                    ? 'View dispute'
+                                    : 'View'}
                                 </button>
                               )}
                               <button
