@@ -43,10 +43,10 @@ BEGIN
     ) e(prefix,label,occurred_at)
     WHERE ep.payer_id=p_actor
     UNION ALL
-    SELECT 'dispute-'||ep.id,'Dispute opened',coalesce(d.created_at,ep.disputed_at),
+    SELECT 'dispute-'||ep.id,'Dispute opened',d.created_at,
       '/disputes/'||ep.id,'dispute'
     FROM public.escrow_transactions ep JOIN property_jobs j ON j.id=ep.job_id
-    LEFT JOIN LATERAL (
+    JOIN LATERAL (
       SELECT dispute.created_at
       FROM public.dispute_escrow_links link
       JOIN public.disputes dispute ON dispute.id=link.dispute_id

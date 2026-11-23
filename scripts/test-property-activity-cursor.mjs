@@ -20,7 +20,7 @@ try {
       homeowner_id uuid,status text,budget numeric,category text,scheduled_start_date timestamptz,deleted_at timestamptz);
     CREATE TABLE property_document_files(id uuid PRIMARY KEY,property_id uuid,name text,status text,created_at timestamptz);
     CREATE TABLE property_inspection_reports(id uuid PRIMARY KEY,property_id uuid,title text,created_at timestamptz);
-    CREATE TABLE escrow_transactions(id uuid PRIMARY KEY,job_id uuid,payer_id uuid,created_at timestamptz,funded_at timestamptz,released_at timestamptz,disputed_at timestamptz);
+    CREATE TABLE escrow_transactions(id uuid PRIMARY KEY,job_id uuid,payer_id uuid,created_at timestamptz,funded_at timestamptz,released_at timestamptz);
     CREATE TABLE disputes(id uuid PRIMARY KEY,job_id uuid,created_at timestamptz);
     CREATE TABLE dispute_escrow_links(dispute_id uuid PRIMARY KEY,escrow_id uuid);
     CREATE TABLE messages(id uuid PRIMARY KEY,job_id uuid,sender_id uuid,receiver_id uuid,content text,created_at timestamptz);
@@ -46,7 +46,7 @@ try {
   const payment = randomUUID();
   const dispute = randomUUID();
   await db.query(
-    "INSERT INTO escrow_transactions VALUES($1,$2,$3,$4::timestamptz,NULL,$4::timestamptz + interval '1 day',NULL)",
+    "INSERT INTO escrow_transactions VALUES($1,$2,$3,$4::timestamptz,NULL,$4::timestamptz + interval '1 day')",
     [payment, job, owner, date]
   );
   await db.query('INSERT INTO disputes VALUES($1,$2,$3)', [dispute, job, date]);
@@ -55,7 +55,7 @@ try {
     payment,
   ]);
   await db.query(
-    "INSERT INTO escrow_transactions VALUES(gen_random_uuid(),$1,$2,$3::timestamptz,NULL,$3::timestamptz + interval '2 day',$3::timestamptz)",
+    "INSERT INTO escrow_transactions VALUES(gen_random_uuid(),$1,$2,$3::timestamptz,NULL,$3::timestamptz + interval '2 day')",
     [job, outsider, date]
   );
   await db.query(
@@ -78,7 +78,7 @@ try {
   await db.exec(
     readFileSync(
       new URL(
-        '../supabase/migrations/20261123173000_property_activity_payment_links.sql',
+        '../supabase/migrations/20261123205000_property_activity_record_links.sql',
         import.meta.url
       ),
       'utf8'
