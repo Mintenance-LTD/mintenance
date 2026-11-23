@@ -5,6 +5,7 @@
  * contractor name + rating + job count + earliest-available framing,
  * no emoji, calm paper-and-mint palette via `mintEmailShell`.
  */
+import { formatMoney } from '@/lib/utils/currency';
 import { escapeHtml, year, mintEmailShell } from './shared';
 import type {
   QuoteEmailData,
@@ -19,18 +20,18 @@ export function quoteNotificationTemplate(data: QuoteEmailData): {
   text: string;
 } {
   const e = escapeHtml;
-  const fmtAmount = `£${data.totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const fmtAmount = formatMoney(data.totalAmount);
   const subject = `${data.contractorName} sent you a ${fmtAmount} quote.`;
-  const preview = `Quote ${data.quoteNumber} — line items + total inside.`;
+  const preview = `See the line items and total for quote ${data.quoteNumber}.`;
   const html = mintEmailShell(
     subject,
     preview,
     `<p>Hi ${e(data.recipientName)},</p>
-     <p><strong>${e(data.contractorName)}</strong> has sent you a quote — <strong>${fmtAmount}</strong> against <strong>${e(data.quoteNumber)}</strong>. Open it to see the line items and accept or decline.</p>
+     <p><strong>${e(data.contractorName)}</strong> sent quote <strong>${e(data.quoteNumber)}</strong> for <strong>${fmtAmount}</strong>. Open it to see the line items and accept or decline.</p>
      <a href="${e(data.viewUrl)}" class="cta">View the quote →</a>`,
     `<p>&copy; ${year()} Mintenance Ltd.</p>`
   );
-  const text = `Hi ${data.recipientName},\n\n${data.contractorName} sent you a quote — ${fmtAmount} (${data.quoteNumber}).\n\nView and decide: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
+  const text = `Hi ${data.recipientName},\n\n${data.contractorName} sent quote ${data.quoteNumber} for ${fmtAmount}.\n\nView and decide: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
   return { subject, html, text };
 }
 
@@ -40,17 +41,17 @@ export function bidNotificationTemplate(data: BidEmailData): {
   text: string;
 } {
   const e = escapeHtml;
-  const fmtAmount = `£${data.bidAmount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const fmtAmount = formatMoney(data.bidAmount);
   const subject = `${data.contractorName} bid ${fmtAmount} on your ${data.jobTitle}.`;
   const preview = `${data.contractorName} just bid ${fmtAmount}. View the bid to compare.`;
   const html = mintEmailShell(
     subject,
     preview,
     `<p>Hi ${e(data.homeownerName)},</p>
-     <p>Good news — <strong>${e(data.contractorName)}</strong> just bid <strong>${fmtAmount}</strong> on your <strong>${e(data.jobTitle)}</strong>.</p>
+     <p><strong>${e(data.contractorName)}</strong> bid <strong>${fmtAmount}</strong> on your job <strong>${e(data.jobTitle)}</strong>.</p>
      <div class="note"><strong>Their note:</strong> "${e(data.proposalExcerpt)}"</div>
      <a href="${e(data.viewUrl)}" class="cta">View bid &amp; book →</a>
-     <p style="font-size:12px;color:#888">We'll only ping you again when another bid stands out — no chasing.</p>`,
+     <p style="font-size:12px;color:#888">We'll only notify you again when another bid stands out.</p>`,
     `<p>Mintenance · Home, taken care of.</p>
      <p><a href="https://mintenance.co.uk/settings/notifications">Notification preferences</a></p>
      <p>&copy; ${year()} Mintenance Ltd.</p>`
@@ -66,12 +67,12 @@ export function connectionRequestTemplate(data: ConnectionRequestEmailData): {
 } {
   const e = escapeHtml;
   const subject = `${data.requesterName} (${data.requesterRole}) wants to connect.`;
-  const preview = `Future jobs will route to them first — tap to accept or decline.`;
+  const preview = 'Open the connection request to accept or decline.';
   const html = mintEmailShell(
     subject,
     preview,
     `<p>Hi ${e(data.recipientName)},</p>
-     <p><strong>${e(data.requesterName)}</strong> — ${e(data.requesterRole)} — wants to connect with you on Mintenance. Once you accept, future jobs from them will route to you first.</p>
+     <p><strong>${e(data.requesterName)}</strong> (${e(data.requesterRole)}) wants to connect with you on Mintenance. Once you accept, future jobs from them will route to you first.</p>
      <a href="${e(data.acceptUrl)}" class="cta">View the request →</a>`,
     `<p>&copy; ${year()} Mintenance Ltd.</p>`
   );
@@ -85,8 +86,8 @@ export function quoteAcceptedTemplate(
   amount: number
 ): { subject: string; html: string } {
   const e = escapeHtml;
-  const fmtAmount = `£${amount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-  const subject = `${homeownerName} accepted ${quoteNumber} — ${fmtAmount}.`;
+  const fmtAmount = formatMoney(amount);
+  const subject = `${homeownerName} accepted quote ${quoteNumber} for ${fmtAmount}.`;
   const preview = `Confirm the start date and you're on.`;
   const html = mintEmailShell(
     subject,
@@ -103,18 +104,19 @@ export function bidAcceptedTemplate(
   unsubscribeFooter: string
 ): { subject: string; html: string; text: string } {
   const e = escapeHtml;
-  const fmtAmount = `£${data.bidAmount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const fmtAmount = formatMoney(data.bidAmount);
   const subject = `${data.homeownerName} accepted your ${fmtAmount} bid.`;
-  const preview = `${data.jobTitle} is yours — sign the contract to start.`;
+  const preview = `Your bid for ${data.jobTitle} was accepted. Review the agreement next.`;
+  const nextStep = 'Review and sign the agreement. Once both parties sign, the payer can fund Protected Payment. Check the job to see when work can start.';
   const html = mintEmailShell(
     subject,
     preview,
     `<p>Hi ${e(data.contractorName)},</p>
-     <p><strong>${e(data.homeownerName)}</strong> accepted your bid for <strong>${e(data.jobTitle)}</strong> — <strong>${fmtAmount}</strong> sitting against the job.</p>
-     <div class="note"><strong>Next:</strong> Sign the contract, then the homeowner pays into escrow. You can start work the moment the funds land.</div>
+     <p><strong>${e(data.homeownerName)}</strong> accepted your <strong>${fmtAmount}</strong> bid for <strong>${e(data.jobTitle)}</strong>.</p>
+     <div class="note">${nextStep}</div>
      <a href="${e(data.viewUrl)}" class="cta">Open the job →</a>`,
     unsubscribeFooter
   );
-  const text = `Hi ${data.contractorName},\n\n${data.homeownerName} accepted your ${fmtAmount} bid for ${data.jobTitle}.\n\nNext: sign the contract, then escrow funds, then you start.\n\nOpen the job: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
+  const text = `Hi ${data.contractorName},\n\n${data.homeownerName} accepted your ${fmtAmount} bid for ${data.jobTitle}.\n\n${nextStep}\n\nOpen the job: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
   return { subject, html, text };
 }

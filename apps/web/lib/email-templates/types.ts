@@ -69,6 +69,7 @@ export interface BidAcceptedData {
 
 export interface ContractSignedData {
   recipientName: string;
+  recipientRole: 'contractor' | 'homeowner' | 'payer';
   signerName: string;
   jobTitle: string;
   contractTitle: string;

@@ -105,11 +105,11 @@ export function mintEmailShell(
     .footer-row a{color:#666}
   `;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>${baseCss}</style></head><body>
-  <div class="preview">${preview}</div>
+  <div class="preview">${escapeHtml(preview)}</div>
   <div class="wrapper">
     <div class="container">
       <div class="from"><span class="brand">m</span><b>Mintenance</b> &lt;hello@mintenance.co.uk&gt;</div>
-      <div class="subj">${subject}</div>
+      <div class="subj">${escapeHtml(subject)}</div>
       <div class="body">${bodyHtml}</div>
       <div class="footer-row">${footer}</div>
     </div>

@@ -13,16 +13,16 @@ export function newsletterWelcomeTemplate(unsubscribeToken: string): {
 } {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk';
   const subject = `You're on the Mintenance list.`;
-  const preview = `Roughly fortnightly — what's new, tips for the right job at the right price.`;
+  const preview = 'Updates and practical maintenance tips, roughly every two weeks.';
   const html = mintEmailShell(
     subject,
     preview,
     `<p>Hi there,</p>
-     <p>Thanks for joining the list. You'll hear from us roughly every two weeks — short, useful, and never marketing-y. Expect:</p>
+     <p>Thanks for joining the list. You'll hear from us roughly every two weeks. Expect:</p>
      <ul style="color:#333;padding-left:20px;line-height:1.9">
        <li>What's actually new on the platform (no roadmap dumps)</li>
        <li>Practical guides: how to brief a job, how to read a quote, when to dispute</li>
-       <li>UK trade-sector trends — boiler service prices by season, certificate windows, the rest</li>
+       <li>UK trade trends, including seasonal boiler service prices and certificate renewals</li>
      </ul>
      <p>While you're here:</p>
      <a href="${baseUrl}/try-mint-ai" class="cta">Try the photo-guidance tool →</a>
@@ -30,6 +30,6 @@ export function newsletterWelcomeTemplate(unsubscribeToken: string): {
     `<p>&copy; ${year()} Mintenance Ltd.</p>
      <p><a href="${baseUrl}/api/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}">Unsubscribe</a></p>`
   );
-  const text = `You're on the Mintenance list.\n\nRoughly every two weeks: what's new, practical guides, UK trade-sector trends. Short, useful, never marketing-y.\n\nWhile you're here:\nTry the photo-guidance tool — ${baseUrl}/try-mint-ai\nBrowse contractors — ${baseUrl}/find-contractors\n\nUnsubscribe: ${baseUrl}/api/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}\n\n© ${year()} Mintenance Ltd.`;
+  const text = `You're on the Mintenance list.\n\nRoughly every two weeks: updates, practical guides and UK trade trends.\n\nTry the photo-guidance tool: ${baseUrl}/try-mint-ai\nBrowse contractors: ${baseUrl}/find-contractors\n\nUnsubscribe: ${baseUrl}/api/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}\n\n© ${year()} Mintenance Ltd.`;
   return { subject, html, text };
 }

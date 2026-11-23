@@ -403,7 +403,7 @@ export const POST = withApiHandler(
             userId: customerId,
             type: 'contract_created',
             title: `Contract sent for ${job.title || 'your job'}`,
-            message: `Two-minute read, one tap to sign. No money moves at signing — that happens at the escrow step.`,
+            message: 'Review the agreement and sign when you are ready. Funding is a separate step after both parties sign.',
             actionUrl: `/jobs/${job_id}`,
             metadata: { jobId: job_id, contractorId: user.id },
           })

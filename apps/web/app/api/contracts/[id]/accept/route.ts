@@ -251,8 +251,8 @@ export const POST = withApiHandler(
           try {
             otherPartyNotifId = await NotificationService.createNotification({
               userId: otherPartyId,
-              title: `${signerName} signed — your turn`,
-              message: `Two-minute read on ${updatedContract.title || 'the contract'}. No money moves at signing.`,
+              title: `${signerName} signed. Your signature is next`,
+              message: `Review ${updatedContract.title || 'the contract'} and sign when you are ready. Funding is a separate step.`,
               type: 'contract_pending_signature',
               actionUrl:
                 otherPartyRole === 'contractor'
@@ -301,6 +301,7 @@ export const POST = withApiHandler(
                 otherPartyProfile.email,
                 {
                   recipientName,
+                  recipientRole: otherPartyRole,
                   signerName,
                   jobTitle: updatedContract.title || 'Job',
                   contractTitle: updatedContract.title || 'Contract',
@@ -339,15 +340,15 @@ export const POST = withApiHandler(
             const [cId, hId] = await Promise.all([
               NotificationService.createNotification({
                 userId: contract.contractor_id,
-                title: `${jobLabel} — contract is live`,
-                message: `Both sides signed. The homeowner is funding escrow next; you'll get a notification when the money lands.`,
+                title: `Contract signed: ${jobLabel}`,
+                message: 'Both parties signed. Check the job for funding and confirmation that work can start.',
                 type: 'contract_signed',
                 actionUrl: `/contractor/jobs/${contract.job_id}`,
               }),
               NotificationService.createNotification({
                 userId: contract.homeowner_id,
-                title: `${jobLabel} — contract is live`,
-                message: `Both sides signed. Next step is to fund the escrow — payment stays held until you approve the finished work.`,
+                title: `Contract signed: ${jobLabel}`,
+                message: 'Both parties signed. The payer can now fund Protected Payment from the job page.',
                 type: 'contract_signed',
                 actionUrl: `/jobs/${contract.job_id}`,
               }),
@@ -408,6 +409,7 @@ export const POST = withApiHandler(
                 contractorProfile.email,
                 {
                   recipientName: name,
+                  recipientRole: 'contractor',
                   signerName: homeownerProfile2
                     ? `${homeownerProfile2.first_name || ''} ${homeownerProfile2.last_name || ''}`.trim() ||
                       'Homeowner'
@@ -434,6 +436,9 @@ export const POST = withApiHandler(
                 homeownerProfile2.email,
                 {
                   recipientName: name,
+                  recipientRole: linkedJob?.payer_user_id && linkedJob.payer_user_id !== contract.homeowner_id
+                    ? 'homeowner'
+                    : 'payer',
                   signerName: contractorProfile
                     ? contractorProfile.first_name &&
                       contractorProfile.last_name

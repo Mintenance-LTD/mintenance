@@ -622,13 +622,10 @@ describe('POST /api/contracts/[id]/accept', () => {
     );
     await POST(req, segmentData('contract-1'));
 
-    // 2026-05-21 Mint Editorial voice: pending-signature copy was rewritten
-    // from the generic "Contract Pending Your Signature" to a signer-named,
-    // action-led title ("<signer> signed — your turn"). userId/type unchanged.
     expect(mocks.createNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'homeowner-1',
-        title: expect.stringContaining('your turn'),
+        title: expect.stringContaining('Your signature is next'),
         type: 'contract_pending_signature',
       })
     );
@@ -654,22 +651,19 @@ describe('POST /api/contracts/[id]/accept', () => {
     );
     await POST(req, segmentData('contract-1'));
 
-    // 2026-05-21 Mint Editorial voice: the fully-accepted fan-out title was
-    // rewritten from "Contract Accepted!" to "<job> — contract is live" and
-    // now names the next escrow step in the body. userId/type unchanged.
-    // Should notify contractor
     expect(mocks.createNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'contractor-1',
-        title: expect.stringContaining('contract is live'),
+        title: expect.stringMatching(/^Contract signed: /),
+        message: expect.stringContaining('confirmation that work can start'),
         type: 'contract_signed',
       })
     );
-    // Should notify homeowner
     expect(mocks.createNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'homeowner-1',
-        title: expect.stringContaining('contract is live'),
+        title: expect.stringMatching(/^Contract signed: /),
+        message: expect.stringContaining('The payer can now fund Protected Payment'),
         type: 'contract_signed',
       })
     );
