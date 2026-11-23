@@ -8,6 +8,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { ReportConversation } from '@/app/maintenance/reports/ReportConversation';
+import CasePage from '@/app/maintenance/reports/[id]/page';
 import { TenantReportsClient } from '@/app/landlord/reports/TenantReportsClient';
 import { MintEditorialTenantReports } from '@/app/landlord/reports/MintEditorialTenantReports';
 vi.mock('@/app/maintenance/reports/ReportExtras', () => ({
@@ -56,6 +57,45 @@ it('shows original context, recorded status history and UK dates', async () => {
   expect(
     screen.getByRole('link', { name: 'Back to action queue' })
   ).toHaveAttribute('href', '/properties/work-queue');
+});
+it.each([
+  ['tenant-reports', 'Back to tenant reports', '/landlord/reports'],
+  ['emergencies', 'Back to emergency reports', '/maintenance/emergencies'],
+  ['https://elsewhere.invalid', 'Back to action queue', '/properties/work-queue'],
+])('returns staff to an approved list for source %s', async (from, label, href) => {
+  render(
+    await CasePage({
+      params: Promise.resolve({ id: 'first' }),
+      searchParams: Promise.resolve({ from }),
+    })
+  );
+  expect(await screen.findByRole('link', { name: label })).toHaveAttribute(
+    'href',
+    href
+  );
+});
+it('shows residents a public next step for a new case without staff details', async () => {
+  fetcher.mockResolvedValue(
+    response({
+      ...historyData(),
+      status: 'new',
+      role: 'resident',
+      landlord_notes: 'Private landlord note',
+      waiting_for: 'Private waiting reason',
+      assignee_name: 'Private staff name',
+    })
+  );
+  render(<ReportConversation reportId='first' origin='tenant-reports' />);
+  expect(await screen.findByRole('region', { name: 'Next step' })).toHaveTextContent(
+    'Waiting for the property team to review.'
+  );
+  expect(screen.queryByText(/Private landlord note|Private waiting reason|Private staff name/)).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Back to tenant reports' })).toBeNull();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(fetcher).toHaveBeenCalledWith(
+    expect.stringMatching(/^\/api\/report-conversation\?/),
+    expect.objectContaining({ cache: 'no-store' })
+  );
 });
 it('uses the returned latest page for subsequent older-page navigation', async () => {
   fetcher.mockImplementation((url: string) =>
@@ -166,7 +206,7 @@ it.each([
     expect(fetcher).not.toHaveBeenCalled();
     expect(
       screen.getByRole('link', { name: 'Open shared issue conversation' })
-    ).toHaveAttribute('href', '/maintenance/reports/report-1');
+    ).toHaveAttribute('href', '/maintenance/reports/report-1?from=tenant-reports');
   }
 );
 it.each([

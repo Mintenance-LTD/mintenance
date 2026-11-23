@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { reportConversationHref } from '@/lib/reports/conversation-navigation';
 
 interface EmergencyReport {
   report_id: string;
@@ -138,7 +139,7 @@ export function EmergencyReportsClient({
             Open property and team contacts
           </a>
           <a
-            href={`/maintenance/reports/${report.report_id}`}
+            href={reportConversationHref(report.report_id, 'emergencies')}
             className='block underline'
           >
             View report and reply to tenant

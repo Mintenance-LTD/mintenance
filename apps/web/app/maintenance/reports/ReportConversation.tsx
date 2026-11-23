@@ -8,11 +8,35 @@ import {
   type ReportHistory,
 } from '@mintenance/shared';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import {
+  reportConversationHref,
+  reportConversationReturn,
+  type ReportConversationOrigin,
+} from '@/lib/reports/conversation-navigation';
 import { ReportExtras } from './ReportExtras';
-export function ReportConversation({ reportId }: { reportId: string }) {
-  return <CaseConversation key={reportId} reportId={reportId} />;
+
+const publicNextSteps = new Map([
+  ['new', 'Waiting for the property team to review.'],
+  ['acknowledged', 'Waiting for the property team to confirm the next steps.'],
+  ['converted', 'Check the recorded updates for what happens next.'],
+]);
+
+export function ReportConversation({
+  reportId,
+  origin = 'action-queue',
+}: {
+  reportId: string;
+  origin?: ReportConversationOrigin;
+}) {
+  return <CaseConversation key={reportId} reportId={reportId} origin={origin} />;
 }
-function CaseConversation({ reportId }: { reportId: string }) {
+function CaseConversation({
+  reportId,
+  origin,
+}: {
+  reportId: string;
+  origin: ReportConversationOrigin;
+}) {
   const mounted = useRef(true),
     sending = useRef(false);
   useEffect(() => {
@@ -32,6 +56,8 @@ function CaseConversation({ reportId }: { reportId: string }) {
     [body, setBody] = useState(''),
     [busy, setBusy] = useState(false),
     [pending, setPending] = useState<{ id: string; body: string } | null>(null);
+  const nextStep = data && publicNextSteps.get(data.status);
+  const returnLink = reportConversationReturn[origin];
   useEffect(() => {
     const readReceipt = () => {
       const hash = window.location.hash.slice(1);
@@ -169,7 +195,7 @@ function CaseConversation({ reportId }: { reportId: string }) {
             </a>
           ) : (
             <Link
-              href={`/login?redirect=${encodeURIComponent(`/maintenance/reports/${reportId}`)}`}
+              href={`/login?redirect=${encodeURIComponent(reportConversationHref(reportId, origin))}`}
             >
               Sign in to this report
             </Link>
@@ -182,8 +208,8 @@ function CaseConversation({ reportId }: { reportId: string }) {
       {data && (
         <>
           {data.role === 'manager' && (
-            <Link className='underline' href='/properties/work-queue'>
-              Back to action queue
+            <Link className='underline' href={returnLink.href}>
+              {returnLink.label}
             </Link>
           )}
           {data.role === 'contractor' && (
@@ -192,6 +218,15 @@ function CaseConversation({ reportId }: { reportId: string }) {
             </Link>
           )}
           <p>Current status: {reportStatusLabel(data.status)}</p>
+          {nextStep && (
+            <section
+              aria-label='Next step'
+              className='rounded-lg border border-teal-200 bg-teal-50 p-4 text-teal-950'
+            >
+              <h2 className='font-semibold'>Next step</h2>
+              <p>{nextStep}</p>
+            </section>
+          )}
           {data.summary ? (
             <section
               aria-label='Original report'

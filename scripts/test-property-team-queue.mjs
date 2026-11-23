@@ -38,6 +38,13 @@ const queue = async (actor = 2, scope = 'team', offset = 0, limit = 25) =>
       scope,
     ])
   ).result;
+const filteredQueue = async (actor, property, priority = null, limit = 25) =>
+  (
+    await one(
+      "SELECT portfolio_filtered_action_queue($1,0,$2,'team',$3,$4) AS result",
+      [id(actor), limit, id(property), priority]
+    )
+  ).result;
 const save = async (overrides = {}) => {
   const p = {
     actor: 2,
@@ -155,6 +162,8 @@ try {
     'PASS migration preserves all existing follow-ups, updates and notifications'
   );
   cases++;
+  await db.exec(sql('20261115181000_portfolio_queue_date_labels.sql'));
+  await db.exec(sql('20261123214700_prioritise_unassigned_tenant_reports.sql'));
   await db.exec('SET ROLE service_role');
   await test('team scope respects membership and owner-only tenant reports', async () => {
     const manager = await queue();
@@ -178,6 +187,53 @@ try {
     assert.equal(result.items[0].id, id(11));
     assert.equal(result.items[0].assignee_name, 'Person 2 Test');
     assert.equal((await queue(2, 'mine', 1, 1)).items.length, 0);
+  });
+  await test('ageing unassigned reports are prioritised before filtering and pagination', async () => {
+    const property = 30;
+    await db.query('INSERT INTO properties VALUES($1,$2,$3)', [
+      id(property), 'Report queue property', id(1),
+    ]);
+    await db.query(
+      "INSERT INTO property_team_members VALUES($1,$2,'accepted','manager')",
+      [id(property), id(2)]
+    );
+    for (const [source, hoursAgo, status] of [
+      [31, 32 * 24, 'new'],
+      [32, 168, 'new'],
+      [33, 167, 'new'],
+      [34, 32 * 24, 'new'],
+      [35, 32 * 24, 'acknowledged'],
+      [36, 32 * 24, 'resolved'],
+      [37, 8 * 24, 'acknowledged'],
+    ]) {
+      await db.query(
+        "INSERT INTO anonymous_reports VALUES($1,$2,'Synthetic report',$3,'normal',now()-$4::integer*interval '1 hour')",
+        [id(source), id(property), status, hoursAgo]
+      );
+    }
+    await db.query(
+      `INSERT INTO property_action_followups(kind,source_id,property_id,assigned_to,due_at)
+       VALUES('report',$1,$4,$5,NULL),('report',$2,$4,NULL,now()+interval '1 day'),('report',$3,$4,$6,NULL)`,
+      [id(34), id(35), id(37), id(property), id(1), id(5)]
+    );
+    const priority = await filteredQueue(1, property, 0, 1);
+    assert.equal(priority.total, 4);
+    assert.equal(priority.overdue, 4);
+    assert.equal(priority.hasMore, true);
+    assert.equal(priority.items[0].id, id(31));
+    assert.equal(priority.items[0].unassigned_report_age_days, 32);
+    const all = await filteredQueue(1, property);
+    const report = (source) => all.items.find((item) => item.id === id(source));
+    assert.equal(report(32).unassigned_report_age_days, 7);
+    assert.equal(report(33).urgency, 1);
+    assert.equal(report(33).unassigned_report_age_days, null);
+    assert.equal(report(34).unassigned_report_age_days, null);
+    assert.equal(report(35).unassigned_report_age_days, 32);
+    assert.equal(report(35).due_label, 'Follow-up due');
+    assert.equal(report(36), undefined);
+    assert.equal(report(37).assignment_status, 'needs_reassignment');
+    assert.equal(report(37).unassigned_report_age_days, 8);
+    assert.equal((await filteredQueue(2, property, 0)).total, 0);
   });
   await test('unassigned includes removed and deleted assignees without exposing their names', async () => {
     const result = await queue(2, 'unassigned', 0, 2);
@@ -255,6 +311,7 @@ try {
   for (const role of ['anon', 'authenticated']) {
     await db.exec(`SET ROLE ${role}`);
     await assert.rejects(() => queue(), { code: '42501' });
+    await assert.rejects(() => filteredQueue(1, 10), { code: '42501' });
     await assert.rejects(() => save(), { code: '42501' });
     await assert.rejects(
       () => db.query('SELECT * FROM property_action_followups'),
