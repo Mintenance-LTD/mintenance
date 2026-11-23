@@ -80,7 +80,11 @@ export interface Contract {
   homeowner: HomeownerProfile | null;
 }
 
-export function useContractData(jobId: string, userRole: string) {
+export function useContractData(
+  jobId: string | undefined,
+  userRole: string,
+  contractId?: string
+) {
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +101,10 @@ export function useContractData(jobId: string, userRole: string) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/contracts?job_id=${jobId}`);
+      const params = contractId
+        ? new URLSearchParams({ contract_id: contractId })
+        : new URLSearchParams({ job_id: jobId ?? '' });
+      const response = await fetch(`/api/contracts?${params}`);
       if (!response.ok) {
         if (response.status === 404) {
           setContract(null);
@@ -106,14 +113,18 @@ export function useContractData(jobId: string, userRole: string) {
         }
         throw new Error('Failed to fetch contract');
       }
-      const data = await response.json();
-      setContract(data.contracts?.[0] || null);
+      const data: { contracts?: Contract[] } = await response.json();
+      const selected = contractId
+        ? data.contracts?.find((row) => row.id === contractId)
+        : data.contracts?.[0];
+      setContract(selected ?? null);
     } catch (err) {
+      if (contractId) setContract(null);
       setError(err instanceof Error ? err.message : 'Failed to load contract');
     } finally {
       setLoading(false);
     }
-  }, [jobId]);
+  }, [jobId, contractId]);
 
   useEffect(() => {
     fetchContract();
@@ -272,5 +283,6 @@ export function useContractData(jobId: string, userRole: string) {
     handleRejectContract,
     handleDeleteContract,
     handleDownloadPdf,
+    fetchContract,
   };
 }

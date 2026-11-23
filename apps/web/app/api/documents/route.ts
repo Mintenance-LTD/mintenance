@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { paperworkHref } from '@/lib/documents/paperwork-navigation';
 
 /**
  * GET /api/documents
@@ -66,12 +67,13 @@ export const GET = withApiHandler(
         status: c.status as string,
         amount: nullableAmount(c.amount),
         job_id: c.job_id as string,
+        job_title: jobTitle,
         contractor_name: contractorName,
         contractor_signed: !!c.contractor_signed_at,
         homeowner_signed: !!c.homeowner_signed_at,
         created_at: c.created_at as string,
         updated_at: c.updated_at as string,
-        href: `/jobs/${c.job_id}`,
+        href: paperworkHref(undefined, c.id as string),
       };
     });
 

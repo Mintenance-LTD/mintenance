@@ -14,6 +14,7 @@ import {
   updateContractSchema,
 } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { isValidUUID } from '@/lib/validation/uuid';
 import { EmailService } from '@/lib/email-service';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
@@ -39,6 +40,10 @@ export const GET = withApiHandler(
     const searchParams = request.nextUrl.searchParams;
     const jobId = searchParams.get('job_id');
     const status = searchParams.get('status');
+    const contractId = searchParams.get('contract_id');
+    if (contractId !== null && !isValidUUID(contractId)) {
+      throw new BadRequestError('Invalid contract ID format');
+    }
 
     // 2026-05-13 bid → contract pipeline audit: pull the linked
     // contractor_quotes row inline so the UI can render the actual
@@ -69,8 +74,9 @@ export const GET = withApiHandler(
       query = query.eq('job_id', jobId);
       // Job actions operate on the current agreement; explicit status filters
       // and the unfiltered document list can still retrieve cancelled history.
-      if (!status) query = query.neq('status', 'cancelled');
+      if (!status && !contractId) query = query.neq('status', 'cancelled');
     }
+    if (contractId) query = query.eq('id', contractId).neq('status', 'draft');
     if (status) {
       query = query.eq('status', status);
     }
@@ -403,7 +409,8 @@ export const POST = withApiHandler(
             userId: customerId,
             type: 'contract_created',
             title: `Contract sent for ${job.title || 'your job'}`,
-            message: 'Review the agreement and sign when you are ready. Funding is a separate step after both parties sign.',
+            message:
+              'Review the agreement and sign when you are ready. Funding is a separate step after both parties sign.',
             actionUrl: `/jobs/${job_id}`,
             metadata: { jobId: job_id, contractorId: user.id },
           })
