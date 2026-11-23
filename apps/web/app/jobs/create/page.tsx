@@ -141,7 +141,10 @@ export default function CreateJobPage2025() {
   useEffect(() => {
     if (user && user.role === 'homeowner') {
       setLoadingProperties(true);
-      fetch('/api/properties', { credentials: 'include' })
+      const propertiesUrl = searchParams?.get('tenant_report_id')
+        ? '/api/properties'
+        : '/api/properties?includeShared=create_job';
+      fetch(propertiesUrl, { credentials: 'include' })
         .then(async (res) => {
           if (!res.ok) {
             // 2026-05-23: surface 4xx / 5xx instead of silently
@@ -203,14 +206,18 @@ export default function CreateJobPage2025() {
     }
   }, [user, loadingUser, router]);
 
-  const assessmentProperty = properties.find(
+  const selectedProperty = properties.find(
     (p) => p.id === formData.property_id
   );
+  const sharedProperty =
+    selectedProperty?._role === 'admin' || selectedProperty?._role === 'manager'
+      ? selectedProperty
+      : undefined;
   usePhotoAssessmentTrigger({
     images: imageUpload.uploadedImages,
     isAssessing: buildingAssessment.isAssessing,
-    location: formData.location || assessmentProperty?.address || undefined,
-    propertyType: assessmentProperty?.property_type || undefined,
+    location: formData.location || selectedProperty?.address || undefined,
+    propertyType: selectedProperty?.property_type || undefined,
     assess: buildingAssessment.assessBuilding,
   });
   // Auto-fill form fields from AI assessment results.
@@ -263,8 +270,11 @@ export default function CreateJobPage2025() {
   }, [buildingAssessment.assessment]);
 
   const handleSubmit = async () => {
+    const submissionForm = sharedProperty
+      ? { ...formData, who_pays: undefined, payer_email: undefined }
+      : formData;
     const errors = validateJobForm(
-      formData,
+      submissionForm,
       imageUpload.uploadedImages,
       imageUpload.imagePreviews.length
     );
@@ -316,7 +326,7 @@ export default function CreateJobPage2025() {
       const result = await submitJob({
         submissionId: draft.submissionId(),
         tenantReportId: searchParams?.get('tenant_report_id') ?? undefined,
-        formData,
+        formData: submissionForm,
         photoUrls: imageUrls,
         csrfToken: csrfToken || '',
         aiAssessment: buildingAssessment.assessment || undefined,
@@ -338,7 +348,11 @@ export default function CreateJobPage2025() {
 
       draft.complete();
       toast.success('Job posted successfully!');
-      router.push(`/jobs/${result.jobId}`);
+      router.push(
+        sharedProperty
+          ? `/properties/${sharedProperty.id}`
+          : `/jobs/${result.jobId}`
+      );
     } catch (error) {
       logger.error('Error submitting job:', error);
       const errorMessage = (error as Error).message || 'Failed to post job';
@@ -410,9 +424,6 @@ export default function CreateJobPage2025() {
 
   if (!user) return null;
 
-  const selectedProperty = properties.find(
-    (p) => p.id === formData.property_id
-  );
   const hasImages =
     imageUpload.imagePreviews.length > 0 ||
     imageUpload.uploadedImages.length > 0;
@@ -422,7 +433,7 @@ export default function CreateJobPage2025() {
   // green "Description is detailed enough" tick next to a Next button that
   // stayed disabled with no explanation of why.
   const canProceedStep1 = !!(
-    formData.property_id &&
+    selectedProperty &&
     formData.category &&
     formData.title &&
     formData.description &&
@@ -478,6 +489,7 @@ export default function CreateJobPage2025() {
                   setFormData={setFormData}
                   properties={properties}
                   loadingProperties={loadingProperties}
+                  ownerPays={!!sharedProperty}
                   validationErrors={validationErrors}
                   uploadedImageUrls={imageUpload.uploadedImages}
                   onNavigateToAddProperty={() => router.push('/properties/add')}

@@ -213,6 +213,10 @@ export default async function PropertyDetailPage({
           address: formattedProperty.address,
         }}
         role={access.role}
+        canCreateJob={
+          user.role === 'homeowner' &&
+          PropertyTeamService.canPerform(access.role, 'create_job')
+        }
         jobs={formattedJobs.map(({ id, title, status }) => ({
           id,
           title,

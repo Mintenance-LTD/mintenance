@@ -12,6 +12,7 @@ export interface Property {
   address: string | null;
   property_type?: string;
   photos?: string[];
+  _role?: 'owner' | 'admin' | 'manager';
 }
 
 export interface ImagePreviewItem {

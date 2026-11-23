@@ -25,8 +25,12 @@ export async function createJobOnce(
         p_report_id: tenantReportId,
       })
     : await serverSupabase.rpc('create_job_once', args);
-  if (error?.code === '42501' && tenantReportId)
-    throw new ForbiddenError('This tenant report is unavailable.');
+  if (error?.code === '42501')
+    throw new ForbiddenError(
+      tenantReportId
+        ? 'This tenant report is unavailable.'
+        : 'You cannot create jobs for this property.'
+    );
   if (error?.code === '23514' && tenantReportId)
     throw new ConflictError(
       'The tenant report is closed, already linked, or belongs to another property. Open Tenant Reports to check its status.'

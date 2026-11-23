@@ -19,12 +19,14 @@ import type { PropertySchedule } from './MintEditorialPropertyMaintenancePlan';
 export function SharedPropertyDetail({
   property,
   role,
+  canCreateJob,
   jobs,
   schedules,
   certificates,
 }: {
   property: { id: string; name: string; address: string };
   role: 'admin' | 'manager' | 'viewer';
+  canCreateJob: boolean;
   jobs: { id: string; title: string; status: string }[];
   schedules: PropertySchedule[];
   certificates: PropertyCertificateRecord[];
@@ -51,6 +53,14 @@ export function SharedPropertyDetail({
           {role !== 'viewer' && <PropertyFileHub propertyId={property.id} />}
           <section className='card card-pad'>
             <h2 className='t-h2'>Recorded work</h2>
+            {canCreateJob && (
+              <Link
+                className='btn btn-primary'
+                href={`/jobs/create?property_id=${encodeURIComponent(property.id)}`}
+              >
+                Post a job
+              </Link>
+            )}
             <p>
               Job records describe maintenance activity, not the physical
               condition or safety of the property.

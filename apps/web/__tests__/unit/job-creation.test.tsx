@@ -346,6 +346,54 @@ describe('CreateJobPage', () => {
       });
     });
 
+    it('posts for a managed property and returns to its work history', async () => {
+      const user = userEvent.setup();
+      mockSearchParams.set('property_id', PROP_HOUSE_ID);
+      const fetchMock = vi.mocked(fetch);
+      fetchMock.mockImplementation(async (url) =>
+        Response.json(
+          String(url).includes('/upload-photos')
+            ? { urls: ['https://example.invalid/leak.jpg'] }
+            : { properties: [{ ...mockProperties[0], _role: 'manager' }] }
+        )
+      );
+      vi.mocked(submitJob).mockResolvedValue({
+        success: true,
+        jobId: 'shared-job',
+      });
+      render(<CreateJobPage />);
+
+      expect(
+        await screen.findByText(
+          'The property owner handles payment for this job.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Who pays for this job?')
+      ).not.toBeInTheDocument();
+      await completeAllSteps(user);
+      await user.click(screen.getByText('Post job'));
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/properties?includeShared=create_job',
+        {
+          credentials: 'include',
+        }
+      );
+      expect(submitJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          formData: expect.objectContaining({
+            property_id: PROP_HOUSE_ID,
+            payer_email: undefined,
+            who_pays: undefined,
+          }),
+        })
+      );
+      expect(mockRouter.push).toHaveBeenCalledWith(
+        `/properties/${PROP_HOUSE_ID}`
+      );
+    });
+
     it('should handle submission error', async () => {
       const user = userEvent.setup();
       vi.mocked(submitJob).mockRejectedValue(new Error('Network error'));
