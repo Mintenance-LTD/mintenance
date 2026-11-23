@@ -44,7 +44,10 @@ export class OperatorAlertService {
       if (claimError) throw new Error('Operator alert could not be claimed');
       if (!alert) break;
       const subject = `[Mintenance operator] ${alert.job_name} needs attention`;
-      const text = `An operational job failed: ${alert.job_name}.\nRun: ${alert.run_id || 'tracking unavailable'}\nAlert: ${alert.id}\nReview the cron run and reconciliation records in the admin tools. Delivery may be repeated after a provider timeout.\nNo customer or payment details are included in this alert.`;
+      const text =
+        alert.job_name === 'emergency-reports'
+          ? `Emergency maintenance reports remain unacknowledged and need operator attention.\nAlert: ${alert.id}\nFollow docs/emergency-report-response.md to review uncovered incidents and arrange property-team coverage. This alert is not an acknowledgment or an emergency-service dispatch.\nNo customer details are included. Delivery may be repeated after a provider timeout.`
+          : `An operational job failed: ${alert.job_name}.\nRun: ${alert.run_id || 'tracking unavailable'}\nAlert: ${alert.id}\nReview the cron run and reconciliation records in the admin tools. Delivery may be repeated after a provider timeout.\nNo customer or payment details are included in this alert.`;
       const sent = await EmailService.sendEmail({
         to: recipient,
         subject,

@@ -207,6 +207,11 @@ export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
             Manage marketing email consent
           </a>
         </p>
+        <p className='text-sm text-gray-500 mb-4'>
+          Emergency maintenance responsibility alerts remain visible in-app and
+          bypass quiet hours and routine event mutes. The push switch still
+          applies.
+        </p>
         {(
           [
             ['push_enabled', 'Push notifications (mobile app)'],

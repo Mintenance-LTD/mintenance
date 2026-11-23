@@ -66,6 +66,12 @@ it('submits urgency and shows the private receipt link and reference', async () 
     await screen.findByRole('link', { name: 'View report and replies' })
   ).toHaveAttribute('href', url);
   expect(screen.getByText('1234-abcd')).toBeInTheDocument();
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'awaiting human acknowledgment'
+  );
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'Do not wait for a reply'
+  );
   expect(JSON.parse(fetcher.mock.calls[1][1].body).urgency).toBe('emergency');
   await waitFor(() =>
     expect(

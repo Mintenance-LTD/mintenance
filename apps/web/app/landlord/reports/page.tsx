@@ -51,6 +51,9 @@ export default async function TenantReportsPage({
         <p role='alert'>
           Reports could not be loaded. Your inbox has not been confirmed empty.
         </p>
+        <a href='/maintenance/emergencies' className='my-4 block underline'>
+          Review emergency acknowledgments
+        </a>
         <a
           className='underline'
           href={
@@ -73,19 +76,35 @@ export default async function TenantReportsPage({
 
   if (isMintEditorial) {
     return (
-      <MintEditorialTenantReports
-        key={initialReportId ?? 'inbox'}
-        reports={reports || []}
-        initialReportId={initialReportId}
-      />
+      <>
+        <a
+          href='/maintenance/emergencies'
+          className='m-6 inline-block font-semibold text-red-700 underline'
+        >
+          Review emergency acknowledgments
+        </a>
+        <MintEditorialTenantReports
+          key={initialReportId ?? 'inbox'}
+          reports={reports || []}
+          initialReportId={initialReportId}
+        />
+      </>
     );
   }
 
   return (
-    <TenantReportsClient
-      key={initialReportId ?? 'inbox'}
-      reports={reports || []}
-      initialReportId={initialReportId}
-    />
+    <>
+      <a
+        href='/maintenance/emergencies'
+        className='m-6 inline-block font-semibold text-red-700 underline'
+      >
+        Review emergency acknowledgments
+      </a>
+      <TenantReportsClient
+        key={initialReportId ?? 'inbox'}
+        reports={reports || []}
+        initialReportId={initialReportId}
+      />
+    </>
   );
 }

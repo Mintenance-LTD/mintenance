@@ -68,7 +68,7 @@ export const PATCH = withApiHandler(
     const { data: report } = await serverSupabase
       .from('anonymous_reports')
       .select(
-        'id, property_id, status, acknowledged_at, resolved_at, anonymous_report_tokens!inner(owner_id)'
+        'id, property_id, urgency, status, acknowledged_at, resolved_at, anonymous_report_tokens!inner(owner_id)'
       )
       .eq('id', reportId)
       .single();
@@ -77,12 +77,32 @@ export const PATCH = withApiHandler(
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    // PostgREST `!inner` join returns an array on the embedded
-    // relation even though the FK is one-to-one.
+    // Accept both PostgREST's to-one object and older array-shaped responses.
     const tokens = (
-      report as { anonymous_report_tokens?: Array<{ owner_id: string }> }
+      report as {
+        anonymous_report_tokens?:
+          | { owner_id: string }
+          | Array<{ owner_id: string }>;
+      }
     ).anonymous_report_tokens;
-    const ownerId = Array.isArray(tokens) ? tokens[0]?.owner_id : null;
+    let ownerId = Array.isArray(tokens)
+      ? tokens[0]?.owner_id
+      : tokens?.owner_id;
+    if (report.urgency === 'emergency') {
+      // A transferred property's former token owner must not acknowledge or
+      // dismiss an emergency and silently stop its fallback clock.
+      const { data: property, error } = await serverSupabase
+        .from('properties')
+        .select('owner_id')
+        .eq('id', report.property_id)
+        .maybeSingle();
+      if (error)
+        return NextResponse.json(
+          { error: 'Report access could not be verified' },
+          { status: 503 }
+        );
+      ownerId = property?.owner_id;
+    }
     if (!ownerId || (ownerId !== user.id && user.role !== 'admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

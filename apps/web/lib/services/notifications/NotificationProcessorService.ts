@@ -38,6 +38,7 @@
  */
 
 import { shouldDeliverPhoneCall } from './PhoneCallService';
+import { shouldDeliverEmergencyReport } from './EmergencyReportService';
 import { shouldDeliverQuoteAmendment } from './QuoteAmendmentNotification';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
@@ -122,6 +123,24 @@ export class NotificationProcessorService {
         const queuedNotif = raw as QueuedNotificationRow;
         try {
           if (!(await claimQueuedNotification(queuedNotif))) continue;
+          if (
+            !(await shouldDeliverEmergencyReport(
+              queuedNotif.notification_type,
+              queuedNotif.metadata ?? {},
+              queuedNotif.user_id
+            ))
+          ) {
+            const { error } = await serverSupabase
+              .from('notification_queue')
+              .update({
+                status: 'cancelled',
+                error_message: 'emergency_no_longer_assigned',
+              })
+              .eq('id', queuedNotif.id)
+              .eq('scheduled_for', queuedNotif.scheduled_for);
+            if (error) throw error;
+            continue;
+          }
           if (
             !(await shouldDeliverQuoteAmendment(
               queuedNotif.metadata ?? {},
@@ -218,7 +237,10 @@ export class NotificationProcessorService {
     // Hard mute: user disabled the type. 'cancelled' status (not
     // 'failed') so the retry counter doesn't move — user-driven, not
     // a delivery failure.
-    if (isTypeDisabled(prefs, queuedNotif.notification_type)) {
+    // Emergency ownership alerts bypass routine type mutes and quiet hours.
+    // Push permission still applies; the durable inbox remains available.
+    const emergency = queuedNotif.notification_type === 'emergency_report';
+    if (!emergency && isTypeDisabled(prefs, queuedNotif.notification_type)) {
       await serverSupabase
         .from('notification_queue')
         .update({
@@ -249,7 +271,7 @@ export class NotificationProcessorService {
 
     let notificationId: string | null = null;
 
-    if (prefs.in_app_enabled) {
+    if (prefs.in_app_enabled || emergency) {
       const { data: notification, error: createError } = await serverSupabase
         .from('notifications')
         .insert({
@@ -371,7 +393,8 @@ export class NotificationProcessorService {
     const prefs = await loadPreferences(queuedNotif.user_id);
     if (
       !prefs.push_enabled ||
-      isTypeDisabled(prefs, queuedNotif.notification_type)
+      (queuedNotif.notification_type !== 'emergency_report' &&
+        isTypeDisabled(prefs, queuedNotif.notification_type))
     ) {
       const { error } = await serverSupabase
         .from('notification_queue')
