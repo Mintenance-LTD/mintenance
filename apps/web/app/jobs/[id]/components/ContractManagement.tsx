@@ -2,8 +2,15 @@
 
 import React from 'react';
 import { Clock, FileText, X } from 'lucide-react';
-import { useContractData } from './contract/useContractData';
-import { getStatusConfig, TERMS_HIDDEN_KEYS } from './contract/contractHelpers';
+import {
+  useContractData,
+  type ContractRevision,
+} from './contract/useContractData';
+import {
+  formatCurrency,
+  getStatusConfig,
+  TERMS_HIDDEN_KEYS,
+} from './contract/contractHelpers';
 import { ContractHeader } from './contract/ContractHeader';
 import { ContractParties } from './contract/ContractParties';
 import { ContractScope } from './contract/ContractScope';
@@ -17,10 +24,11 @@ interface ContractManagementProps {
   jobId: string;
   userRole: 'homeowner' | 'contractor';
   userId: string;
+  revision?: ContractRevision;
 }
 
 export function ContractManagement(props: ContractManagementProps) {
-  const { jobId = '', userRole = 'homeowner' } = props || {};
+  const { jobId = '', userRole = 'homeowner', revision } = props || {};
   const {
     contract,
     loading,
@@ -40,7 +48,7 @@ export function ContractManagement(props: ContractManagementProps) {
     handleRejectContract,
     handleDeleteContract,
     handleDownloadPdf,
-  } = useContractData(jobId, userRole);
+  } = useContractData(jobId, userRole, revision);
 
   if (loading) {
     return (
@@ -54,6 +62,14 @@ export function ContractManagement(props: ContractManagementProps) {
   }
 
   if (!contract) {
+    if (revision) {
+      return (
+        <p role='status' className='rounded-xl border bg-white p-5 text-sm'>
+          {error ||
+            'This contract revision is unavailable. Return to Quote amendments to check the latest agreement.'}
+        </p>
+      );
+    }
     return (
       <div className='bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center'>
         <div className='w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4'>
@@ -106,6 +122,12 @@ export function ContractManagement(props: ContractManagementProps) {
         statusConfig={statusConfig}
       />
       <div className='p-6 space-y-6'>
+        {revision && (
+          <p className='font-medium'>
+            Version {contract.contract_version} ·{' '}
+            {formatCurrency(contract.amount)} total including tax
+          </p>
+        )}
         <ContractActions
           contract={contract}
           userRole={userRole}
@@ -152,6 +174,8 @@ export function ContractManagement(props: ContractManagementProps) {
       </div>
     </div>
   );
+
+  if (revision) return contractDetail;
 
   return (
     <>
