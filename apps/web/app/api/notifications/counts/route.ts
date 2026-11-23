@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { fetchWebUnreadCount } from '@/lib/notifications/inbox';
 
 /**
  * API endpoint to fetch notification badge counts for the sidebar.
@@ -33,13 +34,14 @@ export const GET = withApiHandler({}, async (_request, { user }) => {
   // route already gives `connections`) until quote-requests are a real,
   // queryable concept (filter-schema audit 2026-08-02).
   const quoteRequestsResponse = { count: 0 };
-  const [notificationsResponse] = await Promise.all([
-    serverSupabase
-      .from('notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('read', false),
-  ]);
+  const notificationsResponse =
+    user.role === 'homeowner'
+      ? { count: await fetchWebUnreadCount(user.id), error: null }
+      : await serverSupabase
+          .from('notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('read', false);
 
   if (notificationsResponse.error) throw notificationsResponse.error;
   return NextResponse.json(

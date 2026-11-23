@@ -27,6 +27,7 @@ export interface NotificationItem {
   created_at: string;
   is_read: boolean;
   action_url?: string;
+  action_status?: 'no_longer_actionable';
   metadata?: Record<string, unknown>;
 }
 

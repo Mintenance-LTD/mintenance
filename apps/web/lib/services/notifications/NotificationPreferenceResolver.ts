@@ -14,6 +14,10 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { ALWAYS_ON_NOTIFICATION_TYPES } from '@mintenance/types';
+import {
+  LEGACY_MANUAL_RELEASE_TYPE,
+  MANUAL_RELEASE_TYPE,
+} from '@/lib/notifications/preference-rules';
 
 export interface UserNotificationPreferences {
   user_id: string;
@@ -136,6 +140,12 @@ export function isTypeDisabled(
   // if disabled_types somehow contains an ALWAYS_ON type the server
   // delivers it anyway — UI copy + this filter guarantee parity.
   if (ALWAYS_ON_TYPES.has(type)) return false;
+  if (type === MANUAL_RELEASE_TYPE || type === LEGACY_MANUAL_RELEASE_TYPE) {
+    return (
+      prefs.disabled_types.includes(MANUAL_RELEASE_TYPE) ||
+      prefs.disabled_types.includes(LEGACY_MANUAL_RELEASE_TYPE)
+    );
+  }
   return prefs.disabled_types.includes(type);
 }
 

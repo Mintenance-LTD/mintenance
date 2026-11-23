@@ -75,4 +75,14 @@ describe('canonical ALWAYS_ON registry', () => {
   it('user-mutable types still respect the mute list', () => {
     expect(isTypeDisabled(prefsWithEverythingMuted, 'job_nearby')).toBe(true);
   });
+
+  it('uses the saved manual release switch without muting funding or automatic releases', () => {
+    const prefs = {
+      ...prefsWithEverythingMuted,
+      disabled_types: ['escrow_released'],
+    };
+    expect(isTypeDisabled(prefs, 'payment_released')).toBe(true);
+    expect(isTypeDisabled(prefs, 'escrow_auto_released')).toBe(false);
+    expect(isTypeDisabled(prefs, 'payment_received')).toBe(false);
+  });
 });

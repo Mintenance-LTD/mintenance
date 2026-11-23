@@ -14,6 +14,12 @@ import { logger } from '@mintenance/shared';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 import { ALWAYS_ON_NOTIFICATION_TYPES } from '@mintenance/types';
 import { z } from 'zod';
+import {
+  hasIncompleteQuietHours,
+  INCOMPLETE_QUIET_HOURS,
+  LEGACY_MANUAL_RELEASE_TYPE,
+  MANUAL_RELEASE_TYPE,
+} from '@/lib/notifications/preference-rules';
 
 const protectedTypes = new Set<string>(ALWAYS_ON_NOTIFICATION_TYPES);
 const preferenceSchema = z.object({
@@ -52,11 +58,13 @@ const KNOWN_TYPES: Array<{ type: string; label: string }> = [
   { type: 'quote_amendment_update', label: 'Quote amendment updates' },
   { type: 'bid_accepted', label: 'Bid acceptance updates' },
   { type: 'contract_signed', label: 'Contract signed' },
-  { type: 'payment', label: 'Payment updates' },
-  { type: 'escrow_released', label: 'Payment released' },
+  {
+    type: LEGACY_MANUAL_RELEASE_TYPE,
+    label: 'Manual payment release (contractor)',
+  },
   {
     type: 'escrow_auto_released',
-    label: 'Eligible automatic payment releases (after all release checks)',
+    label: 'Automatic payment release (homeowner and contractor)',
   },
   { type: 'job_completed', label: 'Job completed' },
   { type: 'property_followup', label: 'Property follow-ups assigned to you' },
@@ -100,9 +108,15 @@ export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const disabledSet = useMemo(
-    () => new Set(prefs.disabled_types),
-    [prefs.disabled_types]
+  const disabledSet = useMemo(() => {
+    const disabled = new Set(prefs.disabled_types);
+    if (disabled.has(MANUAL_RELEASE_TYPE))
+      disabled.add(LEGACY_MANUAL_RELEASE_TYPE);
+    return disabled;
+  }, [prefs.disabled_types]);
+  const incompleteQuietHours = hasIncompleteQuietHours(
+    prefs.quiet_hours_start,
+    prefs.quiet_hours_end
   );
 
   useEffect(() => {
@@ -132,14 +146,18 @@ export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
   const toggleType = (type: string) => {
     setPrefs((prev) => {
       const next = new Set(prev.disabled_types);
-      if (next.has(type)) next.delete(type);
+      const wasDisabled =
+        next.has(type) ||
+        (type === LEGACY_MANUAL_RELEASE_TYPE && next.has(MANUAL_RELEASE_TYPE));
+      if (type === LEGACY_MANUAL_RELEASE_TYPE) next.delete(MANUAL_RELEASE_TYPE);
+      if (wasDisabled) next.delete(type);
       else next.add(type);
       return { ...prev, disabled_types: Array.from(next) };
     });
   };
 
   const save = async () => {
-    if (loading || loadError || saving) return;
+    if (loading || loadError || saving || incompleteQuietHours) return;
     setSaving(true);
     try {
       const res = await fetchWithCsrf('/api/user/notification-preferences', {
@@ -236,15 +254,27 @@ export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
         <h2 className='text-lg font-semibold text-gray-900 mb-2'>
           Quiet hours
         </h2>
-        <p className='text-sm text-gray-500 mb-4'>
+        <p className='text-sm text-gray-500 mb-2'>
           Notifications that support scheduling may be queued until this window
           ends.
+        </p>
+        <p
+          id='quiet-hours-timezone'
+          className='mb-3 text-sm font-medium text-gray-700'
+        >
+          Times use {prefs.timezone || 'UTC'}.
         </p>
         <div className='grid grid-cols-2 gap-3 mb-3'>
           <label className='block text-sm'>
             <span className='text-gray-700 font-medium'>Start</span>
             <input
               type='time'
+              aria-describedby={
+                incompleteQuietHours
+                  ? 'quiet-hours-timezone quiet-hours-error'
+                  : 'quiet-hours-timezone'
+              }
+              aria-invalid={incompleteQuietHours && !prefs.quiet_hours_start}
               value={trimTime(prefs.quiet_hours_start)}
               onChange={(e) =>
                 setPrefs((p) => ({
@@ -259,6 +289,12 @@ export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
             <span className='text-gray-700 font-medium'>End</span>
             <input
               type='time'
+              aria-describedby={
+                incompleteQuietHours
+                  ? 'quiet-hours-timezone quiet-hours-error'
+                  : 'quiet-hours-timezone'
+              }
+              aria-invalid={incompleteQuietHours && !prefs.quiet_hours_end}
               value={trimTime(prefs.quiet_hours_end)}
               onChange={(e) =>
                 setPrefs((p) => ({
@@ -270,6 +306,15 @@ export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
             />
           </label>
         </div>
+        {incompleteQuietHours && (
+          <p
+            id='quiet-hours-error'
+            role='alert'
+            className='mb-3 text-sm font-medium text-red-700'
+          >
+            {INCOMPLETE_QUIET_HOURS}
+          </p>
+        )}
         <label className='block text-sm'>
           <span className='text-gray-700 font-medium'>Timezone</span>
           <select
@@ -298,12 +343,22 @@ export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
 
       <section className='bg-white border border-gray-200 rounded-xl p-6'>
         <h2 className='text-lg font-semibold text-gray-900 mb-2'>
-          Per-event mute
+          Event alerts
         </h2>
         <p className='text-sm text-gray-500 mb-4'>
-          Choose which events you want to receive. Payment confirmations and
-          contractor arrival alerts cannot be muted by event type.
+          Event switches apply to enabled in-app and mobile push channels. Email
+          is managed separately.
         </p>
+        <div className='mb-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-700'>
+          <h3 className='font-semibold text-slate-900'>
+            Protected from event mutes
+          </h3>
+          <p className='mt-1'>
+            Payment confirmations, escrow funding, and alerts that a contractor
+            is on the way use your enabled in-app and mobile push channels.
+            Quiet hours may delay delivery.
+          </p>
+        </div>
         <div className='space-y-2'>
           {KNOWN_TYPES.filter(
             (t) =>
@@ -330,7 +385,7 @@ export function NotificationPreferencesForm({ role }: { role?: string } = {}) {
       <div className='flex justify-end'>
         <button
           onClick={save}
-          disabled={saving}
+          disabled={saving || incompleteQuietHours}
           className='bg-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors'
         >
           {saving ? 'Saving…' : 'Save preferences'}

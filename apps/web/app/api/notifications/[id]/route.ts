@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+} from '@/lib/errors/api-error';
+import { updateWebNotificationGroup } from '@/lib/notifications/inbox';
 
 /**
  * DELETE /api/notifications/[id]
@@ -12,11 +17,15 @@ import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api
  */
 export const DELETE = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
-  async (_request, { user, params }) => {
+  async (request, { user, params }) => {
     const { id } = params;
 
     if (!id) {
       throw new BadRequestError('Notification ID is required');
+    }
+    if (request.nextUrl.searchParams.get('inbox') === '1') {
+      await updateWebNotificationGroup(user.id, id, true);
+      return NextResponse.json({ success: true });
     }
 
     // Verify notification belongs to user before deleting
@@ -31,7 +40,9 @@ export const DELETE = withApiHandler(
     }
 
     if (notification.user_id !== user.id) {
-      throw new ForbiddenError('You do not have permission to delete this notification');
+      throw new ForbiddenError(
+        'You do not have permission to delete this notification'
+      );
     }
 
     // Delete notification
@@ -51,5 +62,5 @@ export const DELETE = withApiHandler(
     }
 
     return NextResponse.json({ success: true });
-  },
+  }
 );

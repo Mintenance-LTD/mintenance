@@ -1,399 +1,244 @@
 'use client';
-import { fetchWithCsrf } from '@/lib/csrf-client';
 
-import React, { useState, useEffect } from 'react';
-import { logger } from '@mintenance/shared';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-import { useCurrentUser } from '@/hooks/useCurrentUser';
+import toast from 'react-hot-toast';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { LoadingSpinner } from '@/components/ui';
-
-import toast from 'react-hot-toast';
-
-import { useNotificationsRealtime } from './useNotificationsRealtime';
-
-import { safeActionUrl } from '@/lib/notifications/safe-action-url';
-import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
-  type NotificationItem,
-  type FilterType as MeFilterType,
-} from './MintEditorialNotifications';
-import { LegacyNotificationsView } from './LegacyNotificationsView';
-import {
+  computeInboxCounts,
   NotificationsInboxView,
   type InboxFilter,
   type InboxNotification,
 } from '@/components/notifications/NotificationsInboxView';
-import { useConfirm } from '@/components/ui/confirm-dialog';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { fetchWithCsrf } from '@/lib/csrf-client';
+import { safeActionUrl } from '@/lib/notifications/safe-action-url';
+import { LegacyNotificationsView } from './LegacyNotificationsView';
+import type { FilterType } from './MintEditorialNotifications';
+import { useNotificationsRealtime } from './useNotificationsRealtime';
 
-interface Notification {
-  id: string;
-  type: 'job' | 'bid' | 'message' | 'payment' | 'system';
-  title: string;
-  message: string;
-  created_at: string;
-  is_read: boolean;
-  action_url?: string;
-  metadata?: Record<string, unknown>;
-}
+type Cursor = { before: string; beforeId: string };
+type InboxPage = {
+  notifications: InboxNotification[];
+  unreadCount: number;
+  nextCursor: Cursor | null;
+};
 
-type FilterType = 'all' | 'unread' | 'jobs' | 'messages' | 'payments';
-
-/**
- * Map the new canonical InboxFilter (used by NotificationsInboxView)
- * onto the legacy FilterType still threaded through the page state +
- * Mint Editorial / Legacy fallback views. "money" maps to "payments"
- * (server-side type stayed the same; only the tab label is new).
- */
-function inboxToLegacy(filter: InboxFilter): FilterType {
-  switch (filter) {
-    case 'jobs':
-      return 'jobs';
-    case 'messages':
-      return 'messages';
-    case 'money':
-      return 'payments';
-    case 'all':
-    default:
-      return 'all';
+async function fetchInboxPage(
+  cursor: Cursor | null,
+  signal: AbortSignal
+): Promise<InboxPage> {
+  const params = new URLSearchParams({ inbox: '1', ...cursor });
+  const response = await fetch('/api/notifications?' + params, {
+    cache: 'no-store',
+    signal,
+  });
+  if (!response.ok) throw new Error('Could not load notifications.');
+  const data = await response.json();
+  if (
+    !Array.isArray(data?.notifications) ||
+    typeof data.unreadCount !== 'number'
+  ) {
+    throw new Error('Could not load notifications.');
   }
+  return {
+    ...data,
+    notifications: data.notifications.map(
+      (row: Omit<InboxNotification, 'is_read'> & { read: boolean }) => ({
+        ...row,
+        is_read: row.read,
+      })
+    ),
+  };
 }
 
-function legacyToInbox(filter: FilterType): InboxFilter {
-  switch (filter) {
-    case 'jobs':
-      return 'jobs';
-    case 'messages':
-      return 'messages';
-    case 'payments':
-      return 'money';
-    case 'unread':
-    case 'all':
-    default:
-      return 'all';
-  }
-}
-
-export default function NotificationsPage2025() {
+export default function NotificationsPage() {
   const router = useRouter();
   const confirm = useConfirm();
+  const queryClient = useQueryClient();
   const { user, loading: loadingUser } = useCurrentUser();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
-
-  // Phase-2 design rebrand. Hydration-safe theme detection — same
-  // pattern as HomeownerPageWrapper / /jobs / /messages.
   const [isMintEditorial, setIsMintEditorial] = useState(false);
+  const queryKey = ['notifications', 'web-inbox', user?.id] as const;
+  const inbox = useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam, signal }) => fetchInboxPage(pageParam, signal),
+    initialPageParam: null as Cursor | null,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    enabled: Boolean(user),
+  });
+
   useEffect(() => {
-    if (typeof document === 'undefined') return;
     setIsMintEditorial(
       document.documentElement.dataset.theme === 'mint-editorial'
     );
   }, []);
 
-  // Fetch notifications
   useEffect(() => {
-    if (!user) return;
+    if (!loadingUser && !user) router.push('/login?redirect=/notifications');
+  }, [user, loadingUser, router]);
 
-    const fetchNotifications = async () => {
-      try {
-        const response = await fetch('/api/notifications', {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            (typeof errorData.error === 'string'
-              ? errorData.error
-              : errorData.error?.message) || 'Failed to fetch notifications'
-          );
-        }
-
-        const data = await response.json();
-
-        interface NotificationApiResponse {
-          id: string;
-          type?: string;
-          title?: string;
-          message?: string;
-          created_at?: string;
-          read?: boolean;
-          is_read?: boolean;
-          action_url?: string;
-          link?: string;
-          metadata?: Record<string, unknown>;
-        }
-
-        // API now returns array directly, not wrapped in notifications property
-        const notificationsArray = Array.isArray(data)
-          ? data
-          : data.notifications || [];
-
-        const transformedNotifications: Notification[] = notificationsArray.map(
-          (n: NotificationApiResponse) => ({
-            id: n.id,
-            type: (n.type || 'system') as Notification['type'],
-            title: n.title || 'Notification',
-            message: n.message || '',
-            created_at: n.created_at || new Date().toISOString(),
-            is_read: n.is_read ?? n.read ?? false,
-            action_url: n.action_url || n.link,
-            metadata: n.metadata,
-          })
-        );
-
-        setNotifications(transformedNotifications);
-      } catch (error) {
-        logger.error('Error fetching notifications:', error);
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : 'Failed to load notifications'
-        );
-      } finally {
-        setLoadingNotifications(false);
-      }
-    };
-
-    fetchNotifications();
-  }, [user]);
-
-  // Live Supabase Realtime — extracted to a hook to keep this file lean.
-  useNotificationsRealtime(user?.id ?? null, setNotifications);
-
-  const handleMarkAsRead = async (notificationId: string) => {
-    try {
-      const response = await fetchWithCsrf(
-        `/api/notifications/${notificationId}/read`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          typeof errorData.error === 'string'
-            ? errorData.error
-            : errorData.error?.message || 'Failed to mark as read'
-        );
-      }
-
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
-      );
-    } catch (error) {
-      logger.error('Error marking notification as read:', error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Failed to mark notification as read'
-      );
-    }
-  };
-
-  const handleMarkAllAsRead = async () => {
-    try {
-      const response = await fetchWithCsrf('/api/notifications/mark-all-read', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          (typeof errorData.error === 'string'
-            ? errorData.error
-            : errorData.error?.message) || 'Failed to mark all as read'
-        );
-      }
-
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-      toast.success('All notifications marked as read');
-    } catch (error) {
-      logger.error('Error marking all as read:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to mark all as read'
-      );
-    }
-  };
-
-  const handleClearAll = async () => {
-    const ok = await confirm({
-      title: 'Clear all notifications?',
-      description: 'This action cannot be undone.',
-      confirmText: 'Clear all',
-      destructive: true,
+  const refreshInbox = () => {
+    void queryClient.invalidateQueries({ queryKey });
+    void queryClient.invalidateQueries({
+      queryKey: ['notifications', 'counts'],
     });
-    if (!ok) return;
-
-    try {
-      const deletePromises = notifications.map((n) =>
-        fetchWithCsrf(`/api/notifications/${n.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        }).then(async (response) => {
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(
-              (typeof errorData.error === 'string'
-                ? errorData.error
-                : errorData.error?.message) ||
-                `Failed to delete notification ${n.id}`
-            );
-          }
-          return response;
-        })
-      );
-
-      const results = await Promise.allSettled(deletePromises);
-
-      // Check if any deletions failed
-      const failures = results.filter((r) => r.status === 'rejected');
-      if (failures.length > 0) {
-        logger.error('Some notifications failed to delete:', failures);
-        toast.error(`${failures.length} notification(s) failed to delete`);
-        // Still remove successfully deleted ones from state
-        const successfulIds = results
-          .map((r, i) =>
-            r.status === 'fulfilled' ? notifications[i].id : null
-          )
-          .filter(Boolean) as string[];
-        setNotifications((prev) =>
-          prev.filter((n) => !successfulIds.includes(n.id))
-        );
-      } else {
-        setNotifications([]);
-        toast.success('All notifications cleared');
-      }
-    } catch (error) {
-      logger.error('Error clearing notifications:', error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Failed to clear all notifications'
-      );
-    }
   };
+  useNotificationsRealtime(user?.id, refreshInbox);
 
-  const handleDeleteNotification = async (notificationId: string) => {
+  if (loadingUser) return <LoadingSpinner fullScreen />;
+  if (!user) return null;
+
+  const notifications =
+    inbox.data?.pages.flatMap((page) => page.notifications) ?? [];
+  const loaded = computeInboxCounts(notifications);
+  const unreadTotal = inbox.data?.pages.at(-1)?.unreadCount ?? loaded.unread;
+  const inboxFilter: InboxFilter =
+    filter === 'payments' ? 'money' : filter === 'unread' ? 'all' : filter;
+
+  async function updateInbox(path: string, method: 'POST' | 'DELETE') {
+    const response = await fetchWithCsrf(path, { method });
+    if (!response.ok) throw new Error('Could not update notifications.');
+  }
+
+  async function markAsRead(notificationId: string) {
+    try {
+      await updateInbox(
+        `/api/notifications/${notificationId}/read?inbox=1`,
+        'POST'
+      );
+      refreshInbox();
+    } catch {
+      toast.error('Could not mark the notification as read.');
+    }
+  }
+
+  async function markAllAsRead() {
+    try {
+      await updateInbox('/api/notifications/mark-all-read', 'POST');
+      refreshInbox();
+      toast.success('All notifications marked as read');
+    } catch {
+      toast.error('Could not mark all notifications as read.');
+    }
+  }
+
+  async function deleteNotification(notificationId: string) {
     const ok = await confirm({
       title: 'Delete this notification?',
       confirmText: 'Delete',
       destructive: true,
     });
     if (!ok) return;
-
     try {
-      const response = await fetchWithCsrf(
-        `/api/notifications/${notificationId}`,
-        {
-          method: 'DELETE',
-        }
+      await updateInbox(
+        `/api/notifications/${notificationId}?inbox=1`,
+        'DELETE'
       );
-
-      if (!response.ok) throw new Error('Failed to delete notification');
-
-      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      refreshInbox();
       toast.success('Notification deleted');
     } catch {
-      toast.error('Failed to delete notification');
+      toast.error('Could not delete the notification.');
     }
-  };
-
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.is_read) {
-      handleMarkAsRead(notification.id);
-    }
-
-    // 2026-04-30 audit: only allow internal allow-listed paths.
-    // A bad action_url silently routes to /notifications instead of
-    // letting the user land outside the app or on a stale screen.
-    if (notification.action_url) {
-      router.push(safeActionUrl(notification.action_url));
-    }
-  };
-
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!loadingUser && !user) {
-      router.push('/login?redirect=/notifications');
-    }
-  }, [user, loadingUser, router]);
-
-  if (loadingUser) {
-    return <LoadingSpinner fullScreen />;
   }
 
-  if (!user) return null;
+  async function clearLoadedNotifications() {
+    const ok = await confirm({
+      title: 'Clear loaded notifications?',
+      description: 'This action cannot be undone.',
+      confirmText: 'Clear loaded',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      for (let start = 0; start < notifications.length; start += 100) {
+        const ids = notifications.slice(start, start + 100).map(({ id }) => id);
+        const response = await fetchWithCsrf('/api/notifications', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids }),
+        });
+        if (!response.ok)
+          throw new Error('Could not clear the loaded notifications.');
+      }
+      toast.success('Loaded notifications cleared');
+    } catch {
+      toast.error('Some loaded notifications could not be cleared.');
+    } finally {
+      refreshInbox();
+    }
+  }
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-  const jobsCount = notifications.filter((n) => {
-    const bucket = normalizeNotificationType(n.type);
-    return bucket === 'job' || bucket === 'bid';
-  }).length;
-  const messagesCount = notifications.filter(
-    (n) => normalizeNotificationType(n.type) === 'message'
-  ).length;
-  const paymentsCount = notifications.filter(
-    (n) => normalizeNotificationType(n.type) === 'payment'
-  ).length;
-
-  // Mint Editorial branch — uses the canonical role-agnostic
-  // NotificationsInboxView so the homeowner + contractor inboxes can't
-  // drift again. The same fetch, realtime subscription, and mutation
-  // handlers feed it; only the visual layer changes.
-  if (isMintEditorial) {
-    return (
-      <HomeownerPageWrapper>
-        <NotificationsInboxView
-          notifications={notifications as InboxNotification[]}
-          loading={loadingNotifications}
-          filter={legacyToInbox(filter)}
-          onFilterChange={(f) => setFilter(inboxToLegacy(f))}
-          preferencesHref='/settings/notifications'
-          onMarkAllRead={handleMarkAllAsRead}
-          onNotificationClick={(n) =>
-            handleNotificationClick(n as Notification)
-          }
-          onDelete={handleDeleteNotification}
-        />
-      </HomeownerPageWrapper>
-    );
+  function openNotification(notification: InboxNotification) {
+    if (!notification.is_read) void markAsRead(notification.id);
+    if (notification.action_url)
+      router.push(safeActionUrl(notification.action_url));
   }
 
   return (
     <HomeownerPageWrapper>
-      <LegacyNotificationsView
-        notifications={notifications as NotificationItem[]}
-        loading={loadingNotifications}
-        filter={filter as MeFilterType}
-        onFilterChange={(f) => setFilter(f as FilterType)}
-        counts={{
-          all: notifications.length,
-          unread: unreadCount,
-          jobs: jobsCount,
-          messages: messagesCount,
-          payments: paymentsCount,
-        }}
-        onClickNotification={(n) => handleNotificationClick(n as Notification)}
-        onMarkAllRead={handleMarkAllAsRead}
-        onClearAll={handleClearAll}
-        onDelete={handleDeleteNotification}
-      />
+      {inbox.isError && !inbox.data ? (
+        <div
+          className='rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950'
+          role='alert'
+        >
+          Could not load notifications.{' '}
+          <button
+            type='button'
+            className='underline'
+            onClick={() => void inbox.refetch()}
+          >
+            Retry
+          </button>
+        </div>
+      ) : isMintEditorial ? (
+        <NotificationsInboxView
+          notifications={notifications}
+          loading={inbox.isPending}
+          filter={inboxFilter}
+          onFilterChange={(value) =>
+            setFilter(value === 'money' ? 'payments' : value)
+          }
+          preferencesHref='/settings/notifications'
+          unreadTotal={unreadTotal}
+          onMarkAllRead={markAllAsRead}
+          onNotificationClick={openNotification}
+          onDelete={deleteNotification}
+        />
+      ) : (
+        <LegacyNotificationsView
+          notifications={notifications}
+          loading={inbox.isPending}
+          filter={filter}
+          onFilterChange={setFilter}
+          counts={{ ...loaded, unread: unreadTotal, payments: loaded.money }}
+          hasOlder={inbox.hasNextPage}
+          onClickNotification={openNotification}
+          onMarkAllRead={markAllAsRead}
+          onClearAll={clearLoadedNotifications}
+          onDelete={deleteNotification}
+        />
+      )}
+      {inbox.data && inbox.hasNextPage && (
+        <div className='mt-4 flex flex-wrap items-center gap-3'>
+          {inbox.isFetchNextPageError && (
+            <p role='alert'>Could not load older notifications.</p>
+          )}
+          <button
+            type='button'
+            className='rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-teal-900 disabled:opacity-60'
+            disabled={inbox.isFetching}
+            onClick={() => void inbox.fetchNextPage()}
+          >
+            {inbox.isFetchingNextPage
+              ? 'Loading older notifications…'
+              : 'Load older notifications'}
+          </button>
+        </div>
+      )}
     </HomeownerPageWrapper>
   );
 }

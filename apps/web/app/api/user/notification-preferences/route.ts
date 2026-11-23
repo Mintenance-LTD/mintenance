@@ -23,6 +23,10 @@ import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import {
+  hasIncompleteQuietHours,
+  INCOMPLETE_QUIET_HOURS,
+} from '@/lib/notifications/preference-rules';
 
 const DEFAULTS = {
   push_enabled: true,
@@ -105,6 +109,18 @@ export const PATCH = withApiHandler(
           error: 'Invalid preference payload',
           issues: parsed.error.issues,
         },
+        { status: 400 }
+      );
+    }
+
+    const { quiet_hours_start: start, quiet_hours_end: end } = parsed.data;
+    if (
+      start !== undefined &&
+      end !== undefined &&
+      hasIncompleteQuietHours(start, end)
+    ) {
+      return NextResponse.json(
+        { error: INCOMPLETE_QUIET_HOURS },
         { status: 400 }
       );
     }
