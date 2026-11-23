@@ -3,6 +3,7 @@ import type {
   JobSummary,
 } from '@mintenance/types/src/contracts';
 import { logger } from '@/lib/logger';
+import type { JobWorkspaceStatus } from '@/lib/jobs/workspace-status';
 
 async function api<T>(input: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
@@ -20,17 +21,27 @@ async function api<T>(input: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+type JobListSummary = JobSummary & {
+  photos?: string[];
+  location?: string;
+  budget?: number;
+  description?: string;
+  category?: string;
+  homeownerName?: string;
+  contractorName?: string;
+  archived_at?: string | null;
+  propertyLabel?: string;
+  propertyName?: string;
+  propertyTown?: string;
+  propertyPostcode?: string;
+  workspaceStatus?: JobWorkspaceStatus;
+  homeowner_id?: string;
+  contractor_id?: string;
+  view_count?: number;
+};
+
 const mapSummaryToJob = (
-  summary: JobSummary & {
-    photos?: string[];
-    location?: string;
-    budget?: number;
-    description?: string;
-    category?: string;
-    homeownerName?: string;
-    contractorName?: string;
-    archived_at?: string | null;
-  }
+  summary: JobListSummary
 ): Job & {
   photos?: string[];
   location?: string;
@@ -40,6 +51,14 @@ const mapSummaryToJob = (
   homeownerName?: string;
   contractorName?: string;
   archived_at?: string | null;
+  propertyLabel?: string;
+  propertyName?: string;
+  propertyTown?: string;
+  propertyPostcode?: string;
+  workspaceStatus?: JobWorkspaceStatus;
+  homeowner_id?: string;
+  contractor_id?: string;
+  view_count?: number;
 } => ({
   id: summary.id,
   title: summary.title,
@@ -54,6 +73,14 @@ const mapSummaryToJob = (
   homeownerName: summary.homeownerName,
   contractorName: summary.contractorName,
   archived_at: summary.archived_at ?? null,
+  propertyLabel: summary.propertyLabel,
+  propertyName: summary.propertyName,
+  propertyTown: summary.propertyTown,
+  propertyPostcode: summary.propertyPostcode,
+  workspaceStatus: summary.workspaceStatus,
+  homeowner_id: summary.homeowner_id,
+  contractor_id: summary.contractor_id,
+  view_count: summary.view_count,
 });
 
 export class JobService {
@@ -98,38 +125,25 @@ export class JobService {
 
   static async getJobsByHomeowner(
     _homeownerId: string,
-    filters: { propertyId?: string; category?: string } = {}
-  ): Promise<
-    (Job & {
-      photos?: string[];
-      location?: string;
-      budget?: number;
-      description?: string;
+    filters: {
+      propertyId?: string;
       category?: string;
-      homeownerName?: string;
-      contractorName?: string;
-    })[]
-  > {
+      workspace?: boolean;
+    } = {}
+  ): Promise<ReturnType<typeof mapSummaryToJob>[]> {
     try {
-      const collected: JobSummary[] = [];
+      const collected: JobListSummary[] = [];
       let cursor: string | undefined;
       const seen = new Set<string>();
       do {
         const params = new URLSearchParams({ limit: '50' });
+        if (filters.workspace) params.set('workspace', '1');
         if (filters.propertyId) params.set('propertyId', filters.propertyId);
         if (filters.category) params.set('category', filters.category);
         if (cursor) params.set('cursor', cursor);
         const { jobs, nextCursor } = await api<{
           nextCursor?: string;
-          jobs: (JobSummary & {
-            photos?: string[];
-            location?: string;
-            budget?: number;
-            description?: string;
-            category?: string;
-            homeownerName?: string;
-            contractorName?: string;
-          })[];
+          jobs: JobListSummary[];
         }>(`/api/jobs?${params.toString()}`);
         collected.push(...jobs);
         if (nextCursor && seen.has(nextCursor))
@@ -137,15 +151,7 @@ export class JobService {
         if (nextCursor) seen.add(nextCursor);
         cursor = nextCursor;
       } while (cursor);
-      return collected.map(mapSummaryToJob) as (Job & {
-        photos?: string[];
-        location?: string;
-        budget?: number;
-        description?: string;
-        category?: string;
-        homeownerName?: string;
-        contractorName?: string;
-      })[];
+      return collected.map(mapSummaryToJob);
     } catch (error) {
       logger.error('Job service error fetching homeowner jobs', error);
       throw error;
