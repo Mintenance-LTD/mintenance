@@ -89,7 +89,7 @@ const intakeErrors: Record<
   },
 };
 
-// POST /api/report/[token] - Save a new report or recover a committed response.
+// public: tenants use their reporting link without an account. Recovery also requires the submission key.
 export const POST = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 5, windowMs: 60_000 }, csrf: false },
   async (req, { params }) => {
