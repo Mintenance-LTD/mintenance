@@ -37,7 +37,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
       const result = () => ({
         data:
           table === 'properties'
-            ? { id: 'property', owner_id: 'owner' }
+            ? { id: 'property', owner_id: 'owner', ...(inserted as object) }
             : table === 'property_team_members'
               ? m.role
                 ? { role: m.role }
@@ -165,4 +165,31 @@ it('validates malformed labels before mutation', async () => {
     (await POST(request('POST', { label: { invalid: true } }), context)).status
   ).toBe(400);
   expect(m.insert).not.toHaveBeenCalled();
+});
+it('normalizes an approved emergency number within the authorized property', async () => {
+  const response = await PATCH(
+    request('PATCH', { emergency_phone: '+44 (20) 7946-0958' }),
+    context
+  );
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ emergency_phone: '+442079460958' });
+  expect(m.update).toHaveBeenCalledWith('properties', {
+    tenant_emergency_phone: '+442079460958',
+  });
+  expect(m.filters).toHaveBeenCalledWith('properties', 'owner_id', 'owner');
+});
+it('rejects an unsafe number and a viewer cannot publish a contact', async () => {
+  expect(
+    (
+      await PATCH(
+        request('PATCH', { emergency_phone: 'javascript:alert(1)' }),
+        context
+      )
+    ).status
+  ).toBe(400);
+  m.role = 'viewer';
+  await expect(
+    PATCH(request('PATCH', { emergency_phone: '+442079460958' }), context)
+  ).rejects.toMatchObject({ statusCode: 404 });
+  expect(m.update).not.toHaveBeenCalled();
 });

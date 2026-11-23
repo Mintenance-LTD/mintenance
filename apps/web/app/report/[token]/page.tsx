@@ -27,7 +27,7 @@ export default async function TenantReportPage({ params }: PageProps) {
       </header>
 
       <main className='max-w-5xl mx-auto px-4 py-8 sm:px-6 sm:py-10'>
-        <TenantReportForm token={token} />
+        <TenantReportForm key={token} token={token} />
       </main>
 
       <footer className='text-center py-6 text-xs text-gray-400'>

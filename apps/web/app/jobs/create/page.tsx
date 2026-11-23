@@ -347,7 +347,11 @@ export default function CreateJobPage2025() {
       }
 
       draft.complete();
-      toast.success('Job posted successfully!');
+      toast.success(
+        result.dispatchStatus === 'pending'
+          ? 'Job posted. Contractor invitations are pending.'
+          : 'Job posted successfully!'
+      );
       router.push(
         sharedProperty
           ? `/properties/${sharedProperty.id}`

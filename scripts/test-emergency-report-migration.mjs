@@ -306,7 +306,155 @@ for (const role of ['authenticated', 'anon']) {
     /permission denied/
   );
 }
-await db.close();
 console.log(
   `Emergency report migration: ${assertions} assertions passed (disposable local PostgreSQL).`
+);
+
+// Exercise the next intake migration with the real emergency trigger installed.
+assertions = 0;
+await db.exec(`
+  RESET ROLE;
+  CREATE TABLE anonymous_report_tokens(
+    id uuid PRIMARY KEY, property_id uuid REFERENCES properties, owner_id uuid REFERENCES profiles,
+    token text UNIQUE NOT NULL, is_active boolean DEFAULT true, total_reports int DEFAULT 0,
+    last_report_at timestamptz
+  );
+  ALTER TABLE anonymous_reports ALTER COLUMN id SET DEFAULT gen_random_uuid(),
+    ADD COLUMN token_id uuid REFERENCES anonymous_report_tokens,
+    ADD COLUMN reporter_name text, ADD COLUMN reporter_email text, ADD COLUMN reporter_phone text,
+    ADD COLUMN reporter_unit text, ADD COLUMN photos text[], ADD COLUMN conversation_key_hash text;
+  GRANT SELECT, UPDATE ON anonymous_report_tokens TO service_role;
+`);
+await db.query('INSERT INTO properties VALUES($1,$2,$3)', [
+  id(200),
+  id(1),
+  'Recovery test',
+]);
+await db.query(
+  `INSERT INTO anonymous_report_tokens(id, property_id, owner_id, token)
+  VALUES ($1,$3,$4,'test-link'), ($2,$3,$4,'different-link')`,
+  [id(201), id(202), id(200), id(1)]
+);
+await db.exec(
+  readFileSync(
+    new URL(
+      '../supabase/migrations/20261123130318_recover_tenant_report_submission.sql',
+      import.meta.url
+    ),
+    'utf8'
+  )
+);
+const keyHash = 'a'.repeat(64);
+const receiptHash = 'b'.repeat(64);
+const payloadHash = 'c'.repeat(64);
+const report = {
+  reporter_name: 'Synthetic tenant',
+  description: 'Synthetic emergency leak',
+  category: 'plumbing',
+  urgency: 'emergency',
+};
+const send = (link, key, receipt, fingerprint, data) =>
+  row('SELECT public.submit_tenant_report_once($1,$2,$3,$4,$5) AS result', [
+    link,
+    key,
+    receipt,
+    fingerprint,
+    data,
+  ]).then(({ result }) => result);
+const submit = (key = keyHash) =>
+  send('test-link', key, receiptHash, payloadHash, report);
+const recover = (link = 'test-link') =>
+  send(link, keyHash, receiptHash, null, null);
+await db.exec('SET ROLE service_role');
+await rejects(recover(), { code: 'P0002' });
+const saved = await submit();
+eq(saved.created, true);
+eq(await submit(), {
+  id: saved.id,
+  urgency: 'emergency',
+  status: 'new',
+  created: false,
+});
+eq(await recover(), {
+  id: saved.id,
+  urgency: 'emergency',
+  status: 'new',
+  created: false,
+});
+eq(
+  await row('SELECT total_reports FROM anonymous_report_tokens WHERE id=$1', [
+    id(201),
+  ]),
+  { total_reports: 1 }
+);
+eq(
+  await row(
+    "SELECT count(*)::int AS count FROM notification_queue WHERE metadata->>'emergency_report_id' = $1",
+    [saved.id]
+  ),
+  { count: 1 }
+);
+await rejects(
+  send('test-link', keyHash, receiptHash, 'd'.repeat(64), {
+    ...report,
+    description: 'Changed',
+  }),
+  { code: 'PT409' }
+);
+await rejects(recover('different-link'), { code: 'P0002' });
+await rejects(recover('invalid-link'), { code: 'PT404' });
+await db.query(
+  'UPDATE anonymous_report_tokens SET is_active=false WHERE id=$1',
+  [id(201)]
+);
+await rejects(recover(), { code: 'PT410' });
+await rejects(submit(), { code: 'PT410' });
+await db.query(
+  'UPDATE anonymous_report_tokens SET is_active=true WHERE id=$1',
+  [id(201)]
+);
+await db.query(
+  'UPDATE anonymous_reports SET conversation_key_hash=$1 WHERE id=$2',
+  ['d'.repeat(64), saved.id]
+);
+await rejects(recover(), { code: 'PT410' });
+await db.query(
+  'UPDATE anonymous_reports SET conversation_key_hash=$1 WHERE id=$2',
+  [receiptHash, saved.id]
+);
+await db.exec(`RESET ROLE; UPDATE tenant_report_submissions SET created_at=now()-interval '2 hours';
+  ALTER TABLE notification_queue ADD CONSTRAINT reject_emergency_test CHECK(notification_type<>'emergency_report') NOT VALID;
+  SET ROLE service_role`);
+await rejects(recover(), { code: 'PT410' });
+const retryKey = 'e'.repeat(64);
+await rejects(submit(retryKey), /reject_emergency_test/);
+eq(
+  await row(
+    'SELECT report_id FROM tenant_report_submissions WHERE key_hash=$1',
+    [retryKey]
+  ),
+  undefined
+);
+eq(
+  await row('SELECT total_reports FROM anonymous_report_tokens WHERE id=$1', [
+    id(201),
+  ]),
+  { total_reports: 1 }
+);
+await db.exec(
+  'RESET ROLE; ALTER TABLE notification_queue DROP CONSTRAINT reject_emergency_test; SET ROLE service_role'
+);
+eq((await submit(retryKey)).created, true);
+await db.query('DELETE FROM anonymous_reports WHERE id=$1', [saved.id]);
+await rejects(submit(), { code: 'PT410' });
+for (const role of ['anon', 'authenticated']) {
+  await db.exec(`RESET ROLE; SET ROLE ${role}`);
+  await rejects(recover(), { code: '42501' });
+  await rejects(db.query('SELECT * FROM tenant_report_submissions'), {
+    code: '42501',
+  });
+}
+await db.close();
+console.log(
+  `Tenant report recovery: ${assertions} assertions passed (disposable local PostgreSQL).`
 );

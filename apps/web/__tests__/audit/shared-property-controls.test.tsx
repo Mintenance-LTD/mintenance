@@ -25,7 +25,7 @@ const data = {
   certificates: [],
 };
 it('gives viewers records without owner or mutation controls', () => {
-  render(<SharedPropertyDetail {...data} role='viewer' />);
+  render(<SharedPropertyDetail {...data} role='viewer' canCreateJob={false} />);
   expect(screen.getByText('Inspect boiler')).toBeTruthy();
   expect(screen.getByText('Assigned')).toBeTruthy();
   expect(screen.queryByRole('button')).toBeNull();
@@ -36,7 +36,7 @@ it('gives viewers records without owner or mutation controls', () => {
 it.each(['manager', 'admin'] as const)(
   'gives %s the supported maintenance action without owner controls',
   (role) => {
-    render(<SharedPropertyDetail {...data} role={role} />);
+    render(<SharedPropertyDetail {...data} role={role} canCreateJob />);
     expect(
       screen.getByRole('button', { name: 'Manage tenant contacts' })
     ).toBeTruthy();
@@ -51,8 +51,12 @@ it.each(['manager', 'admin'] as const)(
     ).toBe(role === 'admin');
     expect(
       screen.queryByRole('link', {
-        name: /Edit|Post a job|Manage certificates/,
+        name: /Edit|Manage certificates/,
       })
     ).toBeNull();
+    expect(screen.getByRole('link', { name: 'Post a job' })).toHaveAttribute(
+      'href',
+      '/jobs/create?property_id=property'
+    );
   }
 );

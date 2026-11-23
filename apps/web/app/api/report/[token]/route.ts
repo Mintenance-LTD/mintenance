@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { randomBytes, createHash } from 'crypto';
+import { randomBytes, createHash, createHmac } from 'node:crypto';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -35,199 +35,160 @@ const reportSchema = z.object({
   photos: z.array(z.string().max(2048)).max(5).optional().nullable(),
 });
 
-// POST /api/report/[token] - Submit anonymous maintenance report (public, no auth)
+const recoverySchema = z.object({ recover: z.literal(true) }).strict();
+const sha256 = (value: string) =>
+  createHash('sha256').update(value).digest('hex');
+
+function normalizeReport(input: z.infer<typeof reportSchema>) {
+  const category =
+    VALID_CATEGORIES.find((item) => item === input.category) ?? 'general';
+  // Older clients sent "urgent" for emergencies.
+  const urgency =
+    input.urgency === 'urgent' || input.urgency === 'emergency'
+      ? 'emergency'
+      : input.urgency === 'high' || input.urgency === 'low'
+        ? input.urgency
+        : 'medium';
+  return {
+    reporter_name: input.reporter_name,
+    reporter_phone: input.reporter_phone || null,
+    reporter_email: input.reporter_email || null,
+    reporter_unit: input.reporter_unit || null,
+    category,
+    description: input.description,
+    urgency,
+    photos: input.photos ?? null,
+  };
+}
+
+const intakeHeaders = { 'Cache-Control': 'no-store' };
+const intakeErrors: Record<
+  string,
+  { status: number; error: string; code: string }
+> = {
+  PT404: {
+    status: 404,
+    error: 'Invalid reporting link',
+    code: 'LINK_UNAVAILABLE',
+  },
+  PT410: {
+    status: 410,
+    error: 'This reporting link or recovery attempt is no longer available.',
+    code: 'LINK_UNAVAILABLE',
+  },
+  P0002: {
+    status: 404,
+    error: 'No report was found for this attempt yet.',
+    code: 'REPORT_NOT_FOUND',
+  },
+  PT409: {
+    status: 409,
+    error:
+      'A report was already saved with different details. Recover its private link to send an update.',
+    code: 'DETAILS_CHANGED',
+  },
+};
+
+// public: tenants use their reporting link without an account. Recovery also requires the submission key.
 export const POST = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 5, windowMs: 60_000 }, csrf: false },
   async (req, { params }) => {
-    const tokenValue = params.token;
-
-    // Validate token exists and is active.
-    // 2026-05-23 audit: also pull total_reports so we can do an honest
-    // increment below (the previous UPDATE only wrote last_report_at
-    // even though the comment promised a counter bump, leaving the
-    // reporting-links dashboard's "Total reports" tile permanently
-    // stuck at 0).
-    const { data: tokenRecord, error: tokenError } = await serverSupabase
-      .from('anonymous_report_tokens')
-      .select('id, property_id, is_active, owner_id, total_reports')
-      .eq('token', tokenValue)
-      .single();
-
-    if (tokenError || !tokenRecord) {
-      return NextResponse.json(
-        { error: 'Invalid reporting link' },
-        { status: 404 }
-      );
-    }
-
-    if (!tokenRecord.is_active) {
-      return NextResponse.json(
-        { error: 'This reporting link has been deactivated' },
-        { status: 410 }
-      );
-    }
-
-    // 2026-07-26: anonymous_report_tokens.property_id is now ON DELETE SET
-    // NULL (migration 20260726115252) so that deleting a property no longer
-    // cascade-wipes the tenant reports attached to its token. The token row
-    // outliving the property is deliberate, but it must stop accepting new
-    // submissions — there is no property left to raise a report against.
-    if (!tokenRecord.property_id) {
-      return NextResponse.json(
-        { error: 'This reporting link has been deactivated' },
-        { status: 410 }
-      );
-    }
-
+    const token = params.token;
     let rawBody: unknown;
     try {
       rawBody = await req.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400, headers: intakeHeaders }
+      );
     }
-    const parsedBody = reportSchema.safeParse(rawBody);
-    if (!parsedBody.success) {
+
+    const suppliedKey = req.headers.get('x-report-submission-key');
+    const recovery = recoverySchema.safeParse(rawBody).success;
+    const parsed = reportSchema.safeParse(rawBody);
+    if (
+      (suppliedKey !== null && !/^[0-9a-f]{64}$/.test(suppliedKey)) ||
+      (recovery && !suppliedKey) ||
+      (!recovery && !parsed.success)
+    ) {
       return NextResponse.json(
         { error: 'Invalid report data' },
-        { status: 400 }
+        { status: 400, headers: intakeHeaders }
       );
     }
-    const {
-      reporter_name,
-      reporter_phone,
-      reporter_email,
-      reporter_unit,
-      category,
-      description,
-      urgency,
-      photos,
-    } = parsedBody.data;
 
-    const safeCategory: (typeof VALID_CATEGORIES)[number] =
-      category &&
-      VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])
-        ? (category as (typeof VALID_CATEGORIES)[number])
-        : 'general';
-    // 2026-05-23 audit: live anonymous_reports.urgency CHECK is
-    // (low | medium | high | emergency). The previous allowlist
-    // accepted 'urgent' — which then passed through to the insert
-    // and silently 500'd. Both client + server are now aligned to
-    // 'emergency'; we still coerce a stray 'urgent' (older mobile
-    // clients) into 'emergency' rather than dropping the report.
-    const VALID_URGENCY = new Set(['low', 'medium', 'high', 'emergency']);
-    const safeUrgency: 'low' | 'medium' | 'high' | 'emergency' =
-      VALID_URGENCY.has(urgency ?? '')
-        ? (urgency as 'low' | 'medium' | 'high' | 'emergency')
-        : urgency === 'urgent'
-          ? 'emergency'
-          : 'medium';
+    const key = suppliedKey ?? randomBytes(32).toString('hex');
+    // Separate the stored lookup hash from the receipt. The raw retry key
+    // never enters the database, notifications or the page URL.
+    const receipt = createHmac('sha256', key)
+      .update('mintenance-report-receipt-v1:' + token)
+      .digest('hex');
+    const report = parsed.success ? normalizeReport(parsed.data) : null;
+    const { data, error } = await serverSupabase.rpc(
+      'submit_tenant_report_once',
+      {
+        p_token: token,
+        p_key_hash: sha256('mintenance-report-submission-v1:' + key),
+        p_receipt_hash: sha256(receipt),
+        p_payload_hash: report
+          ? createHmac('sha256', key)
+              .update('mintenance-report-payload-v1:' + JSON.stringify(report))
+              .digest('hex')
+          : null,
+        p_report: report,
+      }
+    );
 
-    const receipt = randomBytes(32).toString('hex');
-    // The receipt is returned once; only its hash is persisted.
-    const { data: report, error: insertError } = await serverSupabase
-      .from('anonymous_reports')
-      .insert({
-        token_id: tokenRecord.id,
-        property_id: tokenRecord.property_id,
-        reporter_name: reporter_name.trim(),
-        reporter_phone: reporter_phone?.trim() || null,
-        reporter_email: reporter_email?.trim() || null,
-        reporter_unit: reporter_unit?.trim() || null,
-        category: safeCategory,
-        description: description.trim(),
-        urgency: safeUrgency,
-        photos: Array.isArray(photos) ? photos.slice(0, 5) : null,
-        status: 'new',
-        conversation_key_hash: createHash('sha256')
-          .update(receipt)
-          .digest('hex'),
-      })
-      .select('id, created_at')
-      .single();
-
-    if (insertError) {
+    if (error || !data?.id || typeof data.created !== 'boolean') {
+      const result = intakeErrors[error?.code ?? ''];
       return NextResponse.json(
-        { error: 'Failed to submit report' },
-        { status: 500 }
+        result
+          ? { error: result.error, code: result.code }
+          : { error: 'Failed to confirm report' },
+        { status: result?.status ?? 500, headers: intakeHeaders }
       );
     }
 
-    // 2026-05-23 audit: actually bump total_reports. Previously
-    // wrote only last_report_at — the reporting-links page reads
-    // total_reports and it was stuck at 0 forever. Read-modify-write
-    // (race-acceptable for a display counter; under concurrent
-    // tenant submissions one of the increments may be lost, but the
-    // landlord doesn't make hiring decisions off the absolute total).
-    // Atomic SQL increment would need an RPC; skipped for surface size.
-    const nextTotal =
-      typeof tokenRecord.total_reports === 'number'
-        ? tokenRecord.total_reports + 1
-        : 1;
-    await Promise.resolve(
-      serverSupabase
-        .from('anonymous_report_tokens')
-        .update({
-          last_report_at: new Date().toISOString(),
-          total_reports: nextTotal,
-        })
-        .eq('id', tokenRecord.id)
-    ).catch(() => {
-      /* non-critical */
-    });
-
-    // Notify the property owner via NotificationService (not a direct DB
-    // insert). The previous implementation wrote to a non-existent `data`
-    // column — the insert silently failed in prod, and owners were never
-    // informed that tenants had submitted reports. Routing through the
-    // service also respects the owner's push / quiet-hours preferences.
-    // 2026-05-21 Mint Editorial voice — name the issue category in the
-    // title so the owner knows whether to act immediately.
-    const categoryLabel = safeCategory.replace(/_/g, ' ');
-    // Emergency ownership and its outbox item are committed by the report
-    // trigger. Never send those through the best-effort routine preferences path.
-    if (safeUrgency !== 'emergency')
+    // Emergency ownership and its first alert already committed with the report.
+    // Ordinary preferences still apply, and replay never sends an extra alert.
+    if (data.created && report && report.urgency !== 'emergency') {
       await NotificationService.createNotification({
-        userId: tokenRecord.owner_id,
+        userId: data.owner_id,
         type: 'tenant_report',
-        title: `Tenant flagged ${categoryLabel} at your property`,
+        title: `Tenant flagged ${report.category.replace(/_/g, ' ')} at your property`,
         message:
-          safeUrgency === 'high'
-            ? `Urgent — tap to review and post a job.`
-            : `Tap to review and post a job.`,
-        // 2026-05-23 audit: /property-manager/reports/... was a dead
-        // route — the real landlord-side path is /landlord/reports.
-        // Passing ?reportId so the client can scroll the row into
-        // view + open the detail modal (TenantReportsClient inspects
-        // searchParams). Owners tapping the notification now land
-        // on the right surface.
-        actionUrl: `/landlord/reports?reportId=${report.id}`,
+          report.urgency === 'high'
+            ? 'Urgent — tap to review and post a job.'
+            : 'Tap to review and post a job.',
+        actionUrl: `/landlord/reports?reportId=${data.id}`,
         metadata: {
-          report_id: report.id,
-          conversation_url: `/maintenance/reports/${report.id}#${receipt}`,
-          category: safeCategory,
-          urgency: safeUrgency,
+          report_id: data.id,
+          category: report.category,
+          urgency: report.urgency,
         },
-      }).catch((err) => {
-        logger.warn('Tenant-report notification failed (non-critical)', {
+      }).catch(() => {
+        logger.warn('Tenant-report notification failed', {
           service: 'report-token',
-          ownerId: tokenRecord.owner_id,
-          reportId: report.id,
-          error: err instanceof Error ? err.message : String(err),
+          reportId: data.id,
         });
       });
+    }
 
+    const awaitingAcknowledgment =
+      data.urgency === 'emergency' && data.status === 'new';
     return NextResponse.json(
       {
         success: true,
-        conversation_url: `/maintenance/reports/${report.id}#${receipt}`,
-        report_id: report.id,
-        ...(safeUrgency === 'emergency' ? { acknowledgment: 'pending' } : {}),
-        message:
-          safeUrgency === 'emergency'
-            ? 'Your report has been saved and is awaiting human acknowledgment. Do not wait for a reply in an emergency.'
-            : 'Your report has been submitted for the property manager to review.',
+        conversation_url: `/maintenance/reports/${data.id}#${receipt}`,
+        report_id: data.id,
+        urgency: data.urgency,
+        ...(awaitingAcknowledgment ? { acknowledgment: 'pending' } : {}),
+        message: awaitingAcknowledgment
+          ? 'Your report has been saved and is awaiting human acknowledgment. Do not wait for a reply in an emergency.'
+          : 'Your report has been submitted for the property manager to review.',
       },
-      { status: 201 }
+      { status: data.created ? 201 : 200, headers: intakeHeaders }
     );
   }
 );
@@ -247,7 +208,7 @@ export const GET = withApiHandler(
       .select(
         `
         id, is_active, label,
-        properties:property_id (id, property_name, address)
+        properties:property_id (id, property_name, address, tenant_emergency_phone)
       `
       )
       .eq('token', tokenValue)
@@ -285,7 +246,12 @@ export const GET = withApiHandler(
 
     return NextResponse.json({
       valid: true,
-      property: linkedProperty,
+      property: {
+        id: linkedProperty.id,
+        property_name: linkedProperty.property_name,
+        address: linkedProperty.address,
+      },
+      emergency_phone: linkedProperty.tenant_emergency_phone ?? null,
       label: tokenRecord.label,
     });
   }

@@ -17,7 +17,10 @@ vi.mock('@/hooks/useCurrentUser', () => ({
 }));
 const dashboard = (id = 'alice') => (
   <OnboardingWrapper userId={id}>
-    <DashboardOnboarding />
+    <main>
+      <h1>Your dashboard</h1>
+      <DashboardOnboarding />
+    </main>
   </OnboardingWrapper>
 );
 beforeEach(() => {
@@ -108,16 +111,31 @@ it.each(['completed', 'skipped'])(
 );
 it('finishing the tour removes the introduction but preserves the benefits notice', async () => {
   render(dashboard());
-  fireEvent.click(await screen.findByRole('button', { name: 'Quick tour' }));
+  const launcher = await screen.findByRole('button', { name: 'Quick tour' });
+  launcher.focus();
+  fireEvent.click(launcher);
   fireEvent.click(await screen.findByRole('button', { name: /take a look/ }));
   while (screen.queryByRole('button', { name: 'Next' }))
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
   fireEvent.click(screen.getByRole('button', { name: 'Finish tour' }));
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.queryByText('Make yourself at home')).toBeNull();
+  expect(screen.getByRole('heading', { name: 'Your dashboard' })).toHaveFocus();
   expect(
     await screen.findByRole('region', { name: 'Early-user benefits' })
   ).toBeTruthy();
+});
+it('Escape returns keyboard focus to the dashboard after removing the tour launcher', async () => {
+  render(dashboard());
+  const launcher = await screen.findByRole('button', { name: 'Quick tour' });
+  launcher.focus();
+  fireEvent.click(launcher);
+  const dialog = await screen.findByRole('dialog');
+  expect(dialog).toHaveFocus();
+  fireEvent.keyDown(dialog, { key: 'Escape' });
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(launcher).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Your dashboard' })).toHaveFocus();
 });
 it.each(['homeowner', 'contractor', 'team-member'] as const)(
   'replays the correct %s tour from Help',

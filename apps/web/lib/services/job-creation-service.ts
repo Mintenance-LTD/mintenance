@@ -10,7 +10,6 @@ import {
   InternalServerError,
 } from '@/lib/errors/api-error';
 import type { JobDetail, JobSummary, User } from '@mintenance/types';
-import { JobNotificationService } from './job-notification-service';
 import { PropertyTeamService } from './property-team/PropertyTeamService';
 
 interface JobCreationPayload {
@@ -71,25 +70,6 @@ type JobRow = {
   city?: string | null;
 };
 
-const jobSelectFields = `
-  id,
-  title,
-  description,
-  status,
-  homeowner_id,
-  contractor_id,
-  category,
-  budget,
-  location,
-  latitude,
-  longitude,
-  city,
-  created_at,
-  updated_at
-`
-  .replace(/\s+/g, ' ')
-  .trim();
-
 const mapRowToJobDetail = (row: JobRow): JobDetail => ({
   id: row.id,
   title: row.title,
@@ -101,7 +81,6 @@ const mapRowToJobDetail = (row: JobRow): JobDetail => ({
 
 export class JobCreationService {
   private static instance: JobCreationService;
-  private notificationService = JobNotificationService.getInstance();
 
   private constructor() {}
 
@@ -117,7 +96,7 @@ export class JobCreationService {
     payload: JobCreationPayload,
     retry?: { requestId: string; fingerprint: string },
     options?: { allowPropertyDelegation: boolean }
-  ): Promise<JobDetail> {
+  ): Promise<JobDetail & { dispatchStatus?: string }> {
     if (payload.source_tenant_report_id && !retry)
       throw new BadRequestError('A tenant report needs a job submission ID.');
     this.enforcePhotoRequirement(user.id, payload);
@@ -142,13 +121,10 @@ export class JobCreationService {
           'Shared property jobs must start as drafts or open for bids'
         );
     }
-    // Older clients omit a submission ID. Still use the transaction for
-    // property jobs so membership and ownership are checked at insertion.
-    const submission =
-      retry ??
-      (payload.property_id
-        ? { requestId: randomUUID(), fingerprint: fingerprintRequest(payload) }
-        : undefined);
+    const submission = retry ?? {
+      requestId: randomUUID(),
+      fingerprint: fingerprintRequest(payload),
+    };
     await this.resolvePayerFromEmail(user.id, payload);
     await this.validatePreferredContractor(user.id, payload);
 
@@ -174,71 +150,26 @@ export class JobCreationService {
     //      bias (defence-in-depth for property-less submissions).
     await this.resolveJobCoordinates(insertPayload);
 
-    const atomic = submission
-      ? await createJobOnce(
-          user.id,
-          submission.requestId,
-          submission.fingerprint,
-          insertPayload,
-          payload.photoUrls || [],
-          payload.source_tenant_report_id
-        )
-      : null;
-    if (atomic && !atomic.created) return mapRowToJobDetail(atomic.job);
-    const jobRow =
-      atomic?.job || (await this.insertJob(user.id, insertPayload));
-
-    await this.updateSeriousBuyerScore(ownerId, jobRow.id, payload);
-    try {
-      if (!atomic)
-        await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
-    } catch (attachmentError) {
-      await this.rollbackFailedJobCreation(user.id, jobRow.id);
-      throw attachmentError;
-    }
-    await this.snapshotRoomScope(user.id, jobRow.id, payload);
-
-    await this.notificationService.notifyNearbyContractors(
+    const result = await createJobOnce(
+      user.id,
+      submission.requestId,
+      submission.fingerprint,
+      insertPayload,
+      payload.photoUrls ?? [],
       {
-        id: jobRow.id,
-        title: jobRow.title,
-        location: jobRow.location ?? null,
-        latitude: jobRow.latitude ?? null,
-        longitude: jobRow.longitude ?? null,
-        // jobs.city (synced from the property by trg_sync_job_location)
-        // lets area_type='cities' service-area coverage match.
-        city: jobRow.city ?? null,
-      },
-      {
-        required_skills: insertPayload.required_skills,
+        tenantReportId: payload.source_tenant_report_id,
+        roomIds: payload.room_ids,
+        preferredContractorId: payload.preferred_contractor_id,
         recurring: payload.recurring_notification,
       }
     );
+    if (result.created)
+      await this.updateSeriousBuyerScore(ownerId, result.job.id, payload);
 
-    // Hire-Again loop closure (2026-05-13): fire a direct, higher-priority
-    // notification to the previously-hired contractor. The broadcast above
-    // already covered them (assuming they're in range / skill-matched), but
-    // this is the "first-look" signal the HireAgainBanner promises ("They'll
-    // be notified first"). Fire-and-forget — never blocks the job creation.
-    if (payload.preferred_contractor_id) {
-      this.notificationService
-        .notifyPreferredContractor(
-          payload.preferred_contractor_id,
-          jobRow.id,
-          jobRow.title,
-          user.id
-        )
-        .catch((err: unknown) => {
-          logger.warn('Preferred-contractor notification failed', {
-            service: 'job-creation',
-            jobId: jobRow.id,
-            preferredContractorId: payload.preferred_contractor_id,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        });
-    }
-
-    return mapRowToJobDetail(jobRow);
+    return {
+      ...mapRowToJobDetail(result.job),
+      dispatchStatus: result.dispatch_status ?? undefined,
+    };
   }
 
   /**
@@ -591,86 +522,6 @@ export class JobCreationService {
     return insertPayload;
   }
 
-  private async insertJob(
-    userId: string,
-    insertPayload: {
-      title: string;
-      homeowner_id: string;
-      status: string;
-      description?: string;
-      category?: string | null;
-      budget?: number;
-      budget_min?: number;
-      budget_max?: number;
-      show_budget_to_contractors?: boolean;
-      require_itemized_bids?: boolean;
-      location?: string | null;
-      required_skills?: string[] | null;
-      property_id?: string | null;
-      latitude?: number | null;
-      longitude?: number | null;
-      is_rental_property?: boolean;
-      payer_user_id?: string | null;
-      tenancy_metadata?: Record<string, unknown>;
-      requirements?: Record<string, unknown>;
-    }
-  ): Promise<JobRow> {
-    let result = await serverSupabase
-      .from('jobs')
-      .insert(insertPayload)
-      .select(jobSelectFields)
-      .single();
-
-    let data = result.data;
-    let error = result.error;
-
-    const errorMessage =
-      error && typeof error === 'object' && 'message' in error
-        ? String(error.message)
-        : '';
-    const errorCode =
-      error && typeof error === 'object' && 'code' in error
-        ? String(error.code)
-        : '';
-
-    if (
-      error &&
-      insertPayload.required_skills &&
-      (errorMessage.includes('required_skills') ||
-        errorCode === '42703' ||
-        (errorMessage.includes('column') &&
-          errorMessage.includes('required_skills')))
-    ) {
-      logger.warn('Required_skills column not found, retrying without it', {
-        service: 'jobs',
-        userId,
-        originalError: errorMessage,
-      });
-
-      const payloadWithoutSkills = { ...insertPayload };
-      delete payloadWithoutSkills.required_skills;
-      result = await serverSupabase
-        .from('jobs')
-        .insert(payloadWithoutSkills)
-        .select(jobSelectFields)
-        .single();
-
-      data = result.data;
-      error = result.error;
-    }
-
-    if (error || !data) {
-      logger.error('Failed to create job', error, {
-        service: 'jobs',
-        userId,
-        errorDetails: error,
-      });
-      throw new InternalServerError('Failed to create job');
-    }
-
-    return data as unknown as JobRow;
-  }
-
   private async updateSeriousBuyerScore(
     userId: string,
     jobId: string,
@@ -689,162 +540,6 @@ export class JobCreationService {
       logger.error('Failed to calculate serious buyer score', scoreError, {
         service: 'jobs',
         jobId,
-      });
-    }
-  }
-
-  private async saveAttachments(
-    userId: string,
-    jobId: string,
-    photoUrls?: string[]
-  ): Promise<void> {
-    if (!photoUrls || photoUrls.length === 0) {
-      return;
-    }
-
-    try {
-      const attachments = photoUrls.map((url: string) => ({
-        job_id: jobId,
-        file_url: url,
-        file_type: 'image',
-        uploaded_by: userId,
-      }));
-
-      const { error } = await serverSupabase
-        .from('job_attachments')
-        .insert(attachments);
-
-      if (error) {
-        logger.error('Failed to save job attachments', error, {
-          service: 'jobs',
-          userId,
-          jobId,
-        });
-        throw new InternalServerError(
-          'Failed to save job photographs. Please try posting the job again.'
-        );
-      }
-    } catch (attachErr) {
-      if (attachErr instanceof InternalServerError) throw attachErr;
-      logger.error('Error saving job attachments', attachErr, {
-        service: 'jobs',
-        userId,
-        jobId,
-      });
-      throw new InternalServerError(
-        'Failed to save job photographs. Please try posting the job again.'
-      );
-    }
-  }
-
-  /**
-   * Attachment persistence is part of the job-posting contract: a job that
-   * requires photos must not remain visible if its attachment rows cannot be
-   * written.  The job was inserted immediately before saveAttachments, so a
-   * narrowly scoped delete is safe here and prevents a failed request from
-   * leaving a duplicate photo-less job for the next retry.
-   */
-  private async rollbackFailedJobCreation(
-    userId: string,
-    jobId: string
-  ): Promise<void> {
-    const { data: deletedJob, error } = await serverSupabase
-      .from('jobs')
-      .delete()
-      .eq('id', jobId)
-      .eq('homeowner_id', userId)
-      .select('id')
-      .maybeSingle();
-
-    if (error || !deletedJob) {
-      logger.error(
-        'Failed to roll back job after attachment persistence failure',
-        error ?? new Error('job row was not deleted'),
-        { service: 'jobs', userId, jobId }
-      );
-    }
-  }
-
-  /**
-   * Snapshot the homeowner-selected rooms into job_rooms. We deliberately
-   * snapshot the room's `name`, `room_type` and `size_sqm` at post time
-   * so future edits to the underlying property_rooms row don't
-   * retroactively rewrite a job's historical scope (bids/contracts may
-   * already be quoted against the original values).
-   *
-   * Property ownership is re-verified server-side: we only snapshot
-   * rooms whose property_id matches the job's property_id (i.e. rooms
-   * actually owned by this homeowner). Any other id in `room_ids` is
-   * silently dropped — keeps the path resilient if the user e.g.
-   * deletes a room mid-post.
-   *
-   * Non-fatal: a job will still post if the snapshot insert fails.
-   * Worst case is a job with no room scope, which is identical to the
-   * legacy "no rooms picked" path.
-   */
-  private async snapshotRoomScope(
-    userId: string,
-    jobId: string,
-    payload: JobCreationPayload
-  ): Promise<void> {
-    if (!payload.room_ids || payload.room_ids.length === 0) return;
-    if (!payload.property_id) return; // No property → no rooms to snapshot
-
-    try {
-      // Creation authorizes the property. Check the room IDs against that
-      // same property since this service-role query bypasses RLS.
-      const { data: rooms, error: roomsError } = await serverSupabase
-        .from('property_rooms')
-        .select('id, name, room_type, size_sqm, property_id')
-        .eq('property_id', payload.property_id)
-        .in('id', payload.room_ids);
-
-      if (roomsError || !rooms || rooms.length === 0) {
-        if (roomsError) {
-          logger.warn('Failed to load rooms for snapshot', {
-            service: 'job-creation',
-            userId,
-            jobId,
-            error: roomsError.message,
-          });
-        }
-        return;
-      }
-
-      const inserts = rooms.map(
-        (r: {
-          id: string;
-          name: string;
-          room_type: string;
-          size_sqm: number | null;
-        }) => ({
-          job_id: jobId,
-          property_room_id: r.id,
-          name: r.name,
-          room_type: r.room_type,
-          size_sqm_at_post: r.size_sqm,
-        })
-      );
-
-      const { error: insertError } = await serverSupabase
-        .from('job_rooms')
-        .insert(inserts);
-
-      if (insertError) {
-        logger.warn('Failed to snapshot job_rooms', {
-          service: 'job-creation',
-          userId,
-          jobId,
-          count: inserts.length,
-          error: insertError.message,
-        });
-      }
-    } catch (e) {
-      logger.warn('Unexpected error snapshotting job_rooms', {
-        service: 'job-creation',
-        userId,
-        jobId,
-        error: e instanceof Error ? e.message : String(e),
       });
     }
   }

@@ -43,7 +43,27 @@ export function TutorialSpotlight({
     return () => {
       document.body.style.overflow = previousOverflow;
       document.documentElement.style.overflow = previousRootOverflow;
-      previous?.focus({ preventScroll: true });
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+      if (document.activeElement === previous && previous !== document.body)
+        return;
+      // Completing/skipping removes the launch control with its introduction.
+      // Return to a surviving page heading instead of leaving focus on body.
+      const fallback =
+        document.querySelector<HTMLElement>('main h1, [role="main"] h1, h1') ??
+        document.querySelector<HTMLElement>('main, [role="main"]');
+      if (fallback) {
+        const tabIndex = fallback.getAttribute('tabindex');
+        fallback.setAttribute('tabindex', '-1');
+        fallback.focus({ preventScroll: true });
+        fallback.addEventListener(
+          'blur',
+          () => {
+            if (tabIndex === null) fallback.removeAttribute('tabindex');
+            else fallback.setAttribute('tabindex', tabIndex);
+          },
+          { once: true }
+        );
+      }
     };
   }, [mounted]);
   useEffect(() => {

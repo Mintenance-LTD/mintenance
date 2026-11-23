@@ -1,3 +1,8 @@
+import {
+  primaryAndNewestFirst,
+  propertyPageSize,
+  readPropertyPages,
+} from '@/lib/services/property-team/read-property-pages';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
@@ -28,6 +33,15 @@ export const metadata: Metadata = {
 // always current.
 export const dynamic = 'force-dynamic';
 
+interface PropertyJobSummary {
+  property_id: string;
+  active_jobs: number;
+  completed_jobs: number;
+  completed_budgets: number;
+  latest_activity: string | null;
+  recent_categories: string[];
+}
+
 export default async function PropertiesPage2025() {
   const user = await getCurrentUserFromCookies();
 
@@ -45,28 +59,33 @@ export default async function PropertiesPage2025() {
   // Cache key was only scoped by user.id, so nothing in the mutation path
   // could bust it. The query itself is ~10ms against a normal-sized
   // homeowner account; the cache was saving nothing measurable.
-  const { data: propertiesData } = await serverSupabase
-    .from('properties')
-    .select('*')
-    .eq('owner_id', user.id)
-    .order('is_primary', { ascending: false })
-    .order('created_at', { ascending: false });
-  const properties = propertiesData || [];
-
-  // Jobs for the per-property stats. Same reasoning as above — the 60s
-  // unstable_cache was hiding property_id updates.
-  // `scheduled_date` doesn't exist on jobs — the correct column is
-  // `scheduled_start_date`. Asking Supabase for a nonexistent column
-  // returns a 400 with `data = null`, which we silently coerced to `[]`,
-  // which made every property card read "0 completed jobs / £0.00 spent"
-  // regardless of the actual data.
-  const { data: jobsData } = await serverSupabase
-    .from('jobs')
-    .select(
-      'id, property_id, status, budget, scheduled_start_date, created_at, category'
-    )
-    .eq('homeowner_id', user.id);
-  const jobs = jobsData || [];
+  const properties = (
+    await readPropertyPages((after) => {
+      const query = serverSupabase
+        .from('properties')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('id')
+        .limit(propertyPageSize);
+      return after === null ? query : query.gt('id', after);
+    })
+  ).sort(primaryAndNewestFirst);
+  const summaries = new Map<string, PropertyJobSummary>();
+  for (let start = 0; start < properties.length; start += propertyPageSize) {
+    const { data, error } = await serverSupabase.rpc(
+      'read_owned_property_job_summary',
+      {
+        p_actor: user.id,
+        p_properties: properties
+          .slice(start, start + propertyPageSize)
+          .map((property) => property.id),
+      }
+    );
+    if (error || !Array.isArray(data))
+      throw new Error('Property totals could not be loaded');
+    for (const summary of data as PropertyJobSummary[])
+      summaries.set(summary.property_id, summary);
+  }
 
   // Fetch user's favorites
   const favorites = await unstable_cache(
@@ -84,36 +103,13 @@ export default async function PropertiesPage2025() {
   // Create a Set of favorited property IDs for efficient lookup
   const favoritedPropertyIds = new Set(favorites.map((f) => f.property_id));
 
-  // Calculate stats for each property
-  const propertiesWithStats = (properties || []).map((property) => {
-    const propertyJobs =
-      jobs?.filter((job) => job.property_id === property.id) || [];
-    const activeJobs = propertyJobs.filter((j) =>
-      ['posted', 'assigned', 'in_progress'].includes(j.status || '')
-    ).length;
-    const completedJobs = propertyJobs.filter(
-      (j) => j.status === 'completed'
-    ).length;
-    // Sum completed-job budgets, not recorded payments. Labels must retain that distinction.
-    const totalSpent = propertyJobs
-      .filter((j) => j.status === 'completed')
-      .reduce((sum, job) => sum + (Number(job.budget) || 0), 0);
-    const lastJob = propertyJobs.sort(
-      (a, b) =>
-        new Date(b.scheduled_start_date || b.created_at).getTime() -
-        new Date(a.scheduled_start_date || a.created_at).getTime()
-    )[0];
-    const lastServiceDate = lastJob
-      ? new Date(
-          lastJob.scheduled_start_date || lastJob.created_at
-        ).toISOString()
-      : null;
-
-    // Recent job categories
-    const recentCategories = propertyJobs
-      .slice(0, 5)
-      .map((j) => j.category)
-      .filter(Boolean);
+  const propertiesWithStats = properties.map((property) => {
+    const summary = summaries.get(property.id);
+    const activeJobs = Number(summary?.active_jobs ?? 0);
+    const completedJobs = Number(summary?.completed_jobs ?? 0);
+    const totalSpent = Number(summary?.completed_budgets ?? 0);
+    const lastServiceDate = summary?.latest_activity ?? null;
+    const recentCategories = summary?.recent_categories ?? [];
 
     return {
       id: property.id,

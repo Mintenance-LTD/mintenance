@@ -247,6 +247,160 @@ try {
   console.log(
     'PASS delegated posting, owner and payer integrity, creator records, replay, access revocation, transfer, and tenant conversion'
   );
+
+  await db.exec(`
+    ALTER TABLE profiles ADD COLUMN role text NOT NULL DEFAULT 'homeowner';
+    ALTER TABLE jobs ADD COLUMN archived_at timestamptz, ADD COLUMN location text,
+      ADD COLUMN latitude numeric, ADD COLUMN longitude numeric, ADD COLUMN city text, ADD COLUMN required_skills text[];
+    CREATE TABLE property_rooms(id uuid PRIMARY KEY, property_id uuid REFERENCES properties, name text, room_type text, size_sqm numeric);
+    CREATE TABLE job_rooms(job_id uuid REFERENCES jobs ON DELETE CASCADE, property_room_id uuid REFERENCES property_rooms,
+      name text CHECK(name <> 'Blocked snapshot'), room_type text, size_sqm_at_post numeric);
+    CREATE TABLE notification_queue(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid REFERENCES profiles,
+      notification_type text, title text NOT NULL, message text, action_url text, metadata jsonb, scheduled_for timestamptz,
+      priority text, status text);
+    GRANT SELECT ON property_rooms TO service_role;
+    GRANT SELECT, INSERT ON job_rooms,notification_queue TO service_role;
+  `);
+  const room = randomUUID();
+  const unrelated = randomUUID();
+  const blocked = randomUUID();
+  await db.query(
+    `INSERT INTO property_rooms VALUES
+    ($1,$4,'Kitchen','kitchen',10), ($2,$5,'Other kitchen','kitchen',11),
+    ($3,$4,'Blocked snapshot','kitchen',12)`,
+    [room, unrelated, blocked, property, otherProperty]
+  );
+  await db.query("UPDATE profiles SET role='contractor' WHERE id=$1", [
+    outsider,
+  ]);
+  await migrate('20261123134645_durable_job_dispatch');
+  const queryDispatch =
+    'SELECT public.create_job_with_dispatch_once($1,$2,$3,$4,$5,$6,$7,$8) AS result';
+  const roomsRequest = randomUUID();
+  const createWithRooms = (roomIds, id = roomsRequest) =>
+    db
+      .query(queryDispatch, [
+        admin,
+        id,
+        fingerprint,
+        { ...data, homeowner_id: transferredOwner },
+        photos,
+        null,
+        roomIds,
+        {},
+      ])
+      .then((response) => response.rows[0].result);
+  const claim = () =>
+    db
+      .query('SELECT public.claim_job_dispatch() AS result')
+      .then((response) => response.rows[0].result);
+  const finish = (dispatch, invites) =>
+    db
+      .query('SELECT public.finish_job_dispatch($1,$2,$3) AS result', [
+        dispatch.job_id,
+        dispatch.lease_token,
+        invites === null ? null : JSON.stringify(invites),
+      ])
+      .then((response) => response.rows[0].result);
+
+  await db.exec('SET ROLE service_role');
+  const failedScope = randomUUID();
+  await assert.rejects(createWithRooms([blocked], failedScope), {
+    code: '23514',
+  });
+  assert.equal(
+    (
+      await db.query(
+        'SELECT job_id FROM job_creation_requests WHERE request_id=$1',
+        [failedScope]
+      )
+    ).rows.length,
+    0
+  );
+  assert.equal(await claim(), null);
+  const persisted = await createWithRooms([room, unrelated]);
+  assert.equal(persisted.dispatch_status, 'pending');
+  assert.deepEqual(
+    (
+      await db.query('SELECT name FROM job_rooms WHERE job_id=$1', [
+        persisted.job.id,
+      ])
+    ).rows,
+    [{ name: 'Kitchen' }]
+  );
+  assert.equal((await createWithRooms([room, unrelated])).created, false);
+  const original = await claim();
+  assert.equal(original.job_id, persisted.job.id);
+  assert.equal(await claim(), null);
+
+  await db.query(
+    "UPDATE job_dispatch SET lease_until=now()-interval '1 second' WHERE job_id=$1",
+    [persisted.job.id]
+  );
+  const replacement = await claim();
+  assert.notEqual(replacement.lease_token, original.lease_token);
+  const preferred = {
+    user_id: outsider,
+    type: 'job_invitation_from_repeat_client',
+    title: 'Invitation',
+    message: 'Bid on a job',
+  };
+  const nearby = { ...preferred, type: 'job_nearby' };
+  assert.equal(await finish(original, [preferred]), false);
+  await assert.rejects(finish(replacement, [{ ...preferred, title: null }]), {
+    code: '23502',
+  });
+  assert.equal(
+    (await db.query('SELECT id FROM notification_queue')).rows.length,
+    0
+  );
+  assert.equal(await finish(replacement, [nearby, preferred]), true);
+  assert.equal(await finish(replacement, [nearby, preferred]), false);
+  assert.deepEqual(
+    (await db.query('SELECT notification_type FROM notification_queue')).rows,
+    [{ notification_type: 'job_invitation_from_repeat_client' }]
+  );
+  assert.equal(
+    (await createWithRooms([room, unrelated])).dispatch_status,
+    'queued'
+  );
+
+  const closed = await createWithRooms([], randomUUID());
+  const closedLease = await claim();
+  await db.exec('RESET ROLE');
+  await db.query("UPDATE jobs SET status='cancelled' WHERE id=$1", [
+    closed.job.id,
+  ]);
+  await db.exec('SET ROLE service_role');
+  assert.equal(await finish(closedLease, [preferred]), true);
+  assert.equal(
+    (
+      await db.query('SELECT status FROM job_dispatch WHERE job_id=$1', [
+        closed.job.id,
+      ])
+    ).rows[0].status,
+    'cancelled'
+  );
+  const failing = await createWithRooms([], randomUUID());
+  await db.query('UPDATE job_dispatch SET attempts=4 WHERE job_id=$1', [
+    failing.job.id,
+  ]);
+  const failedLease = await claim();
+  assert.equal(await finish(failedLease, null), true);
+  assert.equal(
+    (
+      await db.query('SELECT status FROM job_dispatch WHERE job_id=$1', [
+        failing.job.id,
+      ])
+    ).rows[0].status,
+    'needs_attention'
+  );
+  await db.exec('RESET ROLE; SET ROLE authenticated');
+  await expectDenied(claim());
+  await db.exec('RESET ROLE');
+  console.log(
+    'PASS atomic room snapshot and dispatch, lease recovery, stale claims, one delivery intent and operator escalation'
+  );
 } catch (error) {
   console.error(error.stack);
   process.exitCode = 1;

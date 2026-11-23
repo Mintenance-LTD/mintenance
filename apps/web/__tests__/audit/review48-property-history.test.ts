@@ -1,140 +1,67 @@
 import { NextRequest } from 'next/server';
 import { GET } from '@/app/api/properties/[id]/activity/route';
-const m = vi.hoisted(() => ({
-  access: vi.fn(),
-  from: vi.fn(),
-  calls: [] as { table: string; operation: string; args: unknown[] }[],
-  fail: '',
-}));
+const state = vi.hoisted(() => ({ access: vi.fn(), rpc: vi.fn() }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler: (_: unknown, handler: unknown) => handler,
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
-  serverSupabase: { from: m.from },
+  serverSupabase: { rpc: state.rpc },
 }));
 vi.mock('@/lib/services/property-team/property-management-access', () => ({
-  getPropertyForManagement: m.access,
+  getPropertyForManagement: state.access,
 }));
-beforeEach(() => {
-  vi.clearAllMocks();
-  m.calls = [];
-  m.fail = '';
-  m.access.mockResolvedValue({ owner_id: 'owner' });
-  m.from.mockImplementation((table) => {
-    let date = 'created_at';
-    const q: Record<string, unknown> = {};
-    for (const operation of ['select', 'eq', 'not', 'or', 'order', 'limit'])
-      q[operation] = (...args: unknown[]) => {
-        m.calls.push({ table, operation, args });
-        if (operation === 'order' && args[0] !== 'id') date = String(args[0]);
-        return q;
-      };
-    q.then = (resolve: (value: unknown) => unknown) =>
-      Promise.resolve({
-        error: m.fail === table ? { message: 'unavailable' } : null,
-        data:
-          table === 'jobs'
-            ? [
-                {
-                  id: 'job',
-                  title: 'Boiler',
-                  created_at: '2026-10-01',
-                  completed_at: '2026-11-14',
-                },
-              ]
-            : table === 'property_document_files'
-              ? [{ id: 'doc', name: 'Manual', created_at: '2026-11-13' }]
-              : table === 'property_inspection_reports'
-                ? [
-                    {
-                      id: 'inspection',
-                      title: 'Annual check',
-                      created_at: '2026-11-12',
-                    },
-                  ]
-                : table === 'escrow_transactions'
-                  ? date === 'released_at'
-                    ? [
-                        {
-                          id: 'old-payment',
-                          job_id: 'job',
-                          created_at: '2025-01-01',
-                          funded_at: '2025-01-02',
-                          released_at: '2026-11-15',
-                        },
-                      ]
-                    : []
-                  : [
-                      {
-                        id: 'message',
-                        job_id: 'job',
-                        created_at: '2026-11-14',
-                      },
-                    ],
-      }).then(resolve);
-    return q;
-  });
-});
-const request = (offset = '0') =>
-  new NextRequest(
-    `http://localhost/api/properties/property/activity?offset=${offset}`
-  );
+const date = '2026-11-23T13:04:05.123456+00:00';
+const events = Array.from({ length: 26 }, (_, index) => ({
+  id: 'job-00000000-0000-4000-8000-' + String(index).padStart(12, '0'),
+  date,
+  title: 'Fixture',
+  kind: 'job',
+  href: '/jobs/example',
+}));
 const context = {
   user: { id: 'owner', role: 'homeowner' },
   params: { id: 'property' },
-};
-it('includes all recorded sources and sorts a recent release of an old payment first', async () => {
-  const response = await GET(request(), context as never);
-  const body = await response.json();
-  expect(body.events[0]).toMatchObject({
-    id: 'released-old-payment',
-    href: '/payments?paymentId=old-payment',
-  });
-  expect(
-    new Set(body.events.map((event: { kind: string }) => event.kind))
-  ).toEqual(new Set(['job', 'document', 'inspection', 'payment', 'message']));
-  expect(
-    body.events.filter(
-      (event: { id: string }) => event.id === 'payment-old-payment'
-    )
-  ).toHaveLength(1);
-  expect(m.calls).toContainEqual({
-    table: 'messages',
-    operation: 'or',
-    args: ['sender_id.eq.owner,receiver_id.eq.owner'],
-  });
-  expect(m.calls).toContainEqual({
-    table: 'escrow_transactions',
-    operation: 'eq',
-    args: ['payer_id', 'owner'],
-  });
-  expect(m.calls).toContainEqual({
-    table: 'messages',
-    operation: 'eq',
-    args: ['job.property_id', 'property'],
-  });
-  expect(
-    m.calls.find(
-      (call) => call.table === 'messages' && call.operation === 'select'
-    )?.args[0]
-  ).not.toContain('content');
+} as never;
+const request = (query = '') =>
+  new NextRequest('http://localhost/api/properties/property/activity' + query);
+beforeEach(() => {
+  vi.resetAllMocks();
+  state.access.mockResolvedValue({ owner_id: 'owner' });
+  state.rpc.mockResolvedValue({ data: events, error: null });
 });
-it('does not expose financial or conversation metadata to a property team viewer', async () => {
-  m.access.mockResolvedValue({ owner_id: 'someone-else' });
-  await expect(GET(request(), context as never)).rejects.toThrow(
+it('preserves timestamp precision and stops at the exact last event on the page', async () => {
+  const response = await GET(request(), context);
+  const page = await response.json();
+  expect(response.headers.get('cache-control')).toBe('private, no-store');
+  expect(page.events).toEqual(events.slice(0, 25));
+  expect(page.hasMore).toBe(true);
+  await GET(request('?cursor=' + encodeURIComponent(page.nextCursor)), context);
+  expect(state.rpc).toHaveBeenLastCalledWith('read_property_activity_page', {
+    p_actor: 'owner',
+    p_property: 'property',
+    p_before: date,
+    p_event_key: events[24].id,
+  });
+});
+it('denies combined private history to delegated viewers', async () => {
+  state.access.mockResolvedValue({ owner_id: 'another-owner' });
+  await expect(GET(request(), context)).rejects.toThrow(
     'Only the property owner'
   );
-  expect(m.from).not.toHaveBeenCalled();
+  expect(state.rpc).not.toHaveBeenCalled();
 });
-it('reports a missing source rather than presenting a partial history as complete', async () => {
-  m.fail = 'property_document_files';
-  await expect(GET(request(), context as never)).rejects.toThrow(
-    'complete property history'
-  );
-});
-it('rejects invalid pagination before loading data', async () => {
-  await expect(GET(request('-1'), context as never)).rejects.toThrow(
+it('rejects invalid cursors before reading private history', async () => {
+  await expect(GET(request('?cursor=invalid'), context)).rejects.toThrow(
     'Invalid activity page'
   );
-  expect(m.from).not.toHaveBeenCalled();
+  expect(state.rpc).not.toHaveBeenCalled();
+});
+it('reports a failed history query instead of an empty history', async () => {
+  state.rpc.mockResolvedValue({
+    data: null,
+    error: { message: 'unavailable' },
+  });
+  await expect(GET(request(), context)).rejects.toThrow(
+    'complete property history'
+  );
 });

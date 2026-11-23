@@ -102,6 +102,7 @@ interface SubmitJobOptions {
 interface SubmitJobResult {
   success: boolean;
   jobId?: string;
+  dispatchStatus?: string;
   error?: string;
 }
 
@@ -342,6 +343,7 @@ export async function submitJob({
     return {
       success: true,
       jobId: jobId,
+      dispatchStatus: data.job?.dispatchStatus,
     };
   } catch (error) {
     logger.error('Job submission exception:', error, { service: 'app' });

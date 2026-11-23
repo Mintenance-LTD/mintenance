@@ -23,10 +23,8 @@ const deleteAccountSchema = z.object({
  * contract cascades. Provider cleanup is durably queued. Accounts with financial
  * history or shared organization data require an individual erasure review.
  *
- * Sprint 7 (1.6): narrowed sibling endpoint DELETE /api/account/delete
- * to a "deactivate" (soft-delete only — sets deleted_at). Call this one
- * for irreversible GDPR erasure. Idempotent on an already-soft-deleted
- * profile (still hard-deletes it).
+ * Signed-in users can request erasure here. People with deactivated accounts
+ * can contact the data protection team through the Privacy Policy.
  */
 export const maxDuration = 60;
 

@@ -70,6 +70,17 @@ function statusBadge(status: string, bidsCount: number) {
 }
 
 function ProjectCard({ job }: { job: ActiveJob }) {
+  const status = job.status.toLowerCase();
+  const action =
+    (status === 'posted' || status === 'pending') && job.bidsCount > 0
+      ? 'Compare bids'
+      : status === 'assigned'
+        ? 'Review upcoming work'
+        : status === 'in_progress'
+          ? 'Track progress'
+          : status === 'completed'
+            ? 'Review completed work'
+            : 'View details';
   // Only show the badge when real escrow rows exist for this job
   // (page.tsx sums payments.status='in_escrow' into job.escrowAmount).
   // Previously this was a job.budget proxy that lied when escrow was
@@ -109,8 +120,7 @@ function ProjectCard({ job }: { job: ActiveJob }) {
             themselves. When escrow is held, the locked amount is
             already surfaced in the held-badge above. */}
         <Link href={`/jobs/${job.id}`} className='btn btn-primary btn-block'>
-          {job.bidsCount > 0 ? 'Compare bids' : 'View details'}{' '}
-          <ArrowRight size={14} strokeWidth={1.75} />
+          {action} <ArrowRight size={14} strokeWidth={1.75} />
         </Link>
       </div>
     </article>

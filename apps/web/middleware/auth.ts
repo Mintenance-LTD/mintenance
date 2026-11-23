@@ -57,16 +57,18 @@ export async function handleSupabaseAuth(
     if (csrfResponse) return csrfResponse;
 
     // SECURITY: Read role from profiles table (not user_metadata which is client-writable)
-    const { data: profileData } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, deleted_at')
       .eq('id', user.id)
       .single();
+    if (profileError || !profileData?.role || profileData.deleted_at)
+      return redirectToLogin(request);
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-user-id', user.id);
     requestHeaders.set('x-user-email', user.email || '');
-    requestHeaders.set('x-user-role', profileData?.role || 'homeowner');
+    requestHeaders.set('x-user-role', profileData.role);
     requestHeaders.set('x-pathname', pathname);
 
     const response = NextResponse.next({

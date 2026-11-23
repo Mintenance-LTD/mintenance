@@ -28,7 +28,7 @@ it('shows the actual nested contractor name and a readable invitation message', 
   expect(
     await screen.findByText('Hiring Alex Smith again')
   ).toBeInTheDocument();
-  expect(screen.getByText(/They'll receive an invitation/)).toBeInTheDocument();
+  expect(screen.getByText(/Posting queues an invitation/)).toBeInTheDocument();
   expect(document.body.textContent).not.toContain('&apos;');
 });
 it('does not leave an unrelated guide visible after a no-results search', () => {

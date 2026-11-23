@@ -158,14 +158,14 @@ describe('fetchNearbyContractors (service-area-aware audience)', () => {
     );
   });
 
-  it('returns [] when both the RPC and the legacy scan fail', async () => {
+  it('lets dispatch retry when both the RPC and the legacy scan fail', async () => {
     mockRpc.mockResolvedValue({ data: null, error: { message: 'boom' } });
     mockFrom.mockReturnValue(
       buildChain({ data: null, error: { message: 'db down' } })
     );
 
-    const result = await fetchNearbyContractors(CHELTENHAM);
-
-    expect(result).toEqual([]);
+    await expect(fetchNearbyContractors(CHELTENHAM)).rejects.toThrow(
+      'Nearby contractor audience could not be loaded'
+    );
   });
 });

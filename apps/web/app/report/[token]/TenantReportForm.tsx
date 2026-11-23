@@ -3,6 +3,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ReportExtras } from '@/app/maintenance/reports/ReportExtras';
 import {
+  createReportAttempt,
+  readReportAttempt,
+  storeReportAttempt,
+  type ReportAttempt,
+} from './submission-recovery';
+import {
   AlertTriangle,
   CheckCircle2,
   Loader2,
@@ -13,6 +19,7 @@ import {
 interface PropertyInfo {
   property_name: string;
   address: string;
+  emergencyPhone?: string;
 }
 const CATEGORIES = [
   { value: 'plumbing', label: 'Plumbing' },
@@ -70,6 +77,11 @@ export function TenantReportForm({ token }: { token: string }) {
   const [reportId, setReportId] = useState('');
   const [conversationUrl, setConversationUrl] = useState('');
   const [copied, setCopied] = useState(false);
+  const [submission, setSubmission] = useState<ReportAttempt | null>(null);
+  const [keepRecovery, setKeepRecovery] = useState(false);
+  const [recoveryStorageUnavailable, setRecoveryStorageUnavailable] =
+    useState(false);
+  const [awaitingAcknowledgment, setAwaitingAcknowledgment] = useState(false);
   const busy = useRef(false);
   const resultHeading = useRef<HTMLHeadingElement>(null);
 
@@ -93,7 +105,14 @@ export function TenantReportForm({ token }: { token: string }) {
         const data = await response.json();
         if (!data.property) throw new Error('Missing property');
         if (active) {
-          setProperty(data.property);
+          setProperty({
+            ...data.property,
+            emergencyPhone:
+              typeof data.emergency_phone === 'string' &&
+              /^\+?[0-9]{7,15}$/.test(data.emergency_phone)
+                ? data.emergency_phone
+                : undefined,
+          });
           setState('ready');
         }
       } catch {
@@ -111,11 +130,16 @@ export function TenantReportForm({ token }: { token: string }) {
   }, [token, attempt]);
 
   useEffect(() => {
+    const saved = readReportAttempt(token);
+    setSubmission(saved);
+    setKeepRecovery(!!saved);
+  }, [token]);
+
+  useEffect(() => {
     if (state === 'success') resultHeading.current?.focus();
   }, [state]);
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
+  async function sendReport(recover: boolean) {
     if (busy.current) return;
     busy.current = true;
     setState('submitting');
@@ -123,40 +147,59 @@ export function TenantReportForm({ token }: { token: string }) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 30000);
     try {
+      const current = submission ?? createReportAttempt();
+      setSubmission(current);
+      if (keepRecovery)
+        setRecoveryStorageUnavailable(!storeReportAttempt(token, current));
       const response = await fetch('/api/report/' + encodeURIComponent(token), {
         method: 'POST',
         signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reporter_name: name.trim(),
-          reporter_phone: phone.trim() || undefined,
-          reporter_email: email.trim() || undefined,
-          reporter_unit: unit.trim() || undefined,
-          category,
-          urgency,
-          description: description.trim(),
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-report-submission-key': current.key,
+        },
+        body: JSON.stringify(
+          recover
+            ? { recover: true }
+            : {
+                reporter_name: name.trim(),
+                reporter_phone: phone.trim() || undefined,
+                reporter_email: email.trim() || undefined,
+                reporter_unit: unit.trim() || undefined,
+                category,
+                urgency,
+                description: description.trim(),
+              }
+        ),
       });
       if (!response.ok) {
+        const failure = await response.json().catch(() => null);
         throw new Error(
           response.status === 429
             ? 'Too many attempts. Please wait a minute before trying again.'
-            : response.status === 404 || response.status === 410
-              ? 'This link is no longer available. Contact your property manager.'
-              : 'Your report could not be confirmed. Your details are still here. Please try again.'
+            : response.status === 409
+              ? 'A report was saved with your earlier details. Recover it to send an update.'
+              : failure?.code === 'REPORT_NOT_FOUND'
+                ? 'No report was found for this attempt yet. You can send the details below using the same attempt.'
+                : response.status === 404 || response.status === 410
+                  ? 'This reporting link or recovery attempt is no longer available. Check with your property manager before sending again.'
+                  : 'Your report could not be confirmed. Your details are still here. Please try again.'
         );
       }
       const data = await response.json();
-      setReportId(data.report_id || '');
-      // Only accept the expected local receipt route, never an arbitrary API-supplied URL.
-      setConversationUrl(
-        typeof data.conversation_url === 'string' &&
-          /^\/maintenance\/reports\/[a-f0-9-]+#[a-f0-9]{64}$/.test(
-            data.conversation_url
-          )
-          ? data.conversation_url
-          : ''
-      );
+      const receiptRoute =
+        /^\/maintenance\/reports\/([a-f0-9-]{36})#[a-f0-9]{64}$/;
+      const match =
+        typeof data.conversation_url === 'string'
+          ? receiptRoute.exec(data.conversation_url)
+          : null;
+      if (!match || data.report_id !== match[1])
+        throw new Error(
+          'We could not confirm the private link. Retry this attempt to recover it.'
+        );
+      setReportId(data.report_id);
+      setConversationUrl(data.conversation_url);
+      setAwaitingAcknowledgment(data.acknowledgment === 'pending');
       setState('success');
     } catch (reason) {
       setError(
@@ -164,7 +207,7 @@ export function TenantReportForm({ token }: { token: string }) {
           reason.name !== 'AbortError' &&
           !(reason instanceof TypeError)
           ? reason.message
-          : 'We could not confirm submission. It may have reached your property manager. Check with them before sending it again.'
+          : 'We could not confirm submission. Retry this attempt to recover the report if it was already saved.'
       );
       setState('ready');
     } finally {
@@ -221,7 +264,7 @@ export function TenantReportForm({ token }: { token: string }) {
           Your property manager can now review the issue. A repair appointment
           has not been booked.
         </p>
-        {urgency === 'emergency' ? (
+        {awaitingAcknowledgment ? (
           <p
             role='alert'
             className='mt-4 rounded-xl bg-amber-50 p-4 text-amber-950'
@@ -229,6 +272,14 @@ export function TenantReportForm({ token }: { token: string }) {
             Your emergency report is saved and awaiting human acknowledgment. Do
             not wait for a reply if anyone is in danger. Contact the appropriate
             emergency service and your property manager directly.
+            {property?.emergencyPhone && (
+              <a
+                className='mt-2 block font-semibold underline'
+                href={`tel:${property.emergencyPhone}`}
+              >
+                Call the property emergency contact {property.emergencyPhone}
+              </a>
+            )}
           </p>
         ) : null}
         {reportId && (
@@ -284,6 +335,24 @@ export function TenantReportForm({ token }: { token: string }) {
             receipt={conversationUrl.split('#')[1]}
           />
         )}
+        {keepRecovery && (
+          <button
+            type='button'
+            className='mr-4 mt-3 font-semibold text-emerald-800 underline underline-offset-4'
+            onClick={() => {
+              storeReportAttempt(token, null);
+              setKeepRecovery(false);
+            }}
+          >
+            Forget recovery in this tab
+          </button>
+        )}
+        {recoveryStorageUnavailable && (
+          <p role='status'>
+            This browser could not save recovery. Copy your private link before
+            leaving.
+          </p>
+        )}
         <button
           className='mt-3 font-semibold text-emerald-800 underline underline-offset-4'
           onClick={() => {
@@ -294,6 +363,10 @@ export function TenantReportForm({ token }: { token: string }) {
             setReportId('');
             setCopied(false);
             setError('');
+            storeReportAttempt(token, null);
+            setSubmission(null);
+            setKeepRecovery(false);
+            setRecoveryStorageUnavailable(false);
             setState('ready');
           }}
         >
@@ -317,7 +390,10 @@ export function TenantReportForm({ token }: { token: string }) {
       </div>
       <div className='grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_280px]'>
         <form
-          onSubmit={submit}
+          onSubmit={(event) => {
+            event.preventDefault();
+            void sendReport(false);
+          }}
           className='min-w-0 space-y-5'
           aria-busy={state === 'submitting'}
         >
@@ -328,6 +404,16 @@ export function TenantReportForm({ token }: { token: string }) {
             >
               {error}
             </div>
+          )}
+          {submission && (
+            <button
+              type='button'
+              className='font-semibold text-emerald-800 underline underline-offset-4'
+              disabled={state === 'submitting'}
+              onClick={() => void sendReport(true)}
+            >
+              Recover a saved report
+            </button>
           )}
           <fieldset disabled={state === 'submitting'} className={card}>
             <legend className='sr-only'>Issue details</legend>
@@ -426,6 +512,15 @@ export function TenantReportForm({ token }: { token: string }) {
                 Do not wait for a reply here if there is immediate danger.
                 Contact the appropriate emergency service and your property
                 manager using their emergency contact details.
+                {property?.emergencyPhone && (
+                  <a
+                    className='mt-2 block font-semibold underline'
+                    href={`tel:${property.emergencyPhone}`}
+                  >
+                    Call the property emergency contact{' '}
+                    {property.emergencyPhone}
+                  </a>
+                )}
               </p>
             )}
           </fieldset>
@@ -490,6 +585,31 @@ export function TenantReportForm({ token }: { token: string }) {
             </a>
             .
           </p>
+          <label className='flex items-start gap-2 text-sm text-slate-700'>
+            <input
+              type='checkbox'
+              className='mt-1 accent-emerald-800'
+              checked={keepRecovery}
+              disabled={state === 'submitting'}
+              onChange={(event) => {
+                const keep = event.target.checked;
+                setKeepRecovery(keep);
+                const saved = storeReportAttempt(
+                  token,
+                  keep ? submission : null
+                );
+                setRecoveryStorageUnavailable(keep && !saved);
+              }}
+            />
+            Allow recovery in this tab for one hour. Use this only on a private
+            device.
+          </label>
+          {recoveryStorageUnavailable && (
+            <p role='status'>
+              This browser could not save recovery. Keep this page open to
+              retry.
+            </p>
+          )}
           <button
             type='submit'
             className={

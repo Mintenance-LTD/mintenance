@@ -1,49 +1,15 @@
-// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
-
-const { mockFrom, mockCreateNotification, mockFetchAudience, mockNextWindow } =
-  vi.hoisted(() => ({
-    mockFrom: vi.fn(),
-    mockCreateNotification: vi.fn(),
-    mockFetchAudience: vi.fn(),
-    mockNextWindow: vi.fn(),
-  }));
-
-function buildChain(result?: { data?: unknown; error?: unknown }) {
-  const resolved = {
-    data: result?.data ?? null,
-    error: result?.error ?? null,
-  };
-  const chain: Record<string, any> = {};
-  for (const m of ['select', 'eq', 'not', 'in', 'update']) {
-    chain[m] = vi.fn().mockReturnValue(chain);
-  }
-  chain.single = vi.fn().mockResolvedValue(resolved);
-  chain.maybeSingle = vi.fn().mockResolvedValue(resolved);
-  chain.then = (
-    onFulfilled?: (v: typeof resolved) => unknown,
-    onRejected?: (e: unknown) => unknown
-  ) => Promise.resolve(resolved).then(onFulfilled, onRejected);
-  return chain;
-}
-
-vi.mock('@/lib/api/supabaseServer', () => ({
-  serverSupabase: { from: mockFrom },
+const { from, fetchNearby, nextWindow } = vi.hoisted(() => ({
+  from: vi.fn(),
+  fetchNearby: vi.fn(),
+  nextWindow: vi.fn(),
 }));
 
-vi.mock('@mintenance/shared', () => ({
-  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-}));
-
-vi.mock('@/lib/services/notifications/NotificationService', () => ({
-  NotificationService: { createNotification: mockCreateNotification },
-}));
-
+vi.mock('@/lib/api/supabaseServer', () => ({ serverSupabase: { from } }));
 vi.mock('@/lib/services/job-notification-audience', () => ({
-  fetchNearbyContractors: mockFetchAudience,
+  fetchNearbyContractors: fetchNearby,
 }));
-
 vi.mock('@/lib/services/matching/preferred-hours', () => ({
-  nextPreferredWindowStart: mockNextWindow,
+  nextPreferredWindowStart: nextWindow,
 }));
 
 import { JobNotificationService } from '../job-notification-service';
@@ -56,207 +22,147 @@ const JOB = {
   longitude: -2.07,
   city: 'Cheltenham',
 };
-
-function audience(...ids: string[]) {
-  return ids.map((id) => ({
+const service = JobNotificationService.getInstance();
+const audience = (...ids: string[]) =>
+  ids.map((id) => ({
     id,
     distanceKm: 1,
-    matchedVia: 'service_area' as const,
+    matchedVia: 'service_area',
     preferredDays: null,
     preferredHours: null,
   }));
+
+function query(data: unknown, error: unknown = null) {
+  const result = { data, error };
+  const chain = {
+    select: () => chain,
+    eq: () => chain,
+    is: () => chain,
+    in: async () => result,
+    maybeSingle: async () => result,
+  };
+  return chain;
 }
 
-describe('JobNotificationService.notifyNearbyContractors', () => {
-  beforeEach(() => {
-    mockCreateNotification.mockResolvedValue('notif-id');
-    mockNextWindow.mockReturnValue(null); // in-hours by default
-  });
-
-  it('fans out job_nearby through NotificationService per matched contractor', async () => {
-    mockFetchAudience.mockResolvedValue(audience('c-1', 'c-2'));
-
-    await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
-      required_skills: null,
-    });
-
-    expect(mockFetchAudience).toHaveBeenCalledWith(
-      { lat: JOB.latitude, lng: JOB.longitude },
-      'Cheltenham'
-    );
-    expect(mockCreateNotification).toHaveBeenCalledTimes(2);
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: 'c-1',
-        type: 'job_nearby',
-        metadata: { jobId: JOB.id },
-      })
-    );
-  });
-
-  it('keeps the soft skill filter: only skilled contractors when some match', async () => {
-    mockFetchAudience.mockResolvedValue(audience('c-skilled', 'c-unskilled'));
-    mockFrom.mockReturnValue(
-      buildChain({
-        data: [{ contractor_id: 'c-skilled', skill_name: 'plumbing' }],
-        error: null,
-      })
-    );
-
-    await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
-      required_skills: ['plumbing'],
-    });
-
-    expect(mockCreateNotification).toHaveBeenCalledTimes(1);
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'c-skilled' })
-    );
-  });
-
-  it('keeps the notify-all fallback when zero contractors match the skills', async () => {
-    mockFetchAudience.mockResolvedValue(audience('c-1', 'c-2'));
-    mockFrom.mockReturnValue(buildChain({ data: [], error: null }));
-
-    await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
-      required_skills: ['roofing'],
-    });
-
-    expect(mockCreateNotification).toHaveBeenCalledTimes(2);
-  });
-
-  it('defers out-of-hours pushes for service-area matches only', async () => {
-    const windowStart = new Date('2026-07-17T08:00:00Z');
-    mockNextWindow.mockReturnValue(windowStart);
-    mockFetchAudience.mockResolvedValue([
-      ...audience('c-sa'),
-      {
-        id: 'c-legacy',
-        distanceKm: 2,
-        matchedVia: 'legacy_scan' as const,
-        preferredDays: null,
-        preferredHours: null,
-      },
-    ]);
-
-    await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
-      required_skills: null,
-    });
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'c-sa', deferUntil: windowStart })
-    );
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'c-legacy', deferUntil: undefined })
-    );
-  });
-
-  it('sends nothing when the audience is empty', async () => {
-    mockFetchAudience.mockResolvedValue([]);
-
-    await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
-      required_skills: null,
-    });
-
-    expect(mockCreateNotification).not.toHaveBeenCalled();
-  });
+beforeEach(() => {
+  vi.resetAllMocks();
+  nextWindow.mockReturnValue(null);
 });
 
-describe('JobNotificationService.notifyPreferredContractor', () => {
-  beforeEach(() => {
-    mockCreateNotification.mockResolvedValue('notif-id');
-  });
-
-  it('sends job_invitation_from_repeat_client with the contractor bid URL', async () => {
-    mockFrom.mockReturnValue(
-      buildChain({
-        data: { id: 'c-9', role: 'contractor', first_name: 'Sam' },
-        error: null,
-      })
-    );
-
-    await JobNotificationService.getInstance().notifyPreferredContractor(
-      'c-9',
-      'job-1',
-      'Fix leaking tap',
-      'h-1'
-    );
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: 'c-9',
-        type: 'job_invitation_from_repeat_client',
-        actionUrl: '/contractor/jobs/job-1',
-        // canonical camelCase key — matches job_nearby (Phase 4)
-        metadata: expect.objectContaining({ jobId: 'job-1' }),
-      })
-    );
-  });
-
-  it('skips silently when the contractor no longer exists', async () => {
-    mockFrom.mockReturnValue(buildChain({ data: null, error: null }));
-
-    await JobNotificationService.getInstance().notifyPreferredContractor(
-      'c-gone',
-      'job-1',
-      'Fix leaking tap',
-      'h-1'
-    );
-
-    expect(mockCreateNotification).not.toHaveBeenCalled();
-  });
-});
-
-describe('recurring trade and preferred audience', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockNextWindow.mockReturnValue(null);
-    mockCreateNotification.mockResolvedValue('n');
-    mockFetchAudience.mockResolvedValue(
-      audience('gardener', 'plumber', 'other-gardener')
-    );
-  });
-  it('alerts only matching trades in the eligible service area', async () => {
-    mockFrom.mockReturnValue(
-      buildChain({
-        data: [
-          { contractor_id: 'gardener', skill_name: 'Garden maintenance' },
-          { contractor_id: 'plumber', skill_name: 'Plumbing' },
-        ],
-      })
-    );
-    await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
-      recurring: { category: 'gardening' },
-    });
-    expect(mockCreateNotification).toHaveBeenCalledTimes(1);
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'gardener' })
-    );
-  });
-  it('restricts the selected contractor without broadening to other trades or favourites', async () => {
-    mockFrom.mockReturnValue(
-      buildChain({
-        data: [
-          { contractor_id: 'gardener', skill_name: 'Landscaping' },
-          { contractor_id: 'other-gardener', skill_name: 'Gardening' },
-        ],
-      })
-    );
-    await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
-      recurring: { category: 'gardening', contractorId: 'other-gardener' },
-    });
-    expect(mockCreateNotification).toHaveBeenCalledTimes(1);
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'other-gardener' })
-    );
-  });
-  it.each([{ data: [] }, { error: { message: 'unavailable' } }])(
-    'never falls back to every contractor when trade matching fails',
-    async (result) => {
-      mockFrom.mockReturnValue(buildChain(result));
-      await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
-        recurring: { category: 'gardening' },
-      });
-      expect(mockCreateNotification).not.toHaveBeenCalled();
-    }
+it('plans an invitation for each eligible nearby contractor', async () => {
+  fetchNearby.mockResolvedValue(audience('c-1', 'c-2'));
+  expect(
+    await service.planNearbyInvites(JOB, { required_skills: null })
+  ).toEqual([
+    expect.objectContaining({ user_id: 'c-1', type: 'job_nearby' }),
+    expect.objectContaining({ user_id: 'c-2', type: 'job_nearby' }),
+  ]);
+  expect(fetchNearby).toHaveBeenCalledWith(
+    { lat: JOB.latitude, lng: JOB.longitude },
+    'Cheltenham'
   );
+});
+
+it('narrows the audience when skills match and preserves the fallback when none match', async () => {
+  fetchNearby.mockResolvedValue(audience('c-skilled', 'c-unskilled'));
+  from.mockReturnValue(
+    query([{ contractor_id: 'c-skilled', skill_name: 'plumbing' }])
+  );
+  expect(
+    (
+      await service.planNearbyInvites(JOB, { required_skills: ['plumbing'] })
+    ).map((x) => x.user_id)
+  ).toEqual(['c-skilled']);
+  expect(
+    await service.planNearbyInvites(JOB, { required_skills: ['roofing'] })
+  ).toHaveLength(2);
+});
+
+it('keeps contractor working-hours deferrals and bounds the number of queued invites', async () => {
+  const outside = new Date('2026-11-23T18:00:00Z');
+  nextWindow.mockReturnValue(outside);
+  fetchNearby.mockResolvedValue([
+    { id: 'legacy', distanceKm: 0, matchedVia: 'legacy_scan' },
+    ...audience(
+      ...Array.from(
+        { length: 65 },
+        (_, index) => 'c-' + String(index).padStart(2, '0')
+      )
+    ),
+  ]);
+  const planned = await service.planNearbyInvites(JOB, {});
+  expect(planned).toHaveLength(50);
+  expect(planned[0]).toMatchObject({
+    user_id: 'legacy',
+    scheduled_for: undefined,
+  });
+  expect(planned[1]).toMatchObject({
+    user_id: 'c-00',
+    scheduled_for: outside.toISOString(),
+  });
+});
+
+it('sends nothing when the audience is empty', async () => {
+  fetchNearby.mockResolvedValue([]);
+  expect(await service.planNearbyInvites(JOB, {})).toEqual([]);
+});
+
+it('plans a direct invitation for an active previously hired contractor', async () => {
+  from
+    .mockReturnValueOnce(query({ id: 'contractor' }))
+    .mockReturnValueOnce(query({ first_name: 'Sam' }));
+  const preferred = await service.planPreferredInvite(
+    'contractor',
+    JOB.title,
+    'requester'
+  );
+  expect(preferred).toMatchObject({
+    user_id: 'contractor',
+    type: 'job_invitation_from_repeat_client',
+    title: 'Sam invited you to bid',
+  });
+  expect(preferred?.message).not.toMatch(/before other contractors/);
+  from.mockReturnValueOnce(query(null));
+  expect(
+    await service.planPreferredInvite(
+      'missing-contractor',
+      JOB.title,
+      'requester'
+    )
+  ).toBeNull();
+});
+
+it('limits recurring invitations to the selected trade and contractor', async () => {
+  fetchNearby.mockResolvedValue(
+    audience('gardener', 'plumber', 'other-gardener')
+  );
+  from.mockReturnValue(
+    query([
+      { contractor_id: 'gardener', skill_name: 'Landscaping' },
+      { contractor_id: 'plumber', skill_name: 'Plumbing' },
+      { contractor_id: 'other-gardener', skill_name: 'Gardening' },
+    ])
+  );
+  expect(
+    (
+      await service.planNearbyInvites(JOB, {
+        recurring: { category: 'gardening' },
+      })
+    ).map((x) => x.user_id)
+  ).toEqual(['gardener', 'other-gardener']);
+  expect(
+    (
+      await service.planNearbyInvites(JOB, {
+        recurring: { category: 'gardening', contractorId: 'other-gardener' },
+      })
+    ).map((x) => x.user_id)
+  ).toEqual(['other-gardener']);
+});
+
+it('reports a lookup failure so the worker can retry without broadening the audience', async () => {
+  fetchNearby.mockResolvedValue(audience('gardener'));
+  from.mockReturnValue(query(null, { message: 'unavailable' }));
+  await expect(
+    service.planNearbyInvites(JOB, { recurring: { category: 'gardening' } })
+  ).rejects.toThrow('trade audience');
 });

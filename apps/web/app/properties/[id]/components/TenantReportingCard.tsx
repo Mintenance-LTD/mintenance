@@ -26,6 +26,10 @@ export function TenantReportingCard({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [phone, setPhone] = useState('');
+  const [savedPhone, setSavedPhone] = useState('');
+  const [savingPhone, setSavingPhone] = useState(false);
+  const phoneInputId = `tenant-emergency-phone-${propertyId}`;
   const mutationPending = useRef(false);
 
   const fetchReportTokens = useCallback(async () => {
@@ -38,6 +42,9 @@ export function TenantReportingCard({
       if (!Array.isArray(data.tokens))
         throw new Error('Incomplete reporting links');
       setReportTokens(data.tokens);
+      const contact = data.emergency_phone ?? '';
+      setPhone(contact);
+      setSavedPhone(contact);
     } catch {
       setLoadError(true);
     } finally {
@@ -118,6 +125,46 @@ export function TenantReportingCard({
     }
   };
 
+  const saveEmergencyPhone = async () => {
+    if (mutationPending.current) return;
+    mutationPending.current = true;
+    setSavingPhone(true);
+    try {
+      const csrfToken = await getCsrfToken();
+      const res = await fetch(`/api/properties/${propertyId}/report-token`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ emergency_phone: phone.trim() || null }),
+      });
+      const body = await res.json();
+      if (
+        !res.ok ||
+        !(
+          body.emergency_phone === null ||
+          typeof body.emergency_phone === 'string'
+        )
+      ) {
+        toast.error(
+          res.status === 400
+            ? 'Enter a valid phone number.'
+            : 'Emergency contact could not be saved.'
+        );
+        return;
+      }
+      setPhone(body.emergency_phone ?? '');
+      setSavedPhone(body.emergency_phone ?? '');
+      toast.success('Emergency contact updated');
+    } catch {
+      toast.error('Emergency contact could not be saved.');
+    } finally {
+      mutationPending.current = false;
+      setSavingPhone(false);
+    }
+  };
+
   const copyReportLink = async (reportToken: string) => {
     if (!reportToken) {
       toast.error('Reporting link unavailable. Reload and retry.');
@@ -146,12 +193,50 @@ export function TenantReportingCard({
         Share a link with tenants so they can report maintenance without needing
         an account.
       </p>
+      {!loading && !loadError && (
+        <div className='mb-4 space-y-2'>
+          <label htmlFor={phoneInputId} className='block text-sm font-medium'>
+            Emergency contact number
+          </label>
+          <p id={`${phoneInputId}-help`} className='t-meta'>
+            Use a number your team has approved to share with anyone who has an
+            active reporting link.
+          </p>
+          <input
+            id={phoneInputId}
+            aria-describedby={`${phoneInputId}-help`}
+            type='tel'
+            maxLength={40}
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            className='field w-full'
+            disabled={savingPhone}
+          />
+          <button
+            type='button'
+            className='pw-btn pw-btn-small'
+            onClick={() => void saveEmergencyPhone()}
+            disabled={
+              phone === savedPhone ||
+              savingPhone ||
+              isGeneratingToken ||
+              updating !== null
+            }
+          >
+            {savingPhone ? 'Saving…' : 'Save emergency contact'}
+          </button>
+        </div>
+      )}
       <button
         type='button'
         className='pw-btn pw-btn-primary'
         onClick={handleGenerateReportToken}
         disabled={
-          loading || loadError || isGeneratingToken || updating !== null
+          loading ||
+          loadError ||
+          isGeneratingToken ||
+          updating !== null ||
+          savingPhone
         }
         style={{ width: '100%', justifyContent: 'center', marginBottom: 10 }}
       >
@@ -210,7 +295,7 @@ export function TenantReportingCard({
               </button>
               <button
                 type='button'
-                disabled={isGeneratingToken || updating !== null}
+                disabled={isGeneratingToken || updating !== null || savingPhone}
                 onClick={() => handleToggleToken(token.id, token.is_active)}
                 className='pw-btn pw-btn-small'
                 style={{ padding: '4px 8px', fontSize: 12 }}

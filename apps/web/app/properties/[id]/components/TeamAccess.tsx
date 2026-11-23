@@ -33,6 +33,23 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
   const savingRef = useRef(false);
   const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState({ email: '', role: 'viewer' });
+  const [manualCopy, setManualCopy] = useState<{
+    memberId: string;
+    message: string;
+  } | null>(null);
+
+  async function copyInvite(member: TeamMember) {
+    const role =
+      member.role === 'admin' ? 'property administrator' : member.role;
+    const message = `You've been invited to join a property on Mintenance as a ${role}. Sign in with ${member.email} at ${window.location.origin}/properties and accept the invitation.`;
+    try {
+      await navigator.clipboard.writeText(message);
+      setManualCopy(null);
+      toast.success('Invitation instructions copied');
+    } catch {
+      setManualCopy({ memberId: member.id, message });
+    }
+  }
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -183,9 +200,9 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
           >
             <option value='viewer'>Viewer — can view property details</option>
             <option value='manager'>
-              Manager — can manage jobs and tenants
+              Manager — can post jobs and manage tenants
             </option>
-            <option value='admin'>Admin — full access</option>
+            <option value='admin'>Admin — can manage property and team</option>
           </select>
           <div className='flex gap-2'>
             <button
@@ -193,7 +210,7 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
               disabled={saving}
               className='flex-1 px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 disabled:opacity-50'
             >
-              {saving ? 'Inviting...' : 'Send Invite'}
+              {saving ? 'Saving…' : 'Save invitation'}
             </button>
             <button
               onClick={() => setShowForm(false)}
@@ -240,6 +257,27 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
                   {m.status}
                 </span>
               </div>
+              {m.status === 'pending' && (
+                <div className='mt-2'>
+                  <button
+                    type='button'
+                    className='font-medium text-teal-700 underline'
+                    onClick={() => void copyInvite(m)}
+                  >
+                    Copy invitation instructions
+                  </button>
+                  {manualCopy?.memberId === m.id && (
+                    <textarea
+                      aria-label='Invitation instructions'
+                      className='mt-2 w-full rounded border p-2'
+                      rows={3}
+                      value={manualCopy.message}
+                      readOnly
+                      onFocus={(event) => event.currentTarget.select()}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

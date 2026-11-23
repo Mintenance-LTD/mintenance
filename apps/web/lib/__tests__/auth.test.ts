@@ -59,6 +59,7 @@ const { mockConfigInstance, mockCookieStore, supabaseChain } = vi.hoisted(
       })
     );
     supabaseChain.getUserById = vi.fn();
+    supabaseChain.getUser = vi.fn();
     supabaseChain.is = vi.fn(() => supabaseChain);
     supabaseChain.eq = vi.fn(() => supabaseChain);
     supabaseChain.select = vi.fn(() => supabaseChain);
@@ -144,7 +145,10 @@ vi.mock('../api/supabaseServer', () => ({
   serverSupabase: {
     from: vi.fn(() => supabaseChain),
     rpc: supabaseChain.rpc,
-    auth: { admin: { getUserById: supabaseChain.getUserById } },
+    auth: {
+      getUser: supabaseChain.getUser,
+      admin: { getUserById: supabaseChain.getUserById },
+    },
   },
 }));
 
@@ -163,7 +167,9 @@ import {
   setAuthCookie,
   clearAuthCookie,
   getCurrentUserFromCookies,
+  getCurrentUserFromBearerToken,
 } from '../auth';
+import { NextRequest } from 'next/server';
 
 describe('Auth Library', () => {
   const mockUser = {
@@ -289,6 +295,33 @@ describe('Auth Library', () => {
   });
 
   describe('verifyToken', () => {
+    it('rejects both web and provider sessions for an already deactivated profile', async () => {
+      const deleted_at = '2026-11-23T12:00:00Z';
+      const token = await createToken(mockUser);
+      supabaseChain.maybeSingle.mockResolvedValueOnce({
+        data: { tokens_revoked_at: null, deleted_at },
+        error: null,
+      });
+      expect(await verifyToken(token)).toBeNull();
+
+      supabaseChain.getUser.mockResolvedValueOnce({
+        data: {
+          user: { ...mockUser, email_confirmed_at: '2026-01-01T00:00:00Z' },
+        },
+        error: null,
+      });
+      supabaseChain.single.mockResolvedValueOnce({
+        data: { role: 'homeowner', deleted_at },
+        error: null,
+      });
+      expect(
+        await getCurrentUserFromBearerToken(
+          new NextRequest('https://example.test/api/jobs', {
+            headers: { authorization: 'Bearer synthetic-token' },
+          })
+        )
+      ).toBeNull();
+    });
     it.each([
       { data: { user: { id: '123', email_confirmed_at: null } }, error: null },
       { data: { user: null }, error: null },

@@ -7,6 +7,19 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 import { hasFeatureAccess } from '@/lib/feature-access-config';
 
+const emergencyPhone = z
+  .string()
+  .trim()
+  .max(40)
+  .transform((value) => value.replace(/[ ().-]/g, '') || null)
+  .pipe(
+    z
+      .string()
+      .regex(/^\+?[0-9]{7,15}$/)
+      .nullable()
+  )
+  .nullable();
+
 /**
  * 2026-05-22 Sprint 4: tier gate. Tenant reporting links are a Landlord+
  * feature. Free homeowners get a 402 on link creation. Admins bypass.
@@ -38,20 +51,33 @@ export const GET = withApiHandler(
 
     await getPropertyForManagement(user, propertyId, 'manage_contacts');
 
-    const { data: tokens, error } = await serverSupabase
-      .from('anonymous_report_tokens')
-      .select('id, token, property_id, label, is_active, created_at')
-      .eq('property_id', propertyId)
-      .order('created_at', { ascending: false });
+    const [links, contact] = await Promise.all([
+      serverSupabase
+        .from('anonymous_report_tokens')
+        .select('id, token, property_id, label, is_active, created_at')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false }),
+      serverSupabase
+        .from('properties')
+        .select('tenant_emergency_phone')
+        .eq('id', propertyId)
+        .single(),
+    ]);
 
-    if (error) {
+    if (links.error || contact.error) {
       return NextResponse.json(
         { error: 'Failed to fetch tokens' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ tokens: tokens || [] });
+    return NextResponse.json(
+      {
+        tokens: links.data ?? [],
+        emergency_phone: contact.data?.tenant_emergency_phone ?? null,
+      },
+      { headers: { 'Cache-Control': 'private, no-store' } }
+    );
   }
 );
 
@@ -106,15 +132,37 @@ export const PATCH = withApiHandler(
     const propertyId = params.id;
     const validation = await validateRequest(
       req,
-      z.object({ token_id: z.string().uuid(), is_active: z.boolean() })
+      z.union([
+        z
+          .object({ token_id: z.string().uuid(), is_active: z.boolean() })
+          .strict(),
+        z.object({ emergency_phone: emergencyPhone }).strict(),
+      ])
     );
     if ('headers' in validation) return validation;
-    const { token_id, is_active } = validation.data;
     const property = await getPropertyForManagement(
       user,
       propertyId,
       'manage_contacts'
     );
+    if ('emergency_phone' in validation.data) {
+      const { data, error } = await serverSupabase
+        .from('properties')
+        .update({ tenant_emergency_phone: validation.data.emergency_phone })
+        .eq('id', propertyId)
+        .eq('owner_id', property.owner_id)
+        .select('tenant_emergency_phone')
+        .single();
+      if (error || !data)
+        return NextResponse.json(
+          { error: 'Emergency contact could not be saved' },
+          { status: 500 }
+        );
+      return NextResponse.json({
+        emergency_phone: data.tenant_emergency_phone,
+      });
+    }
+    const { token_id, is_active } = validation.data;
     // Disabling remains available after downgrade so live links can be revoked.
     if (is_active) {
       const tierBlock = await requireLandlordTier(property.owner_id, user.role);
