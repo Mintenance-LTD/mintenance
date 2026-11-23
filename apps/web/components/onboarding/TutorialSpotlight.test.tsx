@@ -43,3 +43,35 @@ it('finishes rather than skips and keeps keyboard navigation inside the dialog',
   expect(document.activeElement).toBe(before);
   before.remove();
 });
+
+it('returns focus to the page heading when the tour launch control is removed', async () => {
+  const main = document.createElement('main');
+  const heading = document.createElement('h1');
+  heading.textContent = 'Your dashboard';
+  const launcher = document.createElement('button');
+  main.append(heading, launcher);
+  document.body.append(main);
+  launcher.focus();
+  const { unmount } = render(
+    <TutorialSpotlight
+      step={{ id: 'first', title: 'Tour', description: 'Dashboard guide' }}
+      stepIndex={0}
+      totalSteps={1}
+      onNext={vi.fn()}
+      onSkip={vi.fn()}
+      onComplete={vi.fn()}
+      isFirstStep
+      isLastStep
+    />
+  );
+  await waitFor(() => expect(screen.getByRole('dialog')).toHaveFocus());
+  launcher.remove();
+  unmount();
+  expect(heading).toHaveFocus();
+  expect(heading).toHaveAttribute('tabindex', '-1');
+  const next = document.createElement('button');
+  main.append(next);
+  next.focus();
+  expect(heading).not.toHaveAttribute('tabindex');
+  main.remove();
+});
