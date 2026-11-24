@@ -5,11 +5,7 @@ import { ContractorDiscoverClient } from './components/ContractorDiscoverClient'
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
 import { calculateDiscoverMatchScore } from '@/lib/services/matching/discover-match';
-
-// Largest radius chip the client offers (DiscoverFilters: 5/10/20/50).
-// The server resolves the candidate set at this radius; the chips only
-// narrow it down client-side.
-const MAX_DISCOVER_CHIP_RADIUS_KM = 50;
+import { DISCOVER_MAX_RADIUS_KM } from './discover-radius';
 
 function toNum(v: unknown): number | null {
   if (v == null) return null;
@@ -128,7 +124,7 @@ export default async function ContractorDiscoverPage2025() {
       {
         p_latitude: contractorLat,
         p_longitude: contractorLng,
-        p_radius_km: MAX_DISCOVER_CHIP_RADIUS_KM,
+        p_radius_km: DISCOVER_MAX_RADIUS_KM,
         p_limit: 200,
       }
     );
@@ -191,7 +187,9 @@ export default async function ContractorDiscoverPage2025() {
   const { data: jobs, error } =
     geoJobIds !== null && geoJobIds.length === 0
       ? { data: [], error: null }
-      : await jobsQuery.order('created_at', { ascending: false }).limit(50);
+      : await jobsQuery
+          .order('created_at', { ascending: false })
+          .limit(geoJobIds?.length ?? 50);
 
   if (error) {
     logger.error('[DISCOVER] Query Error', error, { service: 'app' });
@@ -320,6 +318,7 @@ export default async function ContractorDiscoverPage2025() {
       jobs={availableJobs}
       contractorId={user.id}
       contractorLocation={contractorLocation}
+      radiusSearchAvailable={geoJobIds !== null && !error}
       coverageAreas={coverageAreas}
     />
   );

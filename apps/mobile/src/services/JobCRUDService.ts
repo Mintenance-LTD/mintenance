@@ -338,25 +338,24 @@ export class JobCRUDService {
     );
   }
 
-  /**
-   * Fetch the most recent contract for a job. Routes through
-   * `GET /api/contracts?job_id=…` (audit step 5, 2026-04-29) — the
-   * web route applies the role-aware filter (homeowner sees only
-   * own; contractor sees only own) so mobile can't accidentally
-   * leak contracts the user shouldn't see. Previous direct-Supabase
-   * read relied on RLS to enforce that; route is the canonical guard.
-   *
-   * Returns the most recent contract for the job (route orders by
-   * `created_at desc`) or null if none exists / API fails.
-   */
+  /** Fetch the requested agreement or the latest one through the scoped API. */
   static async getContractByJobId(
-    jobId: string
+    jobId: string,
+    contractId?: string
   ): Promise<Record<string, unknown> | null> {
     try {
+      const params = new URLSearchParams({ job_id: jobId });
+      if (contractId) params.set('contract_id', contractId);
       const { contracts } = await mobileApiClient.get<{
         contracts: Record<string, unknown>[];
-      }>(`/api/contracts?job_id=${encodeURIComponent(jobId)}`);
+      }>(`/api/contracts?${params}`);
       if (!Array.isArray(contracts) || contracts.length === 0) return null;
+      if (contractId)
+        return (
+          contracts.find(
+            (row) => row.id === contractId && row.job_id === jobId
+          ) ?? null
+        );
       return contracts[0] ?? null;
     } catch {
       return null;

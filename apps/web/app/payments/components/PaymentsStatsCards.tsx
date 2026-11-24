@@ -14,7 +14,7 @@ interface PaymentsStatsCardsProps {
   refundedAmount: number;
   disputedAmount?: number;
   releasedAmount?: number;
-  /** All transactions, including pending — drives the "all-time" tile. */
+  /** Transactions in the selected scope, including pending. */
   transactionCount: number;
 }
 
@@ -99,7 +99,7 @@ export function PaymentsStatsCards({
           <div className='label'>Transactions</div>
           <div className='num'>{transactionCount}</div>
           <div className='sub'>
-            <span>all-time</span>
+            <span>matching filters</span>
           </div>
         </div>
       </div>

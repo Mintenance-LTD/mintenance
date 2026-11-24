@@ -37,11 +37,11 @@ export function CalendarView({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
-      className='bg-white rounded-2xl border border-slate-200 p-8 shadow-sm'
+      className='bg-white rounded-2xl border border-slate-200 p-2 sm:p-4 lg:p-8 shadow-sm'
     >
-      <div className='flex items-center justify-between mb-6'>
+      <div className='flex flex-wrap items-center justify-between gap-3 mb-6'>
         <h2 className='text-xl font-bold text-slate-900'>Calendar</h2>
-        <div className='flex items-center gap-3'>
+        <div className='flex flex-wrap items-center gap-3'>
           <div className='flex gap-1 bg-slate-100 p-1 rounded-xl'>
             <button
               type='button'
@@ -128,7 +128,7 @@ export function CalendarView({
                 month: 'long',
                 year: 'numeric',
               })}
-              className='min-h-[90px] p-2 bg-white'
+              className='min-w-0 min-h-[90px] overflow-hidden p-0.5 sm:p-2 bg-white'
             >
               <div
                 className={`text-sm mb-1 flex items-center justify-center w-8 h-8 rounded-xl mx-auto font-semibold ${
@@ -146,16 +146,23 @@ export function CalendarView({
                   {dayAppointments.map((apt) => (
                     <div
                       key={apt.id}
-                      className='rounded-lg border border-teal-100 bg-teal-50 text-xs text-teal-800'
+                      className='min-w-0 max-w-full rounded-lg border border-teal-100 bg-teal-50 text-xs text-teal-800'
                     >
                       <Link
                         href={visitHref(apt.id, 'contractor')}
-                        aria-label={`View visit: ${apt.title}`}
-                        className='block truncate rounded-lg px-2 py-1 font-medium hover:underline'
+                        aria-label={`View visit: ${apt.title}, ${appointmentTime(apt.time, apt.endTime)}${visitIsUnconfirmed(apt.status, apt.clientResponse) ? ', Not confirmed' : ''}`}
+                        title={apt.title}
+                        className='block w-full rounded-lg px-1 py-1 font-medium hover:underline sm:px-2'
                       >
-                        {appointmentTime(apt.time, apt.endTime)} · {apt.title}
-                        {visitIsUnconfirmed(apt.status, apt.clientResponse) &&
-                          ' · Not confirmed'}
+                        <span className='block truncate'>{apt.title}</span>
+                        <span className='block truncate text-[10px]'>
+                          {appointmentTime(apt.time)}
+                        </span>
+                        {visitIsUnconfirmed(apt.status, apt.clientResponse) && (
+                          <span className='block truncate text-[10px]'>
+                            Not confirmed
+                          </span>
+                        )}
                       </Link>
                       {onEdit && canRescheduleVisit(apt) && (
                         <button

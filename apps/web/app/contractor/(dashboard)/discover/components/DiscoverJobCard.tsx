@@ -110,6 +110,8 @@ interface DiscoverJobCardProps {
   onSkip: (id: string, e?: React.MouseEvent) => void;
   onNavigate: (id: string) => void;
   onHover?: (id: string | null) => void;
+  onFocusPin?: (id: string) => void;
+  pinFocused?: boolean;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -202,6 +204,8 @@ export function DiscoverJobCard({
   onSkip,
   onNavigate,
   onHover,
+  onFocusPin,
+  pinFocused,
 }: DiscoverJobCardProps) {
   const priority = (job.priority ?? 'low').toLowerCase();
   const photos = job.photos ?? [];
@@ -243,7 +247,7 @@ export function DiscoverJobCard({
           ? { borderLeft: `4px solid ${urgencyBorderColor}` }
           : {}),
       }}
-      onClick={() => onNavigate(job.id)}
+      onClick={() => (onFocusPin ?? onNavigate)(job.id)}
       onMouseEnter={() => onHover?.(job.id)}
       onMouseLeave={() => onHover?.(null)}
     >
@@ -384,6 +388,20 @@ export function DiscoverJobCard({
 
         {/* Actions */}
         <div className='flex gap-2'>
+          {onFocusPin && (
+            <button
+              type='button'
+              aria-pressed={pinFocused}
+              aria-label={`Show ${job.title} on map`}
+              className='p-2 rounded-lg border'
+              onClick={(event) => {
+                event.stopPropagation();
+                onFocusPin(job.id);
+              }}
+            >
+              <MapPin className='w-4 h-4' aria-hidden='true' />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();

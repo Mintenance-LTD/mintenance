@@ -23,7 +23,7 @@ import type {
  *   - No Connect account   → "Set up payouts" CTA (redirects to Stripe)
  *   - Onboarding submitted → Show "Under review" + requirements
  *   - Onboarding complete  → Show payout balance, threshold progress,
- *                            last payout, "Open Stripe Dashboard" link
+ *                            last Stripe transfer, "Open Stripe Dashboard" link
  */
 export default function ContractorPayoutOnboardingPage() {
   const [status, setStatus] = useState<ConnectAccountStatus | null>(null);
@@ -316,7 +316,7 @@ function ReadyState({
           )}
           {balance?.lastPayoutAt && (
             <div className='text-xs text-gray-500'>
-              Last payout:{' '}
+              Last transfer to Stripe{' '}
               {new Date(balance.lastPayoutAt).toLocaleDateString('en-GB', {
                 day: 'numeric',
                 month: 'short',

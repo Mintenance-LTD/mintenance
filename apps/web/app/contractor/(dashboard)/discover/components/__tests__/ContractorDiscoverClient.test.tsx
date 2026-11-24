@@ -62,7 +62,8 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: {
     info: vi.fn(),
     error: vi.fn(),
@@ -167,6 +168,7 @@ describe('ContractorDiscoverClient', () => {
         jobs={mockJobs}
         contractorId='contractor-1'
         contractorLocation={mockContractorLocation}
+        radiusSearchAvailable
       />
     );
     expect(container).toBeDefined();
@@ -178,6 +180,7 @@ describe('ContractorDiscoverClient', () => {
         jobs={mockJobs}
         contractorId='contractor-1'
         contractorLocation={mockContractorLocation}
+        radiusSearchAvailable
       />
     );
     // Component renders job discovery interface

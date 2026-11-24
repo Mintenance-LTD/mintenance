@@ -165,7 +165,7 @@ export const POST = withApiHandler(
           })
           .eq('id', jobId)
           .eq('status', job.status)
-          .select('id');
+          .select('id, scheduled_start_date, scheduled_end_date');
 
         if (updateError) {
           logger.error('Failed to update job status', {
@@ -181,6 +181,15 @@ export const POST = withApiHandler(
             'This job changed while it was being started. Refresh and try again.'
           );
         }
+        // The jobs audit trigger captures this agreed window and started_at
+        // together. A later schedule change cannot rewrite that start record.
+        const startedJob = startedRows[0];
+        const startTime = Date.parse(nowIso);
+        const beforeWindow =
+          startTime < Date.parse(startedJob.scheduled_start_date ?? '');
+        const afterWindow =
+          startTime > Date.parse(startedJob.scheduled_end_date ?? '');
+        const outsideWorkWindow = beforeWindow || afterWindow;
 
         // 6. Notify both parties (homeowner + contractor). Capture the
         //    homeowner notification id so we can flip `email_sent = true`
@@ -279,11 +288,13 @@ export const POST = withApiHandler(
           jobId,
           contractorId: user.id,
           beforePhotoCount: count,
+          outsideWorkWindow,
         });
 
         const responseData = {
           success: true,
           message: 'Job started successfully',
+          outsideWorkWindow,
         };
 
         await storeIdempotencyResult(
