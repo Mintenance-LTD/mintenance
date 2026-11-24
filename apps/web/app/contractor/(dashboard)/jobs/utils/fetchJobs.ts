@@ -32,7 +32,7 @@ export async function fetchJobStats(): Promise<JobStats> {
 
   const active = allJobs.filter(
     (j) =>
-      !j.archived_at && (j.status === 'in_progress' || j.status === 'assigned')
+      !j.archived_at && ['in_progress', 'assigned', 'disputed'].includes(j.status)
   ).length;
   const pending = allJobs.filter(
     (j) => !j.archived_at && (j.status === 'pending' || j.status === 'posted')
@@ -48,7 +48,7 @@ export async function fetchJobStats(): Promise<JobStats> {
     .filter(
       (j) =>
         j.status === 'completed' ||
-        (!j.archived_at && ['assigned', 'in_progress'].includes(j.status))
+        (!j.archived_at && ['assigned', 'in_progress', 'disputed'].includes(j.status))
     )
     .reduce((sum, j) => sum + (j.total_amount ?? j.budget ?? 0), 0);
 
@@ -102,6 +102,9 @@ export async function fetchJobsByFilter(
     budget: job.budget,
     total_amount: job.total_amount ?? null,
     status: job.status,
+    scheduled_start_date: job.scheduled_start_date,
+    scheduled_end_date: job.scheduled_end_date,
+    contractor_action: job.contractor_action,
     bid_status: job.bid_status,
     photos: job.photos || [],
     created_at: job.created_at,

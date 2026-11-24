@@ -10,8 +10,9 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StickyBottomCTA } from '../../components/ui/StickyBottomCTA';
 import type { JobsStackParamList } from '../../navigation/types';
 import type { Job } from '@mintenance/types';
+import type { ContractorJobAction } from '@mintenance/shared';
 import { ReadyToStartCTA } from './ReadyToStartCTA';
-import { isEscrowFunded, isEscrowHeldOnly } from '../../utils/escrowStatus';
+import { isEscrowFunded } from '../../utils/escrowStatus';
 
 type JobDetailsScreenNavigationProp = NativeStackNavigationProp<
   JobsStackParamList,
@@ -37,6 +38,7 @@ export interface CTAContext {
   contractHomeownerSigned: boolean;
   escrowStatus: string | null;
   contractorStartRestriction?: string | null;
+  contractorAction?: ContractorJobAction | null;
   hasReviewed: boolean;
   // 2026-05-25 audit-P0-3: count of before-photos already uploaded for
   // this job. When > 0 in the ready_to_start branch, the CTA shows
@@ -71,12 +73,18 @@ export function getPriorityCTA({
   contractHomeownerSigned,
   escrowStatus,
   contractorStartRestriction,
+  contractorAction,
   hasReviewed,
   beforePhotoCount,
   bidsArray,
 }: CTAContext): React.ReactElement | null {
   const canManageJob = isOwner || isPayer;
   const isAssignedContractor = isContractor && job.contractor_id === userId;
+
+  if (isAssignedContractor && job.status === 'assigned' && contractorAction?.kind === 'blocked') {
+    return <StickyBottomCTA buttonText={contractorAction.label} secondaryText={contractorAction.detail} onPress={() => undefined} disabled />;
+  }
+  if (isAssignedContractor && job.status === 'assigned' && (contractorAction?.kind === 'dispute' || escrowStatus === 'disputed')) return null;
 
   if (isContractor && job.status === 'posted') {
     // Check if this contractor already has a bid on this job
@@ -239,7 +247,8 @@ export function getPriorityCTA({
     isAssignedContractor &&
     job.status === 'assigned' &&
     contractStatus === 'accepted' &&
-    !isEscrowFunded(escrowStatus)
+    (contractorAction?.kind === 'payment' ||
+      (contractorAction === undefined && !isEscrowFunded(escrowStatus)))
   ) {
     // 2026-05-26 audit-53 P2: distinguish 'pending' (Stripe charged,
     // webhook still landing) from "no escrow yet". On 'pending' the
@@ -248,10 +257,10 @@ export function getPriorityCTA({
     // finishes or the homeowner re-opens the screen (forcing a refetch
     // after audit-53 P1's confirm-intent call), this transitions to
     // 'held' and CTA 4 fires.
-    const isSettling = escrowStatus === 'pending';
+    const isSettling = (contractorAction?.label ?? (escrowStatus === 'pending' ? 'Payment settling' : '')) === 'Payment settling';
     return (
       <StickyBottomCTA
-        buttonText={isSettling ? 'Payment Settling' : 'Waiting for Payment'}
+        buttonText={contractorAction?.label ?? (isSettling ? 'Payment Settling' : 'Waiting for Payment')}
         onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
         secondaryText={
           isSettling
@@ -274,15 +283,14 @@ export function getPriorityCTA({
   // "Upload Before Photos" until status flipped to in_progress. Live
   // data: 6 assigned jobs, 0 in_progress, with 3 before-photos already
   // uploaded server-side.
-  // 2026-05-27 audit-83 P1: "ready to start" needs escrow funded but
-  // not yet released. isEscrowHeldOnly = funded && !released so the
-  // CTA correctly suppresses once payout fires (job has already
-  // completed by then).
+  // The aggregate applies the same start restrictions as the web job page.
+  // An older API without an action must at least confirm the escrow is held.
   if (
     isAssignedContractor &&
     job.status === 'assigned' &&
     contractStatus === 'accepted' &&
-    isEscrowHeldOnly(escrowStatus)
+    (contractorAction?.kind === 'start' || contractorAction?.kind === 'photos' ||
+      (contractorAction === undefined && escrowStatus === 'held'))
   ) {
     if (contractorStartRestriction) {
       return (
@@ -293,7 +301,11 @@ export function getPriorityCTA({
         />
       );
     }
-    if (beforePhotoCount > 0) {
+
+    if (
+      contractorAction?.kind === 'start' ||
+      (beforePhotoCount > 0 && contractorAction === undefined)
+    ) {
       return (
         <ReadyToStartCTA
           jobId={job.id}

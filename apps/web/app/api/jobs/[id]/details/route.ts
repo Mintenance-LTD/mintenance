@@ -23,6 +23,7 @@ import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { hasEarlyStartRequest } from '@/lib/services/contracts/early-start';
 import { workStartRestriction } from '@/lib/services/contracts/work-start';
+import { loadContractorJobActions } from '@/lib/contractor/load-job-actions';
 
 interface JobAccessRow {
   id: string;
@@ -30,6 +31,8 @@ interface JobAccessRow {
   payer_user_id: string | null;
   contractor_id: string | null;
   status: string | null;
+  scheduled_start_date?: string | null;
+  scheduled_end_date?: string | null;
 }
 
 interface ContractRow {
@@ -68,7 +71,7 @@ export const GET = withApiHandler(
 
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, payer_user_id, contractor_id, status')
+      .select('id, homeowner_id, payer_user_id, contractor_id, status, scheduled_start_date, scheduled_end_date')
       .eq('id', jobId)
       .single();
 
@@ -106,6 +109,7 @@ export const GET = withApiHandler(
       assessmentRes,
       beforePhotoRes,
       afterPhotoRes,
+      actionRes,
     ] = await Promise.allSettled([
       serverSupabase
         .from('contracts')
@@ -156,6 +160,9 @@ export const GET = withApiHandler(
         .select('id', { count: 'exact', head: true })
         .eq('job_id', jobId)
         .eq('photo_type', 'after'),
+      isAssignedContractor && user.role === 'contractor'
+        ? loadContractorJobActions(user.id, [row])
+        : null,
     ]);
 
     const contract =
@@ -230,6 +237,13 @@ export const GET = withApiHandler(
         : null,
       beforePhotoCount,
       afterPhotoCount,
+      ...(isAssignedContractor && user.role === 'contractor' ? {
+        contractorAction: actionRes.status === 'fulfilled'
+          ? actionRes.value?.get(jobId) ?? null
+          : { kind: 'blocked', label: 'Check job requirements' },
+        scheduledStartDate: row.scheduled_start_date ?? null,
+        scheduledEndDate: row.scheduled_end_date ?? null,
+      } : {}),
     });
   }
 );

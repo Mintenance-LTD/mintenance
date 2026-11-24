@@ -128,7 +128,7 @@ export default async function ContractorDashboard2025() {
   const completedJobs = jobs.filter((j) => j.status === 'completed');
   const activeJobs = jobs.filter(
     (j) =>
-      !j.archived_at && (j.status === 'in_progress' || j.status === 'assigned')
+      !j.archived_at && ['in_progress', 'assigned', 'disputed'].includes(j.status)
   );
   const pendingBids = bids.filter((b) => b.status === 'pending');
 
@@ -177,7 +177,10 @@ export default async function ContractorDashboard2025() {
   });
 
   // Recent jobs data (contractor's own jobs)
-  const recentJobs = activeJobs.slice(0, 5).map((job) => {
+  const disputedJobs = new Set(financialSummary.disputedJobIds);
+  const recentJobs = [...activeJobs].sort((a, b) =>
+    Number(disputedJobs.has(b.id)) - Number(disputedJobs.has(a.id))
+  ).slice(0, 5).map((job) => {
     const homeowner = Array.isArray(job.homeowner)
       ? job.homeowner[0]
       : job.homeowner;
@@ -200,7 +203,7 @@ export default async function ContractorDashboard2025() {
     return {
       id: job.id,
       title: job.title,
-      status: job.status,
+      status: disputedJobs.has(job.id) ? 'disputed' : job.status,
       budget:
         (job as { budget?: number; budget_max?: number; budget_min?: number })
           .budget ||
@@ -273,6 +276,8 @@ export default async function ContractorDashboard2025() {
       pendingBids: pendingBids.length,
       completionRate,
       pendingEscrowAmount,
+      heldNotDisputed: financialSummary.heldNotDisputed,
+      heldInDispute: financialSummary.heldInDispute,
       pendingEscrowCount,
     },
     progressTrendData,

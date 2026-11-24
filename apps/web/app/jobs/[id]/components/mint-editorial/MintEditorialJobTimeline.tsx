@@ -28,6 +28,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { DISPUTE_UNDER_REVIEW } from '@/lib/disputes/presentation';
 import { useJobRework } from '@/lib/hooks/useJobRework';
 import { useJobVisits } from '@/lib/hooks/useJobVisits';
 import { VisitEventDetails } from '@/components/scheduling/VisitEventDetails';
@@ -66,6 +67,7 @@ interface LifecycleInput {
   escrowFundedAt?: string | null;
   escrowReleasedAt?: string | null;
   escrowStatus?: string | null;
+  dispute?: import('@/lib/disputes/presentation').JobDispute;
   completionConfirmed: boolean;
 }
 
@@ -429,18 +431,22 @@ export function MintEditorialJobTimeline({
             Visit history is temporarily unavailable.
           </p>
         )}
-        {(lifecycle.escrowStatus === 'disputed' ||
+        {(lifecycle.dispute ||
+          lifecycle.escrowStatus === 'disputed' ||
           job.status === 'disputed') && (
           <div className='px-5 py-4 border-b border-amber-200 bg-amber-50'>
-            <h3 className='t-h4'>Dispute under review</h3>
-            <p className='t-body'>
-              Payment release is paused while Mintenance reviews the dispute.
-            </p>
+            <h3 className='t-h4'>
+              {lifecycle.dispute?.title ?? DISPUTE_UNDER_REVIEW}
+            </h3>
+            {(lifecycle.dispute?.paymentPaused ??
+              lifecycle.escrowStatus === 'disputed') && (
+              <p className='t-body'>Payment release is paused.</p>
+            )}
             <Link
-              href={`/payments?jobId=${job.id}`}
+              href={lifecycle.dispute?.href ?? `/payments?jobId=${job.id}`}
               className='t-meta underline'
             >
-              View payment and dispute status
+              {lifecycle.dispute ? 'View dispute' : 'View payments'}
             </Link>
           </div>
         )}

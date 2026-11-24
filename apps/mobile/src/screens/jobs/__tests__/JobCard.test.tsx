@@ -102,6 +102,22 @@ const renderCard = (
 };
 
 describe('JobCard', () => {
+  it('shows the assigned contractor a reference, visit date and distinct funding action', () => {
+    const { getByText } = renderCard({
+      item: baseJob({ id: 'aa1234-test', title: 'Garden Maintenance', status: 'assigned' }) as any,
+      isContractor: true,
+      contractorJob: {
+        id: 'aa1234-test',
+        title: 'Garden Maintenance',
+        scheduled_start_date: '2026-11-17T09:00:00Z',
+        scheduled_end_date: '2026-11-17T17:00:00Z',
+        contractor_action: { kind: 'photos', label: 'Upload before photos' },
+      },
+    });
+    expect(getByText(/Job #AA1234 · 17 Nov 2026/)).toBeTruthy();
+    expect(getByText('Upload before photos')).toBeTruthy();
+    expect(getByText(/Visit window passed/)).toBeTruthy();
+  });
   // ---------------- Photo hero vs placeholder ----------------
   describe('hero section', () => {
     it('renders ImageCarousel when photos array present (string urls)', () => {

@@ -185,6 +185,31 @@
   color: #425963;
   border-radius: 0 8px 8px 0;
 }
+.nextStep {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f1f8f5;
+}
+.nextStep a {
+  justify-self: start;
+  text-decoration: none;
+}
+.summaryPrices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 16px;
+  margin: 0;
+}
+.summaryPrices dt {
+  font-size: 0.875rem;
+}
+.summaryPrices dd {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
 .card > .closedNotice {
   margin-top: 20px;
 }

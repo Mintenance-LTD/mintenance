@@ -41,6 +41,8 @@ export interface ContractorDashboardData {
     pendingBids: number;
     completionRate: number;
     pendingEscrowAmount: number;
+    heldNotDisputed?: number;
+    heldInDispute?: number;
     pendingEscrowCount: number;
   };
   recentJobs: Array<{
@@ -74,6 +76,8 @@ export interface ContractorDashboardData {
 
 function statusBadge(status: string) {
   const s = (status || '').toLowerCase();
+  if (s === 'disputed')
+    return <span className='badge badge-warn'>Dispute under review · payment paused</span>;
   if (s === 'assigned')
     return <span className='badge badge-warn'>Waiting to start</span>;
   if (s === 'in_progress')
@@ -168,9 +172,10 @@ export function MintEditorialContractorDashboard({
           </div>
         </div>
         <div className='kpi'>
-          <div className='label'>Held in escrow (gross)</div>
-          <div className='num'>{formatMoney(metrics.pendingEscrowAmount)}</div>
+          <div className='label'>Held · not disputed</div>
+          <div className='num'>{formatMoney(metrics.heldNotDisputed ?? metrics.pendingEscrowAmount)}</div>
           <div className='sub'>
+            <span>{formatMoney(metrics.heldInDispute ?? 0)} held in dispute</span>
             <span>
               {metrics.pendingEscrowCount > 0
                 ? `across ${metrics.pendingEscrowCount} ${metrics.pendingEscrowCount === 1 ? 'payment' : 'payments'}`

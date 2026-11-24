@@ -12,6 +12,7 @@ import {
 } from './types';
 import { ProgressDots } from './ProgressDots';
 import { styles } from './JobCardStyles';
+import { contractorJobReference, contractorVisitWindow, pastContractorVisitMessage } from '@mintenance/shared';
 import { firstPhotoUrls } from '../../utils/photoUrls';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -25,6 +26,7 @@ export const JobCard: React.FC<JobCardProps> = ({
   bidCount,
   isContractor,
   hasUserBid,
+  contractorJob,
 }) => {
   // Sample `now` ONCE and reuse it for both the baseline and the missing-date
   // fallback. Calling Date.now() twice (outer + the `|| Date.now()` fallback)
@@ -61,6 +63,10 @@ export const JobCard: React.FC<JobCardProps> = ({
   const timeLabel =
     daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d ago' : `${daysAgo}d ago`;
   const statusStyle = STATUS_STYLES[item.status] ?? STATUS_STYLES.posted;
+  const action = contractorJob?.contractor_action;
+  const showContractorContext = isContractor && !item.archived_at &&
+    ['assigned', 'in_progress', 'disputed'].includes(item.status);
+  const visit = contractorVisitWindow(contractorJob?.scheduled_start_date, contractorJob?.scheduled_end_date, now);
 
   const contractorName = (item as unknown as Record<string, unknown>)
     .contractor_name as string | undefined;
@@ -71,7 +77,7 @@ export const JobCard: React.FC<JobCardProps> = ({
       onPress={onPress}
       activeOpacity={0.9}
       accessibilityRole='button'
-      accessibilityLabel={`${item.title}, ${locationStr}`}
+      accessibilityLabel={[item.title, locationStr, showContractorContext && contractorJobReference(item.id), action?.label].filter(Boolean).join(', ')}
       accessibilityHint='Double tap to view job details'
     >
       {/* Photo hero or category placeholder */}
@@ -144,7 +150,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             color={statusStyle.text}
           />
           <Text style={[styles.statusBadgeText, { color: statusStyle.text }]}>
-            {item.archived_at ? 'Archived' : statusStyle.label}
+            {item.archived_at ? 'Archived' : action?.kind === 'dispute' ? 'Disputed' : statusStyle.label}
           </Text>
         </View>
       )}
@@ -155,6 +161,17 @@ export const JobCard: React.FC<JobCardProps> = ({
         <Text style={styles.jobTitle} numberOfLines={1}>
           {item.title}
         </Text>
+        {showContractorContext && (
+          <View style={{ gap: 4 }}>
+            <Text style={styles.metaText}>
+              {contractorJobReference(item.id)}{visit ? ` · ${visit.label}` : contractorJob ? ' · Visit date not set' : ''}
+            </Text>
+            {action && <Text style={{ color: me.ink, fontWeight: '600' }}>{action.label}</Text>}
+            {item.status === 'assigned' && visit?.passed && (
+              <Text style={{ color: me.warnFg }}>Visit window passed. {pastContractorVisitMessage(action)}</Text>
+            )}
+          </View>
+        )}
 
         {/* Meta row: property + location + time. The property comes first —
             on a multi-property account "Leaky Tap/Pipe" is ambiguous until

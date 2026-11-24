@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FadeIn, SlideIn } from '../../components/animations/primitives';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useContractorJobActions } from '../../hooks/useContractorJobActions';
 import { UserService } from '../../services/UserService';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -94,9 +95,14 @@ export const ContractorDashboard: React.FC = () => {
     enabled: !!user,
     refetchInterval: 30000,
   });
+  const { data: activeContractorJobs, refetch: refetchActions } = useContractorJobActions(
+    user?.role === 'contractor' ? user.id : undefined
+  );
+  const disputedJobs = activeContractorJobs?.filter((job) => job.contractor_action?.kind === 'dispute') ?? [];
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['contractorStats', user?.id] });
+    if (user?.role === 'contractor') void refetchActions?.();
   };
 
   const openJobsList = () => {
@@ -356,6 +362,18 @@ export const ContractorDashboard: React.FC = () => {
             <ContractorBadgesCard />
           </FadeIn>
 
+          {disputedJobs.map((job) => (
+            <TouchableOpacity key={job.id} accessibilityRole='button'
+              style={{ padding: 16, borderRadius: 12, backgroundColor: me.bg2 }}
+              onPress={() => job.contractor_action?.escrowId
+                ? navigation.navigate('JobsTab', { screen: 'DisputeDetails', params: { escrowId: job.contractor_action.escrowId } })
+                : openJobDetails(job.id)}
+            >
+              <Text style={{ fontWeight: '700', color: me.ink }}>{job.title}</Text>
+              <Text style={{ color: me.warnFg }}>Dispute under review · payment paused</Text>
+              <Text style={{ color: me.brand }}>{job.contractor_action?.escrowId ? 'View dispute' : 'View job'}</Text>
+            </TouchableOpacity>
+          ))}
           <SlideIn direction='up' distance={20} duration={400} delay={300}>
             <ScheduleSection
               stats={contractorStats}

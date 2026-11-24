@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { logger } from '@/lib/logger';
 import { JobDetailsProfessional } from './components/JobDetailsProfessional';
+import { readJobDispute } from '@/lib/services/disputes/read-job-dispute';
 import { JobViewTracker } from './components/JobViewTracker';
 import { ContractManagement } from './components/ContractManagement';
 import { HomeownerPhotoReview } from './components/HomeownerPhotoReview';
@@ -185,7 +186,9 @@ export default async function JobDetailPage2025({
       .single(),
     serverSupabase
       .from('escrow_transactions')
-      .select('id, status, funded_at, released_at')
+      .select(
+        'id, status, funded_at, released_at, payer_id, payee_id, admin_hold_status, mediation_requested, mediation_requested_at, mediation_status'
+      )
       .eq('job_id', resolvedParams.id)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
@@ -299,6 +302,7 @@ export default async function JobDetailPage2025({
       : 'pending';
 
   const escrowStatus = escrowTransaction?.status || 'none';
+  const dispute = await readJobDispute(job, user.id, escrowTransaction);
 
   // Format bids for the client components (email/phone deliberately omitted —
   // see the PII note in ./lib/formatBids).
@@ -396,6 +400,7 @@ export default async function JobDetailPage2025({
           contractContractorSignedAt={contract?.contractor_signed_at ?? null}
           contractHomeownerSignedAt={contract?.homeowner_signed_at ?? null}
           escrowStatus={escrowStatus}
+          dispute={dispute}
           escrowFundedAt={escrowTransaction?.funded_at ?? null}
           escrowReleasedAt={escrowTransaction?.released_at ?? null}
           buildingAssessment={buildingAssessment}
@@ -446,6 +451,7 @@ export default async function JobDetailPage2025({
           lifecycleData={{
             contractStatus,
             escrowStatus,
+            dispute,
             bidCount: bidsWithContractors.length,
             pendingBidCount: bidsWithContractors.filter(
               (b) => b.status === 'pending'
@@ -474,6 +480,9 @@ export default async function JobDetailPage2025({
                     afterPhotos={afterPhotos}
                     isConfirmed={!!job.completion_confirmed_by_homeowner}
                     paymentRefunded={escrowStatus === 'refunded'}
+                    paymentDisputed={
+                      escrowStatus === 'disputed' || dispute?.paymentPaused
+                    }
                     completedAt={job.completed_at}
                   />
                 </div>

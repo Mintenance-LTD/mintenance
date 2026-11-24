@@ -2,8 +2,15 @@
 
 import React from 'react';
 import { Clock, FileText, X } from 'lucide-react';
-import { useContractData } from './contract/useContractData';
-import { getStatusConfig, TERMS_HIDDEN_KEYS } from './contract/contractHelpers';
+import {
+  useContractData,
+  type ContractRevision,
+} from './contract/useContractData';
+import {
+  formatCurrency,
+  getStatusConfig,
+  TERMS_HIDDEN_KEYS,
+} from './contract/contractHelpers';
 import { ContractHeader } from './contract/ContractHeader';
 import { ContractParties } from './contract/ContractParties';
 import { ContractScope } from './contract/ContractScope';
@@ -18,12 +25,18 @@ type ContractManagementProps =
       jobId: string;
       userRole: 'homeowner' | 'contractor';
       userId: string;
+      revision?: ContractRevision;
       contractId?: never;
     }
-  | { contractId: string; userRole: 'homeowner'; jobId?: never };
+  | {
+      contractId: string;
+      userRole: 'homeowner';
+      jobId?: never;
+      revision?: never;
+    };
 
 export function ContractManagement(props: ContractManagementProps) {
-  const { jobId, userRole, contractId } = props;
+  const { jobId, userRole, revision, contractId } = props;
   const {
     contract,
     loading,
@@ -44,7 +57,7 @@ export function ContractManagement(props: ContractManagementProps) {
     handleDeleteContract,
     handleDownloadPdf,
     fetchContract,
-  } = useContractData(jobId, userRole, contractId);
+  } = useContractData(jobId, userRole, contractId ?? revision);
 
   if (loading) {
     return (
@@ -58,6 +71,14 @@ export function ContractManagement(props: ContractManagementProps) {
   }
 
   if (!contract) {
+    if (revision) {
+      return (
+        <p role='status' className='rounded-xl border bg-white p-5 text-sm'>
+          {error ||
+            'This contract revision is unavailable. Return to Quote amendments to check the latest agreement.'}
+        </p>
+      );
+    }
     if (contractId) {
       return (
         <div className='rounded-xl border border-gray-200 bg-white p-6'>
@@ -130,6 +151,12 @@ export function ContractManagement(props: ContractManagementProps) {
         statusConfig={statusConfig}
       />
       <div className='p-6 space-y-6'>
+        {revision && (
+          <p className='font-medium'>
+            Version {contract.contract_version} ·{' '}
+            {formatCurrency(contract.amount)} total including tax
+          </p>
+        )}
         <ContractActions
           contract={contract}
           userRole={userRole}
@@ -177,7 +204,7 @@ export function ContractManagement(props: ContractManagementProps) {
     </div>
   );
 
-  if (contractId) return contractDetail;
+  if (revision || contractId) return contractDetail;
 
   return (
     <>

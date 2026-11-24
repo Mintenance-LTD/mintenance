@@ -8,6 +8,7 @@ const s = vi.hoisted(() => ({
   role: 'homeowner',
   noBids: false,
   missingContractor: false,
+  withDispute: false,
   tables: [] as string[],
   scopes: vi.fn(),
   detail: vi.fn(),
@@ -75,6 +76,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
       // a regression, even if a future mock would otherwise accept its columns.
       if (table === 'contractor_posts')
         throw new Error('Unexpected unused portfolio query');
+      let disputedPayments = false;
       const result = () => ({
         error: null,
         data:
@@ -83,7 +85,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
                 id: 'job',
                 homeowner_id: 'owner',
                 payer_user_id: 'payer',
-                status: 'posted',
+                status: s.withDispute ? 'in_progress' : 'posted',
                 title: 'Repair',
                 budget: 200,
               }
@@ -122,12 +124,31 @@ vi.mock('@/lib/api/supabaseServer', () => ({
                   ? [{ photo_url: 'evidence-photo', photo_type: 'before' }]
                   : table === 'reviews'
                     ? [{ reviewee_id: 'bidder' }]
-                    : null,
+                    : table === 'escrow_transactions' && s.withDispute
+                      ? disputedPayments
+                        ? [
+                            {
+                              id: 'disputed-payment',
+                              status: 'disputed',
+                              payer_id: 'owner',
+                              mediation_status: 'pending',
+                            },
+                          ]
+                        : {
+                            id: 'newer-payment',
+                            status: 'held',
+                            payer_id: 'owner',
+                          }
+                      : table === 'disputes' && s.withDispute
+                        ? { status: 'open' }
+                        : null,
       });
       const q = {
         select: () => q,
         eq: (column: string, value: unknown) => {
           s.scopes(table, column, value);
+          if (table === 'escrow_transactions' && column === 'status')
+            disputedPayments = value === 'disputed';
           return q;
         },
         in: (column: string, value: unknown) => {
@@ -156,12 +177,35 @@ beforeEach(() => {
   s.role = 'homeowner';
   s.noBids = false;
   s.missingContractor = false;
+  s.withDispute = false;
   s.tables = [];
   s.scopes.mockClear();
   s.detail.mockClear();
   s.sign.mockClear();
 });
 const load = () => Page({ params: Promise.resolve({ id: 'job' }) });
+
+it.each(['default', 'mint-editorial'])(
+  'uses the disputed payment for the direct case link even when a newer payment exists (%s)',
+  async (theme) => {
+    s.theme = theme;
+    s.withDispute = true;
+    render(await load());
+    const props = s.detail.mock.calls[0][0];
+    const dispute = props.dispute ?? props.lifecycleData?.dispute;
+    expect(dispute).toMatchObject({
+      href: '/disputes/disputed-payment',
+      title: 'Dispute under review',
+      paymentPaused: true,
+      mediation: 'Not requested',
+    });
+    expect(s.scopes).toHaveBeenCalledWith(
+      'disputes',
+      'dispute_escrow_links.escrow_id',
+      'disputed-payment'
+    );
+  }
+);
 
 it.each(['default', 'mint-editorial'])(
   'provides a return link to the same filtered jobs workspace (%s)',

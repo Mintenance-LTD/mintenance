@@ -1,5 +1,7 @@
 import { readRetainedDispute } from '@/lib/services/disputes/retained';
 import { readDisputeEvidence } from '@/lib/services/disputes/evidence';
+import { buildDisputeHistory, disputeStatement } from '@/lib/disputes/history';
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { isValidUUID } from '@/lib/validation/uuid';
@@ -39,7 +41,7 @@ export const GET = withApiHandler(
     const escrowQuery = serverSupabase
       .from('escrow_transactions')
       .select(
-        'id, job_id, payer_id, payee_id, amount, status, dispute_priority, sla_deadline, escalation_level, mediation_requested_at, mediation_status, mediation_outcome, created_at, updated_at'
+        'id, job_id, payer_id, payee_id, amount, status, admin_hold_status, dispute_priority, sla_deadline, escalation_level, mediation_requested, mediation_requested_at, mediation_status, mediation_scheduled_at, mediation_completed_at, mediation_outcome, updated_at'
       )
       .eq('id', disputeId);
 
@@ -120,6 +122,48 @@ export const GET = withApiHandler(
     if (!disputeRecord) {
       const retained = await readRetainedDispute(disputeId, user.id);
       if (retained) return NextResponse.json(retained);
+      if (escrow.status !== 'disputed') {
+        throw new NotFoundError('Dispute not found or access denied');
+      }
+    }
+
+    const scheduleQuery = disputeRecord?.created_at
+      ? serverSupabase
+          .from('audit_logs')
+          .select('id, created_at, new_values')
+          .eq('table_name', 'escrow_transactions')
+          .eq('record_id', escrow.id)
+          .eq('new_values->>event', 'MEDIATION_SCHEDULE')
+          .gte('created_at', disputeRecord.created_at)
+          .order('created_at')
+          .order('id')
+      : null;
+    if (scheduleQuery && disputeRecord?.resolved_at) {
+      scheduleQuery.lte('created_at', disputeRecord.resolved_at);
+    }
+    const [evidence, changes, schedules] = await Promise.all([
+      readDisputeEvidence(
+        disputeRecord?.description ?? null,
+        escrow.job_id,
+        disputeRecord?.raised_by ?? null
+      ),
+      disputeRecord
+        ? serverSupabase
+            .from('dispute_case_status_history')
+            .select('id, status, changed_at')
+            .eq('dispute_id', disputeRecord.id)
+            .order('changed_at')
+            .order('id')
+        : null,
+      scheduleQuery,
+    ]);
+    const historyIncomplete = !!(changes?.error || schedules?.error);
+    if (historyIncomplete) {
+      logger.warn('Unable to load some dispute history', {
+        disputeId,
+        statusHistoryError: changes?.error?.code,
+        scheduleHistoryError: schedules?.error?.code,
+      });
     }
 
     return NextResponse.json({
@@ -129,22 +173,37 @@ export const GET = withApiHandler(
       payee_id: escrow.payee_id,
       amount: escrow.amount,
       status: escrow.status,
+      admin_hold_status: escrow.admin_hold_status,
       priority: escrow.dispute_priority,
       sla_deadline: escrow.sla_deadline,
       escalation_level: escrow.escalation_level,
+      mediation_requested: escrow.mediation_requested,
       mediation_requested_at: escrow.mediation_requested_at,
       mediation_status: escrow.mediation_status,
+      mediation_scheduled_at: escrow.mediation_scheduled_at,
       mediation_outcome: escrow.mediation_outcome,
       created_at: disputeRecord?.created_at ?? null,
       updated_at: escrow.updated_at,
       // Frontend-facing aliases (apps/web/app/disputes/[id]/page.tsx)
       dispute_reason: disputeRecord?.reason ?? null,
-      description: disputeRecord?.description ?? null,
-      dispute_evidence: await readDisputeEvidence(
-        disputeRecord?.description ?? null,
-        escrow.job_id,
-        disputeRecord?.raised_by ?? null
+      description: disputeStatement(disputeRecord?.description),
+      dispute_evidence: evidence,
+      history: buildDisputeHistory(
+        {
+          reason: disputeRecord?.reason,
+          description: disputeRecord?.description,
+          createdAt: disputeRecord?.created_at,
+          evidenceCount: evidence.length,
+          status: disputeRecord?.status,
+          resolvedAt: disputeRecord?.resolved_at,
+          resolution: disputeRecord?.resolution,
+          mediationRequestedAt: escrow.mediation_requested_at,
+          mediationCompletedAt: escrow.mediation_completed_at,
+        },
+        changes?.data ?? [],
+        schedules?.data ?? []
       ),
+      history_incomplete: historyIncomplete,
       resolution: disputeRecord?.resolution ?? null,
       resolved_at: disputeRecord?.resolved_at ?? null,
       dispute_record_id: disputeRecord?.id ?? null,
