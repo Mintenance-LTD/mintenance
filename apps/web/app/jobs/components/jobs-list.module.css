@@ -10,6 +10,25 @@
   flex-wrap: wrap;
   margin-bottom: 18px;
 }
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin-right: auto;
+  padding: 0 10px;
+  border: 1px solid var(--me-line, #e1e8e4);
+  border-radius: 8px;
+  background: var(--me-bg, #fff);
+}
+.search input {
+  min-width: 0;
+  width: min(58vw, 232px);
+  background: transparent;
+  padding-block: 7px;
+  font: inherit;
+  color: inherit;
+}
 .sectionHeading {
   display: flex;
   justify-content: space-between;
@@ -64,6 +83,13 @@
   line-height: 1.6;
   color: var(--me-ink-2, #59685f);
   overflow-wrap: anywhere;
+}
+.attention {
+  margin: 6px 0 0;
+  color: #865204;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
 }
 .arrow {
   color: var(--me-ink-3, #718078);

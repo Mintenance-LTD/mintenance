@@ -80,6 +80,7 @@ interface LifecycleData {
 }
 
 export interface JobDetailsProfessionalProps {
+  backToJobsHref?: string;
   job: {
     id: string;
     title: string;
@@ -113,6 +114,7 @@ export interface JobDetailsProfessionalProps {
    ========================================== */
 
 export function JobDetailsProfessional({
+  backToJobsHref = '/jobs',
   job,
   property,
   homeowner,
@@ -149,7 +151,7 @@ export function JobDetailsProfessional({
       <div className='bg-white border-b border-gray-200'>
         <div className='max-w-7xl mx-auto px-6 py-4'>
           <Link
-            href='/jobs'
+            href={backToJobsHref}
             className='inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors'
           >
             <ChevronLeft className='w-4 h-4' />

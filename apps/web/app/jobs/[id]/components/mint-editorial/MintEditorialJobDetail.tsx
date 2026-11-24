@@ -83,6 +83,7 @@ interface PhotoRecord {
 }
 
 interface Props {
+  backToJobsHref?: string;
   job: JobShape;
   property?: PropertyShape | null;
   contractor?: ContractorShape | null;
@@ -114,6 +115,7 @@ const TABS: {
 ];
 
 export function MintEditorialJobDetail({
+  backToJobsHref = '/jobs',
   job,
   property,
   contractor,
@@ -266,7 +268,7 @@ export function MintEditorialJobDetail({
     <>
       {/* Back link */}
       <Link
-        href='/jobs'
+        href={backToJobsHref}
         className='btn btn-ghost btn-sm'
         style={{ marginBottom: 14 }}
       >

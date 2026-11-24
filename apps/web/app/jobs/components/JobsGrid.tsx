@@ -12,28 +12,13 @@ import {
 import { EmptyState } from '@/components/ui/EmptyState';
 import { JobCardSkeleton } from '@/components/ui/skeletons';
 import { JobCard2025 } from './JobCard2025';
-
-interface Job {
-  id: string;
-  title: string;
-  description: string;
-  location: string;
-  status: string;
-  budget: number;
-  category?: string;
-  priority?: string;
-  photos?: string[];
-  created_at: string;
-  view_count?: number;
-  ai_assessment?: React.ComponentProps<
-    typeof JobCard2025
-  >['job']['ai_assessment'];
-}
+import { workspaceJobHref } from '@/lib/jobs/workspace-navigation';
 
 interface JobsGridProps {
-  jobs: Job[];
+  jobs: React.ComponentProps<typeof JobCard2025>['job'][];
   allJobsCount: number;
   loading: boolean;
+  listHref?: string;
   viewMode: 'grid' | 'list';
   prefersReducedMotion?: boolean;
   selectionMode: boolean;
@@ -46,6 +31,7 @@ export function JobsGrid({
   jobs,
   allJobsCount,
   loading,
+  listHref = '/jobs',
   viewMode,
   prefersReducedMotion = false,
   selectionMode,
@@ -176,6 +162,7 @@ export function JobsGrid({
           >
             <JobCard2025
               job={job}
+              detailHref={workspaceJobHref(job.id, listHref)}
               viewMode={viewMode}
               prefersReducedMotion={prefersReducedMotion}
               selectionMode={selectionMode}

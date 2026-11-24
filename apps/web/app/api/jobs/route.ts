@@ -76,6 +76,10 @@ export const GET = withApiHandler(
         category,
         minBudget,
         maxBudget,
+        ...(user.role === 'homeowner' &&
+        url.searchParams.get('workspace') === '1'
+          ? { includeHomeownerWorkspace: true }
+          : {}),
       }
     );
 
