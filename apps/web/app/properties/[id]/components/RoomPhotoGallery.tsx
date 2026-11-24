@@ -6,6 +6,10 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
+  roomPhotoSelectionError,
+  uploadRoomPhotos,
+} from '@/lib/room-photo-client';
+import {
   ROOM_PHOTO_TYPES as ROOM_TYPES,
   groupRoomPhotoAlbums,
   uploadedPhotoLabel,
@@ -70,77 +74,30 @@ function RoomPhotos({ propertyId }: RoomPhotoGalleryProps) {
   const handleUpload = async (files: File[]) => {
     if (mutation.current || !selectedRoom || !files.length || loading || error)
       return;
-    if (
-      files.length > 10 ||
-      Array.from(files).some((file) => file.size > 5 * 1024 * 1024)
-    ) {
-      toast.error('Choose up to 10 photos, each smaller than 5 MB.');
-      return;
-    }
-    if (
-      files.some(
-        (file) =>
-          !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(
-            file.type
-          )
-      )
-    ) {
-      toast.error('Choose JPEG, PNG, WebP or GIF photos.');
+    const validation = roomPhotoSelectionError(files);
+    if (validation) {
+      toast.error(validation);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
     mutation.current = true;
     setUploading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('room_type', selectedRoom);
-      Array.from(files).forEach((f) => formData.append('photos', f));
-
-      const csrfHeaders = await getCsrfHeaders();
-      if (!mounted.current) return;
-      const res = await fetch(`/api/properties/${propertyId}/room-photos`, {
-        method: 'POST',
-        headers: { ...csrfHeaders },
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!mounted.current) return;
-      if (!res.ok) {
-        toast.error(
-          typeof data.error === 'string'
-            ? data.error
-            : 'Upload failed. Please try again.'
-        );
-        return;
-      }
-      if (
-        !Number.isInteger(data.uploaded) ||
-        data.uploaded < 1 ||
-        data.uploaded > files.length ||
-        !Array.isArray(data.photos) ||
-        data.photos.length !== data.uploaded ||
-        data.photos.some(
-          (photo: { id?: string; room_type?: string }) =>
-            !photo?.id || photo.room_type !== selectedRoom
-        )
-      ) {
-        toast.error(
-          'Upload was not confirmed. Refresh photos before retrying.'
-        );
-        await fetchPhotos();
-        return;
-      }
-
-      toast.success(
-        `${data.uploaded} photo${data.uploaded > 1 ? 's' : ''} uploaded`
+      const { ids, failed } = await uploadRoomPhotos(
+        propertyId,
+        selectedRoom,
+        files
       );
-      if (data.warnings?.length) {
-        toast.error(`${data.warnings.length} file(s) failed`);
-      }
+      if (!mounted.current) return;
+      toast.success(`${ids.length} photo${ids.length > 1 ? 's' : ''} uploaded`);
+      if (failed) toast.error(`${failed} file(s) failed`);
       await fetchPhotos();
-    } catch {
-      if (mounted.current) toast.error('Upload failed');
+    } catch (error) {
+      if (mounted.current) {
+        toast.error(error instanceof Error ? error.message : 'Upload failed');
+        await fetchPhotos();
+      }
     } finally {
       mutation.current = false;
       if (mounted.current) setUploading(false);
@@ -150,11 +107,7 @@ function RoomPhotos({ propertyId }: RoomPhotoGalleryProps) {
 
   const handleDelete = async (photoId: string) => {
     if (mutation.current || loading || error) return;
-    if (
-      !window.confirm(
-        'Delete this room photo? If it is attached to a saved inspection, it will become unavailable in that report. This cannot be undone.'
-      )
-    )
+    if (!window.confirm('Delete this room photo? This cannot be undone.'))
       return;
     mutation.current = true;
     setDeleting(photoId);
@@ -168,7 +121,10 @@ function RoomPhotos({ propertyId }: RoomPhotoGalleryProps) {
       const data = await res.json();
       if (!mounted.current) return;
       if (!res.ok || data.success !== true) {
-        toast.error('Failed to delete photo');
+        toast.error(
+          typeof data.error === 'string' ? data.error : 'Failed to delete photo'
+        );
+        if (res.status === 409 || res.status === 502) await fetchPhotos();
         return;
       }
       toast.success('Photo deleted');
@@ -389,15 +345,25 @@ function RoomPhotos({ propertyId }: RoomPhotoGalleryProps) {
                     </strong>
                     {uploadedPhotoLabel(photo.created_at)}
                   </figcaption>
-                  <button
-                    type='button'
-                    onClick={() => handleDelete(photo.id)}
-                    disabled={uploading || !!deleting || loading || error}
-                    aria-label={`Delete ${photo.file_name || 'room photo'}`}
-                    className='min-h-11 w-full text-xs font-semibold text-red-800 hover:bg-red-50'
-                  >
-                    {deleting === photo.id ? 'Deleting…' : 'Delete photo'}
-                  </button>
+                  {photo.attached_to_inspection ? (
+                    <p className='p-2 text-xs font-semibold text-teal-900'>
+                      Protected by a saved inspection
+                    </p>
+                  ) : (
+                    <button
+                      type='button'
+                      onClick={() => handleDelete(photo.id)}
+                      disabled={uploading || !!deleting || loading || error}
+                      aria-label={`Delete ${photo.file_name || 'room photo'}`}
+                      className='min-h-11 w-full text-xs font-semibold text-red-800 hover:bg-red-50'
+                    >
+                      {deleting === photo.id
+                        ? 'Deleting…'
+                        : photo.deletion_pending
+                          ? 'Retry deletion'
+                          : 'Delete photo'}
+                    </button>
+                  )}
                 </figure>
               ))}
             </div>

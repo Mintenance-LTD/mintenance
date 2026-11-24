@@ -31,6 +31,7 @@ export const folderUpdate = z
     label: z.string().trim().min(1).max(120),
     starts_on: date,
     ends_on: date.nullable(),
+    confirm_inspection_date_change: z.boolean().optional(),
   })
   .strict()
   .refine(
@@ -45,6 +46,8 @@ export const reportInput = z
     kind: z.enum(['check_in', 'routine', 'check_out']),
     notes: z.string().trim().max(10000),
     photo_ids: z.array(z.string().uuid()).max(50),
+    corrects_report_id: z.string().uuid().optional(),
+    date_exception_reason: z.string().trim().min(1).max(1000).optional(),
   })
   .strict()
   .refine(
@@ -53,7 +56,23 @@ export const reportInput = z
   );
 export const folderColumns = 'id,label,starts_on,ends_on,created_at,revision';
 export const reportColumns =
-  'id,folder_id,title,inspected_on,kind,notes,created_at';
+  'id,folder_id,title,inspected_on,kind,notes,created_at,tenancy_starts_on,tenancy_ends_on,date_exception_reason,corrects_report_id';
+
+export async function reportCorrections(
+  propertyId: string,
+  reportIds: string[]
+) {
+  if (!reportIds.length) return new Map<string, string>();
+  const { data, error } = await db
+    .from('property_inspection_reports')
+    .select('id,corrects_report_id')
+    .eq('property_id', propertyId)
+    .in('corrects_report_id', reportIds);
+  databaseError(error);
+  return new Map(
+    (data ?? []).map((report) => [report.corrects_report_id, report.id])
+  );
+}
 export const privateHeaders = {
   'Cache-Control': 'private, no-store',
   Vary: 'Cookie, Authorization',
@@ -136,7 +155,7 @@ export async function getReport(
   propertyId: string,
   reportId: string
 ) {
-  await access(actor, propertyId);
+  const { role } = await access(actor, propertyId);
   uuid(reportId);
   const { data, error } = await db
     .from('property_inspection_reports')
@@ -146,7 +165,7 @@ export async function getReport(
     .maybeSingle();
   databaseError(error);
   if (!data) throw new NotFoundError('Inspection report not found');
-  return data;
+  return { report: data, role };
 }
 export async function inspectionBody(request: Request): Promise<unknown> {
   const reader = request.body?.getReader();

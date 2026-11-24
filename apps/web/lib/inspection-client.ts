@@ -1,5 +1,14 @@
 'use client';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+
+export class InspectionRequestError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string
+  ) {
+    super(message);
+  }
+}
 export async function inspectionRequest<T>(
   url: string,
   body?: unknown,
@@ -21,6 +30,15 @@ export async function inspectionRequest<T>(
         }
   );
   if (!response.ok) {
+    if (response.status === 422 || response.status === 409) {
+      const body = await response.json().catch(() => null);
+      const failure = body?.error ?? body;
+      if (
+        typeof failure?.message === 'string' &&
+        typeof failure?.code === 'string'
+      )
+        throw new InspectionRequestError(failure.message, failure.code);
+    }
     if (response.status === 401)
       throw new Error('Sign in to view this property’s inspection records.');
     if (response.status === 402)

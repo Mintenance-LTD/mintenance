@@ -184,6 +184,178 @@ it('preserves deleted-photo history and escapes report notes', async () => {
   ).toBeDefined();
 });
 
+it('warns before leaving a changed report and records an outside-tenancy reason', async () => {
+  const confirm = vi.fn(() => false);
+  vi.stubGlobal('confirm', confirm);
+  try {
+    request.mockImplementation((url: string, options?: RequestInit) =>
+      ok(
+        options?.method === 'POST'
+          ? { id: 'saved' }
+          : url.includes('room-photos')
+            ? { photos: [] }
+            : {
+                items: url.includes('/tenancies?') ? [folder] : [],
+                canCreate: true,
+                hasMore: false,
+              }
+      )
+    );
+    render(
+      <>
+        <a href='/properties/property?tab=manage&manage=records'>
+          Back to property records
+        </a>
+        <TenancyInspections propertyId='property' initialFolderId='folder' />
+      </>
+    );
+    await screen.findByRole('button', { name: 'New inspection' });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Create Check-out report' })
+    );
+    fireEvent.change(screen.getByLabelText('Report title'), {
+      target: { value: 'After handover' },
+    });
+    fireEvent.change(screen.getByLabelText('Inspection date'), {
+      target: { value: '2025-12-31' },
+    });
+    expect(
+      screen.getByRole('button', { name: 'Save shared report' })
+    ).toBeDisabled();
+    expect(
+      fireEvent.click(
+        screen.getByRole('link', { name: 'Back to property records' })
+      )
+    ).toBe(false);
+    expect(confirm).toHaveBeenCalledWith(
+      expect.stringContaining('Leave without saving?')
+    );
+    expect(screen.getByLabelText('Report title')).toHaveValue('After handover');
+    fireEvent.change(screen.getByLabelText('Reason for the date exception'), {
+      target: { value: 'Agreed early handover' },
+    });
+    const save = screen.getByRole('button', { name: 'Save shared report' });
+    await waitFor(() => expect(save).toBeEnabled());
+    fireEvent.click(save);
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        '/api/properties/property/inspections',
+        expect.objectContaining({
+          body: expect.stringContaining(
+            '"date_exception_reason":"Agreed early handover"'
+          ),
+        })
+      )
+    );
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+it('uploads a photo on the inspection form and saves its returned identifier', async () => {
+  const photo = {
+    id: 'uploaded-photo',
+    room_type: 'kitchen',
+    file_name: 'Kitchen.png',
+  };
+  let uploaded = false;
+  request.mockImplementation((url: string, options?: RequestInit) => {
+    if (url.includes('/room-photos')) {
+      if (options?.method === 'POST') {
+        expect(options.body).toBeInstanceOf(FormData);
+        expect((options.body as FormData).get('room_type')).toBe('kitchen');
+        uploaded = true;
+        return ok({ photos: [photo], uploaded: 1 });
+      }
+      return ok({ photos: uploaded ? [photo] : [] });
+    }
+    return ok(
+      options?.method === 'POST'
+        ? { id: 'saved' }
+        : {
+            items: url.includes('/tenancies?') ? [folder] : [],
+            canCreate: true,
+            hasMore: false,
+          }
+    );
+  });
+  render(<TenancyInspections propertyId='property' initialFolderId='folder' />);
+  await screen.findByRole('button', { name: 'New inspection' });
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Create Check-in report' })
+  );
+  fireEvent.change(screen.getByLabelText('Room for new photo'), {
+    target: { value: 'kitchen' },
+  });
+  fireEvent.change(screen.getByLabelText('Choose a photo'), {
+    target: {
+      files: [new File(['test'], 'Kitchen.png', { type: 'image/png' })],
+    },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Upload and attach' }));
+  expect(
+    await screen.findByRole('checkbox', { name: /Kitchen.png/ })
+  ).toBeChecked();
+  fireEvent.change(screen.getByLabelText('Report title'), {
+    target: { value: 'Kitchen condition' },
+  });
+  fireEvent.change(screen.getByLabelText('Inspection date'), {
+    target: { value: '2026-11-01' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save shared report' }));
+  await waitFor(() =>
+    expect(request).toHaveBeenCalledWith(
+      '/api/properties/property/inspections',
+      expect.objectContaining({
+        body: expect.stringContaining('"photo_ids":["uploaded-photo"]'),
+      })
+    )
+  );
+});
+
+it('compares observations and links corrections while retaining the saved tenancy dates', async () => {
+  request.mockImplementation(() =>
+    ok({
+      folder: { ...folder, starts_on: '2026-01-02' },
+      report: {
+        id: 'report',
+        title: 'Check-out',
+        kind: 'check_out',
+        inspected_on: '2026-11-24',
+        created_at: '2026-11-25T08:00:00Z',
+        notes: 'Scuffed wall',
+        tenancy_starts_on: '2026-01-01',
+        corrected_by_report_id: 'correction',
+      },
+      checkIn: {
+        id: 'check-in',
+        inspected_on: '2026-11-01',
+        notes: 'Clean wall',
+      },
+      canCreate: true,
+      photos: [],
+    })
+  );
+  render(<InspectionReportView propertyId='property' reportId='report' />);
+  expect(
+    await screen.findByRole('link', { name: 'View correction' })
+  ).toHaveAttribute('href', '/properties/property/inspections/correction');
+  expect(
+    screen.queryByRole('link', { name: 'Correct this report' })
+  ).toBeNull();
+  expect(
+    screen.getByRole('link', { name: 'Compare with check-in' })
+  ).toHaveAttribute('href', '#compare-check-in');
+  expect(screen.getByText('Clean wall')).toBeVisible();
+  expect(screen.getAllByText('Scuffed wall')).toHaveLength(2);
+  expect(
+    screen.getByText('Tenancy dates when saved').parentElement
+  ).toHaveTextContent('1 Jan 2026');
+  expect(
+    screen.getByText('Current tenancy dates').parentElement
+  ).toHaveTextContent('2 Jan 2026');
+});
+
 it('edits a folder using its current revision', async () => {
   request.mockImplementation((_url: string, options?: RequestInit) =>
     ok(

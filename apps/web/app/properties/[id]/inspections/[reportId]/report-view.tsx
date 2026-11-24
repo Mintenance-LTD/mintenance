@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -32,6 +32,8 @@ export default function InspectionReportView({
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
   const [copied, setCopied] = useState('');
+  const [printing, setPrinting] = useState(false);
+  const page = useRef<HTMLElement>(null);
   useEffect(() => {
     const controller = new AbortController();
     setData(null);
@@ -69,16 +71,30 @@ export default function InspectionReportView({
   )?.label;
   const propertyPath = '/properties/' + encodeURIComponent(propertyId);
   const folderId = data?.report.folder_id || data?.folder.id;
+  const folderPath = folderId
+    ? propertyPath + '/tenancies/' + encodeURIComponent(folderId)
+    : '';
+  const correctedBy = data?.report.corrected_by_report_id;
+  const corrects = data?.report.corrects_report_id;
+
+  async function printReport() {
+    if (printing || !page.current) return;
+    setPrinting(true);
+    try {
+      const images = Array.from(page.current.querySelectorAll('img'));
+      await Promise.allSettled(images.map((image) => image.decode()));
+      window.print();
+    } finally {
+      setPrinting(false);
+    }
+  }
+
   return (
-    <main className={styles.page}>
+    <main ref={page} className={styles.page}>
       <div className={styles.container}>
         <Link
-          className={styles.back}
-          href={
-            folderId
-              ? propertyPath + '/tenancies/' + encodeURIComponent(folderId)
-              : propertyPath + '?tab=manage&manage=records'
-          }
+          className={`${styles.back} ${styles.noPrint}`}
+          href={folderPath || propertyPath + '?tab=manage&manage=records'}
         >
           <ArrowLeft size={17} aria-hidden='true' />{' '}
           {folderId ? 'Back to tenancy folder' : 'Back to property records'}
@@ -121,13 +137,73 @@ export default function InspectionReportView({
                 <h1>{data.report.title}</h1>
                 <p className={styles.subtitle}>{data.folder.label}</p>
               </div>
-              <button onClick={() => void copy()} className={styles.primary}>
-                <Link2 size={18} aria-hidden='true' /> Copy member-only link
-              </button>
+              <div className={`${styles.actions} ${styles.noPrint}`}>
+                {data.checkIn && (
+                  <a href='#compare-check-in' className={styles.actionLink}>
+                    Compare with check-in
+                  </a>
+                )}
+                {data.canCreate && !correctedBy && (
+                  <Link
+                    href={
+                      folderPath + '?corrects=' + encodeURIComponent(reportId)
+                    }
+                    className={styles.actionLink}
+                  >
+                    Correct this report
+                  </Link>
+                )}
+                <button
+                  type='button'
+                  onClick={() => void printReport()}
+                  disabled={printing}
+                  className={styles.actionLink}
+                >
+                  {printing ? 'Preparing report…' : 'Print or save PDF'}
+                </button>
+                <button
+                  type='button'
+                  onClick={() => void copy()}
+                  className={styles.primary}
+                >
+                  <Link2 size={18} aria-hidden='true' /> Copy member-only link
+                </button>
+              </div>
             </header>
             {copied && (
-              <p role='status' className={styles.feedback}>
+              <p
+                role='status'
+                className={`${styles.feedback} ${styles.noPrint}`}
+              >
                 {copied}
+              </p>
+            )}
+            {correctedBy && (
+              <p className={styles.feedback}>
+                <strong>Corrected.</strong>{' '}
+                <Link
+                  className={styles.actionLink}
+                  href={inspectionReportPath(propertyId, correctedBy)}
+                >
+                  View correction
+                </Link>
+              </p>
+            )}
+            {corrects && (
+              <p className={styles.feedback}>
+                This report is a correction.{' '}
+                <Link
+                  className={styles.actionLink}
+                  href={inspectionReportPath(propertyId, corrects)}
+                >
+                  View previous version
+                </Link>
+              </p>
+            )}
+            {data.report.date_exception_reason && (
+              <p className={styles.feedback}>
+                <strong>Date exception</strong> ·{' '}
+                {data.report.date_exception_reason}
               </p>
             )}
             <dl className={styles.summary}>
@@ -176,6 +252,44 @@ export default function InspectionReportView({
                     {data.report.notes || 'No written observations recorded.'}
                   </p>
                 </section>
+                {data.checkIn && (
+                  <section
+                    id='compare-check-in'
+                    className={`${styles.card} ${styles.noPrint}`}
+                    aria-labelledby='comparison-heading'
+                  >
+                    <h2 id='comparison-heading'>Compare with check-in</h2>
+                    <div className={styles.comparison}>
+                      <div>
+                        <h3>
+                          Check-in · {formatDate(data.checkIn.inspected_on)}
+                        </h3>
+                        <p className={styles.notes}>
+                          {data.checkIn.notes ||
+                            'No written observations recorded.'}
+                        </p>
+                        <Link
+                          className={styles.actionLink}
+                          href={inspectionReportPath(
+                            propertyId,
+                            data.checkIn.id
+                          )}
+                        >
+                          View check-in report and photos
+                        </Link>
+                      </div>
+                      <div>
+                        <h3>
+                          Check-out · {formatDate(data.report.inspected_on)}
+                        </h3>
+                        <p className={styles.notes}>
+                          {data.report.notes ||
+                            'No written observations recorded.'}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+                )}
                 <section
                   className={styles.card}
                   aria-labelledby='report-photos-title'
@@ -190,7 +304,7 @@ export default function InspectionReportView({
                   </div>
                   <p className={styles.caption}>
                     Upload dates are recorded in UTC; capture dates are not
-                    verified. Photos remain linked to the original uploads.
+                    verified.
                   </p>
                   {!data.photos.length && (
                     <p className={styles.empty}>No photos attached.</p>
@@ -237,20 +351,29 @@ export default function InspectionReportView({
                     <FolderOpen size={21} aria-hidden='true' /> Tenancy folder
                   </h2>
                   <p className={styles.folderName}>{data.folder.label}</p>
-                  <dl className={styles.details}>
-                    <div>
-                      <dt>Starts</dt>
-                      <dd>{formatDate(data.folder.starts_on)}</dd>
-                    </div>
-                    <div>
-                      <dt>Ends</dt>
-                      <dd>
-                        {data.folder.ends_on
-                          ? formatDate(data.folder.ends_on)
-                          : 'Not specified'}
-                      </dd>
-                    </div>
-                  </dl>
+                  {data.report.tenancy_starts_on ? (
+                    <p>
+                      <strong>Tenancy dates when saved</strong>
+                      <br />
+                      {formatDate(data.report.tenancy_starts_on)} to{' '}
+                      {data.report.tenancy_ends_on
+                        ? formatDate(data.report.tenancy_ends_on)
+                        : 'no end date set'}
+                    </p>
+                  ) : (
+                    <p className={styles.caption}>
+                      Tenancy dates at the time of saving are unavailable for
+                      this report.
+                    </p>
+                  )}
+                  <p>
+                    <strong>Current tenancy dates</strong>
+                    <br />
+                    {formatDate(data.folder.starts_on)} to{' '}
+                    {data.folder.ends_on
+                      ? formatDate(data.folder.ends_on)
+                      : 'no end date set'}
+                  </p>
                 </section>
                 <section className={styles.card}>
                   <h2>
@@ -264,7 +387,7 @@ export default function InspectionReportView({
                   </p>
                   <dl className={styles.details}>
                     <div>
-                      <dt>Saved (UTC)</dt>
+                      <dt>Recorded (UTC)</dt>
                       <dd>
                         {new Date(data.report.created_at).toLocaleString(
                           'en-GB',
@@ -282,7 +405,7 @@ export default function InspectionReportView({
                   </dl>
                   <p className={styles.caption}>
                     The inspection date is entered by the author. Saved reports
-                    cannot be edited; record corrections in a new report.
+                    remain in the audit trail when corrected.
                   </p>
                 </section>
               </aside>

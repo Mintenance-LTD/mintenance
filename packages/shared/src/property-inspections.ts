@@ -20,6 +20,11 @@ export interface InspectionReport {
   inspected_on: string;
   notes: string;
   created_at: string;
+  tenancy_starts_on?: string | null;
+  tenancy_ends_on?: string | null;
+  date_exception_reason?: string | null;
+  corrects_report_id?: string | null;
+  corrected_by_report_id?: string | null;
 }
 export interface InspectionPhoto {
   id: string;
@@ -27,11 +32,27 @@ export interface InspectionPhoto {
   file_name: string;
   uploaded_at: string | null;
   available: boolean;
+  source_photo_id?: string | null;
 }
 export interface InspectionDetail {
   report: InspectionReport;
   folder: TenancyFolder;
   photos: InspectionPhoto[];
+  canCreate?: boolean;
+  checkIn?: Pick<
+    InspectionReport,
+    'id' | 'title' | 'inspected_on' | 'notes'
+  > | null;
+}
+export function isOutsideTenancy(
+  inspectedOn: string,
+  startsOn: string,
+  endsOn: string | null
+): boolean {
+  return (
+    !!inspectedOn &&
+    (inspectedOn < startsOn || (!!endsOn && inspectedOn > endsOn))
+  );
 }
 export interface InspectionPage<T> {
   items: T[];

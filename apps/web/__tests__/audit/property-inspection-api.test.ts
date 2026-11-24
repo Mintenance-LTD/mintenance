@@ -61,6 +61,10 @@ vi.mock('@/lib/api/supabaseServer', () => ({
           return q;
         },
         order: () => q,
+        in: (key: string, values: unknown[]) => {
+          m.filters(table, key, values);
+          return Promise.resolve({ data: [], error: m.error });
+        },
         range: () =>
           Promise.resolve({
             data: [{ id: folder, label: 'Tenancy' }],
@@ -206,13 +210,51 @@ it('passes verified actor/property to atomic report RPC', async () => {
     })
   );
   expect(m.rpc).toHaveBeenCalledWith(
-    'create_property_inspection_report',
+    'create_property_inspection_report_with_context',
     expect.objectContaining({
       p_actor: 'actor',
       p_property: property,
       p_folder: folder,
       p_photos: [],
+      p_corrects: null,
+      p_exception: null,
     })
+  );
+});
+it('requires an explicit confirmation if a date edit excludes saved inspections', async () => {
+  m.rpcError = { code: 'PT422' };
+  await expect(
+    updateFolder(
+      request('PATCH', {
+        id: folder,
+        revision: 0,
+        label: 'Edited',
+        starts_on: '2026-11-02',
+        ends_on: null,
+      })
+    )
+  ).rejects.toMatchObject({
+    code: 'TENANCY_DATE_CHANGE_EXCLUDES_INSPECTIONS',
+    statusCode: 422,
+  });
+  expect(m.rpc).toHaveBeenLastCalledWith(
+    'update_property_tenancy_folder_with_confirmation',
+    expect.objectContaining({ p_confirm: false })
+  );
+  m.rpcError = null;
+  await updateFolder(
+    request('PATCH', {
+      id: folder,
+      revision: 0,
+      label: 'Edited',
+      starts_on: '2026-11-02',
+      ends_on: null,
+      confirm_inspection_date_change: true,
+    })
+  );
+  expect(m.rpc).toHaveBeenLastCalledWith(
+    'update_property_tenancy_folder_with_confirmation',
+    expect.objectContaining({ p_confirm: true })
   );
 });
 it('never turns missing migration into empty success', async () => {
