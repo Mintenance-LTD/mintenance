@@ -76,8 +76,8 @@ export function contractorFinancialSummary(
   const previousMonthRevenue = sum(inMonth(previousMonth));
   const allTimeRevenue = sum(settled);
   const paidJobs = new Set(settled.map((p) => p.job_id)).size;
-  const pendingPayouts =
-    held.reduce((total, p) => {
+  const balances = held.reduce(
+    (total, p) => {
       const grossMinor = Math.round(Number(p.amount) * 100);
       const remaining = p.remaining_minor ?? grossMinor;
       if (
@@ -86,12 +86,21 @@ export function contractorFinancialSummary(
         remaining > grossMinor
       )
         throw new Error('Held payment balance requires reconciliation.');
-      return total + remaining;
-    }, 0) / 100;
+      if (p.status === 'disputed') total.disputed += remaining;
+      else total.held += remaining;
+      return total;
+    },
+    { held: 0, disputed: 0 }
+  );
   return {
     allTimeRevenue,
     thisMonthRevenue,
-    pendingPayouts,
+    pendingPayouts: (balances.held + balances.disputed) / 100,
+    heldNotDisputed: balances.held / 100,
+    heldInDispute: balances.disputed / 100,
+    disputedJobIds: Array.from(
+      new Set(held.filter((p) => p.status === 'disputed').map((p) => p.job_id))
+    ),
     heldCount: held.length,
     avgJobValue: paidJobs
       ? Math.round((allTimeRevenue * 100) / paidJobs) / 100

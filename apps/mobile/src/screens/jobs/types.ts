@@ -193,4 +193,5 @@ export interface JobCardProps {
   bidCount?: number;
   isContractor?: boolean;
   hasUserBid?: boolean;
+  contractorJob?: import('../../hooks/useContractorJobActions').ContractorActiveJob;
 }

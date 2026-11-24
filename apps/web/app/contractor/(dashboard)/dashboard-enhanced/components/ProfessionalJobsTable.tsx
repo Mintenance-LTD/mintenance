@@ -26,6 +26,7 @@ const STATUS_STYLES: Record<string, string> = {
   completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   in_progress: 'bg-blue-50 text-blue-700 border-blue-200',
   assigned: 'bg-purple-50 text-purple-700 border-purple-200',
+  disputed: 'bg-amber-50 text-amber-900 border-amber-200',
   posted: 'bg-gray-50 text-gray-700 border-gray-200',
 };
 
@@ -34,6 +35,7 @@ function getStatusStyle(status: string) {
 }
 
 function formatStatus(status: string) {
+  if (status === 'disputed') return 'Dispute under review · payment paused';
   return status
     .replace('_', ' ')
     .split(' ')

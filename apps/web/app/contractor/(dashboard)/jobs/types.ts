@@ -1,3 +1,5 @@
+import type { ContractorJobAction } from '@mintenance/shared';
+
 /**
  * Shared types for the contractor /jobs surface. Extracted from
  * `contractor/jobs/page.tsx` on 2026-05-09 (AUDIT_PUNCH_LIST P2 #42).
@@ -18,6 +20,9 @@ export interface Job {
    * budget → null. Null when nothing is committed yet. */
   total_amount?: number | null;
   status: string;
+  scheduled_start_date?: string | null;
+  scheduled_end_date?: string | null;
+  contractor_action?: ContractorJobAction;
   bid_status?: string;
   photos: string[];
   created_at: string;
@@ -41,6 +46,9 @@ export interface JobApiResponse {
   budget: number;
   total_amount?: number | null;
   status: string;
+  scheduled_start_date?: string | null;
+  scheduled_end_date?: string | null;
+  contractor_action?: ContractorJobAction;
   bid_status?: string;
   photos?: string[];
   created_at: string;

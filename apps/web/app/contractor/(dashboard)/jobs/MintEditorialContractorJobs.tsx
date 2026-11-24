@@ -24,6 +24,8 @@ import { Briefcase, MapPin, Search } from 'lucide-react';
 import { formatMoney } from '@/lib/utils/currency';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
 import type { Job, JobsFilter, JobStats } from './types';
+import { ContractorJobCardContext } from './components/ContractorJobCardContext';
+import { disputeHref } from '@/lib/disputes/presentation';
 
 interface Props {
   filter: JobsFilter;
@@ -82,7 +84,7 @@ function priorityChip(priority: string) {
 }
 
 function JobCard({ job }: { job: Job }) {
-  const isAssigned = ['assigned', 'in_progress', 'completed'].includes(
+  const isAssigned = ['assigned', 'in_progress', 'completed', 'disputed'].includes(
     job.status
   );
   const hasPhoto = job.photos && job.photos.length > 0;
@@ -155,7 +157,7 @@ function JobCard({ job }: { job: Job }) {
         style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}
       >
         <div className='row' style={{ gap: 6, flexWrap: 'wrap' }}>
-          {statusBadge(job.status)}
+          {statusBadge(job.contractor_action?.kind === 'dispute' ? 'disputed' : job.status)}
           {priorityChip(job.priority)}
           {job.category ? (
             <span className='badge badge-mute'>{job.category}</span>
@@ -194,6 +196,7 @@ function JobCard({ job }: { job: Job }) {
             </span>
           </div>
         ) : null}
+        <ContractorJobCardContext job={job} />
         <div
           className='between'
           style={{ marginTop: 'auto', paddingTop: 4, gap: 8 }}
@@ -226,13 +229,19 @@ function JobCard({ job }: { job: Job }) {
             </Link>
           ) : isAssigned ? (
             <Link
-              href={`/contractor/jobs/${job.id}`}
+              href={job.contractor_action?.escrowId
+                ? disputeHref(job.contractor_action.escrowId)
+                : `/contractor/jobs/${job.id}${job.contractor_action?.kind === 'photos' ? '#before-photos' : ''}`}
               className='btn btn-primary btn-sm'
             >
-              {job.status === 'completed'
+              {job.contractor_action?.escrowId
+                ? 'View dispute →'
+                : job.contractor_action?.kind === 'photos'
+                  ? 'Upload before photos →'
+                  : job.status === 'completed'
                 ? 'View completed job →'
                 : job.status === 'assigned'
-                  ? 'Review next steps →'
+                  ? 'Open job →'
                   : 'Manage active job →'}
             </Link>
           ) : (

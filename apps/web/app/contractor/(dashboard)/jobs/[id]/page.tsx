@@ -21,6 +21,8 @@ import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { JobPhotoUpload } from './components/JobPhotoUpload';
+import { contractorJobAction, contractorVisitWindow, pastContractorVisitMessage } from '@mintenance/shared';
+import { disputeHref } from '@/lib/disputes/presentation';
 import { OnMyWayButton } from './components/OnMyWayButton';
 import { PrepareContractButton } from './components/PrepareContractButton';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
@@ -157,15 +159,20 @@ export default async function ContractorJobDetailPage({
         ? 'none' // Draft contracts are treated as "not prepared yet"
         : 'pending';
 
-  const { data: escrowTransaction, error: escrowError } = await serverSupabase
+  const { data: escrowRows, error: escrowError } = await serverSupabase
     .from('escrow_transactions')
     .select(
       'id, status, amount, platform_fee, contractor_payout, stripe_processing_fee, homeowner_approval, admin_hold_status'
     )
     .eq('job_id', resolvedParams.id)
+    .eq('payee_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order('id', { ascending: false });
+
+  const disputedPayment = escrowRows?.find((row) => row.status === 'disputed');
+  const escrowTransaction = disputedPayment
+    ?? (job.status === 'assigned' ? escrowRows?.find((row) => row.status === 'held') : undefined)
+    ?? escrowRows?.[0];
 
   const payment = contractorPaymentPresentation({
     status: escrowTransaction?.status,
@@ -211,6 +218,22 @@ export default async function ContractorJobDetailPage({
     .eq('job_id', resolvedParams.id)
     .eq('photo_type', 'before');
 
+  const action = contractorJobAction({
+    jobStatus: job.status,
+    contractStatus: contract?.status,
+    homeownerSigned: !!contract?.homeowner_signed_at,
+    paymentStatus: escrowTransaction?.status,
+    paymentHold: escrowTransaction?.admin_hold_status,
+    disputeEscrowId: disputedPayment?.id,
+    startRestriction,
+    hasBeforePhoto: (existingBeforePhotosCount ?? 0) > 0,
+    unavailable: !!escrowError,
+  });
+  const visitWindow = contractorVisitWindow(job.scheduled_start_date, job.scheduled_end_date);
+  const pastVisit = job.status === 'assigned' && visitWindow?.passed
+    ? `${visitWindow.label}. ${pastContractorVisitMessage(action)}`
+    : null;
+
   const currentStage = determineStage(
     job.status || 'posted',
     contractStatus,
@@ -221,6 +244,17 @@ export default async function ContractorJobDetailPage({
   );
   const stageConfig = {
     ...getStageConfig(currentStage),
+    ...(action?.kind === 'dispute'
+      ? { title: action.label, subtitle: 'Payment release is paused.' }
+      : {}),
+    ...(currentStage === 'ready_to_start' && (action?.kind === 'start' || action?.kind === 'photos')
+      ? {
+          title: action.label,
+          subtitle: action.kind === 'start'
+            ? 'Payment is secured and before photos are on file. Confirm access with the homeowner before starting.'
+            : 'Payment is secured. Upload at least one before photo to enable Start job.',
+        }
+      : {}),
     ...(currentStage === 'contract_pending'
       ? contract?.status === 'pending_contractor'
         ? {
@@ -363,6 +397,8 @@ export default async function ContractorJobDetailPage({
           }))}
           payment={payment}
           escrowId={escrowTransaction?.id ?? null}
+          disputeAction={action?.kind === 'dispute' ? action : undefined}
+          pastVisit={pastVisit}
           paymentAmounts={
             escrowTransaction
               ? {
@@ -544,6 +580,13 @@ export default async function ContractorJobDetailPage({
           </div>
 
           {/* Stage-specific primary content */}
+          {pastVisit && <p className='mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-950'>Visit window passed. {pastVisit}</p>}
+          {action?.kind === 'dispute' && (
+            <div className='mb-4 space-y-2'>
+              <p>{action.detail}</p>
+              {action.escrowId && <Link className='underline' href={disputeHref(action.escrowId)}>View dispute</Link>}
+            </div>
+          )}
           {(payment.kind === 'released' ||
             payment.kind === 'release_pending') && (
             <Link
@@ -564,17 +607,17 @@ export default async function ContractorJobDetailPage({
           {(currentStage === 'ready_to_start' ||
             currentStage === 'in_progress' ||
             currentStage === 'completed') && (
-            <JobPhotoUpload
+            <div id='before-photos'><JobPhotoUpload
               jobId={resolvedParams.id}
               jobStatus={job.status || 'posted'}
               latitude={job.latitude}
               longitude={job.longitude}
               location={cleanAddress(job.location)}
               existingBeforePhotosCount={existingBeforePhotosCount ?? 0}
-            />
+            /></div>
           )}
 
-          {currentStage === 'contract_preparing' && (
+          {currentStage === 'contract_preparing' && action?.kind !== 'dispute' && (
             <div
               style={{
                 marginTop: theme.spacing[2],

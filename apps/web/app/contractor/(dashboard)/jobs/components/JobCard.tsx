@@ -8,6 +8,8 @@ import { MotionArticle } from '@/components/ui/MotionDiv';
 import { cardHover } from '@/lib/animations/variants';
 import { formatMoney } from '@/lib/utils/currency';
 import type { Job } from '../types';
+import { ContractorJobCardContext } from './ContractorJobCardContext';
+import { disputeHref } from '@/lib/disputes/presentation';
 
 interface Props {
   job: Job;
@@ -33,7 +35,7 @@ function getPriorityColor(priority: string): string {
  * /completed) and the "View Details + Submit Bid" pair (open jobs).
  */
 export function JobCard({ job }: Props) {
-  const isAssignedOrLater = ['assigned', 'in_progress', 'completed'].includes(
+  const isAssignedOrLater = ['assigned', 'in_progress', 'completed', 'disputed'].includes(
     job.status
   );
 
@@ -152,14 +154,17 @@ export function JobCard({ job }: Props) {
           </div>
         </div>
 
-        <div className='flex gap-3'>
+        <ContractorJobCardContext job={job} />
+        <div className='mt-3 flex gap-3'>
           {isAssignedOrLater ? (
             <Link
-              href={`/contractor/jobs/${job.id}`}
+              href={job.contractor_action?.escrowId
+                ? disputeHref(job.contractor_action.escrowId)
+                : `/contractor/jobs/${job.id}${job.contractor_action?.kind === 'photos' ? '#before-photos' : ''}`}
               className='flex-1 px-4 py-2.5 bg-teal-600 text-white rounded-xl font-medium text-center hover:bg-teal-700 transition-colors flex items-center justify-center gap-2'
             >
               <Briefcase size={16} />
-              {job.status === 'completed' ? 'View Job' : 'Manage Job'}
+              {job.contractor_action?.escrowId ? 'View dispute' : job.contractor_action?.kind === 'photos' ? 'Upload before photos' : 'View job'}
             </Link>
           ) : (
             <>

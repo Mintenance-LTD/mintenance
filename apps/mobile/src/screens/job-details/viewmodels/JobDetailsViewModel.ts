@@ -19,8 +19,12 @@ import {
 import UnifiedAIServiceMobile from '../../../services/UnifiedAIServiceMobile';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import type { Job } from '@mintenance/types';
+import type { ContractorJobAction } from '@mintenance/shared';
 
 interface JobDetailsAggregate {
+  contractorAction?: ContractorJobAction | null;
+  scheduledStartDate?: string | null;
+  scheduledEndDate?: string | null;
   contractStatus: string | null;
   contractHomeownerSigned?: boolean;
   escrowStatus: string | null;
@@ -43,6 +47,7 @@ interface JobDetailsAggregate {
 }
 
 interface JobDetailsState {
+  contractorWorkflow?: Pick<JobDetailsAggregate, 'contractorAction' | 'scheduledStartDate' | 'scheduledEndDate'>;
   aiAnalysis: AIAnalysis | null;
   aiError: string | null;
   aiLoading: boolean;
@@ -77,6 +82,7 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
   const [contractStatus, setContractStatus] = useState<string | null>(null);
   const [contractHomeownerSigned, setContractHomeownerSigned] = useState(false);
   const [escrowStatus, setEscrowStatus] = useState<string | null>(null);
+  const [workflow, setWorkflow] = useState<{ jobId: string; value: JobDetailsState['contractorWorkflow'] }>();
   const [hasReviewed, setHasReviewed] = useState(false);
   const [beforePhotoCount, setBeforePhotoCount] = useState(0);
   const [afterPhotoCount, setAfterPhotoCount] = useState(0);
@@ -145,6 +151,11 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
         setContractStatus(aggregate.contractStatus ?? null);
         setContractHomeownerSigned(!!aggregate.contractHomeownerSigned);
         setEscrowStatus(aggregate.escrowStatus ?? null);
+        setWorkflow({ jobId: job.id, value: {
+          contractorAction: aggregate.contractorAction,
+          scheduledStartDate: aggregate.scheduledStartDate,
+          scheduledEndDate: aggregate.scheduledEndDate,
+        }});
         setHasReviewed(!!aggregate.hasReviewed);
         setBeforePhotoCount(aggregate.beforePhotoCount ?? 0);
         setAfterPhotoCount(aggregate.afterPhotoCount ?? 0);
@@ -236,6 +247,7 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     contractStatus,
     contractHomeownerSigned,
     escrowStatus,
+    contractorWorkflow: workflow?.jobId === job?.id ? workflow?.value : undefined,
     hasReviewed,
     beforePhotoCount,
     afterPhotoCount,

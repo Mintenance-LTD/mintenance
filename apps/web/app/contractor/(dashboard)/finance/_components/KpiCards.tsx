@@ -6,6 +6,7 @@ import { PoundSterling, Clock, TrendingUp, Banknote } from 'lucide-react';
 interface KpiCardsProps {
   thisMonthRevenue: number;
   pendingPayouts: number;
+  heldInDispute?: number;
   allTimeRevenue: number;
   avgJobValue: number;
 }
@@ -13,6 +14,7 @@ interface KpiCardsProps {
 export function KpiCards({
   thisMonthRevenue,
   pendingPayouts,
+  heldInDispute = 0,
   allTimeRevenue,
   avgJobValue,
 }: KpiCardsProps) {
@@ -49,9 +51,9 @@ export function KpiCards({
           <div className='sub'>Released net, after platform fee</div>
         </div>
         <div className='kpi'>
-          <div className='label'>Held in escrow (gross)</div>
+          <div className='label'>Held · not disputed</div>
           <div className='num'>£{fmt(pendingPayouts)}</div>
-          <div className='sub'>Before platform fee; release checks apply</div>
+          <div className='sub'>£{fmt(heldInDispute)} held in dispute · both before fees</div>
         </div>
         <div className='kpi'>
           <div className='label'>Lifetime net earnings</div>
@@ -85,12 +87,13 @@ export function KpiCards({
         <div className='flex items-center gap-2 mb-2'>
           <Clock className='w-5 h-5 text-amber-600' />
           <p className='text-gray-600 text-sm font-medium'>
-            Held in escrow (gross)
+            Held · not disputed
           </p>
         </div>
         <p className='text-2xl font-semibold text-gray-900'>
           £{fmt(pendingPayouts)}
         </p>
+        <p className='mt-1 text-sm text-gray-700'>£{fmt(heldInDispute)} held in dispute · both before fees</p>
       </div>
 
       {/* All Time Revenue */}

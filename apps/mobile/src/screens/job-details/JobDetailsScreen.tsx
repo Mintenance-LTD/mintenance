@@ -1,4 +1,5 @@
 import { displayAddress } from '../../utils/displayAddress';
+import { contractorVisitWindow, pastContractorVisitMessage, CONTRACTOR_DISPUTE_TITLE, CONTRACTOR_DISPUTE_NEXT_STEP } from '@mintenance/shared';
 import { JobIssueConversations } from '../properties/components/JobIssueConversations';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
@@ -189,6 +190,11 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const job = viewModel.job;
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job?.homeowner_id;
+  const contractorAction = viewModel.contractorWorkflow?.contractorAction;
+  const visit = contractorVisitWindow(
+    viewModel.contractorWorkflow?.scheduledStartDate,
+    viewModel.contractorWorkflow?.scheduledEndDate
+  );
 
   // Check current funding even for in-progress jobs: an old status alone
   // is not proof that payment is still held.
@@ -691,7 +697,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           jobId={job.id}
           onDisputeDetailsPress={
             viewModel.escrowStatus &&
-            (canManageJob || job.contractor_id === user?.id)
+            canManageJob
               ? () => navigation.navigate('DisputeDetails', { jobId: job.id })
               : undefined
           }
@@ -751,6 +757,28 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             job.status === 'completed'
           }
         />
+        {isContractor && job.contractor_id === user?.id && (
+          (job.status === 'assigned' && visit?.passed || contractorAction?.kind === 'dispute' || viewModel.escrowStatus === 'disputed') && (
+            <View style={{ gap: 8, padding: 16 }}>
+              {job.status === 'assigned' && visit?.passed && (
+                <Text>Visit window passed · {visit.label}. {pastContractorVisitMessage(contractorAction ?? undefined)}</Text>
+              )}
+              {(contractorAction?.kind === 'dispute' || viewModel.escrowStatus === 'disputed') && (
+                <>
+                  <Text style={{ fontWeight: '700' }}>{CONTRACTOR_DISPUTE_TITLE} · Payment paused</Text>
+                  <Text>{contractorAction?.detail ?? CONTRACTOR_DISPUTE_NEXT_STEP}</Text>
+                  <TouchableOpacity accessibilityRole='button' onPress={() =>
+                    navigation.navigate('DisputeDetails', contractorAction?.escrowId
+                      ? { escrowId: contractorAction.escrowId }
+                      : { jobId: job.id })
+                  }>
+                    <Text style={{ textDecorationLine: 'underline', fontWeight: '600' }}>View dispute</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          )
+        )}
         {(isOwner || job.contractor_id === user?.id) && (
           <JobIssueConversations jobId={job.id} />
         )}
@@ -767,6 +795,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         contractStatus: viewModel.contractStatus,
         contractHomeownerSigned: viewModel.contractHomeownerSigned,
         escrowStatus: viewModel.escrowStatus,
+        contractorAction,
         hasReviewed: viewModel.hasReviewed,
         beforePhotoCount: viewModel.beforePhotoCount,
         bidsArray,

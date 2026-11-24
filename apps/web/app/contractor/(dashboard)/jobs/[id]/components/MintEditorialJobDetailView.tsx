@@ -44,6 +44,8 @@ import { ContractManagement } from '@/app/jobs/[id]/components/ContractManagemen
 import { JobScheduling } from '@/app/jobs/[id]/components/JobScheduling';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
 import { JobPhotoUpload } from './JobPhotoUpload';
+import type { ContractorJobAction } from '@mintenance/shared';
+import { disputeHref } from '@/lib/disputes/presentation';
 import { OnMyWayButton } from './OnMyWayButton';
 import { LocationSharing } from './LocationSharing';
 import { PrepareContractButton } from './PrepareContractButton';
@@ -137,6 +139,8 @@ interface MintEditorialJobDetailViewProps {
   steps: ProgressStep[];
   payment: ContractorPaymentPresentation;
   escrowId: string | null;
+  disputeAction?: ContractorJobAction;
+  pastVisit?: string | null;
   paymentAmounts?: {
     gross: number;
     fee: number | null;
@@ -204,6 +208,8 @@ export function MintEditorialJobDetailView({
   steps,
   payment,
   escrowId,
+  disputeAction,
+  pastVisit,
   paymentAmounts,
   jobPhotoUrls,
   existingBeforePhotosCount = 0,
@@ -379,6 +385,11 @@ export function MintEditorialJobDetailView({
                 <div className='col' style={{ gap: 4 }}>
                   <h2 className='t-h2'>{stageTitle}</h2>
                   <p className='t-body'>{stageSubtitle}</p>
+                  {pastVisit && <p className='rounded-lg bg-amber-50 p-3 text-sm text-amber-950'>Visit window passed. {pastVisit}</p>}
+                  {disputeAction && <p className='t-body'>{disputeAction.detail}</p>}
+                  {disputeAction?.escrowId && (
+                    <Link className='t-meta underline' href={disputeHref(disputeAction.escrowId)}>View dispute</Link>
+                  )}
                   {(isReleased || payment.kind === 'release_pending') && (
                     <Link
                       href='/contractor/payouts'
@@ -400,14 +411,14 @@ export function MintEditorialJobDetailView({
                 {(currentStage === 'ready_to_start' ||
                   currentStage === 'in_progress' ||
                   currentStage === 'completed') && (
-                  <JobPhotoUpload
+                  <div id='before-photos'><JobPhotoUpload
                     jobId={job.id}
                     jobStatus={job.status || 'posted'}
                     existingBeforePhotosCount={existingBeforePhotosCount}
                     latitude={job.latitude ?? undefined}
                     longitude={job.longitude ?? undefined}
                     location={job.location ?? undefined}
-                  />
+                  /></div>
                 )}
 
                 {currentStage === 'contract_preparing' && (
@@ -1064,9 +1075,11 @@ export function MintEditorialJobDetailView({
                   entitlement. The platform balance and a bank payout are
                   separate amounts.
                 </p>
-                <Link href='/contractor/payouts' className='t-meta'>
-                  Check transfer and bank payout status
-                </Link>
+                {disputeAction?.escrowId ? (
+                  <Link href={disputeHref(disputeAction.escrowId)} className='t-meta underline'>View dispute</Link>
+                ) : payment.kind !== 'disputed' && (
+                  <Link href='/contractor/payouts' className='t-meta'>Check transfer and bank payout status</Link>
+                )}
                 <p
                   className='t-meta'
                   style={{

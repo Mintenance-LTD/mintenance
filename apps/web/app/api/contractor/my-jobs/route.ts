@@ -6,6 +6,7 @@ import { BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { getJobAmount } from '@/lib/services/jobs/job-amount';
+import { loadContractorJobActions } from '@/lib/contractor/load-job-actions';
 
 const statusSchema = z.enum(['active', 'bid', 'completed', 'all']).optional();
 
@@ -250,7 +251,7 @@ export const GET = withApiHandler(
 
       if (status === 'active') {
         query = query
-          .in('status', ['in_progress', 'assigned'])
+          .in('status', ['in_progress', 'assigned', 'disputed'])
           .is('archived_at', null);
       } else if (status === 'completed') {
         query = query.eq('status', 'completed');
@@ -269,9 +270,15 @@ export const GET = withApiHandler(
         throw jobsError;
       }
 
+      const actions = status === 'active'
+        ? await loadContractorJobActions(user.id, jobs ?? [])
+        : new Map();
       return NextResponse.json({
         jobs: await attachSignedPhotos(
-          (jobs || []).map((job: JobApiResponse) => transformJob(job)),
+          (jobs || []).map((job: JobApiResponse) => ({
+            ...transformJob(job),
+            contractor_action: actions.get(job.id),
+          })),
           user.id
         ),
       });
