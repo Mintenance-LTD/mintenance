@@ -11,7 +11,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RouteProp } from '@react-navigation/native';
+import { CommonActions, type RouteProp } from '@react-navigation/native';
+import { contractorJobReference } from '@mintenance/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import {
@@ -169,6 +170,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
   }
 
   const statusColor = STATUS_COLORS[quote.status] ?? me.ink2;
+  const linkedJob = quote.status === 'accepted' ? quote.linkedJob : undefined;
 
   return (
     <View style={styles.container}>
@@ -233,6 +235,29 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
               {quote.total_amount.toFixed(2)}
             </Text>
             <Text style={styles.projectTitle}>{quote.project_title}</Text>
+            {linkedJob && (
+              <View>
+                <Text style={styles.detailText}>
+                  {contractorJobReference(linkedJob.id)} · {linkedJob.nextStep}
+                </Text>
+                <TouchableOpacity
+                  accessibilityRole='link'
+                  onPress={() =>
+                    navigation.dispatch(
+                      CommonActions.navigate('Main', {
+                        screen: 'JobsTab',
+                        params: {
+                          screen: 'JobDetails',
+                          params: { jobId: linkedJob.id },
+                        },
+                      })
+                    )
+                  }
+                >
+                  <Text style={styles.backLink}>View job</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           {/* Client */}
@@ -303,7 +328,9 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
               ))
             ) : (
               <Text style={styles.detailText}>
-                No line-item breakdown recorded.
+                {quote.status === 'accepted'
+                  ? 'Fixed-price quote'
+                  : 'No line-item breakdown recorded.'}
               </Text>
             )}
           </View>

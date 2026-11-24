@@ -3,6 +3,8 @@ import { logger } from '@mintenance/shared';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 import type { JobDetail, JobSummary, User } from '@mintenance/types';
+import type { JobWorkspaceStatus } from '@/lib/jobs/workspace-status';
+import { readWorkspaceStatuses } from '@/lib/services/jobs/read-workspace-status';
 
 interface AssessmentData {
   job_id?: string;
@@ -68,10 +70,13 @@ type JobRow = {
     // against the live schema 2026-08-02.
     address: string | null;
     city: string | null;
+    property_name?: string | null;
+    postcode?: string | null;
   } | null;
   created_at: string;
   updated_at: string;
   archived_at?: string | null;
+  completion_confirmed_by_homeowner?: boolean | null;
   homeowner?: UserData;
   contractor?: UserData | null;
   bids?: Array<{ count: number }>;
@@ -105,8 +110,9 @@ const jobSelectFields = `
   created_at,
   updated_at,
   archived_at,
+  completion_confirmed_by_homeowner,
   property_id,
-  property:properties!property_id(id,address,city),
+  property:properties!property_id(id,address,city,property_name,postcode),
   homeowner:profiles!homeowner_id(id,first_name,last_name,email,profile_image_url),
   contractor:profiles!contractor_id(id,first_name,last_name,email),
   bids(count)
@@ -185,6 +191,7 @@ interface JobListParams {
   category?: string;
   minBudget?: number;
   maxBudget?: number;
+  includeHomeownerWorkspace?: boolean;
 }
 
 export class JobQueryService {
@@ -206,9 +213,15 @@ export class JobQueryService {
       photos?: string[];
       view_count?: number;
       ai_assessment?: AIAssessmentData | null;
+      workspaceStatus?: JobWorkspaceStatus;
+      propertyName?: string | null;
+      propertyTown?: string | null;
+      propertyPostcode?: string | null;
     })[];
     nextCursor?: string;
   }> {
+    const includeWorkspace =
+      user.role === 'homeowner' && params.includeHomeownerWorkspace === true;
     const query = this.buildJobQuery(
       user,
       params.status,
@@ -230,11 +243,15 @@ export class JobQueryService {
       viewCountsByJobId,
       assessmentsByJobId,
       metadataPhotosByJobId,
+      workspaceStatuses,
     ] = await Promise.all([
       this.fetchAttachments(jobIds),
       this.fetchViewCounts(jobIds),
       this.fetchAssessments(jobIds),
       this.fetchMetadataPhotos(jobIds),
+      includeWorkspace
+        ? readWorkspaceStatuses(user.id, rows)
+        : new Map<string, JobWorkspaceStatus>(),
     ]);
 
     // Build raw photos arrays per job, then re-sign every Job-storage
@@ -265,6 +282,14 @@ export class JobQueryService {
       const aiAssessment = assessmentsByJobId.get(row.id) || null;
       return {
         jobSummary,
+        workspace: includeWorkspace
+          ? {
+              workspaceStatus: workspaceStatuses.get(row.id),
+              propertyName: row.property?.property_name,
+              propertyTown: row.property?.city,
+              propertyPostcode: row.property?.postcode,
+            }
+          : {},
         photos,
         viewCount,
         aiAssessment,
@@ -280,6 +305,7 @@ export class JobQueryService {
       offset += i.photos.length;
       return {
         ...i.jobSummary,
+        ...i.workspace,
         photos: signed.length > 0 ? signed : undefined,
         view_count: i.viewCount > 0 ? i.viewCount : undefined,
         ai_assessment: i.aiAssessment,

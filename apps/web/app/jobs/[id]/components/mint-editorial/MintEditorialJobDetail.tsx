@@ -71,6 +71,7 @@ interface LifecycleData {
   escrowFundedAt?: string | null;
   escrowReleasedAt?: string | null;
   escrowStatus?: string | null;
+  dispute?: import('@/lib/disputes/presentation').JobDispute;
   bidCount: number;
   pendingBidCount: number;
   completionConfirmed: boolean;
@@ -83,6 +84,7 @@ interface PhotoRecord {
 }
 
 interface Props {
+  backToJobsHref?: string;
   job: JobShape;
   property?: PropertyShape | null;
   contractor?: ContractorShape | null;
@@ -114,6 +116,7 @@ const TABS: {
 ];
 
 export function MintEditorialJobDetail({
+  backToJobsHref = '/jobs',
   job,
   property,
   contractor,
@@ -179,6 +182,10 @@ export function MintEditorialJobDetail({
   // page — without it the lifecycle dead-ends after contract signing
   // (/api/jobs/[id]/start requires escrow `held`).
   const nextStep = computeNextStepForJob(job, lifecycle);
+  const hasDispute =
+    !!lifecycle.dispute ||
+    lifecycle.escrowStatus === 'disputed' ||
+    job.status === 'disputed';
 
   // Preferred start date is stashed in `requirements.preferred_start_date`
   // by the job-creation wizard (see /jobs/create utils/submitJob.ts).
@@ -266,7 +273,7 @@ export function MintEditorialJobDetail({
     <>
       {/* Back link */}
       <Link
-        href='/jobs'
+        href={backToJobsHref}
         className='btn btn-ghost btn-sm'
         style={{ marginBottom: 14 }}
       >
@@ -286,7 +293,11 @@ export function MintEditorialJobDetail({
       >
         <div className='col' style={{ gap: 8, minWidth: 0 }}>
           <div className='row' style={{ gap: 10, flexWrap: 'wrap' }}>
-            {statusBadge(job.status)}
+            {hasDispute ? (
+              <span className='badge badge-warn'>{nextStep.title}</span>
+            ) : (
+              statusBadge(job.status)
+            )}
             <span className='t-meta'>
               {formatPosted(job.created_at)} · Job #
               {job.id.slice(0, 6).toUpperCase()}
@@ -435,7 +446,11 @@ export function MintEditorialJobDetail({
 
           {selectedBid ? (
             <HowPaymentWorksCard
-              escrowStatus={lifecycle.escrowStatus}
+              escrowStatus={
+                lifecycle.dispute?.paymentPaused
+                  ? 'disputed'
+                  : lifecycle.escrowStatus
+              }
               escrowDisplay={formatGBP(selectedBid.amount)}
               contractorFirstName={
                 selectedBid.contractor.first_name ||
@@ -445,7 +460,11 @@ export function MintEditorialJobDetail({
             />
           ) : (
             <HowPaymentWorksCard
-              escrowStatus={lifecycle.escrowStatus}
+              escrowStatus={
+                lifecycle.dispute?.paymentPaused
+                  ? 'disputed'
+                  : lifecycle.escrowStatus
+              }
               escrowDisplay={
                 job.budget > 0 ? formatGBP(job.budget) : 'your funds'
               }
@@ -490,7 +509,11 @@ export function MintEditorialJobDetail({
             contractorFirstName={contractor?.first_name ?? null}
           />
 
-          <QuickActionsList jobId={job.id} status={job.status} />
+          <QuickActionsList
+            jobId={job.id}
+            status={job.status}
+            hasDispute={hasDispute}
+          />
         </aside>
       </div>
     </>

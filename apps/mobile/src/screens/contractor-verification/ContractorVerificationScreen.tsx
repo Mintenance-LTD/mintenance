@@ -253,7 +253,7 @@ export const ContractorVerificationScreen: React.FC<
             <Text style={styles.infoBannerText}>
               {isVerified
                 ? 'Verified — edits will be re-reviewed. Manage company / insurance details on Business Profile →'
-                : 'Verified contractors get priority placement and 3x more jobs. Edit details on Business Profile →'}
+                : 'We review your submitted credentials before marking them verified. Edit your business or insurance details on Business Profile →'}
             </Text>
           </View>
         </Pressable>

@@ -49,7 +49,7 @@ export function contractorPaymentPresentation({
     return {
       kind: 'disputed',
       label: 'Dispute under review',
-      detail: `${funded ? 'The customer payment was received. ' : ''}Payment release is paused while Mintenance reviews the dispute. Follow any requests from support. If the job shows a rework request, use the instructions on that request.`,
+      detail: `${funded ? 'The customer payment was received. ' : ''}Payment release is paused while Mintenance reviews the dispute. If the job shows a rework request, use the instructions on that request.`,
       funded,
     } as const;
   }

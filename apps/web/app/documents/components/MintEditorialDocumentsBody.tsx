@@ -21,29 +21,31 @@ import { type DocumentItem } from './DocumentRow';
 import { DocumentCard } from './DocumentCard';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
 import { MintEditorialListSkeleton } from '@/components/mint-editorial/MintEditorialSkeleton';
-
-type TabKey = 'all' | 'contracts' | 'bids' | 'payments';
-type SortKey = 'newest' | 'oldest' | 'amount-high' | 'amount-low';
+import {
+  paperworkSearchLimit,
+  type PaperworkTab,
+  type PaperworkSort,
+} from '@/lib/documents/paperwork-navigation';
 
 interface Tab {
-  key: TabKey;
+  key: PaperworkTab;
   label: string;
   count: number;
 }
 
 interface SortOption {
-  value: SortKey;
+  value: PaperworkSort;
   label: string;
 }
 
 interface Props {
   tabs: Tab[];
-  activeTab: TabKey;
-  onTabChange: (k: TabKey) => void;
+  activeTab: PaperworkTab;
+  onTabChange: (k: PaperworkTab) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
-  sortBy: SortKey;
-  onSortChange: (k: SortKey) => void;
+  sortBy: PaperworkSort;
+  onSortChange: (k: PaperworkSort) => void;
   sortOptions: SortOption[];
   showSortMenu: boolean;
   onToggleSortMenu: (open: boolean) => void;
@@ -96,7 +98,9 @@ export function MintEditorialDocumentsBody({
         >
           <Search size={14} strokeWidth={1.75} />
           <input
-            type='text'
+            type='search'
+            aria-label='Search job paperwork'
+            maxLength={paperworkSearchLimit}
             placeholder='Search by name, contractor, or job…'
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -221,6 +225,7 @@ export function MintEditorialDocumentsBody({
           <button
             key={tab.key}
             type='button'
+            aria-pressed={activeTab === tab.key}
             className={'chip ' + (activeTab === tab.key ? 'on' : '')}
             onClick={() => onTabChange(tab.key)}
           >

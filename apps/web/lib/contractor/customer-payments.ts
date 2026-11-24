@@ -7,7 +7,15 @@ export async function getReleasedCustomerPayments(
   contractorId: string,
   jobIds: string[]
 ): Promise<Map<string, number>> {
+  return (await getCustomerPayments(contractorId, jobIds, false)).released;
+}
+
+const releasedStatuses = ['released', 'completed'];
+const openStatuses = ['disputed', 'pending_review', 'release_pending', 'awaiting_homeowner_approval', 'held', 'pending'];
+
+export async function getCustomerPayments(contractorId: string, jobIds: string[], includeOpen = true) {
   const totals = new Map<string, number>();
+  const open = new Map<string, string>();
   const allowed = new Set(jobIds);
   const ids = [...allowed];
   for (let offset = 0; offset < ids.length; offset += 100) {
@@ -18,13 +26,18 @@ export async function getReleasedCustomerPayments(
         .select('id,job_id,payee_id,amount,status')
         .eq('payee_id', contractorId)
         .in('job_id', batch)
-        .in('status', ['released', 'completed'])
+        .in('status', includeOpen ? [...releasedStatuses, ...openStatuses] : releasedStatuses)
         .order('id')
         .range(page * 500, page * 500 + 499);
       if (error) throw new Error('Released customer payments unavailable');
       for (const row of data ?? []) {
         if (row.payee_id !== contractorId || !allowed.has(row.job_id)) continue;
-        if (!['released', 'completed'].includes(row.status)) continue;
+        if (!releasedStatuses.includes(row.status)) {
+          const priority = openStatuses.indexOf(row.status);
+          const current = openStatuses.indexOf(open.get(row.job_id) ?? '');
+          if (includeOpen && priority >= 0 && (current < 0 || priority < current)) open.set(row.job_id, row.status);
+          continue;
+        }
         const amount = Number(row.amount);
         if (!Number.isFinite(amount) || amount < 0) continue;
         totals.set(
@@ -35,5 +48,5 @@ export async function getReleasedCustomerPayments(
       if (!data || data.length < 500) break;
     }
   }
-  return new Map([...totals].map(([id, minor]) => [id, minor / 100]));
+  return { released: new Map([...totals].map(([id, minor]) => [id, minor / 100])), open };
 }

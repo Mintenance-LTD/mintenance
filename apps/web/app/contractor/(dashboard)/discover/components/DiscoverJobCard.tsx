@@ -247,7 +247,7 @@ export function DiscoverJobCard({
           ? { borderLeft: `4px solid ${urgencyBorderColor}` }
           : {}),
       }}
-      onClick={() => (onFocusPin ?? onNavigate)(job.id)}
+      onClick={() => onNavigate(job.id)}
       onMouseEnter={() => onHover?.(job.id)}
       onMouseLeave={() => onHover?.(null)}
     >

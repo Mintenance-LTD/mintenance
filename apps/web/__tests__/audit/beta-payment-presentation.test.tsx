@@ -91,6 +91,13 @@ function renderJob(
       payment={payment}
       escrowId='escrow-id'
       paymentHref='/contractor/payments/escrow-id'
+      caseHref={payment.kind === 'disputed' ? '/disputes/exact-disputed-payment' : undefined}
+      disputeAction={payment.kind === 'disputed' ? {
+        kind: 'dispute',
+        label: 'Dispute under review',
+        detail: 'Wait for an update and respond if support requests information.',
+        escrowId: 'exact-disputed-payment',
+      } : undefined}
       paymentAmounts={{
         gross: 1,
         fee: payment.kind === 'released' ? 0.5 : null,
@@ -173,6 +180,10 @@ it('shows a funded dispute in the main action panel while preserving work eviden
     )[0]
   ).toBeVisible();
   expect(screen.getByText('Work evidence controls')).toBeVisible();
+  expect(screen.getByRole('link', {name: 'View dispute'})).toHaveAttribute(
+    'href', '/disputes/exact-disputed-payment'
+  );
+  expect(screen.queryByRole('link', {name: 'Check transfer and bank payout status'})).toBeNull();
   expect(
     screen.getAllByText(/if the job shows a rework request/i)[0]
   ).toBeVisible();

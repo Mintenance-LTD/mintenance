@@ -113,6 +113,15 @@ it('includes the 9-mile job, excludes the 35-mile job and opens the exact pin', 
   fireEvent.click(screen.getByRole('button', { name: '30 mi' }));
   expect(markers.has('Far garden job')).toBe(false);
   expect(markers.has('Near garden job')).toBe(true);
+  const pinButton = screen.getByRole('button', {
+    name: 'Show Near garden job on map',
+  });
+  fireEvent.click(pinButton);
+  expect(pinButton).toHaveAttribute('aria-pressed', 'true');
+  expect(push).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByText('Near garden job').closest('[data-job-id]')!);
+  expect(push).toHaveBeenCalledWith('/contractor/bid/near-id/details');
+  push.mockClear();
   markers.get('Near garden job')?.();
   expect(push).toHaveBeenCalledWith('/contractor/bid/near-id/details');
 });

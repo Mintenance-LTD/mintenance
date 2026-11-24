@@ -21,6 +21,7 @@
  */
 
 import React from 'react';
+import Link from 'next/link';
 import { Star, Search, Briefcase, Reply, Loader2 } from 'lucide-react';
 
 interface Review {
@@ -392,6 +393,7 @@ export function MintEditorialReviewsView({
                 >
                   <Briefcase size={11} strokeWidth={1.75} />
                   {review.jobTitle}
+                  {review.jobId && <Link className='ml-2 underline' href={`/contractor/jobs/${review.jobId}`}>View job</Link>}
                 </span>
               </div>
 
@@ -493,7 +495,7 @@ export function MintEditorialReviewsView({
                           className='animate-spin'
                         />
                       ) : null}
-                      Post reply
+                      Post public reply
                     </button>
                     <button
                       type='button'

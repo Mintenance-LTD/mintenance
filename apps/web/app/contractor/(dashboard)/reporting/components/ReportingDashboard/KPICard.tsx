@@ -6,10 +6,10 @@ import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 interface KPICardProps {
   title: string;
   value: string | number;
-  change: number;
+  change?: number;
   changeLabel: string;
   icon: React.ReactNode;
-  trend: 'up' | 'down' | 'neutral';
+  trend?: 'up' | 'down' | 'neutral';
 }
 
 export const KPICard: React.FC<KPICardProps> = ({
@@ -64,10 +64,10 @@ export const KPICard: React.FC<KPICardProps> = ({
             marginTop: 4,
           }}
         >
-          {getTrendIcon()}
+          {change !== undefined && getTrendIcon()}
           <span>
-            {change > 0 ? '+' : ''}
-            {change}% · {changeLabel}
+            {change !== undefined && `${change > 0 ? '+' : ''}${change}% · `}
+            {changeLabel}
           </span>
         </div>
       </div>
@@ -81,7 +81,7 @@ export const KPICard: React.FC<KPICardProps> = ({
           <div className='text-teal-600'>{icon}</div>
           <p className='text-gray-600 text-sm font-medium'>{title}</p>
         </div>
-        <div
+        {change !== undefined && <div
           className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getTrendColor()}`}
         >
           {getTrendIcon()}
@@ -89,7 +89,7 @@ export const KPICard: React.FC<KPICardProps> = ({
             {change > 0 ? '+' : ''}
             {change}%
           </span>
-        </div>
+        </div>}
       </div>
 
       <div className='space-y-1'>

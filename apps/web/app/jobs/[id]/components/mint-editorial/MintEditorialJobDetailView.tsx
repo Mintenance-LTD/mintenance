@@ -30,6 +30,7 @@ interface PhotoRecordWithDate extends PhotoRecord {
 }
 
 interface Props {
+  backToJobsHref?: string;
   job: JobShape & {
     completion_confirmed_by_homeowner?: boolean | null;
   };
@@ -50,6 +51,7 @@ interface Props {
   escrowFundedAt?: string | null;
   escrowReleasedAt?: string | null;
   escrowStatus: string | null | undefined;
+  dispute?: import('@/lib/disputes/presentation').JobDispute;
   /** Row from the `building_assessments` table (or null). The
    *  `assessment_data` jsonb column carries the actual AI output —
    *  shape Phase1BuildingAssessment. The Overview tab renders the
@@ -59,6 +61,7 @@ interface Props {
 }
 
 export function MintEditorialJobDetailView({
+  backToJobsHref,
   job,
   property,
   contractor,
@@ -74,6 +77,7 @@ export function MintEditorialJobDetailView({
   escrowFundedAt,
   escrowReleasedAt,
   escrowStatus,
+  dispute,
   buildingAssessment,
   userId,
 }: Props) {
@@ -83,6 +87,7 @@ export function MintEditorialJobDetailView({
       <JobViewTracker jobId={job.id} />
       <HomeownerPageWrapper>
         <MintEditorialJobDetail
+          backToJobsHref={backToJobsHref}
           job={job}
           property={property}
           contractor={contractor}
@@ -109,6 +114,9 @@ export function MintEditorialJobDetailView({
                     afterPhotos={afterPhotos}
                     isConfirmed={completionConfirmed}
                     paymentRefunded={escrowStatus === 'refunded'}
+                    paymentDisputed={
+                      escrowStatus === 'disputed' || dispute?.paymentPaused
+                    }
                     completedAt={job.completed_at}
                   />
                 </div>
@@ -131,6 +139,7 @@ export function MintEditorialJobDetailView({
             escrowFundedAt,
             escrowReleasedAt,
             escrowStatus,
+            dispute,
             bidCount,
             pendingBidCount,
             completionConfirmed,

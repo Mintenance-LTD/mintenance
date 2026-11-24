@@ -10,12 +10,14 @@ import { redirect } from 'next/navigation';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { logger } from '@/lib/logger';
 import { JobDetailsProfessional } from './components/JobDetailsProfessional';
+import { readJobDispute } from '@/lib/services/disputes/read-job-dispute';
 import { JobViewTracker } from './components/JobViewTracker';
 import { ContractManagement } from './components/ContractManagement';
 import { HomeownerPhotoReview } from './components/HomeownerPhotoReview';
 import { MintEditorialJobDetailView } from './components/mint-editorial/MintEditorialJobDetailView';
 import { RecommendedContractors } from './components/RecommendedContractors';
 import { formatBidsForClient, type BidWithContractor } from './lib/formatBids';
+import { returnToWorkspace } from '@/lib/jobs/workspace-navigation';
 
 export const metadata: Metadata = {
   title: 'Job Details | Mintenance',
@@ -25,10 +27,13 @@ export const metadata: Metadata = {
 
 export default async function JobDetailPage2025({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ fromJobs?: string | string[] }>;
 }) {
   const resolvedParams = await params;
+  const backToJobsHref = returnToWorkspace((await searchParams)?.fromJobs);
   const user = await getCurrentUserFromCookies();
 
   if (!user) {
@@ -181,7 +186,9 @@ export default async function JobDetailPage2025({
       .single(),
     serverSupabase
       .from('escrow_transactions')
-      .select('id, status, funded_at, released_at')
+      .select(
+        'id, status, funded_at, released_at, payer_id, payee_id, admin_hold_status, mediation_requested, mediation_requested_at, mediation_status'
+      )
       .eq('job_id', resolvedParams.id)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
@@ -295,6 +302,7 @@ export default async function JobDetailPage2025({
       : 'pending';
 
   const escrowStatus = escrowTransaction?.status || 'none';
+  const dispute = await readJobDispute(job, user.id, escrowTransaction);
 
   // Format bids for the client components (email/phone deliberately omitted —
   // see the PII note in ./lib/formatBids).
@@ -351,6 +359,7 @@ export default async function JobDetailPage2025({
           Quote amendments
         </Link>
         <MintEditorialJobDetailView
+          backToJobsHref={backToJobsHref}
           job={{
             id: job.id,
             title: job.title || 'Untitled Job',
@@ -391,6 +400,7 @@ export default async function JobDetailPage2025({
           contractContractorSignedAt={contract?.contractor_signed_at ?? null}
           contractHomeownerSignedAt={contract?.homeowner_signed_at ?? null}
           escrowStatus={escrowStatus}
+          dispute={dispute}
           escrowFundedAt={escrowTransaction?.funded_at ?? null}
           escrowReleasedAt={escrowTransaction?.released_at ?? null}
           buildingAssessment={buildingAssessment}
@@ -410,6 +420,7 @@ export default async function JobDetailPage2025({
 
       <HomeownerPageWrapper>
         <JobDetailsProfessional
+          backToJobsHref={backToJobsHref}
           job={{
             id: job.id,
             title: job.title || 'Untitled Job',
@@ -440,6 +451,7 @@ export default async function JobDetailPage2025({
           lifecycleData={{
             contractStatus,
             escrowStatus,
+            dispute,
             bidCount: bidsWithContractors.length,
             pendingBidCount: bidsWithContractors.filter(
               (b) => b.status === 'pending'
@@ -468,6 +480,9 @@ export default async function JobDetailPage2025({
                     afterPhotos={afterPhotos}
                     isConfirmed={!!job.completion_confirmed_by_homeowner}
                     paymentRefunded={escrowStatus === 'refunded'}
+                    paymentDisputed={
+                      escrowStatus === 'disputed' || dispute?.paymentPaused
+                    }
                     completedAt={job.completed_at}
                   />
                 </div>

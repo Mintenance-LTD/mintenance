@@ -8,7 +8,7 @@ const pages = [
   ['Contractors', '/contractors'],
   ['Payments', '/payments'],
   ['Finance and financials', '/financials'],
-  ['Documents', '/documents'],
+  ['Job paperwork', '/documents', 'documents contracts bids'],
   ['Messages', '/messages'],
   ['Schedule', '/scheduling'],
   ['Settings', '/settings'],
@@ -16,8 +16,8 @@ const pages = [
 ];
 export function HomeownerPageFinder() {
   const [query, setQuery] = useState('');
-  const matches = pages.filter(([label]) =>
-    label.toLowerCase().includes(query.trim().toLowerCase())
+  const matches = pages.filter(([label, , keywords = '']) =>
+    `${label} ${keywords}`.toLowerCase().includes(query.trim().toLowerCase())
   );
   return (
     <details

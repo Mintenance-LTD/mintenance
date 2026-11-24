@@ -8,8 +8,6 @@ import {
   Upload,
   AlertTriangle,
   Shield,
-  TrendingUp,
-  Star,
 } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCSRF } from '@/lib/hooks/useCSRF';
@@ -52,7 +50,7 @@ const STEPS_CONFIG: Omit<VerificationStep, 'status' | 'document'>[] = [
   },
   {
     id: 'business',
-    title: 'Business Licence',
+    title: 'Business registration',
     description: 'Upload your business licence or registration',
     verificationType: 'business_licence',
     required: true,
@@ -193,6 +191,7 @@ export default function ContractorVerificationPage() {
     (s) => s.required && s.status === 'approved'
   ).length;
   const totalRequired = steps.filter((s) => s.required).length;
+  const reviewedRequired = steps.filter((step) => step.required && ['approved', 'rejected'].includes(step.status)).length;
   const overallProgress =
     totalRequired > 0
       ? Math.round((approvedRequired / totalRequired) * 100)
@@ -246,8 +245,7 @@ export default function ContractorVerificationPage() {
             <div className='col' style={{ gap: 4 }}>
               <h1 className='t-h1'>Verification centre</h1>
               <p className='t-body'>
-                Complete identity, insurance, and trade qualifications
-                verification to unlock priority placement and higher-value jobs.
+                Track your required checks, insurance and trade certificates.
               </p>
             </div>
           </div>
@@ -264,12 +262,13 @@ export default function ContractorVerificationPage() {
               style={{ alignItems: 'center', marginBottom: 8 }}
             >
               <span style={{ fontSize: 14, fontWeight: 600 }}>
-                Required document review progress
+                Required: identity and business registration
               </span>
               <span style={{ fontSize: 14, fontWeight: 700 }}>
-                {overallProgress}%
+                {reviewedRequired} of {totalRequired} reviewed
               </span>
             </div>
+            <p className='mt-2 text-sm'>{approvedRequired} of {totalRequired} approved</p>
             <div
               style={{
                 width: '100%',
@@ -301,7 +300,7 @@ export default function ContractorVerificationPage() {
                 Verification Center
               </h1>
               <p className='text-gray-600 text-lg'>
-                Complete your profile verification to unlock full access
+                Track your required checks, insurance and trade certificates.
               </p>
             </div>
           </div>
@@ -310,12 +309,13 @@ export default function ContractorVerificationPage() {
           <div className='bg-gray-50 rounded-2xl p-6 border border-gray-200'>
             <div className='flex items-center justify-between mb-3'>
               <span className='text-gray-900 font-semibold'>
-                Verification Progress
+                Required: identity and business registration
               </span>
               <span className='text-gray-900 font-bold'>
-                {overallProgress}%
+                {reviewedRequired} of {totalRequired} reviewed
               </span>
             </div>
+            <p className='text-sm'>{approvedRequired} of {totalRequired} approved</p>
             <div className='w-full h-3 bg-gray-200 rounded-full overflow-hidden'>
               <div
                 className='h-full bg-teal-600 rounded-full transition-all duration-700'
@@ -327,51 +327,25 @@ export default function ContractorVerificationPage() {
       )}
 
       <div className='w-full space-y-6'>
-        {/* Benefits Banner */}
         <div className='bg-white border border-gray-200 rounded-2xl p-6 shadow-sm'>
           <h2 className='text-2xl font-bold mb-4 text-gray-900'>
-            Why Get Verified?
+            How checks appear on your profile
           </h2>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-            <div className='flex items-start gap-3'>
-              <CheckCircle2 className='w-6 h-6 flex-shrink-0 mt-1 text-teal-600' />
-              <div>
-                <h3 className='font-bold mb-1 text-gray-900'>Build Trust</h3>
-                <p className='text-gray-600 text-sm'>
-                  Verified badge increases homeowner confidence
-                </p>
-              </div>
-            </div>
-            <div className='flex items-start gap-3'>
-              <TrendingUp className='w-6 h-6 flex-shrink-0 mt-1 text-teal-600' />
-              <div>
-                <h3 className='font-bold mb-1 text-gray-900'>
-                  More Opportunities
-                </h3>
-                <p className='text-gray-600 text-sm'>
-                  Access to premium jobs and higher budgets
-                </p>
-              </div>
-            </div>
-            <div className='flex items-start gap-3'>
-              <Star className='w-6 h-6 flex-shrink-0 mt-1 text-teal-600' />
-              <div>
-                <h3 className='font-bold mb-1 text-gray-900'>
-                  Priority Ranking
-                </h3>
-                <p className='text-gray-600 text-sm'>
-                  Appear higher in search results
-                </p>
-              </div>
-            </div>
-          </div>
+          <dl className='grid gap-4 text-sm md:grid-cols-2'>
+            <div><dt className='font-semibold'>Verified profile</dt><dd>Mintenance must approve your account for the public verification badge. This page tracks identity and business registration document review separately.</dd></div>
+            <div><dt className='font-semibold'>Identity</dt><dd>Upload government-issued ID for identity review. An approval is recorded on the identity check below.</dd></div>
+            <div><dt className='font-semibold'>Insurance</dt><dd>Keep an active, unexpired liability policy with a recorded coverage amount in your business profile.</dd></div>
+            <div><dt className='font-semibold'>Trade badges</dt><dd>A relevant trade register must confirm your credential for its public badge.</dd></div>
+          </dl>
         </div>
 
         {/* Verification Steps */}
         <div className='space-y-6'>
           {steps.map((step) => (
+            <React.Fragment key={step.id}>
+            {step.id === 'identity' && <h2 className='text-lg font-semibold'>Required documents</h2>}
+            {step.id === 'insurance' && <h2 className='text-lg font-semibold'>Insurance and trade certificates</h2>}
             <div
-              key={step.id}
               className='bg-white rounded-2xl border border-gray-200 shadow-sm p-6'
             >
               <div className='flex items-start gap-6'>
@@ -467,6 +441,7 @@ export default function ContractorVerificationPage() {
                 </div>
               </div>
             </div>
+            </React.Fragment>
           ))}
         </div>
 

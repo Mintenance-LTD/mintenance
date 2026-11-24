@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   FileText,
   Gavel,
@@ -20,6 +21,14 @@ import {
 import { MintEditorialDocumentsBody } from './components/MintEditorialDocumentsBody';
 import { DocumentsHero } from './components/DocumentsHero';
 import { DocumentsAttentionAlert } from './components/DocumentsAttentionAlert';
+import {
+  paperworkHref,
+  paperworkSearchLimit,
+  readPaperworkFilters,
+  type PaperworkFilters,
+  type PaperworkSort,
+  type PaperworkTab,
+} from '@/lib/documents/paperwork-navigation';
 
 interface ApiResponse {
   documents: DocumentItem[];
@@ -31,15 +40,40 @@ interface ApiResponse {
   };
 }
 
-type TabKey = 'all' | 'contracts' | 'bids' | 'payments';
-type SortKey = 'newest' | 'oldest' | 'amount-high' | 'amount-low';
-
 // Status/type/date helpers + DocumentRow + StatCard + SignaturePill
 // extracted to ./components/DocumentRow.tsx to keep this file under
 // the 500-line MDC cap.
 
 // ─── Main Component ──────────────────────────────────────────────────
 export default function HomeownerDocumentsPage() {
+  return (
+    <Suspense fallback={<p role='status'>Loading job paperwork…</p>}>
+      <PaperworkHub />
+    </Suspense>
+  );
+}
+
+function PaperworkHub() {
+  const params = useSearchParams();
+  const {
+    tab: activeTab,
+    query: searchQuery,
+    sort: sortBy,
+  } = readPaperworkFilters(params);
+  const updateFilters = (patch: Partial<PaperworkFilters>) => {
+    const current = readPaperworkFilters(
+      new URLSearchParams(window.location.search)
+    );
+    window.history.replaceState(
+      null,
+      '',
+      paperworkHref({ ...current, ...patch })
+    );
+  };
+  const setActiveTab = (tab: PaperworkTab) => updateFilters({ tab });
+  const setSearchQuery = (query: string) => updateFilters({ query });
+  const setSortBy = (sort: PaperworkSort) => updateFilters({ sort });
+
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [counts, setCounts] = useState({
     contracts: 0,
@@ -49,9 +83,6 @@ export default function HomeownerDocumentsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortKey>('newest');
 
   // Mint Editorial theme detection — swaps the header + stat cards to
   // the canonical .t-h1 / .kpi pattern from the design system reference
@@ -101,7 +132,7 @@ export default function HomeownerDocumentsPage() {
 
     // Search
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.trim().toLowerCase();
       docs = docs.filter(
         (d) =>
           d.name.toLowerCase().includes(q) ||
@@ -129,11 +160,21 @@ export default function HomeownerDocumentsPage() {
       }
     });
 
-    return docs;
+    return docs.map((doc) =>
+      doc.type === 'contract' && doc.contract_id
+        ? {
+            ...doc,
+            href: paperworkHref(
+              { tab: activeTab, query: searchQuery, sort: sortBy },
+              doc.contract_id
+            ),
+          }
+        : doc
+    );
   }, [documents, activeTab, searchQuery, sortBy]);
 
   const tabs: {
-    key: TabKey;
+    key: PaperworkTab;
     label: string;
     count: number;
     icon: typeof FileText;
@@ -154,7 +195,7 @@ export default function HomeownerDocumentsPage() {
     },
   ];
 
-  const sortOptions: { value: SortKey; label: string }[] = [
+  const sortOptions: { value: PaperworkSort; label: string }[] = [
     { value: 'newest', label: 'Newest First' },
     { value: 'oldest', label: 'Oldest First' },
     { value: 'amount-high', label: 'Amount: High to Low' },
@@ -174,10 +215,7 @@ export default function HomeownerDocumentsPage() {
   // pending items; "contracts" tab captures the pending_homeowner ones.
   // Switching to "all" keeps both in view; the cards' awaiting badge
   // makes them visually distinct.
-  const handleReviewNow = useCallback(() => {
-    setActiveTab('all');
-    setSortBy('newest');
-  }, []);
+  const handleReviewNow = () => updateFilters({ tab: 'all', sort: 'newest' });
 
   return (
     <div className='max-w-6xl mx-auto'>
@@ -191,7 +229,9 @@ export default function HomeownerDocumentsPage() {
               <FolderOpen className='h-5 w-5 text-white' />
             </div>
             <div>
-              <h1 className='text-2xl font-bold text-gray-900'>Documents</h1>
+              <h1 className='text-2xl font-bold text-gray-900'>
+                Job paperwork
+              </h1>
               <p className='text-sm text-gray-500'>
                 All your contracts, bids, and payment records in one place
               </p>
@@ -276,6 +316,7 @@ export default function HomeownerDocumentsPage() {
             {tabs.map((tab) => (
               <button
                 key={tab.key}
+                aria-pressed={activeTab === tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   activeTab === tab.key
@@ -305,14 +346,17 @@ export default function HomeownerDocumentsPage() {
             <div className='relative flex-1'>
               <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
               <input
-                type='text'
+                type='search'
+                aria-label='Search job paperwork'
                 placeholder='Search by name, contractor, or job...'
+                maxLength={paperworkSearchLimit}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className='w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all'
               />
               {searchQuery && (
                 <button
+                  aria-label='Clear search'
                   onClick={() => setSearchQuery('')}
                   className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'
                 >

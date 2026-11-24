@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import Link from 'next/link';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCsrfHeaders } from '@/lib/csrf-client';
@@ -279,7 +280,7 @@ export function InvoiceManagementClient({
       {/* Stats Dashboard */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
         <StatCard
-          title='Total Revenue'
+          title='Revenue from invoices'
           value={formatCurrency(enhancedStats.totalRevenue)}
           icon={PoundSterling}
         />
@@ -299,6 +300,9 @@ export function InvoiceManagementClient({
           icon={CheckCircle}
         />
       </div>
+      <p className='mb-6 text-sm'>
+        <Link href='/contractor/finance' className='font-semibold underline'>View Mintenance job payments</Link>
+      </p>
 
       {/* Toolbar */}
       <div
@@ -329,33 +333,11 @@ export function InvoiceManagementClient({
             </div>
           </div>
 
-          {/* Audit follow-up (2026-04-29): `/contractor/invoices/create`
-              doesn't exist as a web route yet — invoice creation is
-              mobile-only via `CreateInvoiceScreen` until the web form
-              ships. Disabled here with a tooltip rather than linking to
-              a 404; previous behaviour silently took users to a dead
-              page. Re-enable once a `[id]/create/page.tsx` exists. */}
-          <div>
-            <motion.button
-              title='Invoice creation is currently mobile-only. Open the Mintenance app to create invoices.'
-              aria-label='How to create an invoice in the mobile app'
-              onClick={() =>
-                toast(
-                  'In the Mintenance mobile app, open Invoices, then tap Create invoice. Sign in with this contractor account. Saved invoices will appear here.',
-                  { duration: 10000 }
-                )
-              }
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={
-                isMintEditorial
-                  ? 'btn-primary'
-                  : 'px-6 py-3 bg-teal-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl hover:bg-teal-700 transition-all flex items-center gap-2 whitespace-nowrap'
-              }
-            >
-              <Plus className='w-5 h-5' />
-              Create in mobile app
-            </motion.button>
+          <div className='space-y-2'>
+            <a href='mintenance://profile/invoices' className='btn btn-secondary inline-flex items-center gap-2 font-semibold underline'>
+              <Plus className='w-4 h-4' aria-hidden='true' /> Open Invoices in the app
+            </a>
+            <p className='text-sm text-slate-600'>Create invoices in the Mintenance mobile app under Invoices → Create invoice.</p>
           </div>
         </div>
       </div>

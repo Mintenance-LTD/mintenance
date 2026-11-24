@@ -56,7 +56,8 @@ export const ReviewCard: React.FC<{
   review: Review;
   index: number;
   onReply: (review: Review) => void;
-}> = ({ review, index, onReply }) => {
+  onViewJob?: (jobId: string) => void;
+}> = ({ review, index, onReply, onViewJob }) => {
   let replyBanner: React.ReactNode = null;
   if (review.response) {
     if (review.responseBlockedByAdmin) {
@@ -121,6 +122,17 @@ export const ReviewCard: React.FC<{
       </View>
       {review.comment && (
         <Text style={styles.reviewComment}>{review.comment}</Text>
+      )}
+
+      {!!review.job_id && onViewJob && (
+        <TouchableOpacity
+          style={styles.replyCta}
+          onPress={() => onViewJob(review.job_id)}
+          accessibilityRole='button'
+        >
+          <Ionicons name='briefcase-outline' size={16} color={me.brand} />
+          <Text style={styles.replyCtaText}>View job</Text>
+        </TouchableOpacity>
       )}
 
       {review.response && (

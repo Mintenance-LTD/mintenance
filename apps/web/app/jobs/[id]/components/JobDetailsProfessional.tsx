@@ -59,6 +59,8 @@ import { ImageLightbox } from './ImageLightbox';
 import { OpenJobDispute } from '../review/OpenJobDispute';
 import { JobLifecycleTimeline, NextActionCard } from './JobLifecycleTimeline';
 import { JobVisitHistory } from '@/components/scheduling/JobVisitHistory';
+import { type JobDispute } from '@/lib/disputes/presentation';
+import { computeNextStepForJob } from './mint-editorial/jobDetailHelpers';
 
 // Re-export types used by external consumers (e.g., page.tsx)
 /* ==========================================
@@ -74,12 +76,14 @@ interface Property {
 interface LifecycleData {
   contractStatus: string;
   escrowStatus: string;
+  dispute?: JobDispute;
   bidCount: number;
   pendingBidCount: number;
   completionConfirmed: boolean;
 }
 
 export interface JobDetailsProfessionalProps {
+  backToJobsHref?: string;
   job: {
     id: string;
     title: string;
@@ -113,6 +117,7 @@ export interface JobDetailsProfessionalProps {
    ========================================== */
 
 export function JobDetailsProfessional({
+  backToJobsHref = '/jobs',
   job,
   property,
   homeowner,
@@ -138,9 +143,17 @@ export function JobDetailsProfessional({
     cancelled: { label: 'Cancelled', color: 'gray', icon: X },
   };
 
-  const currentStatus =
-    statusConfig[job.status as keyof typeof statusConfig] ||
-    statusConfig.posted;
+  const disputeStep =
+    lifecycleData &&
+    (lifecycleData.dispute ||
+      lifecycleData.escrowStatus === 'disputed' ||
+      job.status === 'disputed')
+      ? computeNextStepForJob(job, lifecycleData)
+      : null;
+  const currentStatus = disputeStep
+    ? { label: disputeStep.title, color: 'gold', icon: AlertCircle }
+    : statusConfig[job.status as keyof typeof statusConfig] ||
+      statusConfig.posted;
   const StatusIcon = currentStatus.icon;
 
   return (
@@ -149,7 +162,7 @@ export function JobDetailsProfessional({
       <div className='bg-white border-b border-gray-200'>
         <div className='max-w-7xl mx-auto px-6 py-4'>
           <Link
-            href='/jobs'
+            href={backToJobsHref}
             className='inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors'
           >
             <ChevronLeft className='w-4 h-4' />
@@ -402,17 +415,32 @@ export function JobDetailsProfessional({
               )}
 
               {/* Next Action Card */}
-              {isOwner && lifecycleData && (
-                <NextActionCard
-                  jobId={job.id}
-                  jobStatus={job.status}
-                  contractStatus={lifecycleData.contractStatus}
-                  escrowStatus={lifecycleData.escrowStatus}
-                  bidCount={lifecycleData.bidCount}
-                  pendingBidCount={lifecycleData.pendingBidCount}
-                  completionConfirmed={lifecycleData.completionConfirmed}
-                />
-              )}
+              {isOwner &&
+                lifecycleData &&
+                (disputeStep ? (
+                  <section className='rounded-xl border border-amber-200 bg-white p-6'>
+                    <h3 className='font-semibold'>{disputeStep.title}</h3>
+                    <p className='mt-2 text-sm'>{disputeStep.body}</p>
+                    {disputeStep.cta && (
+                      <Link
+                        className='mt-3 inline-block font-medium underline'
+                        href={disputeStep.cta.href}
+                      >
+                        {disputeStep.cta.label}
+                      </Link>
+                    )}
+                  </section>
+                ) : (
+                  <NextActionCard
+                    jobId={job.id}
+                    jobStatus={job.status}
+                    contractStatus={lifecycleData.contractStatus}
+                    escrowStatus={lifecycleData.escrowStatus}
+                    bidCount={lifecycleData.bidCount}
+                    pendingBidCount={lifecycleData.pendingBidCount}
+                    completionConfirmed={lifecycleData.completionConfirmed}
+                  />
+                ))}
 
               {/* Budget Card */}
               <div className='bg-white rounded-xl border border-gray-200 shadow-sm p-6'>
@@ -430,16 +458,11 @@ export function JobDetailsProfessional({
               {/* Action Buttons */}
               <div className='bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-3'>
                 {isOwner &&
-                  ['in_progress', 'completed', 'disputed'].includes(
-                    job.status
-                  ) && (
+                  !disputeStep &&
+                  ['in_progress', 'completed'].includes(job.status) && (
                     <OpenJobDispute
                       jobId={job.id}
-                      label={
-                        job.status === 'disputed'
-                          ? 'View dispute'
-                          : 'Report a problem with this job'
-                      }
+                      label='Report a problem with this job'
                     />
                   )}
                 {canEdit && (
@@ -461,7 +484,7 @@ export function JobDetailsProfessional({
                   </Link>
                 )}
 
-                {job.status === 'in_progress' && isOwner && (
+                {job.status === 'in_progress' && isOwner && !disputeStep && (
                   <button className='btn-primary w-full flex items-center justify-center gap-2'>
                     <Check className='w-5 h-5' />
                     Mark Complete

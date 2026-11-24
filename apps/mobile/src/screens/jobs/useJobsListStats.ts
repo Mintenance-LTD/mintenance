@@ -9,9 +9,14 @@
 import { useMemo } from 'react';
 import type { Job } from '@mintenance/types';
 import type { FilterStatus, JobStats } from './types';
-import { isActiveJob } from '../../utils/jobActivity';
+import { isActiveContractorJob, isActiveJob } from '../../utils/jobActivity';
 
-export function useJobsListStats(allJobs: Job[], bidPendingJobs: Job[]) {
+export function useJobsListStats(
+  allJobs: Job[],
+  bidPendingJobs: Job[],
+  includeDisputed: boolean
+) {
+  const isActive = includeDisputed ? isActiveContractorJob : isActiveJob;
   const stats: JobStats = useMemo(() => {
     const now = Date.now();
     let newToday = 0;
@@ -40,7 +45,7 @@ export function useJobsListStats(allJobs: Job[], bidPendingJobs: Job[]) {
         totalBudget += b;
         budgetCount++;
       }
-      if (isActiveJob(j)) activeCount++;
+      if (isActive(j)) activeCount++;
       if (j.status === 'completed') completedCount++;
       if (!j.archived_at && j.status === 'posted') postedCount++;
       if (j.bids) totalBids += j.bids.length;
@@ -55,7 +60,7 @@ export function useJobsListStats(allJobs: Job[], bidPendingJobs: Job[]) {
       completedCount,
       postedCount,
     };
-  }, [allJobs]);
+  }, [allJobs, isActive]);
 
   const filterCounts = useMemo(() => {
     const counts: Record<FilterStatus, number> = {
@@ -70,11 +75,10 @@ export function useJobsListStats(allJobs: Job[], bidPendingJobs: Job[]) {
     allJobs.forEach((j) => {
       const s = j.status as FilterStatus;
       if (s in counts && (!j.archived_at || s === 'completed')) counts[s]++;
-      // "active" = assigned + in_progress for contractors
-      if (isActiveJob(j)) counts.active++;
+      if (isActive(j)) counts.active++;
     });
     return counts;
-  }, [allJobs, bidPendingJobs]);
+  }, [allJobs, bidPendingJobs, isActive]);
 
   return { stats, filterCounts };
 }

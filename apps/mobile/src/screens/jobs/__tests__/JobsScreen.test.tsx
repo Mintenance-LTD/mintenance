@@ -390,6 +390,9 @@ jest.mock('@tanstack/react-query', () => ({
         refetch: mockRefetch,
       };
     }
+    if (Array.isArray(queryKey) && queryKey[2] === 'contractor-actions') {
+      return { data: [], refetch: mockRefetch };
+    }
     return {
       data: mockMainQueryState.data ?? [],
       isError: !!mockMainQueryState.isError,
@@ -407,6 +410,7 @@ jest.mock('../../../lib/queryClient', () => ({
   queryKeys: {
     jobs: {
       all: ['jobs'],
+      lists: () => ['jobs', 'list'],
       list: (filters: string) => ['jobs', 'list', filters],
     },
   },

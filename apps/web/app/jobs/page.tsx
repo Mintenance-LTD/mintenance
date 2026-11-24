@@ -8,7 +8,6 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { JobService } from '@/lib/services/JobService';
 import { LoadingSpinner, ErrorView } from '@/components/ui';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
-import { JobFilters } from './components/SmartJobFilters2025';
 import { JobsToolbar, SortOption } from './components/JobsToolbar';
 import { JobsStatusTabs } from './components/JobsStatusTabs';
 import { JobsGrid } from './components/JobsGrid';
@@ -16,6 +15,21 @@ import { JobsHeroHeader } from './components/JobsHeroHeader';
 import { JobsBulkActionsSection } from './components/JobsBulkActionsSection';
 import { MintEditorialJobsList } from './components/MintEditorialJobsList';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import {
+  isCancelledJob,
+  type JobWorkspaceStatus,
+} from '@/lib/jobs/workspace-status';
+import {
+  matchesWorkspaceSearch,
+  workspaceLocation,
+  type WorkspaceLocation,
+} from '@/lib/jobs/workspace-location';
+import {
+  readWorkspaceFilters,
+  workspaceHref,
+  type WorkspaceFilters,
+  type WorkspaceView,
+} from '@/lib/jobs/workspace-navigation';
 
 type FilterStatus =
   | 'all'
@@ -28,11 +42,10 @@ type FilterStatus =
   | 'archived'
   | 'cancelled';
 
-interface RawJobData {
+interface RawJobData extends WorkspaceLocation {
   id: string;
   title?: string;
   description?: string;
-  location?: string;
   homeowner_id?: string;
   homeownerId?: string;
   contractor_id?: string;
@@ -48,6 +61,7 @@ interface RawJobData {
   photos?: string[];
   view_count?: number;
   archived_at?: string | null;
+  workspaceStatus?: JobWorkspaceStatus;
 }
 
 interface NextAction {
@@ -55,7 +69,7 @@ interface NextAction {
   urgency: 'low' | 'medium' | 'high';
 }
 
-interface ProcessedJob {
+interface ProcessedJob extends WorkspaceLocation {
   id: string;
   title: string;
   description: string;
@@ -72,6 +86,7 @@ interface ProcessedJob {
   view_count?: number;
   archived_at: string | null;
   nextAction?: NextAction;
+  workspaceStatus?: JobWorkspaceStatus;
 }
 
 export default function JobsPage2025() {
@@ -82,34 +97,39 @@ export default function JobsPage2025() {
   );
 }
 
-function getNextAction(status: string): NextAction | undefined {
-  switch (status) {
-    case 'completed':
-      return { label: 'Review & Approve Work', urgency: 'high' };
-    case 'assigned':
-      return { label: 'Awaiting Work Start', urgency: 'medium' };
-    case 'in_progress':
-      return { label: 'Work In Progress', urgency: 'low' };
-    case 'posted':
-      return { label: 'Awaiting Bids', urgency: 'low' };
-    default:
-      return undefined;
-  }
-}
+const legacyStatus: Record<WorkspaceView, FilterStatus> = {
+  all: 'all',
+  attention: 'awaiting_action',
+  awaiting: 'posted',
+  active: 'in_progress',
+  done: 'completed',
+  cancelled: 'cancelled',
+  draft: 'draft',
+  archived: 'archived',
+};
 
 function JobsPageContent() {
   const searchParams = useSearchParams();
   const propertyFilter =
     searchParams.get('property_id') || searchParams.get('propertyId') || '';
   const categoryFilter = searchParams.get('category') || '';
+  const workspace = readWorkspaceFilters(searchParams);
+  const scope = { propertyId: propertyFilter, category: categoryFilter };
+  const activeTab = legacyStatus[workspace.view];
+  const listHref = workspaceHref(workspace, scope);
+  const updateWorkspace = (next: WorkspaceFilters) =>
+    window.history.replaceState(null, '', workspaceHref(next, scope));
+  const setActiveTab = (status: FilterStatus) => {
+    const view = (Object.keys(legacyStatus) as WorkspaceView[]).find(
+      (key) => legacyStatus[key] === status
+    );
+    updateWorkspace({ ...workspace, view: view ?? 'all' });
+  };
 
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
-  const [filters, setFilters] = useState<JobFilters>({});
-  const [activeTab, setActiveTab] = useState<FilterStatus>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
   const {
@@ -148,6 +168,7 @@ function JobsPageContent() {
           ? await JobService.getJobsByHomeowner(user.id, {
               propertyId: propertyFilter || undefined,
               category: categoryFilter || undefined,
+              workspace: true,
             })
           : await JobService.getAvailableJobs();
       return (jobsRaw as RawJobData[]).map(
@@ -155,7 +176,11 @@ function JobsPageContent() {
           id: j.id,
           title: j.title ?? '',
           description: j.description ?? '',
-          location: j.location ?? '',
+          location: workspaceLocation(j),
+          propertyLabel: j.propertyLabel,
+          propertyName: j.propertyName,
+          propertyTown: j.propertyTown,
+          propertyPostcode: j.propertyPostcode,
           homeowner_id: j.homeowner_id ?? j.homeownerId ?? '',
           contractor_id: j.contractor_id ?? j.contractorId ?? undefined,
           status: (j.status as FilterStatus) ?? 'posted',
@@ -167,7 +192,17 @@ function JobsPageContent() {
           photos: j.photos ?? [],
           view_count: j.view_count,
           archived_at: j.archived_at ?? null,
-          nextAction: getNextAction(j.status ?? 'posted'),
+          workspaceStatus: j.workspaceStatus,
+          nextAction: j.workspaceStatus
+            ? {
+                label: j.workspaceStatus.label,
+                urgency: j.workspaceStatus.disputed
+                  ? 'high'
+                  : j.workspaceStatus.needsAttention
+                    ? 'medium'
+                    : 'low',
+              }
+            : undefined,
         })
       );
     },
@@ -191,55 +226,23 @@ function JobsPageContent() {
     let data = activeTab === 'archived' ? archivedJobs : visibleJobs;
     if (activeTab !== 'all' && activeTab !== 'archived') {
       if (activeTab === 'awaiting_action') {
-        // Show jobs that need homeowner action: completed (needs review) or assigned (contract/payment)
-        data = data.filter(
-          (j) =>
-            j.nextAction &&
-            (j.nextAction.urgency === 'high' ||
-              j.nextAction.urgency === 'medium')
-        );
+        data = data.filter((j) => j.workspaceStatus?.needsAttention === true);
       } else if (activeTab === 'in_progress') {
         // "Active" tab (in_progress) should also include 'assigned' status jobs
         data = data.filter(
           (j) => j.status === 'in_progress' || j.status === 'assigned'
         );
+      } else if (activeTab === 'cancelled') {
+        data = data.filter((j) => isCancelledJob(j.status));
       } else {
         data = data.filter((j) => j.status === activeTab);
       }
     }
-    if (
-      filters.status &&
-      filters.status.length > 0 &&
-      !filters.status.includes('all')
-    ) {
-      data = data.filter((j) => filters.status?.includes(j.status));
-    }
-    if (filters.category && filters.category.length > 0) {
-      data = data.filter(
-        (j) => j.category && filters.category?.includes(j.category)
-      );
-    }
-    if (filters.urgency && filters.urgency.length > 0) {
-      data = data.filter(
-        (j) => j.priority && filters.urgency?.includes(j.priority)
-      );
-    }
-    if (filters.budgetRange) {
-      data = data.filter(
-        (j) =>
-          j.budget >= (filters.budgetRange?.min || 0) &&
-          j.budget <= (filters.budgetRange?.max || Infinity)
-      );
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      data = data.filter(
-        (j) =>
-          j.title.toLowerCase().includes(q) ||
-          j.description.toLowerCase().includes(q) ||
-          j.location.toLowerCase().includes(q)
-      );
-    }
+    data = data.filter(
+      (job) =>
+        (workspace.category === 'all' || job.category === workspace.category) &&
+        matchesWorkspaceSearch(job, workspace.query)
+    );
     return [...data].sort((a, b) => {
       switch (sortBy) {
         case 'newest':
@@ -262,7 +265,14 @@ function JobsPageContent() {
           return 0;
       }
     });
-  }, [visibleJobs, archivedJobs, filters, activeTab, sortBy, searchQuery]);
+  }, [
+    visibleJobs,
+    archivedJobs,
+    activeTab,
+    sortBy,
+    workspace.category,
+    workspace.query,
+  ]);
 
   useEffect(() => {
     if (user && user.role === 'contractor') {
@@ -322,10 +332,19 @@ function JobsPageContent() {
           jobs={visibleJobs}
           initialCategory={categoryFilter || 'all'}
           scoped={Boolean(propertyFilter || categoryFilter)}
+          scope={scope}
+          filters={workspace}
+          onFiltersChange={updateWorkspace}
         />
       </HomeownerPageWrapper>
     );
   }
+
+  const categories = [
+    ...new Set(
+      visibleJobs.flatMap((job) => (job.category ? [job.category] : []))
+    ),
+  ].sort();
 
   return (
     <HomeownerPageWrapper>
@@ -359,9 +378,28 @@ function JobsPageContent() {
             setSelectionMode(!selectionMode);
             if (selectionMode) setSelectedJobs(new Set());
           }}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+          searchQuery={workspace.query}
+          onSearchChange={(query) => updateWorkspace({ ...workspace, query })}
         />
+
+        <label className='inline-flex items-center gap-2 text-sm font-medium'>
+          Category
+          <select
+            aria-label='Filter jobs by category'
+            className='rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm'
+            value={workspace.category}
+            onChange={(event) =>
+              updateWorkspace({ ...workspace, category: event.target.value })
+            }
+          >
+            <option value='all'>All categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {/* Status Tabs */}
         <JobsStatusTabs
@@ -377,11 +415,10 @@ function JobsPageContent() {
               .length,
             draft: visibleJobs.filter((j) => j.status === 'draft').length,
             awaitingAction: visibleJobs.filter(
-              (j) =>
-                j.nextAction &&
-                (j.nextAction.urgency === 'high' ||
-                  j.nextAction.urgency === 'medium')
+              (j) => j.workspaceStatus?.needsAttention === true
             ).length,
+            cancelled: visibleJobs.filter((j) => isCancelledJob(j.status))
+              .length,
             archived: archivedJobs.length,
           }}
           prefersReducedMotion={prefersReducedMotion}
@@ -392,6 +429,7 @@ function JobsPageContent() {
           jobs={filteredJobs}
           allJobsCount={visibleJobs.length}
           loading={loading}
+          listHref={listHref}
           viewMode={viewMode}
           prefersReducedMotion={prefersReducedMotion}
           selectionMode={selectionMode}
@@ -406,8 +444,11 @@ function JobsPageContent() {
             setSelectedJobs(newSelected);
           }}
           onClearFilters={() => {
-            setFilters({});
-            setSearchQuery('');
+            updateWorkspace({
+              view: 'all',
+              category: categoryFilter || 'all',
+              query: '',
+            });
           }}
         />
       </div>
