@@ -164,6 +164,8 @@ it.each([
   }
 );
 it('keeps written observations when changing inspection type and lets the user cancel', async () => {
+  const confirm = vi.fn().mockReturnValue(true);
+  vi.stubGlobal('confirm', confirm);
   inspectionReads();
   render(<TenancyInspections propertyId='property' />);
   await selectFolder();
@@ -179,6 +181,9 @@ it('keeps written observations when changing inspection type and lets the user c
   expect(screen.getByLabelText('Observations')).toHaveValue('Existing notes');
   expect(screen.getByLabelText('Inspection type')).toHaveValue('check_out');
   fireEvent.click(screen.getByRole('button', { name: 'Cancel report' }));
+  expect(confirm).toHaveBeenCalledWith(
+    expect.stringContaining('Leave without saving?')
+  );
   expect(screen.queryByLabelText('Report title')).toBeNull();
   expect(request.mock.calls.some(([, options]) => options?.method)).toBe(false);
 });
@@ -405,7 +410,7 @@ it('requires deletion confirmation and keeps the photo after a failed deletion',
   await kitchen();
   fireEvent.click(screen.getByRole('button', { name: 'Delete Kitchen.png' }));
   expect(confirm).toHaveBeenCalledWith(
-    expect.stringContaining('it will become unavailable in that report')
+    expect.stringContaining('This cannot be undone.')
   );
   expect(
     request.mock.calls.some(([, options]) => options?.method === 'DELETE')

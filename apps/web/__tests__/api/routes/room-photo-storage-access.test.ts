@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 const m = vi.hoisted(() => ({
   from: vi.fn(),
+  rpc: vi.fn(),
   remove: vi.fn(),
   del: vi.fn(),
   path: '',
@@ -14,6 +15,7 @@ vi.mock('@/lib/services/property-team/PropertyTeamService', () => ({
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: m.from,
+    rpc: m.rpc,
     storage: { from: () => ({ remove: m.remove }) },
   },
 }));
@@ -21,6 +23,7 @@ import { DELETE } from '@/app/api/properties/[id]/room-photos/route';
 beforeEach(() => {
   vi.clearAllMocks();
   m.path = 'property-room-photos/uploader/property/kitchen/file.jpg';
+  m.rpc.mockImplementation(async () => ({ data: m.path, error: null }));
   m.remove.mockResolvedValue({ error: null });
   m.from.mockImplementation((table: string) => {
     const q: Record<string, unknown> = {};
@@ -55,6 +58,17 @@ it('allows an authorized property editor to delete a different team member uploa
   expect((await remove()).status).toBe(200);
   expect(m.remove).toHaveBeenCalledWith([m.path]);
   expect(m.del).toHaveBeenCalledOnce();
+});
+it('keeps protected inspection evidence in storage and the gallery', async () => {
+  m.rpc.mockResolvedValueOnce({ data: null, error: { code: 'PT409' } });
+  const response = await remove();
+  expect(response.status).toBe(409);
+  expect(await response.json()).toEqual({
+    error:
+      'This photo is evidence in a saved inspection and cannot be deleted.',
+  });
+  expect(m.remove).not.toHaveBeenCalled();
+  expect(m.del).not.toHaveBeenCalled();
 });
 it.each([
   'property-room-photos/uploader/foreign/kitchen/file.jpg',

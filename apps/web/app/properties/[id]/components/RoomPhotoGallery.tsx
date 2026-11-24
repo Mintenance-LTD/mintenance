@@ -5,7 +5,10 @@ import { Camera, Upload, Loader2, ImagePlus } from 'lucide-react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { getCsrfHeaders } from '@/lib/csrf-client';
-import { uploadRoomPhotos } from '@/lib/room-photo-client';
+import {
+  roomPhotoSelectionError,
+  uploadRoomPhotos,
+} from '@/lib/room-photo-client';
 import {
   ROOM_PHOTO_TYPES as ROOM_TYPES,
   groupRoomPhotoAlbums,
@@ -71,6 +74,12 @@ function RoomPhotos({ propertyId }: RoomPhotoGalleryProps) {
   const handleUpload = async (files: File[]) => {
     if (mutation.current || !selectedRoom || !files.length || loading || error)
       return;
+    const validation = roomPhotoSelectionError(files);
+    if (validation) {
+      toast.error(validation);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     mutation.current = true;
     setUploading(true);
 

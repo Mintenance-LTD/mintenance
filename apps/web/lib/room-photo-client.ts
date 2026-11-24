@@ -1,16 +1,12 @@
 import { getCsrfHeaders } from '@/lib/csrf-client';
 
-export async function uploadRoomPhotos(
-  propertyId: string,
-  roomType: string,
-  files: File[]
-) {
+export function roomPhotoSelectionError(files: File[]) {
   if (
     !files.length ||
     files.length > 10 ||
     files.some((file) => file.size > 5 * 1024 * 1024)
   )
-    throw new Error('Choose up to 10 photos, each no larger than 5 MB.');
+    return 'Choose up to 10 photos, each no larger than 5 MB.';
   if (
     files.some(
       (file) =>
@@ -19,7 +15,17 @@ export async function uploadRoomPhotos(
         )
     )
   )
-    throw new Error('Choose JPEG, PNG, WebP or GIF photos.');
+    return 'Choose JPEG, PNG, WebP or GIF photos.';
+  return null;
+}
+
+export async function uploadRoomPhotos(
+  propertyId: string,
+  roomType: string,
+  files: File[]
+) {
+  const validation = roomPhotoSelectionError(files);
+  if (validation) throw new Error(validation);
 
   const form = new FormData();
   form.append('room_type', roomType);
