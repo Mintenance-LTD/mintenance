@@ -5,21 +5,35 @@ import { useRouter } from 'next/navigation';
 import {
   INSPECTION_KINDS,
   ROOM_PHOTO_TYPES,
+  isInspectionDate,
   isOutsideTenancy,
   inspectionReportPath,
   uploadedPhotoLabel,
+  uploadedBeforeTenancy,
+  formatTenancyDate,
+  tenancyPeriodLabel,
+  tenancyStatus,
   type TenancyFolder,
   type InspectionReport,
   type InspectionDetail,
   type InspectionPage,
   type DatedRoomPhoto,
   type InspectionKind,
+  type TenancyOverlap,
 } from '@mintenance/shared';
 import {
   InspectionRequestError,
+  inspectionOverlap,
   inspectionRequest,
 } from '@/lib/inspection-client';
 import { uploadRoomPhotos } from '@/lib/room-photo-client';
+import {
+  clearSavedInspectionDraft,
+  inspectionDraftKey,
+  readInspectionDraft,
+  writeInspectionDraft,
+  type InspectionDraft,
+} from '@/lib/inspection-drafts';
 const control =
   'mt-1 min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900';
 const button =
@@ -105,7 +119,17 @@ function TenancyWorkspace({
   const [error, setError] = useState('');
   const [dateWarning, setDateWarning] = useState('');
   const [confirmedDates, setConfirmedDates] = useState(false);
+  const [overlap, setOverlap] = useState<TenancyOverlap | null>(null);
+  const [confirmedOverlap, setConfirmedOverlap] = useState(false);
   const [reportDirty, setReportDirty] = useState(false);
+  const [reportSaving, setReportSaving] = useState(false);
+  const [recordedCheckouts, setRecordedCheckouts] = useState<Set<string>>(
+    () => new Set()
+  );
+  const invalidEnd =
+    isInspectionDate(draft.starts_on) &&
+    isInspectionDate(draft.ends_on) &&
+    draft.ends_on < draft.starts_on;
   const [savedFolderId, setSavedFolderId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState('');
   const folders = useRecords<InspectionPage<TenancyFolder>>(
@@ -131,7 +155,13 @@ function TenancyWorkspace({
   }, [folders.data, folders.loadedRevision, revision, savedFolderId]);
   async function saveFolder(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving.current || (reportDirty && !window.confirm(leavePrompt))) return;
+    if (
+      saving.current ||
+      reportSaving ||
+      invalidEnd ||
+      (reportDirty && !window.confirm(leavePrompt))
+    )
+      return;
     saving.current = true;
     const form = new FormData(event.currentTarget);
     setBusy(true);
@@ -144,6 +174,9 @@ function TenancyWorkspace({
           label: String(form.get('label')),
           starts_on: String(form.get('starts_on')),
           ends_on: String(form.get('ends_on')) || null,
+          ...(overlap && confirmedOverlap
+            ? { overlap_token: overlap.token }
+            : {}),
           ...(editing
             ? {
                 id: editing.id,
@@ -170,16 +203,22 @@ function TenancyWorkspace({
       setEditing(null);
       setDateWarning('');
       setConfirmedDates(false);
+      setOverlap(null);
+      setConfirmedOverlap(false);
       if (!editing) setPage(0);
       setRevision((v) => v + 1);
     } catch (e) {
       if (!mounted.current) return;
+      const conflict = inspectionOverlap(e);
       if (
         e instanceof InspectionRequestError &&
         e.code === 'TENANCY_DATE_CHANGE_EXCLUDES_INSPECTIONS'
       ) {
         setDateWarning(e.message);
         setConfirmedDates(false);
+      } else if (conflict) {
+        setOverlap(conflict);
+        setConfirmedOverlap(false);
       } else {
         setError(e instanceof Error ? e.message : 'Unable to save folder.');
       }
@@ -192,6 +231,8 @@ function TenancyWorkspace({
     setError('');
     setDateWarning('');
     setConfirmedDates(false);
+    setOverlap(null);
+    setConfirmedOverlap(false);
     setSaveMessage('');
     setEditing(null);
     setDraft({ label: '', starts_on: '', ends_on: '' });
@@ -201,6 +242,8 @@ function TenancyWorkspace({
   function updateFolderDate(field: 'starts_on' | 'ends_on', value: string) {
     setDateWarning('');
     setConfirmedDates(false);
+    setOverlap(null);
+    setConfirmedOverlap(false);
     setDraft((v) => ({ ...v, [field]: value }));
   }
   return (
@@ -304,11 +347,24 @@ function TenancyWorkspace({
                   onChange={(e) => updateFolderDate('ends_on', e.target.value)}
                   name='ends_on'
                   type='date'
-                  min={draft.starts_on || '1900-01-01'}
+                  aria-invalid={invalidEnd || undefined}
+                  aria-describedby={
+                    invalidEnd ? 'tenancy-end-date-error' : undefined
+                  }
                   className={control}
                 />
               </label>
             </div>
+            {invalidEnd && (
+              <p
+                id='tenancy-end-date-error'
+                role='alert'
+                className='text-sm text-red-800'
+              >
+                End date must be on or after{' '}
+                {formatTenancyDate(draft.starts_on)}.
+              </p>
+            )}
             <p className='text-xs text-gray-600'>
               A folder records a tenancy period. It does not invite tenants or
               grant access.
@@ -329,8 +385,44 @@ function TenancyWorkspace({
                 </label>
               </div>
             )}
+            {overlap && (
+              <div className='rounded border border-amber-400 bg-amber-50 p-3 text-sm'>
+                <p role='alert'>
+                  These dates overlap{' '}
+                  {overlap.count === 1
+                    ? 'another tenancy'
+                    : `${overlap.count} tenancies`}{' '}
+                  on this property.
+                </p>
+                <ul className='my-2 list-disc pl-5'>
+                  {overlap.folders.map((conflict) => (
+                    <li key={conflict.id}>
+                      {conflict.label} ·{' '}
+                      {tenancyPeriodLabel(conflict.starts_on, conflict.ends_on)}
+                    </li>
+                  ))}
+                </ul>
+                {overlap.count > overlap.folders.length && (
+                  <p>And {overlap.count - overlap.folders.length} more.</p>
+                )}
+                <label className='mt-2 flex items-center gap-2'>
+                  <input
+                    type='checkbox'
+                    checked={confirmedOverlap}
+                    onChange={(e) => setConfirmedOverlap(e.target.checked)}
+                  />
+                  This overlap is intentional
+                </label>
+              </div>
+            )}
             <button
-              disabled={busy || (!!dateWarning && !confirmedDates)}
+              disabled={
+                busy ||
+                reportSaving ||
+                invalidEnd ||
+                (!!dateWarning && !confirmedDates) ||
+                (!!overlap && !confirmedOverlap)
+              }
               className={button}
             >
               {busy
@@ -348,7 +440,7 @@ function TenancyWorkspace({
             <label className='min-w-0 flex-1 text-sm'>
               Tenancy folder
               <select
-                disabled={busy || !!initialFolderId}
+                disabled={busy || reportSaving || !!initialFolderId}
                 className={control}
                 value={folder?.id ?? ''}
                 onChange={(e) => {
@@ -362,8 +454,11 @@ function TenancyWorkspace({
                 <option value=''>Choose a tenancy</option>
                 {folders.data.items.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.label} · {f.starts_on}
-                    {f.ends_on ? ' – ' + f.ends_on : ''}
+                    {f.label} · {tenancyStatus(f)} ·{' '}
+                    {tenancyPeriodLabel(f.starts_on, f.ends_on)}
+                    {f.check_out_recorded || recordedCheckouts.has(f.id)
+                      ? ' · Check-out recorded'
+                      : ''}
                   </option>
                 ))}
               </select>
@@ -371,6 +466,7 @@ function TenancyWorkspace({
             {page > 0 && (
               <button
                 className='min-h-11 px-3 underline'
+                disabled={busy || reportSaving}
                 onClick={() => {
                   if (reportDirty && !window.confirm(leavePrompt)) return;
                   setFolder(null);
@@ -383,6 +479,7 @@ function TenancyWorkspace({
             {folders.data.hasMore && (
               <button
                 className='min-h-11 px-3 underline'
+                disabled={busy || reportSaving}
                 onClick={() => {
                   if (reportDirty && !window.confirm(leavePrompt)) return;
                   setFolder(null);
@@ -396,11 +493,13 @@ function TenancyWorkspace({
           {folder && folders.data.canCreate && (
             <button
               className='min-h-11 underline'
-              disabled={busy}
+              disabled={busy || reportSaving}
               onClick={() => {
                 setError('');
                 setDateWarning('');
                 setConfirmedDates(false);
+                setOverlap(null);
+                setConfirmedOverlap(false);
                 setSaveMessage('');
                 setEditing(folder);
                 setDraft({
@@ -440,12 +539,21 @@ function TenancyWorkspace({
       )}
       {folder && folders.data && (
         <FolderReports
-          key={propertyId + folder.id}
+          key={`${folders.data.draftScope ?? ''}/${propertyId}/${folder.id}`}
           propertyId={propertyId}
-          folder={folder}
+          draftScope={folders.data.draftScope}
+          folder={
+            recordedCheckouts.has(folder.id)
+              ? { ...folder, check_out_recorded: true }
+              : folder
+          }
           correctsReportId={correctsReportId}
           reportDirty={reportDirty}
           onDirtyChange={setReportDirty}
+          onReportSaving={setReportSaving}
+          onCheckoutRecorded={(id) =>
+            setRecordedCheckouts((current) => new Set(current).add(id))
+          }
         />
       )}
     </section>
@@ -483,23 +591,38 @@ function InspectionChoices({
 }
 function FolderReports({
   propertyId,
+  draftScope,
   folder,
   correctsReportId,
   reportDirty,
   onDirtyChange,
+  onReportSaving,
+  onCheckoutRecorded,
 }: {
   propertyId: string;
+  draftScope?: string;
   folder: TenancyFolder;
   correctsReportId?: string;
   reportDirty: boolean;
   onDirtyChange: (dirty: boolean) => void;
+  onReportSaving: (saving: boolean) => void;
+  onCheckoutRecorded: (id: string) => void;
 }) {
   const router = useRouter();
+  const draftKey = inspectionDraftKey(
+    draftScope,
+    propertyId,
+    folder.id,
+    correctsReportId
+  );
+  const [draft, setDraft] = useState(() => readInspectionDraft(draftKey));
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const [create, setCreate] = useState(!!correctsReportId);
   const [correctionId, setCorrectionId] = useState(correctsReportId);
-  const [chosenKind, setKind] = useState<InspectionKind>('check_in');
+  const [chosenKind, setKind] = useState<InspectionKind>(
+    draft?.kind ?? 'check_in'
+  );
   const [saving, setSaving] = useState(false);
   const original = useRecords<InspectionDetail>(
     correctionId
@@ -529,24 +652,77 @@ function FolderReports({
     if (reportDirty && !window.confirm(leavePrompt)) return;
     setCreate(false);
     setCorrectionId(undefined);
+    if (correctsReportId) {
+      router.replace(
+        `/properties/${encodeURIComponent(propertyId)}/tenancies/${encodeURIComponent(folder.id)}`
+      );
+    }
+  }
+  function onSavingChange(value: boolean) {
+    setSaving(value);
+    onReportSaving(value);
+  }
+  function discardDraft() {
+    if (
+      !draftKey ||
+      !window.confirm('Discard this tenancy’s inspection draft?')
+    )
+      return;
+    if (writeInspectionDraft(draftKey, null)) {
+      setDraft(null);
+      setKind('check_in');
+    }
   }
   return (
     <div className='border-t pt-4'>
       <div className='flex flex-wrap items-center justify-between gap-2'>
-        <h5 className='font-semibold'>{folder.label}</h5>
+        <div>
+          <h5 className='font-semibold'>{folder.label}</h5>
+          <p className='mt-1 text-sm text-gray-600'>
+            {tenancyStatus(folder)} ·{' '}
+            {tenancyPeriodLabel(folder.starts_on, folder.ends_on)}
+          </p>
+          {folder.check_out_recorded && (
+            <p className='mt-1 text-sm font-semibold text-teal-900'>
+              Check-out recorded
+            </p>
+          )}
+        </div>
         {reports.data?.canCreate && (
-          <button
-            className={button}
-            disabled={saving}
-            onClick={() => (create ? closeForm() : setCreate(true))}
-            aria-expanded={create}
-          >
-            {create ? 'Close inspection form' : 'New inspection'}
-          </button>
+          <div className='flex flex-wrap items-center gap-3'>
+            <button
+              className={button}
+              disabled={saving}
+              onClick={() => {
+                if (create) closeForm();
+                else {
+                  setKind(draft?.kind ?? 'check_in');
+                  setCreate(true);
+                }
+              }}
+              aria-expanded={create}
+            >
+              {create
+                ? 'Close inspection form'
+                : draft
+                  ? 'Resume draft'
+                  : 'New inspection'}
+            </button>
+            {!create && draft && (
+              <button className='min-h-11 underline' onClick={discardDraft}>
+                Discard draft
+              </button>
+            )}
+          </div>
         )}
       </div>
       <InspectionChoices
-        disabled={!reports.data?.canCreate || saving || !!correctionId}
+        disabled={
+          !reports.data?.canCreate ||
+          saving ||
+          !!correctionId ||
+          (!create && !!draft)
+        }
         reason={
           reports.loading
             ? 'Loading reports…'
@@ -554,7 +730,9 @@ function FolderReports({
               ? 'Retry loading reports first'
               : !reports.data?.canCreate
                 ? 'Read-only access'
-                : undefined
+                : !create && draft
+                  ? 'Resume or discard your draft first'
+                  : undefined
         }
         selected={create ? kind : undefined}
         onSelect={(value) => {
@@ -577,13 +755,18 @@ function FolderReports({
           propertyId={propertyId}
           folder={folder}
           correction={correction}
+          draft={draft}
+          draftKey={draftKey}
+          onDraftChange={setDraft}
           kind={kind}
           onKindChange={setKind}
-          onSavingChange={setSaving}
+          onSavingChange={onSavingChange}
           onDirtyChange={onDirtyChange}
           cancel={closeForm}
           saved={(id) => {
-            setSaving(false);
+            onSavingChange(false);
+            setDraft(null);
+            if (kind === 'check_out') onCheckoutRecorded(folder.id);
             setCreate(false);
             setCorrectionId(undefined);
             setPage(0);
@@ -661,6 +844,9 @@ function ReportForm({
   propertyId,
   folder,
   correction,
+  draft,
+  draftKey,
+  onDraftChange,
   saved,
   kind,
   onKindChange,
@@ -671,6 +857,9 @@ function ReportForm({
   propertyId: string;
   folder: TenancyFolder;
   correction: InspectionDetail | null;
+  draft: InspectionDraft | null;
+  draftKey: string | null;
+  onDraftChange: (draft: InspectionDraft | null) => void;
   saved: (id: string) => void;
   kind: InspectionKind;
   onKindChange: (kind: InspectionKind) => void;
@@ -684,17 +873,42 @@ function ReportForm({
     revision
   );
   const initial = correction?.report;
+  const initialKind = useRef(kind);
   const [selected, setSelected] = useState<string[]>(
     () =>
+      draft?.photoIds ??
       correction?.photos.flatMap((photo) =>
         photo.source_photo_id && photo.available ? [photo.source_photo_id] : []
-      ) ?? []
+      ) ??
+      []
   );
-  const [title, setTitle] = useState(initial?.title ?? '');
-  const [inspectedOn, setInspectedOn] = useState(initial?.inspected_on ?? '');
-  const [notes, setNotes] = useState(initial?.notes ?? '');
-  const [reason, setReason] = useState(initial?.date_exception_reason ?? '');
+  const [title, setTitle] = useState(draft?.title ?? initial?.title ?? '');
+  const [inspectedOn, setInspectedOn] = useState(
+    draft?.inspectedOn ?? initial?.inspected_on ?? ''
+  );
+  const [notes, setNotes] = useState(draft?.notes ?? initial?.notes ?? '');
+  const [reason, setReason] = useState(
+    draft?.reason ?? initial?.date_exception_reason ?? ''
+  );
+  const [noIssues, setNoIssues] = useState(
+    draft?.noIssues ?? initial?.outcome === 'no_issues_found'
+  );
+  const [confirmedNoEvidence, setConfirmedNoEvidence] = useState(false);
+  useEffect(() => setConfirmedNoEvidence(false), [kind, inspectedOn]);
+  const needsEvidenceReview =
+    kind !== 'routine' && !notes.trim() && !selected.length && !noIssues;
+  const outcome = noIssues
+    ? 'no_issues_found'
+    : needsEvidenceReview && confirmedNoEvidence
+      ? 'evidence_free'
+      : null;
   const [serverDateWarning, setServerDateWarning] = useState(false);
+  const availablePhotos = photos.data?.photos.filter(
+    (photo) => !photo.deletion_pending
+  );
+  const unavailableSelections = availablePhotos
+    ? selected.filter((id) => !availablePhotos.some((photo) => photo.id === id))
+    : [];
   const exception =
     serverDateWarning ||
     isOutsideTenancy(inspectedOn, folder.starts_on, folder.ends_on);
@@ -718,14 +932,38 @@ function ReportForm({
     correction?.photos.flatMap((photo) =>
       photo.source_photo_id && photo.available ? [photo.source_photo_id] : []
     ) ?? [];
-  const dirty =
+  const hasChanges =
     title !== (initial?.title ?? '') ||
     inspectedOn !== (initial?.inspected_on ?? '') ||
     notes !== (initial?.notes ?? '') ||
     reason !== (initial?.date_exception_reason ?? '') ||
-    !!file ||
+    kind !== initialKind.current ||
+    noIssues !== (initial?.outcome === 'no_issues_found') ||
     selected.length !== initialPhotos.length ||
     selected.some((id) => !initialPhotos.includes(id));
+  const draftText = hasChanges
+    ? JSON.stringify({
+        title,
+        inspectedOn,
+        kind,
+        notes,
+        reason,
+        photoIds: selected,
+        noIssues,
+      } satisfies InspectionDraft)
+    : null;
+  const [storedDraft, setStoredDraft] = useState<string | null>(null);
+  useEffect(() => {
+    if (!draftKey) return;
+    if (writeInspectionDraft(draftKey, draftText)) {
+      setStoredDraft(draftText);
+      onDraftChange(
+        draftText ? (JSON.parse(draftText) as InspectionDraft) : null
+      );
+    }
+  }, [draftKey, draftText, onDraftChange]);
+  const autosaved = !!draftText && draftText === storedDraft;
+  const dirty = !!file || (hasChanges && !autosaved);
   useEffect(() => {
     onDirtyChange(dirty);
     return () => onDirtyChange(false);
@@ -800,7 +1038,15 @@ function ReportForm({
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving.current || uploading || (exception && !reason.trim())) return;
+    if (
+      saving.current ||
+      uploading ||
+      file ||
+      unavailableSelections.length ||
+      (exception && !reason.trim()) ||
+      (needsEvidenceReview && !confirmedNoEvidence)
+    )
+      return;
     saving.current = true;
     setBusy(true);
     onSavingChange(true);
@@ -815,15 +1061,17 @@ function ReportForm({
           inspected_on: inspectedOn,
           notes,
           photo_ids: selected,
+          ...(outcome ? { outcome } : {}),
           ...(correction ? { corrects_report_id: correction.report.id } : {}),
           ...(exception ? { date_exception_reason: reason.trim() } : {}),
         }
       );
-      if (!mounted.current) return;
       if (!result?.id)
         throw new Error(
           'The report save was not confirmed. Check saved reports before retrying.'
         );
+      if (draftKey && draftText) clearSavedInspectionDraft(draftKey, draftText);
+      if (!mounted.current) return;
       saved(result.id);
     } catch (e) {
       if (!mounted.current) return;
@@ -926,11 +1174,25 @@ function ReportForm({
           <textarea
             name='notes'
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e) => {
+              setNotes(e.target.value);
+              setConfirmedNoEvidence(false);
+            }}
             maxLength={10000}
             rows={4}
             className={control}
           />
+        </label>
+        <label className='flex items-center gap-2 text-sm'>
+          <input
+            type='checkbox'
+            checked={noIssues}
+            onChange={(e) => {
+              setNoIssues(e.target.checked);
+              setConfirmedNoEvidence(false);
+            }}
+          />
+          No issues found
         </label>
         <fieldset>
           <legend className='text-sm font-semibold'>
@@ -1000,37 +1262,65 @@ function ReportForm({
             </p>
           )}
           <div className='mt-2 max-h-64 overflow-y-auto'>
-            {photos.data?.photos
-              .filter((photo) => !photo.deletion_pending)
-              .map((photo) => (
-                <label
-                  key={photo.id}
-                  className='flex min-h-11 items-center gap-3 rounded border p-2 text-sm'
-                >
-                  <input
-                    type='checkbox'
-                    checked={selected.includes(photo.id)}
-                    disabled={
-                      busy ||
-                      (!selected.includes(photo.id) && selected.length >= 50)
-                    }
-                    onChange={(e) =>
-                      setSelected((ids) =>
-                        e.target.checked
-                          ? [...ids, photo.id]
-                          : ids.filter((id) => id !== photo.id)
-                      )
-                    }
-                  />
-                  <span className='min-w-0 break-words'>
-                    {photo.room_type.replace(/_/g, ' ')} · {photo.file_name}
-                    <span className='block text-xs text-gray-600'>
-                      {uploadedPhotoLabel(photo.created_at)}
-                    </span>
+            {availablePhotos?.map((photo) => (
+              <label
+                key={photo.id}
+                className='flex min-h-11 items-center gap-3 rounded border p-2 text-sm'
+              >
+                <input
+                  type='checkbox'
+                  checked={selected.includes(photo.id)}
+                  disabled={
+                    busy ||
+                    (!selected.includes(photo.id) && selected.length >= 50)
+                  }
+                  onChange={(e) => {
+                    setConfirmedNoEvidence(false);
+                    setSelected((ids) =>
+                      e.target.checked
+                        ? [...ids, photo.id]
+                        : ids.filter((id) => id !== photo.id)
+                    );
+                  }}
+                />
+                <span className='min-w-0 break-words'>
+                  {photo.room_type.replace(/_/g, ' ')} · {photo.file_name}
+                  <span className='block text-xs text-gray-600'>
+                    {uploadedPhotoLabel(photo.created_at)}
                   </span>
-                </label>
-              ))}
+                  {uploadedBeforeTenancy(
+                    photo.created_at,
+                    folder.starts_on
+                  ) && (
+                    <span className='block text-xs font-semibold text-amber-900'>
+                      Uploaded before this tenancy
+                    </span>
+                  )}
+                  {photo.attached_to_inspection && (
+                    <span className='block text-xs text-gray-700'>
+                      Used in a saved inspection
+                    </span>
+                  )}
+                </span>
+              </label>
+            ))}
           </div>
+          {unavailableSelections.length > 0 && (
+            <div className='my-2 text-sm text-red-800'>
+              <p role='alert'>Some selected photos are no longer available.</p>
+              <button
+                type='button'
+                className='min-h-11 underline'
+                onClick={() =>
+                  setSelected((current) =>
+                    current.filter((id) => !unavailableSelections.includes(id))
+                  )
+                }
+              >
+                Remove unavailable photo selections
+              </button>
+            </div>
+          )}
           {photos.data && !photos.data.photos.length && (
             <p className='text-sm'>
               No room photos yet. You can upload one above or save a written
@@ -1038,6 +1328,22 @@ function ReportForm({
             </p>
           )}
         </fieldset>
+        {needsEvidenceReview && title.trim() && inspectedOn && (
+          <div className='rounded border border-amber-400 bg-amber-50 p-3 text-sm'>
+            <p role='status'>
+              This report has no observations or photos. Saved reports cannot be
+              edited.
+            </p>
+            <label className='mt-2 flex items-center gap-2'>
+              <input
+                type='checkbox'
+                checked={confirmedNoEvidence}
+                onChange={(e) => setConfirmedNoEvidence(e.target.checked)}
+              />
+              Save without observations or photos
+            </label>
+          </div>
+        )}
         {error && (
           <p role='alert' className='text-sm text-red-800'>
             {error}
@@ -1049,13 +1355,18 @@ function ReportForm({
           records. Attached photos are protected from deletion in Room Photos.
           {file && ' Upload the selected file before saving.'}
         </p>
+        {autosaved && (
+          <p className='text-sm text-teal-900'>Draft saved in this tab.</p>
+        )}
         <button
           disabled={
             busy ||
             uploading ||
             !!file ||
+            !!unavailableSelections.length ||
             photos.loading ||
             !!photos.error ||
+            (needsEvidenceReview && !confirmedNoEvidence) ||
             (exception && !reason.trim())
           }
           className={button}
@@ -1063,7 +1374,7 @@ function ReportForm({
           {busy ? 'Saving…' : 'Save shared report'}
         </button>
         <button type='button' className='min-h-11 underline' onClick={cancel}>
-          Cancel report
+          {autosaved ? 'Keep draft and close' : 'Cancel report'}
         </button>
       </fieldset>
     </form>

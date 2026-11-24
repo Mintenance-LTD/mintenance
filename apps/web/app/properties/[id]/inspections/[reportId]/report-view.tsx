@@ -76,6 +76,15 @@ export default function InspectionReportView({
     : '';
   const correctedBy = data?.report.corrected_by_report_id;
   const corrects = data?.report.corrects_report_id;
+  const outcome =
+    data?.report.outcome === 'no_issues_found'
+      ? 'No issues found.'
+      : data?.report.outcome === 'evidence_free'
+        ? 'Recorded without observations or photos.'
+        : '';
+  const observations =
+    [outcome, data?.report.notes].filter(Boolean).join('\n\n') ||
+    'No written observations recorded.';
 
   async function printReport() {
     if (printing || !page.current) return;
@@ -248,9 +257,7 @@ export default function InspectionReportView({
                   <h2 id='observations-title'>
                     <FileText size={21} aria-hidden='true' /> Observations
                   </h2>
-                  <p className={styles.notes}>
-                    {data.report.notes || 'No written observations recorded.'}
-                  </p>
+                  <p className={styles.notes}>{observations}</p>
                 </section>
                 {data.checkIn && (
                   <section
@@ -282,10 +289,7 @@ export default function InspectionReportView({
                         <h3>
                           Check-out · {formatDate(data.report.inspected_on)}
                         </h3>
-                        <p className={styles.notes}>
-                          {data.report.notes ||
-                            'No written observations recorded.'}
-                        </p>
+                        <p className={styles.notes}>{observations}</p>
                       </div>
                     </div>
                   </section>

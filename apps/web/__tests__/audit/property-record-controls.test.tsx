@@ -143,7 +143,9 @@ it.each([
     fireEvent.change(screen.getByLabelText('Inspection date'), {
       target: { value: '2026-11-12' },
     });
-    fireEvent.click(await screen.findByRole('checkbox'));
+    fireEvent.click(
+      await screen.findByRole('checkbox', { name: /Kitchen.png/ })
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Save shared report' }));
     await waitFor(() =>
       expect(

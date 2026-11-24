@@ -86,7 +86,7 @@ it('creates a written report inside the chosen folder', async () => {
   const ui = show();
   await ui.findByText('New tenancy folder');
   fireEvent.press(ui.getByLabelText('Tenancy folder: Choose a tenancy'));
-  fireEvent.press(ui.getByText('Tenancy 2026 · 2026-01-01'));
+  fireEvent.press(ui.getByText(/Tenancy 2026 · 2026-01-01/));
   await ui.findByText('Create an inspection for this tenancy');
   fireEvent.press(ui.getByLabelText('Check-in inspection'));
   fireEvent.changeText(ui.getByLabelText('Report title'), 'Move-in');
@@ -99,6 +99,7 @@ it('creates a written report inside the chosen folder', async () => {
       '/api/properties/property/room-photos'
     )
   );
+  fireEvent.changeText(ui.getByLabelText('Observations'), 'Clean kitchen');
   fireEvent.press(ui.getByText('Save shared report'));
   await waitFor(() =>
     expect(mobileApiClient.post).toHaveBeenCalledWith(
@@ -108,7 +109,7 @@ it('creates a written report inside the chosen folder', async () => {
         title: 'Move-in',
         inspected_on: '2026-10-30',
         kind: 'check_in',
-        notes: '',
+        notes: 'Clean kitchen',
         photo_ids: [],
       }
     )
@@ -128,12 +129,41 @@ it('retains failed form input for retry', async () => {
   expect(ui.getByLabelText('Folder name').props.value).toBe('Retain me');
 });
 
+it('requires evidence review before recording a clean check-out', async () => {
+  const ui = show();
+  await ui.findByText('New tenancy folder');
+  fireEvent.press(ui.getByLabelText('Tenancy folder: Choose a tenancy'));
+  fireEvent.press(ui.getByText(/Tenancy 2026 · 2026-01-01/));
+  await ui.findByText('Create an inspection for this tenancy');
+  fireEvent.press(ui.getByLabelText('Check-out inspection'));
+  fireEvent.changeText(ui.getByLabelText('Report title'), 'Clean check-out');
+  fireEvent.changeText(
+    ui.getByLabelText('Inspection date (YYYY-MM-DD)'),
+    '2026-11-24'
+  );
+  expect(
+    ui.getByText(
+      'This report has no observations or photos. Saved reports cannot be edited.'
+    )
+  ).toBeTruthy();
+  fireEvent.press(ui.getByText('Save shared report'));
+  expect(mobileApiClient.post).not.toHaveBeenCalled();
+  fireEvent.press(ui.getByLabelText('No issues found'));
+  fireEvent.press(ui.getByText('Save shared report'));
+  await waitFor(() =>
+    expect(mobileApiClient.post).toHaveBeenCalledWith(
+      '/api/properties/property/inspections',
+      expect.objectContaining({ kind: 'check_out', outcome: 'no_issues_found' })
+    )
+  );
+});
+
 it('edits the selected tenancy with optimistic revision', async () => {
   jest.mocked(mobileApiClient.patch).mockResolvedValue({ id: 'folder' });
   const ui = show();
   await ui.findByText('New tenancy folder');
   fireEvent.press(ui.getByLabelText('Tenancy folder: Choose a tenancy'));
-  fireEvent.press(ui.getByText('Tenancy 2026 · 2026-01-01'));
+  fireEvent.press(ui.getByText(/Tenancy 2026 · 2026-01-01/));
   fireEvent.press(ui.getByText('Edit tenancy folder'));
   fireEvent.changeText(
     ui.getByLabelText('Tenancy ends (optional, YYYY-MM-DD)'),
@@ -160,7 +190,7 @@ it('keeps inspection shortcuts disabled until a tenancy is selected and preserve
   fireEvent.press(ui.getByLabelText('Check-out inspection'));
   expect(ui.queryByLabelText('Report title')).toBeNull();
   fireEvent.press(ui.getByLabelText('Tenancy folder: Choose a tenancy'));
-  fireEvent.press(ui.getByText('Tenancy 2026 · 2026-01-01'));
+  fireEvent.press(ui.getByText(/Tenancy 2026 · 2026-01-01/));
   await ui.findByText('Create an inspection for this tenancy');
   fireEvent.press(ui.getByLabelText('Check-in inspection'));
   fireEvent.changeText(ui.getByLabelText('Report title'), 'Keep my draft');
@@ -171,6 +201,7 @@ it('keeps inspection shortcuts disabled until a tenancy is selected and preserve
   fireEvent.press(ui.getByLabelText('Inspection type: Check-in'));
   fireEvent.press(ui.getAllByText('Check-out').slice(-1)[0]);
   expect(ui.getByLabelText('Report title').props.value).toBe('Keep my draft');
+  fireEvent.changeText(ui.getByLabelText('Observations'), 'Clean kitchen');
   fireEvent.press(ui.getByText('Save shared report'));
   await waitFor(() =>
     expect(mobileApiClient.post).toHaveBeenCalledWith(
@@ -210,7 +241,7 @@ it('keeps shortcuts disabled for a selected read-only tenancy', async () => {
     );
   const ui = show();
   fireEvent.press(await ui.findByLabelText('Tenancy folder: Choose a tenancy'));
-  fireEvent.press(ui.getByText('Tenancy 2026 · 2026-01-01'));
+  fireEvent.press(ui.getByText(/Tenancy 2026 · 2026-01-01/));
   await ui.findByText(/View saved reports below/);
   fireEvent.press(ui.getByLabelText('Check-out inspection'));
   expect(ui.queryByLabelText('Report title')).toBeNull();

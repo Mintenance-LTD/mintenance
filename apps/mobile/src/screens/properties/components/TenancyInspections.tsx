@@ -1,7 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 import { PropertySheet, workspaceStyles as ws } from './PropertyWorkspaceUI';
-import React, { useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   View,
   Text,
@@ -11,6 +16,7 @@ import {
   Share,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -19,17 +25,51 @@ import {
   isOutsideTenancy,
   inspectionReportPath,
   uploadedPhotoLabel,
+  uploadedBeforeTenancy,
+  formatTenancyDate,
+  tenancyPeriodLabel,
+  tenancyStatus,
+  readTenancyOverlap,
+  createConversationDraftStore,
   type InspectionPage,
   type TenancyFolder,
   type InspectionReport,
   type InspectionDetail,
   type DatedRoomPhoto,
+  type TenancyOverlap,
 } from '@mintenance/shared';
 import { useAuth } from '../../../contexts/AuthContext';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { PropertyChoice } from '../../../components/properties/PropertyChoice';
+const inspectionDrafts = createConversationDraftStore();
+type NativeDraft = {
+  label: string;
+  starts: string;
+  kind: string;
+  notes: string;
+  dateReason: string;
+  selected: string[];
+  noIssues: boolean;
+};
+
 export function TenancyInspections({ propertyId }: { propertyId: string }) {
   const { user } = useAuth();
+  return (
+    <TenancyWorkspace
+      key={`${user?.id ?? ''}/${propertyId}`}
+      propertyId={propertyId}
+      accountId={user?.id}
+    />
+  );
+}
+
+function TenancyWorkspace({
+  propertyId,
+  accountId,
+}: {
+  propertyId: string;
+  accountId?: string;
+}) {
   const client = useQueryClient();
   const [folder, setFolder] = useState('');
   const [folderPage, setFolderPage] = useState(0);
@@ -45,14 +85,68 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
   const [dateReason, setDateReason] = useState('');
   const [dateWarning, setDateWarning] = useState(false);
   const [confirmFolderDates, setConfirmFolderDates] = useState(false);
+  const [overlap, setOverlap] = useState<TenancyOverlap | null>(null);
+  const [noIssues, setNoIssues] = useState(false);
+  const [confirmedNoEvidence, setConfirmedNoEvidence] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const base = '/api/properties/' + propertyId;
-  const key = ['tenancy-inspections', user?.id, propertyId];
+  const key = ['tenancy-inspections', accountId, propertyId];
+  const draftKey =
+    accountId && folder
+      ? JSON.stringify([accountId, propertyId, folder])
+      : null;
+  const readDraft = useCallback(
+    () => inspectionDrafts.read(draftKey),
+    [draftKey]
+  );
+  const storedDraft = useSyncExternalStore(
+    inspectionDrafts.subscribe,
+    readDraft
+  );
+  const draft = storedDraft ? (JSON.parse(storedDraft) as NativeDraft) : null;
+  const evidenceReview =
+    mode === 'report' &&
+    kind !== 'routine' &&
+    !notes.trim() &&
+    !selected.length &&
+    !noIssues;
+  const invalidEnd =
+    mode === 'folder' &&
+    isInspectionDate(starts) &&
+    isInspectionDate(ends) &&
+    ends < starts;
+  useEffect(() => {
+    if (mode !== 'report' || !draftKey) return;
+    inspectionDrafts.write(
+      draftKey,
+      label || starts || notes || dateReason || selected.length || noIssues
+        ? JSON.stringify({
+            label,
+            starts,
+            kind,
+            notes,
+            dateReason,
+            selected,
+            noIssues,
+          } satisfies NativeDraft)
+        : ''
+    );
+  }, [
+    mode,
+    draftKey,
+    label,
+    starts,
+    kind,
+    notes,
+    dateReason,
+    selected,
+    noIssues,
+  ]);
   const folders = useQuery({
     queryKey: [...key, 'folders', folderPage],
-    enabled: !!user,
+    enabled: !!accountId,
     queryFn: () =>
       mobileApiClient.get<InspectionPage<TenancyFolder>>(
         base + '/tenancies?offset=' + folderPage
@@ -60,7 +154,7 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
   });
   const reports = useQuery({
     queryKey: [...key, 'reports', folder, reportPage],
-    enabled: !!user && !!folder,
+    enabled: !!accountId && !!folder,
     queryFn: () =>
       mobileApiClient.get<InspectionPage<InspectionReport>>(
         base + '/inspections?folder=' + folder + '&offset=' + reportPage
@@ -75,16 +169,22 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
         isOutsideTenancy(starts, tenancy.starts_on, tenancy.ends_on)));
   const detail = useQuery({
     queryKey: [...key, 'detail', report],
-    enabled: !!user && !!report,
+    enabled: !!accountId && !!report,
     queryFn: () =>
       mobileApiClient.get<InspectionDetail>(base + '/inspections/' + report),
   });
   const photos = useQuery({
     queryKey: [...key, 'photos'],
-    enabled: !!user && mode === 'report',
+    enabled: !!accountId && mode === 'report',
     queryFn: () =>
       mobileApiClient.get<{ photos: DatedRoomPhoto[] }>(base + '/room-photos'),
   });
+  const availablePhotos = photos.data?.photos.filter(
+    (photo) => !photo.deletion_pending
+  );
+  const unavailableSelections = availablePhotos
+    ? selected.filter((id) => !availablePhotos.some((photo) => photo.id === id))
+    : [];
   function begin(next: 'folder' | 'report') {
     setMode(next);
     setEditing(null);
@@ -95,11 +195,31 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
     setDateReason('');
     setDateWarning(false);
     setConfirmFolderDates(false);
+    setOverlap(null);
+    setNoIssues(false);
+    setConfirmedNoEvidence(false);
     setSelected([]);
     setError('');
   }
+  function resumeDraft() {
+    if (!draft) return;
+    begin('report');
+    setLabel(draft.label);
+    setStarts(draft.starts);
+    setKind(draft.kind);
+    setNotes(draft.notes);
+    setDateReason(draft.dateReason);
+    setSelected(draft.selected);
+    setNoIssues(draft.noIssues);
+  }
   async function save() {
-    if (busy) return;
+    if (
+      busy ||
+      invalidEnd ||
+      (mode === 'report' && unavailableSelections.length > 0) ||
+      (evidenceReview && !confirmedNoEvidence)
+    )
+      return;
     if (exception && !dateReason.trim()) {
       setError('Explain why the inspection falls outside the tenancy dates.');
       return;
@@ -120,6 +240,7 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
           label: label.trim(),
           starts_on: starts,
           ends_on: ends || null,
+          ...(overlap ? { overlap_token: overlap.token } : {}),
         };
         if (editing)
           await mobileApiClient.patch(base + '/tenancies', {
@@ -138,7 +259,8 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
           setFolder(saved.id);
           setReport('');
         }
-      } else
+      } else {
+        const submittedDraft = readDraft();
         await mobileApiClient.post(base + '/inspections', {
           folder_id: folder,
           title: label.trim(),
@@ -147,7 +269,16 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
           notes,
           photo_ids: selected,
           ...(exception ? { date_exception_reason: dateReason.trim() } : {}),
+          ...(noIssues
+            ? { outcome: 'no_issues_found' }
+            : evidenceReview
+              ? { outcome: 'evidence_free' }
+              : {}),
         });
+        inspectionDrafts.write(draftKey, (current) =>
+          current === submittedDraft ? '' : current
+        );
+      }
       setMode(null);
       setFolderPage(0);
       setReportPage(0);
@@ -155,6 +286,16 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
     } catch (e) {
       await client.invalidateQueries({ queryKey: key });
       if (e instanceof Error && 'code' in e) {
+        if (e.code === 'TENANCY_PERIOD_OVERLAP') {
+          const conflict = readTenancyOverlap(
+            (e as Error & { details?: { error?: { details?: unknown } } })
+              .details?.error?.details
+          );
+          if (conflict) {
+            setOverlap(conflict);
+            return;
+          }
+        }
         if (e.code === 'TENANCY_DATE_CHANGE_EXCLUDES_INSPECTIONS') {
           setConfirmFolderDates(true);
           setError(
@@ -178,6 +319,7 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
     }
   }
   const changeFolder = (value: string) => {
+    if (busy) return;
     setFolder(value);
     setReport('');
     setReportPage(0);
@@ -210,7 +352,13 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                 { value: '', label: 'Choose a tenancy' },
                 ...folders.data.items.map((f) => ({
                   value: f.id,
-                  label: f.label + ' · ' + f.starts_on,
+                  label:
+                    f.label +
+                    ' · ' +
+                    f.starts_on +
+                    ' · ' +
+                    tenancyStatus(f) +
+                    (f.check_out_recorded ? ' · Check-out recorded' : ''),
                 })),
               ]}
               onChange={changeFolder}
@@ -261,11 +409,39 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
               setEnds(current.ends_on ?? '');
               setError('');
               setConfirmFolderDates(false);
+              setOverlap(null);
             }
           }}
         />
       )}
       <View style={{ marginVertical: 4 }}>
+        {draft && mode !== 'report' && reports.data?.canCreate && (
+          <>
+            <Action
+              title='Resume draft'
+              disabled={busy}
+              onPress={resumeDraft}
+            />
+            <Action
+              title='Discard draft'
+              disabled={busy}
+              onPress={() =>
+                Alert.alert(
+                  'Discard this tenancy’s inspection draft?',
+                  undefined,
+                  [
+                    { text: 'Keep draft', style: 'cancel' },
+                    {
+                      text: 'Discard draft',
+                      style: 'destructive',
+                      onPress: () => inspectionDrafts.write(draftKey, ''),
+                    },
+                  ]
+                )
+              }
+            />
+          </>
+        )}
         <Text style={s.shortcutHint}>
           {!folder
             ? 'Choose or create a tenancy above to start an inspection.'
@@ -283,6 +459,7 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
             !reports.data?.canCreate ||
             reports.isError ||
             folders.isError ||
+            (!!draft && mode !== 'report') ||
             busy;
           return (
             <TouchableOpacity
@@ -405,6 +582,7 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                 setStarts(value);
                 setDateWarning(false);
                 setConfirmFolderDates(false);
+                setOverlap(null);
               }}
               maxLength={10}
             />
@@ -416,9 +594,37 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                   change={(value) => {
                     setEnds(value);
                     setConfirmFolderDates(false);
+                    setOverlap(null);
                   }}
                   maxLength={10}
                 />
+                {invalidEnd && (
+                  <Text style={s.error} accessibilityRole='alert'>
+                    End date must be on or after {formatTenancyDate(starts)}.
+                  </Text>
+                )}
+                {overlap && (
+                  <View>
+                    <Text style={s.error} accessibilityRole='alert'>
+                      These dates overlap{' '}
+                      {overlap.count === 1
+                        ? 'another tenancy'
+                        : `${overlap.count} tenancies`}{' '}
+                      on this property.
+                    </Text>
+                    {overlap.folders.map((item) => (
+                      <Text style={s.text} key={item.id}>
+                        {item.label} ·{' '}
+                        {tenancyPeriodLabel(item.starts_on, item.ends_on)}
+                      </Text>
+                    ))}
+                    {overlap.count > overlap.folders.length && (
+                      <Text style={s.text}>
+                        And {overlap.count - overlap.folders.length} more.
+                      </Text>
+                    )}
+                  </View>
+                )}
                 <Text style={s.text}>
                   Creating a folder does not invite tenants or grant access.
                 </Text>
@@ -454,9 +660,20 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                 <Field
                   label='Observations'
                   value={notes}
-                  change={setNotes}
+                  change={(value) => {
+                    setNotes(value);
+                    setConfirmedNoEvidence(false);
+                  }}
                   maxLength={10000}
                   multiline
+                />
+                <InspectionToggle
+                  checked={noIssues}
+                  label='No issues found'
+                  onPress={() => {
+                    setNoIssues((value) => !value);
+                    setConfirmedNoEvidence(false);
+                  }}
                 />
                 <Text style={s.title}>Room photos ({selected.length}/50)</Text>
                 <Text style={s.text}>
@@ -469,43 +686,80 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                     onPress={() => void photos.refetch()}
                   />
                 )}
-                {photos.data?.photos
-                  .filter((photo) => !photo.deletion_pending)
-                  .map((photo) => (
-                    <TouchableOpacity
-                      key={photo.id}
-                      accessibilityRole='checkbox'
-                      accessibilityLabel={
-                        photo.room_type.replace(/_/g, ' ') +
-                        ' ' +
-                        photo.file_name
-                      }
-                      accessibilityState={{
-                        checked: selected.includes(photo.id),
-                      }}
-                      style={s.action}
+                {availablePhotos?.map((photo) => (
+                  <TouchableOpacity
+                    key={photo.id}
+                    accessibilityRole='checkbox'
+                    accessibilityLabel={
+                      photo.room_type.replace(/_/g, ' ') + ' ' + photo.file_name
+                    }
+                    accessibilityState={{
+                      checked: selected.includes(photo.id),
+                    }}
+                    style={s.action}
+                    onPress={() => {
+                      setConfirmedNoEvidence(false);
+                      setSelected((ids) =>
+                        ids.includes(photo.id)
+                          ? ids.filter((id) => id !== photo.id)
+                          : ids.length < 50
+                            ? [...ids, photo.id]
+                            : ids
+                      );
+                    }}
+                  >
+                    <Text>
+                      {selected.includes(photo.id) ? '☑' : '☐'}{' '}
+                      {photo.room_type.replace(/_/g, ' ')} · {photo.file_name}
+                    </Text>
+                    <Text style={s.text}>
+                      {uploadedPhotoLabel(photo.created_at)}
+                    </Text>
+                    {tenancy &&
+                      uploadedBeforeTenancy(
+                        photo.created_at,
+                        tenancy.starts_on
+                      ) && (
+                        <Text style={s.text}>Uploaded before this tenancy</Text>
+                      )}
+                    {photo.attached_to_inspection && (
+                      <Text style={s.text}>Used in a saved inspection</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+                {unavailableSelections.length > 0 && (
+                  <>
+                    <Text style={s.error}>
+                      Some selected photos are no longer available.
+                    </Text>
+                    <Action
+                      title='Remove unavailable photo selections'
                       onPress={() =>
-                        setSelected((ids) =>
-                          ids.includes(photo.id)
-                            ? ids.filter((id) => id !== photo.id)
-                            : ids.length < 50
-                              ? [...ids, photo.id]
-                              : ids
+                        setSelected((current) =>
+                          current.filter(
+                            (id) => !unavailableSelections.includes(id)
+                          )
                         )
                       }
-                    >
-                      <Text>
-                        {selected.includes(photo.id) ? '☑' : '☐'}{' '}
-                        {photo.room_type.replace(/_/g, ' ')} · {photo.file_name}
-                      </Text>
-                      <Text style={s.text}>
-                        {uploadedPhotoLabel(photo.created_at)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                    />
+                  </>
+                )}
                 <Text style={s.text}>
                   Attached photos are protected from deletion in Room Photos.
                 </Text>
+                {evidenceReview && label.trim() && isInspectionDate(starts) && (
+                  <>
+                    <Text style={s.error}>
+                      This report has no observations or photos. Saved reports
+                      cannot be edited.
+                    </Text>
+                    <InspectionToggle
+                      checked={confirmedNoEvidence}
+                      label='Save without observations or photos'
+                      onPress={() => setConfirmedNoEvidence((value) => !value)}
+                    />
+                  </>
+                )}
               </>
             )}
             {error && (
@@ -519,17 +773,24 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                 busy
                   ? 'Saving…'
                   : mode === 'folder'
-                    ? editing
-                      ? confirmFolderDates
-                        ? 'Confirm date change'
-                        : 'Save folder changes'
-                      : 'Create folder'
+                    ? overlap && !confirmFolderDates
+                      ? 'Confirm overlap and save'
+                      : editing
+                        ? confirmFolderDates
+                          ? 'Confirm date change'
+                          : 'Save folder changes'
+                        : 'Create folder'
                     : 'Save shared report'
               }
               disabled={
                 busy ||
+                invalidEnd ||
+                (evidenceReview && !confirmedNoEvidence) ||
                 (exception && !dateReason.trim()) ||
-                (mode === 'report' && (photos.isLoading || photos.isError))
+                (mode === 'report' &&
+                  (photos.isLoading ||
+                    photos.isError ||
+                    unavailableSelections.length > 0))
               }
               onPress={() => void save()}
             />
@@ -558,13 +819,36 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
               key={report}
               propertyId={propertyId}
               detail={detail.data}
-              accountId={user?.id ?? ''}
+              accountId={accountId ?? ''}
               openReport={setReport}
             />
           )}
         </View>
       )}
     </View>
+  );
+}
+function InspectionToggle({
+  label,
+  checked,
+  onPress,
+}: {
+  label: string;
+  checked: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      accessibilityRole='checkbox'
+      accessibilityLabel={label}
+      accessibilityState={{ checked }}
+      style={s.action}
+      onPress={onPress}
+    >
+      <Text>
+        {checked ? '☑' : '☐'} {label}
+      </Text>
+    </TouchableOpacity>
   );
 }
 function NativeReport({
@@ -647,7 +931,15 @@ function NativeReport({
         Inspection date entered by the author. Photo dates below are upload
         dates (UTC).
       </Text>
-      <Text>{detail.report.notes || 'No written observations recorded.'}</Text>
+      {report.outcome === 'no_issues_found' && <Text>No issues found.</Text>}
+      {(report.notes || report.outcome !== 'no_issues_found') && (
+        <Text>
+          {report.notes ||
+            (report.outcome === 'evidence_free'
+              ? 'Recorded without observations or photos.'
+              : 'No written observations recorded.')}
+        </Text>
+      )}
       <Action
         title='Share member-only report link'
         onPress={() =>

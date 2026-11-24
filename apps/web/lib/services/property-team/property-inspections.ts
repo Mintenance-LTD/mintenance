@@ -13,12 +13,17 @@ import {
 import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 import { hasFeatureAccess } from '@/lib/feature-access-config';
 export const date = z.string().refine(isInspectionDate, 'Enter a valid date');
+const folderFields = {
+  label: z.string().trim().min(1).max(120),
+  starts_on: date,
+  ends_on: date.nullable(),
+  overlap_token: z
+    .string()
+    .regex(/^[0-9a-f]{32}$/)
+    .optional(),
+};
 export const folderInput = z
-  .object({
-    label: z.string().trim().min(1).max(120),
-    starts_on: date,
-    ends_on: date.nullable(),
-  })
+  .object(folderFields)
   .strict()
   .refine(
     (v) => !v.ends_on || v.ends_on >= v.starts_on,
@@ -28,9 +33,7 @@ export const folderUpdate = z
   .object({
     id: z.string().uuid(),
     revision: z.number().int().min(0).max(2147483646),
-    label: z.string().trim().min(1).max(120),
-    starts_on: date,
-    ends_on: date.nullable(),
+    ...folderFields,
     confirm_inspection_date_change: z.boolean().optional(),
   })
   .strict()
@@ -48,6 +51,7 @@ export const reportInput = z
     photo_ids: z.array(z.string().uuid()).max(50),
     corrects_report_id: z.string().uuid().optional(),
     date_exception_reason: z.string().trim().min(1).max(1000).optional(),
+    outcome: z.enum(['no_issues_found', 'evidence_free']).optional(),
   })
   .strict()
   .refine(
@@ -56,7 +60,7 @@ export const reportInput = z
   );
 export const folderColumns = 'id,label,starts_on,ends_on,created_at,revision';
 export const reportColumns =
-  'id,folder_id,title,inspected_on,kind,notes,created_at,tenancy_starts_on,tenancy_ends_on,date_exception_reason,corrects_report_id';
+  'id,folder_id,title,inspected_on,kind,notes,created_at,tenancy_starts_on,tenancy_ends_on,date_exception_reason,corrects_report_id,outcome';
 
 export async function reportCorrections(
   propertyId: string,

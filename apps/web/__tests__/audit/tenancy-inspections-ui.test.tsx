@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import TenancyInspections from '@/app/properties/[id]/components/TenancyInspections';
 import InspectionReportView from '@/app/properties/[id]/inspections/[reportId]/report-view';
+import { inspectionDraftKey } from '@/lib/inspection-drafts';
 vi.mock('@/lib/csrf-client', () => ({
   getCsrfHeaders: async () => ({ 'x-csrf-token': 'test' }),
 }));
@@ -57,6 +58,190 @@ it('does not show empty success when loading fails', async () => {
   render(<TenancyInspections propertyId='property' />);
   await screen.findByRole('alert');
   expect(screen.queryByText('No tenancy folders yet.')).toBeNull();
+});
+it('gives a UK date error and lists the overlapping folder before accepting confirmation', async () => {
+  const overlap = {
+    token: 'b'.repeat(32),
+    count: 1,
+    folders: [
+      {
+        ...folder,
+        label: 'November tenancy',
+        starts_on: '2026-11-01',
+        ends_on: '2026-11-24',
+      },
+    ],
+  };
+  request.mockImplementation((_url: string, options?: RequestInit) => {
+    if (options?.method !== 'POST')
+      return ok({ items: [folder], canCreate: true, hasMore: false });
+    if (JSON.parse(String(options.body)).overlap_token)
+      return ok({ id: 'new' });
+    return Promise.resolve({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        error: {
+          code: 'TENANCY_PERIOD_OVERLAP',
+          message: 'Overlap',
+          details: overlap,
+        },
+      }),
+    });
+  });
+  render(<TenancyInspections propertyId='property' />);
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'New tenancy folder' })
+  );
+  fireEvent.change(screen.getByLabelText('Folder name'), {
+    target: { value: 'New tenancy' },
+  });
+  fireEvent.change(screen.getByLabelText('Tenancy starts'), {
+    target: { value: '2026-11-01' },
+  });
+  fireEvent.change(screen.getByLabelText('Tenancy ends (optional)'), {
+    target: { value: '2026-10-31' },
+  });
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'End date must be on or after 1 November 2026.'
+  );
+  const save = screen.getByRole('button', { name: 'Create folder' });
+  expect(save).toBeDisabled();
+  expect(
+    request.mock.calls.some(([, options]) => options?.method === 'POST')
+  ).toBe(false);
+  fireEvent.change(screen.getByLabelText('Tenancy ends (optional)'), {
+    target: { value: '2026-11-25' },
+  });
+  fireEvent.click(save);
+  expect(
+    await screen.findByText(
+      'November tenancy · 1 November 2026 to 24 November 2026'
+    )
+  ).toBeVisible();
+  expect(save).toBeDisabled();
+  fireEvent.click(
+    screen.getByRole('checkbox', { name: 'This overlap is intentional' })
+  );
+  fireEvent.click(save);
+  await screen.findByText('Tenancy folder created.');
+  expect(
+    request.mock.calls
+      .filter(([, options]) => options?.method === 'POST')
+      .map(([, options]) => JSON.parse(String(options.body)).overlap_token)
+  ).toEqual([undefined, overlap.token]);
+});
+
+it('resumes only the signed-in account’s draft in the folder where it was written', async () => {
+  const november = {
+    ...folder,
+    label: 'November tenancy',
+    starts_on: '2026-11-01',
+    ends_on: '2026-11-24',
+    check_out_recorded: true,
+  };
+  const december = {
+    ...folder,
+    id: 'december',
+    label: 'December tenancy',
+    starts_on: '2026-12-01',
+  };
+  const photo = {
+    id: 'older-photo',
+    file_name: 'Kitchen.jpg',
+    room_type: 'kitchen',
+    created_at: '2026-11-24T18:19:00Z',
+    attached_to_inspection: true,
+  };
+  let account = 'inspection-test-account-a';
+  request.mockImplementation((url: string, options?: RequestInit) =>
+    ok(
+      options?.method === 'POST'
+        ? { id: 'new-report' }
+        : url.includes('room-photos')
+          ? { photos: [photo] }
+          : {
+              items: url.includes('/tenancies?') ? [november, december] : [],
+              canCreate: true,
+              hasMore: false,
+              draftScope: account,
+            }
+    )
+  );
+  const select = async (id: string) => {
+    await screen.findByRole('option', { name: /November tenancy/ });
+    fireEvent.change(screen.getByLabelText('Tenancy folder'), {
+      target: { value: id },
+    });
+  };
+  try {
+    const view = render(<TenancyInspections propertyId='property' />);
+    await select(november.id);
+    expect(screen.getByText('Check-out recorded')).toBeVisible();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'New inspection' })
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Create Check-out report' })
+    );
+    fireEvent.change(screen.getByLabelText('Report title'), {
+      target: { value: 'November close-out' },
+    });
+    fireEvent.change(screen.getByLabelText('Inspection date'), {
+      target: { value: '2026-11-24' },
+    });
+    fireEvent.change(screen.getByLabelText('Observations'), {
+      target: { value: 'Check the kitchen' },
+    });
+    fireEvent.click(
+      await screen.findByRole('checkbox', { name: /Kitchen.jpg/ })
+    );
+    await screen.findByText('Draft saved in this tab.');
+    await select(december.id);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'New inspection' })
+    );
+    expect(screen.getByLabelText('Report title')).toHaveValue('');
+    expect(
+      await screen.findByText('Uploaded before this tenancy')
+    ).toBeVisible();
+    expect(screen.getByText('Used in a saved inspection')).toBeVisible();
+    view.unmount();
+    account = 'inspection-test-account-b';
+    const other = render(<TenancyInspections propertyId='property' />);
+    await select(november.id);
+    await screen.findByRole('button', { name: 'New inspection' });
+    expect(screen.queryByRole('button', { name: 'Resume draft' })).toBeNull();
+    other.unmount();
+    account = 'inspection-test-account-a';
+    render(<TenancyInspections propertyId='property' />);
+    await select(november.id);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Resume draft' })
+    );
+    expect(screen.getByLabelText('Inspection type')).toHaveValue('check_out');
+    expect(screen.getByLabelText('Report title')).toHaveValue(
+      'November close-out'
+    );
+    expect(screen.getByLabelText('Observations')).toHaveValue(
+      'Check the kitchen'
+    );
+    expect(screen.getByLabelText('Inspection date')).toHaveValue('2026-11-24');
+    expect(
+      await screen.findByRole('checkbox', { name: /Kitchen.jpg/ })
+    ).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Save shared report' }));
+    await screen.findByRole('button', { name: 'New inspection' });
+    expect(
+      window.sessionStorage.getItem(
+        inspectionDraftKey(account, 'property', november.id)!
+      )
+    ).toBeNull();
+  } finally {
+    window.sessionStorage.removeItem(
+      inspectionDraftKey('inspection-test-account-a', 'property', november.id)!
+    );
+  }
 });
 it('creates a folder with explicit dates and CSRF', async () => {
   request.mockImplementation((_url: string, options?: RequestInit) =>
@@ -129,7 +314,7 @@ it('saves inspection with selected photo identifiers only', async () => {
   fireEvent.change(screen.getByLabelText('Inspection date'), {
     target: { value: '2026-10-30' },
   });
-  fireEvent.click(await screen.findByRole('checkbox'));
+  fireEvent.click(await screen.findByRole('checkbox', { name: /Kitchen.jpg/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Save shared report' }));
   await waitFor(() =>
     expect(request).toHaveBeenCalledWith(
@@ -234,6 +419,15 @@ it('warns before leaving a changed report and records an outside-tenancy reason'
     fireEvent.change(screen.getByLabelText('Reason for the date exception'), {
       target: { value: 'Agreed early handover' },
     });
+    expect(
+      screen.getByText(
+        'This report has no observations or photos. Saved reports cannot be edited.'
+      )
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Save shared report' })
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'No issues found' }));
     const save = screen.getByRole('button', { name: 'Save shared report' });
     await waitFor(() => expect(save).toBeEnabled());
     fireEvent.click(save);
@@ -247,6 +441,10 @@ it('warns before leaving a changed report and records an outside-tenancy reason'
         })
       )
     );
+    const [, options] = request.mock.calls.find(
+      ([, input]) => input?.method === 'POST'
+    )!;
+    expect(JSON.parse(String(options.body)).outcome).toBe('no_issues_found');
   } finally {
     vi.unstubAllGlobals();
   }
