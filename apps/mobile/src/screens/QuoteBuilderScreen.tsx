@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/hooks';
 import { formatCurrency } from '../utils/formatCurrency';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -213,6 +214,12 @@ export const QuoteBuilderScreen = ({
             onEdit={() => open(item)}
             onDuplicate={() => void mutate(item.id, 'duplicate')}
             onDelete={() => deleteDraft(item)}
+            onViewJob={(jobId) =>
+              goToTab(navigation, 'JobsTab', {
+                screen: 'JobDetails',
+                params: { jobId },
+              })
+            }
           />
         )}
         ListHeaderComponent={

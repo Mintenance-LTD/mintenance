@@ -98,12 +98,12 @@ export function SchedulingClient(_props: SchedulingClientProps) {
     const clientName = searchParams.get('clientName');
     const prefill = searchParams.get('prefill');
 
-    if (prefill === 'true' && clientName) {
+    if (prefill === 'true') {
       setNewAppt((prev) => ({
         ...prev,
-        clientName: clientName,
+        clientName: clientName ?? '',
         jobId: jobId || undefined,
-        title: jobId ? `Meeting for Job #${jobId}` : 'Project Discussion',
+        title: searchParams.get('title') || (jobId ? `Meeting for Job #${jobId}` : 'Project Discussion'),
         notes: jobId ? `Related to Job #${jobId}` : '',
       }));
       setShowNewAppointmentModal(true);
@@ -447,7 +447,6 @@ export function SchedulingClient(_props: SchedulingClientProps) {
             )}
             {calendarLoading && <p role='status'>Loading appointments…</p>}
             <CalendarView
-              onEdit={setEditing}
               selectedDate={selectedDate}
               view={view}
               setView={setView}

@@ -217,7 +217,7 @@ export function updateMapMarkers(
   const locationGroups = new Map<string, MapJob[]>();
 
   jobs.forEach((job) => {
-    if (!job.lat || !job.lng) return;
+    if (job.lat == null || job.lng == null) return;
 
     let addedToGroup = false;
     for (const [groupKey, groupJobs] of locationGroups.entries()) {

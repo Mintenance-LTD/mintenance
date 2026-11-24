@@ -16,7 +16,14 @@
  * value); slots without a matching row render as "+ Add" prompts.
  */
 import React, { useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Pressable,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -48,7 +55,6 @@ interface Slot {
   key: string;
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
-  // Bonus credentials don't count toward the "Premium verified" %.
   optional?: boolean;
 }
 
@@ -169,16 +175,12 @@ export const VerificationStatusScreen: React.FC<Props> = ({ navigation }) => {
     [credByKey]
   );
 
-  // % verified counts toward the "Premium verified" badge from the
-  // mandatory checklist slots only (optional credentials are bonus).
-  const mandatorySlots = slotStates.filter((s) => !s.slot.optional);
-  const verifiedMandatory = mandatorySlots.filter(
-    (s) => resolveState(s.cred) === 'ok'
+  // This screen reads trade registers. Identity and business review are separate.
+  const verifiedCurrent = slotStates.filter(
+    ({ cred }) =>
+      cred?.status === 'verified' &&
+      (!cred.expires_at || Date.parse(cred.expires_at) > Date.now())
   ).length;
-  const verifiedPct =
-    mandatorySlots.length > 0
-      ? Math.round((verifiedMandatory / mandatorySlots.length) * 100)
-      : 0;
 
   const navigateToSubmit = () => navigation.navigate('ContractorVerification');
 
@@ -222,42 +224,22 @@ export const VerificationStatusScreen: React.FC<Props> = ({ navigation }) => {
           }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Progress dial */}
           <View style={styles.progressCard}>
-            <View
-              style={[
-                styles.progressRing,
-                {
-                  borderColor: verifiedPct >= 100 ? me.brand : me.bg3,
-                },
-              ]}
-            >
+            <View style={styles.progressRing}>
               <View style={styles.progressRingInner}>
-                <Text style={styles.progressPct}>
-                  {verifiedPct}
-                  <Text style={styles.progressPctUnit}>%</Text>
-                </Text>
+                <Text style={styles.progressPct}>{verifiedCurrent}</Text>
               </View>
             </View>
             <View style={styles.progressContent}>
-              <Text style={styles.progressTitle}>
-                {verifiedPct >= 100
-                  ? 'Premium verified'
-                  : verifiedPct > 0
-                    ? 'Trusted on Mintenance'
-                    : 'Get verified'}
-              </Text>
+              <Text style={styles.progressTitle}>Trade credentials</Text>
               <Text style={styles.progressBody}>
-                Verified contractors get seen 3× more on bids and rank higher in
-                homeowner search.
+                Verified and current trade credentials. Add the registrations
+                that apply to your trade. Identity, business registration and
+                insurance reviews are separate.
               </Text>
-              {verifiedPct < 100 && (
-                <Pressable onPress={navigateToSubmit}>
-                  <Text style={styles.progressCta}>
-                    + Add credentials to reach 100%
-                  </Text>
-                </Pressable>
-              )}
+              <Pressable onPress={navigateToSubmit}>
+                <Text style={styles.progressCta}>Add a trade credential</Text>
+              </Pressable>
             </View>
           </View>
 

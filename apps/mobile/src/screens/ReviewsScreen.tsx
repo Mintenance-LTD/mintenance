@@ -198,6 +198,12 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
             <ReviewCard
               review={item}
               index={index}
+              onViewJob={(jobId) =>
+                goToTab(navigation, 'JobsTab', {
+                  screen: 'JobDetails',
+                  params: { jobId },
+                })
+              }
               onReply={(r) =>
                 navigation.navigate('ReplyToReview', {
                   reviewId: r.id,

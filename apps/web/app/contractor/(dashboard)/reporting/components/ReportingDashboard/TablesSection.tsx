@@ -19,7 +19,7 @@ export const TablesSection: React.FC<TablesSectionProps> = ({ analytics }) => {
             Detailed Category Breakdown
           </h2>
           <p className='text-sm text-gray-500'>
-            Complete performance data by service category
+            Average divides released earnings by distinct jobs paid in this period.
           </p>
         </div>
 
@@ -31,13 +31,16 @@ export const TablesSection: React.FC<TablesSectionProps> = ({ analytics }) => {
                   Category
                 </th>
                 <th className='text-right py-4 px-6 font-semibold text-sm text-gray-700'>
-                  Total Jobs
+                  Jobs created
+                </th>
+                <th className='text-right py-4 px-6 font-semibold text-sm text-gray-700'>
+                  Jobs with released payments
                 </th>
                 <th className='text-right py-4 px-6 font-semibold text-sm text-gray-700'>
                   Total Revenue
                 </th>
                 <th className='text-right py-4 px-6 font-semibold text-sm text-gray-700'>
-                  Avg Job Value
+                  Average per paid job
                 </th>
                 <th className='text-right py-4 px-6 font-semibold text-sm text-gray-700'>
                   % of Total
@@ -45,7 +48,7 @@ export const TablesSection: React.FC<TablesSectionProps> = ({ analytics }) => {
               </tr>
             </thead>
             <tbody className='divide-y divide-gray-100'>
-              {analytics.jobsByCategory
+              {[...analytics.jobsByCategory]
                 .sort((a, b) => b.revenue - a.revenue)
                 .map((category, index) => {
                   const percentage =
@@ -53,7 +56,7 @@ export const TablesSection: React.FC<TablesSectionProps> = ({ analytics }) => {
                       ? (category.revenue / analytics.totalRevenue) * 100
                       : 0;
                   const avgValue =
-                    category.count > 0 ? category.revenue / category.count : 0;
+                    category.paidJobs > 0 ? category.revenue / category.paidJobs : null;
 
                   return (
                     <tr
@@ -81,11 +84,12 @@ export const TablesSection: React.FC<TablesSectionProps> = ({ analytics }) => {
                       <td className='py-4 px-6 text-right text-gray-700 font-medium'>
                         {category.count}
                       </td>
+                      <td className='py-4 px-6 text-right text-gray-700'>{category.paidJobs}</td>
                       <td className='py-4 px-6 text-right font-semibold text-teal-600'>
                         {formatMoney(category.revenue, 'GBP')}
                       </td>
                       <td className='py-4 px-6 text-right text-gray-700'>
-                        {formatMoney(avgValue, 'GBP')}
+                        {avgValue === null ? '—' : formatMoney(avgValue, 'GBP')}
                       </td>
                       <td className='py-4 px-6 text-right'>
                         <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-700'>

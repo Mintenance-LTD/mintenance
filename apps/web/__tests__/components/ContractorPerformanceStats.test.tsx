@@ -22,7 +22,11 @@ describe('ContractorPerformanceStats', () => {
         onTimeCompletion={92}
         repeatCustomers={40}
         yearsExperience={3}
-        completedJobs={12}
+        basis={{
+          onTime: { count: 11, total: 12 },
+          repeat: { count: 2, total: 5 },
+          responses: 12,
+        }}
       />
     );
 
@@ -38,7 +42,12 @@ describe('ContractorPerformanceStats', () => {
     expect(screen.getByTestId('performance-tenure-value')).toHaveTextContent(
       '3 years'
     );
-    expect(screen.queryByText(/appear once this tradesperson/i)).toBeNull();
+    expect(
+      screen.getByText('11 of 12 jobs finished by the scheduled end · All time')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/once at least three records qualify/i)
+    ).toBeNull();
   });
 
   it('shows "—" rather than 0% for a contractor with no completed jobs', () => {
@@ -48,7 +57,6 @@ describe('ContractorPerformanceStats', () => {
         onTimeCompletion={0}
         repeatCustomers={0}
         yearsExperience={0}
-        completedJobs={0}
       />
     );
 
@@ -66,9 +74,7 @@ describe('ContractorPerformanceStats', () => {
       'New'
     );
     expect(
-      screen.getByText(
-        /appear once this tradesperson completes their first job/i
-      )
+      screen.getByText(/once at least three records qualify/i)
     ).toBeInTheDocument();
   });
 
@@ -79,7 +85,6 @@ describe('ContractorPerformanceStats', () => {
         onTimeCompletion={100}
         repeatCustomers={50}
         yearsExperience={1}
-        completedJobs={2}
       />
     );
 
@@ -95,7 +100,11 @@ describe('ContractorPerformanceStats', () => {
         onTimeCompletion={66.6666}
         repeatCustomers={33.3333}
         yearsExperience={2}
-        completedJobs={3}
+        basis={{
+          onTime: { count: 2, total: 3 },
+          repeat: { count: 1, total: 3 },
+          responses: 3,
+        }}
       />
     );
 

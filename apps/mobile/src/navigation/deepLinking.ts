@@ -78,6 +78,7 @@ const linkingConfig = {
           initialRouteName: 'ProfileMain',
           screens: {
             ProfileMain: 'profile',
+            InvoiceManagement: 'profile/invoices',
             Properties: 'properties',
             PropertyDetail: 'properties/:propertyId',
             // 2026-05-26 audit-57 P2: the TeamAccess invite flow opens

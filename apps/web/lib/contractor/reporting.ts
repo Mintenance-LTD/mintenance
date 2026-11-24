@@ -114,10 +114,10 @@ export function contractorReport(
     string,
     { name: string; revenue: number; jobs: Set<string> }
   >();
-  const categories = new Map<string, { count: number; revenue: number }>();
+  const categories = new Map<string, { count: number; revenue: number; paidJobs: Set<string> }>();
   for (const job of jobs) {
     const key = job.category || 'Other';
-    const row = categories.get(key) ?? { count: 0, revenue: 0 };
+    const row = categories.get(key) ?? { count: 0, revenue: 0, paidJobs: new Set<string>() };
     row.count++;
     categories.set(key, row);
   }
@@ -127,8 +127,9 @@ export function contractorReport(
     const job = byJob.get(payment.job_id);
     const amount = net(payment);
     const category = job?.category || 'Other';
-    const row = categories.get(category) ?? { count: 0, revenue: 0 };
+    const row = categories.get(category) ?? { count: 0, revenue: 0, paidJobs: new Set<string>() };
     row.revenue += amount;
+    row.paidJobs.add(payment.job_id);
     categories.set(category, row);
     if (job?.homeowner_id) {
       const person = Array.isArray(job.homeowner)
@@ -180,12 +181,14 @@ export function contractorReport(
     customerSatisfaction: reviews.length
       ? reviews.reduce((total, r) => total + r.rating, 0) / reviews.length
       : 0,
+    reviewCount: reviews.length,
     totalBids: bids.length,
     acceptedBids,
     winRate: bids.length ? (acceptedBids / bids.length) * 100 : 0,
     jobsByCategory: [...categories].map(([category, row]) => ({
       category,
       ...row,
+      paidJobs: row.paidJobs.size,
     })),
     dailyRevenue: [...days]
       .sort(([a], [b]) => a.localeCompare(b))

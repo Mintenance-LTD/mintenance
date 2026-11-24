@@ -20,6 +20,8 @@ import Link from 'next/link';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Printer, ArrowLeft, FileText } from 'lucide-react';
+import type { QuoteLinkedJob } from '@/lib/quotes/effective-quotes';
+import { QuoteJobLink } from '../../components/QuoteJobLink';
 
 interface QuoteLineItem {
   description: string;
@@ -31,6 +33,7 @@ interface QuoteLineItem {
 
 interface Quote {
   id: string;
+  linkedJob?: QuoteLinkedJob;
   quote_number: string;
   client_name: string;
   client_email: string;
@@ -225,6 +228,7 @@ export function MintEditorialQuoteDetailView({
             <h2 className='t-h3' style={{ margin: 0, marginBottom: 8 }}>
               {quote.title}
             </h2>
+            {quote.status === 'accepted' && quote.linkedJob && <div className='no-print mb-3'><QuoteJobLink job={quote.linkedJob} /></div>}
             {quote.description ? (
               <p
                 className='t-body'
@@ -397,7 +401,7 @@ export function MintEditorialQuoteDetailView({
                   className='t-body'
                   style={{ margin: 0, color: 'var(--me-ink-3)' }}
                 >
-                  No line items on this quote yet.
+                  {quote.status === 'draft' ? 'No line items on this quote yet.' : 'Fixed-price quote'}
                 </p>
               </div>
             )}

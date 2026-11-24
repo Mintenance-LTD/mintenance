@@ -12,7 +12,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 60 }, csrf: false },
   async (request, { user }) => {
-    const today = appointmentLocalTime(new Date()).date;
+    const now = appointmentLocalTime(new Date());
     const isContractor = user.role === 'contractor';
 
     // 2026-05-23 audit-21 P1: CalendarScreen used to call the
@@ -26,6 +26,22 @@ export const GET = withApiHandler(
     const { searchParams } = new URL(request.url);
     const daysAheadRaw = searchParams.get('daysAhead');
     const limitRaw = searchParams.get('limit');
+    const weekStart = searchParams.get('weekStart');
+    const validWeekStart =
+      weekStart && /^\d{4}-\d{2}-\d{2}$/.test(weekStart)
+        ? new Date(`${weekStart}T00:00:00Z`)
+        : null;
+    if (
+      weekStart &&
+      (!validWeekStart ||
+        !Number.isFinite(validWeekStart.getTime()) ||
+        validWeekStart.toISOString().slice(0, 10) !== weekStart)
+    ) {
+      return NextResponse.json(
+        { error: 'Invalid calendar week' },
+        { status: 400 }
+      );
+    }
     const daysAhead = (() => {
       const n = daysAheadRaw ? parseInt(daysAheadRaw, 10) : NaN;
       return Number.isFinite(n) && n > 0 ? Math.min(n, 365) : null;
@@ -48,13 +64,22 @@ export const GET = withApiHandler(
         job:jobs!job_id(id, title, status)
       `
       )
-      .gte('appointment_date', today)
-      .in('status', ['scheduled', 'confirmed', 'rescheduled'])
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true })
       .limit(limit);
 
-    if (daysAhead != null) {
+    if (validWeekStart && weekStart) {
+      validWeekStart.setUTCDate(validWeekStart.getUTCDate() + 7);
+      query = query
+        .gte('appointment_date', weekStart)
+        .lt('appointment_date', validWeekStart.toISOString().slice(0, 10));
+    } else {
+      query = query
+        .gte('appointment_date', now.date)
+        .in('status', ['scheduled', 'confirmed', 'rescheduled']);
+    }
+
+    if (!validWeekStart && daysAhead != null) {
       const upper = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
         .toISOString()
         .split('T')[0];
@@ -114,6 +139,10 @@ export const GET = withApiHandler(
         : apt.contractor;
       const client = Array.isArray(apt.client) ? apt.client[0] : apt.client;
       const job = Array.isArray(apt.job) ? apt.job[0] : apt.job;
+      const date = String(apt.appointment_date);
+      const past =
+        date < now.date ||
+        (date === now.date && String(apt.end_time) <= now.time);
       return {
         id: apt.id,
         title: apt.title,
@@ -125,7 +154,8 @@ export const GET = withApiHandler(
         locationAddress: apt.location_address,
         status: apt.status,
         clientResponse: apt.client_response,
-        canRespond: apt.client_id === user.id,
+        canRespond: apt.client_id === user.id && (!validWeekStart || !past),
+        ...(validWeekStart && { past }),
         notes: apt.notes,
         contractor: contractor
           ? {

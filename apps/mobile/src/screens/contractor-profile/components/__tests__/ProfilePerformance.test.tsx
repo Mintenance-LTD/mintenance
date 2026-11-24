@@ -19,7 +19,11 @@ describe('ProfilePerformance', () => {
         onTimeCompletion={92}
         repeatCustomers={40}
         yearsExperience={3}
-        jobsCompleted={12}
+        basis={{
+          onTime: { count: 11, total: 12 },
+          repeat: { count: 2, total: 5 },
+          responses: 12,
+        }}
       />
     );
 
@@ -38,7 +42,6 @@ describe('ProfilePerformance', () => {
         onTimeCompletion={0}
         repeatCustomers={0}
         yearsExperience={0}
-        jobsCompleted={0}
       />
     );
 
@@ -48,9 +51,7 @@ describe('ProfilePerformance', () => {
     expect(getByTestId('performance-response-value').props.children).toBe('—');
     // Under a year on the platform reads "New", not "0".
     expect(getByTestId('performance-tenure-value').props.children).toBe('New');
-    expect(
-      queryByText(/appear once this tradesperson completes their first job/i)
-    ).toBeTruthy();
+    expect(queryByText(/once at least three records qualify/i)).toBeTruthy();
   });
 
   it('still suppresses percentages when metrics are absent but jobs exist', () => {
@@ -61,7 +62,6 @@ describe('ProfilePerformance', () => {
         onTimeCompletion={undefined}
         repeatCustomers={undefined}
         yearsExperience={2}
-        jobsCompleted={5}
       />
     );
 
@@ -76,7 +76,11 @@ describe('ProfilePerformance', () => {
         onTimeCompletion={66.6666}
         repeatCustomers={33.3333}
         yearsExperience={1}
-        jobsCompleted={3}
+        basis={{
+          onTime: { count: 2, total: 3 },
+          repeat: { count: 1, total: 3 },
+          responses: 0,
+        }}
       />
     );
 
@@ -90,12 +94,15 @@ describe('ProfilePerformance', () => {
         onTimeCompletion={80}
         repeatCustomers={20}
         yearsExperience={1}
-        jobsCompleted={4}
+        responseTime='About 1 hour'
+        basis={{
+          onTime: { count: 4, total: 5 },
+          repeat: { count: 1, total: 5 },
+          responses: 4,
+        }}
       />
     );
 
-    expect(
-      queryByText(/appear once this tradesperson completes their first job/i)
-    ).toBeNull();
+    expect(queryByText(/once at least three records qualify/i)).toBeNull();
   });
 });

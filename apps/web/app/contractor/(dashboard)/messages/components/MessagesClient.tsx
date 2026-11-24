@@ -34,6 +34,7 @@ import { ShareDocumentDialog } from './ShareDocumentDialog';
 import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator';
 import { MintEditorialMessagesSidebar } from '@/app/messages/components/MintEditorialMessagesSidebar';
 import { MintEditorialMessagesChat } from '@/app/messages/components/MintEditorialMessagesChat';
+import { useConversationDraft } from '@/hooks/useConversationDraft';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
 
 export function MessagesClient() {
@@ -45,12 +46,14 @@ export function MessagesClient() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [thread, setThread] = useState<{ id: string; messages: Message[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread' | 'archived'>('all');
-  const [messageInput, setMessageInput] = useState('');
+  const conversationId = selectedConversation?.id;
+  const messages = thread && thread.id === conversationId ? thread.messages : null;
+  const [messageInput, setMessageInput] = useConversationDraft(user?.id, conversationId);
   const [sending, setSending] = useState(false);
   const [jobContext, setJobContext] = useState<JobContext | null>(null);
   const [showVideoCallDialog, setShowVideoCallDialog] = useState(false);
@@ -136,12 +139,15 @@ export function MessagesClient() {
   }, [loadUserAndMessages]);
 
   useEffect(() => {
-    if (!selectedConversation) return;
+    if (!conversationId) return;
+    const controller = new AbortController();
+    const { signal } = controller;
     const fetchMessages = async () => {
       setLoadingMessages(true);
       try {
         const response = await fetch(
-          '/api/messages/threads/' + selectedConversation.id + '/messages'
+          '/api/messages/threads/' + conversationId + '/messages',
+          { signal }
         );
         if (!response.ok) throw new Error('Failed to fetch messages');
         const data = await response.json();
@@ -157,13 +163,16 @@ export function MessagesClient() {
             read: msg.read !== undefined ? msg.read : true,
           })
         );
-        setMessages(transformedMessages);
+        if (signal.aborted) return;
+        setThread({ id: conversationId, messages: transformedMessages });
         try {
           const jobResponse = await fetch(
-            '/api/jobs/' + selectedConversation.id
+            '/api/jobs/' + conversationId,
+            { signal }
           );
           if (jobResponse.ok) {
             const jobData = await jobResponse.json();
+            if (signal.aborted) return;
             setJobContext({
               id: jobData.job.id,
               title: jobData.job.title,
@@ -173,20 +182,27 @@ export function MessagesClient() {
             });
           }
         } catch (error) {
-          logger.warn('Failed to load job context', { error });
+          if (!signal.aborted) logger.warn('Failed to load job context', { error });
         }
         await fetch(
-          '/api/messages/threads/' + selectedConversation.id + '/read',
-          { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+          '/api/messages/threads/' + conversationId + '/read',
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal }
         );
       } catch {
-        toast.error('Failed to load messages');
+        if (!signal.aborted) toast.error('Failed to load messages');
       } finally {
-        setLoadingMessages(false);
+        if (!signal.aborted) setLoadingMessages(false);
       }
     };
-    fetchMessages();
-  }, [selectedConversation]);
+    void fetchMessages();
+    return () => controller.abort();
+  }, [conversationId]);
+
+  const appendMessage = (message: Message) => {
+    setThread((current) => current && current.id === conversationId
+      ? { ...current, messages: [...current.messages, message] }
+      : current);
+  };
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation || !user || sending)
@@ -226,8 +242,8 @@ export function MessagesClient() {
         created_at: new Date().toISOString(),
         read: false,
       };
-      setMessages((prev) => [...prev, newMessage]);
-      setMessageInput('');
+      appendMessage(newMessage);
+      setMessageInput((current) => current === messageInput ? '' : current);
       setConversations((prev) =>
         prev.map((conv) =>
           conv.id === selectedConversation.id
@@ -250,7 +266,7 @@ export function MessagesClient() {
   };
 
   const handleSendQuote = () => {
-    if (!selectedConversation || !jobContext) {
+    if (!selectedConversation || jobContext?.id !== selectedConversation.id) {
       toast.error('Please select a conversation first');
       return;
     }
@@ -339,7 +355,7 @@ export function MessagesClient() {
         created_at: new Date().toISOString(),
         read: false,
       };
-      setMessages((prev) => [...prev, newMessage]);
+      appendMessage(newMessage);
       setConversations((prev) =>
         prev.map((conv) =>
           conv.id === selectedConversation.id
@@ -480,7 +496,7 @@ export function MessagesClient() {
           {selectedConversation ? (
             <MintEditorialMessagesChat
               conversation={selectedConversation}
-              messages={messages}
+              messages={messages ?? []}
               currentUserId={user.id}
               loadingMessages={loadingMessages}
               messageInput={messageInput}
@@ -626,12 +642,12 @@ export function MessagesClient() {
           <ChatPanel
             conversation={selectedConversation}
             userId={user.id}
-            messages={messages}
+            messages={messages ?? []}
             loadingMessages={loadingMessages}
             messageInput={messageInput}
             sending={sending}
             isTyping={isTyping}
-            jobContext={jobContext}
+            jobContext={jobContext?.id === conversationId ? jobContext : null}
             showMoreOptions={showMoreOptions}
             messagesEndRef={messagesEndRef}
             onMessageInputChange={(val: string) => {

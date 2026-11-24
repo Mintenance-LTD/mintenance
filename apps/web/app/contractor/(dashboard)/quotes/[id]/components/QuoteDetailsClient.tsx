@@ -1,5 +1,7 @@
 'use client';
 import { QuoteDraftActions } from '../../components/QuoteDraftActions';
+import { QuoteJobLink } from '../../components/QuoteJobLink';
+import type { QuoteLinkedJob } from '@/lib/quotes/effective-quotes';
 
 import React, { useRef } from 'react';
 import Link from 'next/link';
@@ -26,6 +28,7 @@ interface QuoteLineItem {
 
 interface Quote {
   id: string;
+  linkedJob?: QuoteLinkedJob;
   quote_number: string;
   client_name: string;
   client_email: string;
@@ -94,6 +97,7 @@ export function QuoteDetailsClient({ quote }: QuoteDetailsClientProps) {
                   gap: theme.spacing[3],
                 }}
               >
+                {quote.status === 'accepted' && quote.linkedJob && <QuoteJobLink job={quote.linkedJob} />}
                 <Button variant='primary' fullWidth onClick={handlePrint}>
                   <Printer
                     size={16}
@@ -248,7 +252,7 @@ export function QuoteDetailsClient({ quote }: QuoteDetailsClientProps) {
               <tbody>
                 {!quote.line_items?.length && (
                   <tr>
-                    <td colSpan={4}>No line-item breakdown recorded.</td>
+                    <td colSpan={4}>{quote.status === 'draft' ? 'No line-item breakdown recorded.' : 'Fixed-price quote'}</td>
                   </tr>
                 )}
                 {(quote.line_items ?? []).map((item, i) => (

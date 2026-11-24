@@ -36,7 +36,7 @@ export default async function QuoteDetailsPage({
     redirect('/contractor/quotes');
   }
 
-  const [effectiveQuote] = await withEffectiveQuoteStatuses([quote], user.id);
+  const [effectiveQuote] = await withEffectiveQuoteStatuses([quote], user.id, true);
 
   // Mint Editorial theme branch — same data shape, polished editorial layout.
   const cookieStore = await cookies();

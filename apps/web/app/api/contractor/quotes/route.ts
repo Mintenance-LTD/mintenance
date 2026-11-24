@@ -48,7 +48,7 @@ export const GET = withApiHandler(
 
     const storedQuotes = await collectRows((from, to) => query.range(from, to));
     const quotes = (
-      await withEffectiveQuoteStatuses(storedQuotes, user.id)
+      await withEffectiveQuoteStatuses(storedQuotes, user.id, true)
     ).filter(
       (q) =>
         !status ||
@@ -60,6 +60,7 @@ export const GET = withApiHandler(
     const transformedQuotes =
       quotes?.map((quote) => ({
         id: quote.id,
+        linkedJob: quote.linkedJob,
         jobTitle: quote.title,
         customerName: quote.client_name,
         customerEmail: quote.client_email,

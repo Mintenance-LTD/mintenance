@@ -196,10 +196,10 @@ export const ContractorProfileScreen: React.FC<
         {/* Performance signals — web parity (2026-07-31 audit P2-3) */}
         <ProfilePerformance
           responseTime={viewModel.contractor.responseTime}
+          basis={viewModel.contractor.performanceBasis}
           onTimeCompletion={viewModel.contractor.onTimeCompletion}
           repeatCustomers={viewModel.contractor.repeatCustomers}
           yearsExperience={viewModel.contractor.yearsExperience}
-          jobsCompleted={viewModel.contractor.jobsCompleted}
         />
 
         {/* Primary CTA + secondary actions */}

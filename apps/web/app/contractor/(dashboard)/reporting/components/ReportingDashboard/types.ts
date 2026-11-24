@@ -9,7 +9,8 @@ export interface ReportingAnalytics {
   activeClients: number;
   averageJobValue: number;
   customerSatisfaction: number;
-  jobsByCategory: Array<{ category: string; count: number; revenue: number }>;
+  reviewCount: number;
+  jobsByCategory: Array<{ category: string; count: number; revenue: number; paidJobs: number }>;
   revenueByMonth: Array<{ month: string; revenue: number; jobs: number }>;
   topClients: Array<{ name: string; revenue: number; jobs: number }>;
   totalBids: number;

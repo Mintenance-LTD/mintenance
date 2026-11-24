@@ -350,13 +350,17 @@ export class JobCRUDService {
    * `created_at desc`) or null if none exists / API fails.
    */
   static async getContractByJobId(
-    jobId: string
+    jobId: string,
+    contractId?: string
   ): Promise<Record<string, unknown> | null> {
     try {
+      const params = new URLSearchParams({ job_id: jobId });
+      if (contractId) params.set('contract_id', contractId);
       const { contracts } = await mobileApiClient.get<{
         contracts: Record<string, unknown>[];
-      }>(`/api/contracts?job_id=${encodeURIComponent(jobId)}`);
+      }>(`/api/contracts?${params}`);
       if (!Array.isArray(contracts) || contracts.length === 0) return null;
+      if (contractId) return contracts.find((row) => row.id === contractId && row.job_id === jobId) ?? null;
       return contracts[0] ?? null;
     } catch {
       return null;

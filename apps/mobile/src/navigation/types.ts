@@ -110,7 +110,7 @@ export type JobsStackParamList = {
   BidReview: { jobId: string };
   PhotoReview: { jobId: string };
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
-  ContractView: { jobId: string };
+  ContractView: { jobId: string; contractId?: string };
   ContractPreparation: { jobId: string; jobTitle?: string };
   ReviewSubmission: {
     jobId: string;

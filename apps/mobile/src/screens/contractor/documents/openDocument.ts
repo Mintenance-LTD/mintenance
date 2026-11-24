@@ -11,7 +11,7 @@ import type { Document } from './types';
  */
 export function openDocument(args: {
   doc: Document;
-  navigateToJob: (jobId: string) => void;
+  navigateToJob: (jobId: string, contractId: string) => void;
 }): void {
   const { doc, navigateToJob } = args;
 
@@ -23,7 +23,7 @@ export function openDocument(args: {
       );
       return;
     }
-    navigateToJob(doc.job_id);
+    navigateToJob(doc.job_id, doc.id);
     return;
   }
 

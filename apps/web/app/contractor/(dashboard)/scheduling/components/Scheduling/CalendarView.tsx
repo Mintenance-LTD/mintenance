@@ -2,6 +2,7 @@
 import { appointmentTime } from '@/lib/scheduling/appointment-display';
 
 import React from 'react';
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import type { Appointment } from './types';
@@ -13,7 +14,6 @@ interface CalendarViewProps {
   setView: (v: 'week' | 'month') => void;
   setSelectedDate: (date: Date) => void;
   appointments: Appointment[];
-  onEdit?: (appointment: Appointment) => void;
 }
 
 export function CalendarView({
@@ -22,7 +22,6 @@ export function CalendarView({
   setView,
   setSelectedDate,
   appointments,
-  onEdit,
 }: CalendarViewProps) {
   const days = calendarDays(selectedDate, view);
   const todayKey = dateKey(new Date());
@@ -111,7 +110,7 @@ export function CalendarView({
           const isCurrentMonth =
             currentDate.getMonth() === selectedDate.getMonth();
           const dayAppointments = appointments.filter(
-            (apt) => apt.date === key && apt.status !== 'cancelled'
+            (apt) => apt.date === key
           );
 
           return (
@@ -138,19 +137,18 @@ export function CalendarView({
               {dayAppointments.length > 0 && (
                 <div className='space-y-1'>
                   {dayAppointments.map((apt) => (
-                    <button
-                      type='button'
-                      onClick={() => onEdit?.(apt)}
-                      aria-label={'View or reschedule ' + apt.title}
+                    <Link
+                      href={`/contractor/appointments/${encodeURIComponent(apt.id)}`}
+                      aria-label={`View visit: ${apt.title}`}
                       key={apt.id}
-                      className='px-2 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs truncate font-medium border border-teal-100'
+                      className='block px-2 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs truncate font-medium border border-teal-100 hover:underline'
                     >
                       <span
                         title={`${appointmentTime(apt.time, apt.endTime)} · ${apt.title}`}
                       >
                         {appointmentTime(apt.time, apt.endTime)} · {apt.title}
                       </span>
-                    </button>
+                    </Link>
                   ))}
                 </div>
               )}

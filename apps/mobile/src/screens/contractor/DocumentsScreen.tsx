@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { goToTab } from '../../navigation/hooks';
 import { Ionicons } from '@expo/vector-icons';
 
 import * as DocumentPicker from 'expo-document-picker';
@@ -89,13 +90,13 @@ export const DocumentsScreen: React.FC = () => {
   }, [uploadMutation]);
 
   const navigateToJob = useCallback(
-    (jobId: string) => {
-      (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
+    (jobId: string, contractId: string) => {
+      goToTab(navigation, 'JobsTab', {
         screen: 'ContractView',
-        params: { jobId },
+        params: { jobId, ...(isContractor && { contractId }) },
       });
     },
-    [navigation]
+    [navigation, isContractor]
   );
 
   const handleOpenDocument = useCallback(

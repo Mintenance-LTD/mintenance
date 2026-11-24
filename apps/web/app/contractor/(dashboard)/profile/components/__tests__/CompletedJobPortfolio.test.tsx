@@ -4,22 +4,60 @@ import { CompletedJobPortfolio } from '../CompletedJobPortfolio';
 
 it('publishes only the chosen photo and user-entered text after explicit consent', async () => {
   const upload = vi.fn().mockResolvedValue(undefined);
-  const fetchPhoto = vi.fn().mockResolvedValue({ ok: true, blob: async () => new Blob(['photo'], { type: 'image/jpeg' }) });
+  const fetchPhoto = vi
+    .fn()
+    .mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['photo'], { type: 'image/jpeg' }),
+    });
   vi.stubGlobal('fetch', fetchPhoto);
   try {
-    render(<CompletedJobPortfolio contractorId="contractor" jobs={[{ id: 'job', title: 'Private job address', category: 'painting', photos: [{ url: 'https://example.test/one' }, { url: 'https://example.test/two' }] }]} onUpload={upload} />);
+    render(
+      <CompletedJobPortfolio
+        contractorId='contractor'
+        jobs={[
+          {
+            id: 'job',
+            title: 'TEST ONLY - Private job address',
+            category: 'painting',
+            photos: [
+              { url: '/test-photo-one.jpg' },
+              { url: '/test-photo-two.jpg' },
+            ],
+          },
+        ]}
+        onUpload={upload}
+      />
+    );
+    expect(screen.getByText('Test job')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Add to portfolio' }));
-    expect(screen.getByRole('button', { name: 'Publish project' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Preview before publishing' })
+    ).toBeDisabled();
     expect(screen.getByLabelText('Public project title')).toHaveValue('');
     fireEvent.click(screen.getByLabelText('Photo 2'));
-    fireEvent.change(screen.getByLabelText('Public project title'), { target: { value: 'Painted living room' } });
-    expect(screen.getByRole('button', { name: 'Publish project' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Public project title'), {
+      target: { value: 'Painted living room' },
+    });
+    expect(
+      screen.getByRole('button', { name: 'Preview before publishing' })
+    ).toBeDisabled();
     fireEvent.click(screen.getByLabelText(/I have permission/));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Preview before publishing' })
+    );
+    expect(screen.getByText('Painted living room')).toBeInTheDocument();
+    expect(upload).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Publish project' }));
     await waitFor(() => expect(upload).toHaveBeenCalledTimes(1));
     expect(fetchPhoto).toHaveBeenCalledTimes(1);
-    expect(fetchPhoto).toHaveBeenCalledWith('https://example.test/two');
-    expect(upload.mock.calls[0][0]).toMatchObject({ title: 'Painted living room', description: '' });
+    expect(fetchPhoto).toHaveBeenCalledWith('/test-photo-two.jpg');
+    expect(upload.mock.calls[0][0]).toMatchObject({
+      title: 'Painted living room',
+      description: '',
+    });
     expect(upload.mock.calls[0][0].files).toHaveLength(1);
-  } finally { vi.unstubAllGlobals(); }
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

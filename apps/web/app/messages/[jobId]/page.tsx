@@ -133,6 +133,7 @@ function ChatContent({ params }: ChatPageProps) {
 
       <div style={{ flexShrink: 0 }}>
         <MessageInput
+          key={jobId}
           onSendMessage={chat.handleSendMessage}
           disabled={chat.sending || !chat.otherUserId}
           placeholder={chat.sending ? 'Sending...' : 'Type a message...'}

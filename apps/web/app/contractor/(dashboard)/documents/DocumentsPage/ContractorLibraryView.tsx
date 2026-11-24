@@ -387,7 +387,7 @@ export function ContractorLibraryView({
                     >
                       {relativeDate(doc.created_at)} ·{' '}
                       {doc.is_contract
-                        ? 'Generated PDF'
+                        ? 'Preview agreement'
                         : formatKB(doc.size_bytes)}
                     </span>
                   </div>

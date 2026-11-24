@@ -47,6 +47,7 @@ import { ResponsiveContainer, useResponsive } from '../components/responsive';
 import { ChatHeader } from './messaging/components/ChatHeader';
 import { MessageBubble } from './messaging/components/MessageBubble';
 import { MessageComposer } from './messaging/components/MessageComposer';
+import { useConversationDraft } from '../hooks/useConversationDraft';
 import {
   MessagingLoading,
   MessagingError,
@@ -76,8 +77,12 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsive();
 
-  const [newMessage, setNewMessage] = useState('');
-  const [composerError, setComposerError] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useConversationDraft(user?.id, jobId);
+  const [composerFailure, setComposerFailure] = useState<{ jobId: string; message: string } | null>(null);
+  const composerError = composerFailure?.jobId === jobId ? composerFailure.message : null;
+  const setComposerError = (message: string | null) => {
+    setComposerFailure(message ? { jobId, message } : null);
+  };
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quoteAmount, setQuoteAmount] = useState('');
@@ -292,7 +297,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
         markMessageFailed(failedMsg.id);
       } else {
         setComposerError('Failed to send message. Please try again.');
-        setNewMessage(messageText);
+        setNewMessage((current) => current || newMessage || messageText);
       }
     }
   };

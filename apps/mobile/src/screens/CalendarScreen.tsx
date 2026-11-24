@@ -36,14 +36,11 @@ import { goToTab } from '../navigation/hooks';
 import { me } from '../design-system/mint-editorial';
 import { styles } from './CalendarStyles';
 import { VisitResponse } from './VisitResponse';
+import { PropertySheet } from './properties/components/PropertyWorkspaceUI';
 
 interface ScheduleItem {
   id: string;
-  // 2026-05-25 audit-43 P2: job_id is optional now. Previously fell
-  // back to the appointment id when the appointment wasn't job-linked,
-  // and tapping then navigated to JobDetails with a non-job id which
-  // surfaced as "job not found". Null means "standalone appointment —
-  // don't navigate to JobDetails".
+  // Standalone visits do not have a linked job.
   job_id: string | null;
   job_title: string;
   date: string; // YYYY-MM-DD
@@ -54,6 +51,7 @@ interface ScheduleItem {
   address?: string;
   clientResponse?: string;
   canRespond?: boolean;
+  past?: boolean;
 }
 
 interface Props {
@@ -123,9 +121,11 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [openVisitId, setOpenVisitId] = useState<string | null>(null);
 
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
   const selectedDateKey = toDateKey(selectedDate);
+  const weekStart = toDateKey(weekDays[0] ?? selectedDate);
 
   const {
     data: schedule,
@@ -133,17 +133,9 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['contractor-schedule', user?.id],
+    queryKey: ['contractor-schedule', user?.id, weekStart],
     queryFn: async () => {
       if (!user?.id) return [];
-      // 2026-05-23 audit-21 P1: was hitting /api/contractor/appointments
-      // which is contractor-role-gated; homeowners 403'd. The
-      // role-agnostic /api/appointments (now with daysAhead + limit
-      // params per the matching route change) handles both sides and
-      // filters on contractor_id for contractors, client_id for
-      // homeowners. We pass a generous limit so the 180-day calendar
-      // still shows the full set instead of the 10-row default the
-      // dashboard widget uses.
       const res = await mobileApiClient.get<{
         appointments: {
           id: string;
@@ -154,6 +146,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           status?: string;
           clientResponse?: string;
           canRespond?: boolean;
+          past?: boolean;
           locationAddress?: string;
           job?: { id: string; title?: string } | null;
           // Older contractor-route shape, kept for backward compatibility
@@ -161,16 +154,11 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           jobTitle?: string;
           location?: string;
         }[];
-      }>('/api/appointments?daysAhead=180&limit=500');
+      }>(`/api/appointments?weekStart=${weekStart}&limit=500`);
 
       return (res.appointments || []).map(
         (a): ScheduleItem => ({
           id: a.id,
-          // 2026-05-25 audit-43 P2: stop using the appointment id as a
-          // jobId fallback. A standalone appointment (no job link) has
-          // job?.id and jobId both undefined; defaulting to a.id meant
-          // tapping the event navigated to JobDetails with that
-          // non-existent jobId. Now null → press handler skips nav.
           job_id: a.job?.id || a.jobId || null,
           job_title: a.job?.title || a.jobTitle || a.title || 'Untitled',
           date: a.date,
@@ -180,6 +168,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           address: a.locationAddress || a.location,
           clientResponse: a.clientResponse,
           canRespond: a.canRespond,
+          past: a.past,
         })
       );
     },
@@ -187,8 +176,28 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     retry: 2,
     staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
-    placeholderData: (prev: ScheduleItem[] | undefined) => prev,
   });
+  const openVisit = schedule?.find((visit) => visit.id === openVisitId);
+  const visitStatus =
+    openVisit &&
+    (openVisit.status === 'scheduled'
+      ? openVisit.clientResponse === 'confirmed'
+        ? 'Confirmed'
+        : 'Proposed'
+      : openVisit.status.replace(/_/g, ' '));
+  const visitDate =
+    openVisit &&
+    new Date(`${openVisit.date}T12:00:00Z`).toLocaleDateString('en-GB', {
+      dateStyle: 'long',
+      timeZone: 'Europe/London',
+    });
+  function moveWeek(direction: number) {
+    setSelectedDate((current) => {
+      const next = new Date(current);
+      next.setDate(next.getDate() + 7 * direction);
+      return next;
+    });
+  }
 
   const filteredSchedule = useMemo(() => {
     if (!schedule) return [];
@@ -249,7 +258,25 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.screenHeader}>
         <Text style={styles.eyebrow}>Calendar</Text>
         <Text style={styles.headline}>Calendar</Text>
-        <Text style={styles.sub}>{headerSub}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            accessibilityRole='button'
+            accessibilityLabel='Previous week'
+            onPress={() => moveWeek(-1)}
+          >
+            <Ionicons name='chevron-back' size={20} color={me.ink} />
+          </TouchableOpacity>
+          <Text style={styles.sub}>{headerSub}</Text>
+          <TouchableOpacity
+            style={styles.backBtn}
+            accessibilityRole='button'
+            accessibilityLabel='Next week'
+            onPress={() => moveWeek(1)}
+          >
+            <Ionicons name='chevron-forward' size={20} color={me.ink} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.weekRow}>
@@ -361,20 +388,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                   </Text>
                   <TouchableOpacity
                     style={[styles.eventCard, { borderLeftColor: nodeColor }]}
-                    onPress={() => {
-                      // 2026-05-25 audit-43 P2: standalone appointments
-                      // (no job link) shouldn't pretend to be jobs.
-                      // Tap is a no-op for now — there's no dedicated
-                      // AppointmentDetail screen on mobile yet, but at
-                      // least we no longer navigate to a JobDetails
-                      // with a non-job id and surface "Job not found".
-                      if (!item.job_id) return;
-                      goToTab(navigation, 'JobsTab', {
-                        screen: 'JobDetails',
-                        params: { jobId: item.job_id },
-                      });
-                    }}
-                    disabled={!item.job_id}
+                    onPress={() => setOpenVisitId(item.id)}
                     accessibilityRole='button'
                     accessibilityLabel={`${item.job_title} at ${item.time_start}`}
                   >
@@ -400,7 +414,12 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                     start={item.time_start}
                     end={item.time_end}
                     response={item.clientResponse}
-                    canRespond={item.canRespond}
+                    canRespond={
+                      item.canRespond &&
+                      ['scheduled', 'confirmed', 'rescheduled'].includes(
+                        item.status
+                      )
+                    }
                     onSaved={() => void handleRefresh()}
                   />
                 </View>
@@ -418,6 +437,46 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
+      )}
+      {openVisit && (
+        <PropertySheet
+          title='Visit details'
+          onClose={() => setOpenVisitId(null)}
+        >
+          <Text style={styles.eventTitle}>{openVisit.job_title}</Text>
+          <Text style={styles.eventMeta}>
+            {visitDate} · {openVisit.time_start.slice(0, 5)}
+            {openVisit.time_end ? `–${openVisit.time_end.slice(0, 5)}` : ''} UK
+            time
+          </Text>
+          <Text style={[styles.eventMeta, { textTransform: 'capitalize' }]}>
+            {visitStatus}
+            {openVisit.past ? ' · Past visit' : ''}
+          </Text>
+          {openVisit.clientResponse === 'change_requested' && (
+            <Text style={styles.eventMeta}>
+              The client requested another time.
+            </Text>
+          )}
+          {!!openVisit.address && (
+            <Text style={styles.eventMeta}>{openVisit.address}</Text>
+          )}
+          {!!openVisit.job_id && (
+            <TouchableOpacity
+              style={styles.browseButton}
+              accessibilityRole='button'
+              onPress={() => {
+                setOpenVisitId(null);
+                goToTab(navigation, 'JobsTab', {
+                  screen: 'JobDetails',
+                  params: { jobId: openVisit.job_id },
+                });
+              }}
+            >
+              <Text style={styles.browseButtonText}>View job</Text>
+            </TouchableOpacity>
+          )}
+        </PropertySheet>
       )}
     </View>
   );

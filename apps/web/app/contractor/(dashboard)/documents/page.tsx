@@ -17,6 +17,7 @@ import { DocumentsView } from './DocumentsPage/DocumentsView';
 import { UploadModal } from './DocumentsPage/UploadModal';
 import { ContractorLibraryHero } from './DocumentsPage/ContractorLibraryHero';
 import { ContractorLibraryView } from './DocumentsPage/ContractorLibraryView';
+import { ContractPreview, downloadContractPdf } from './DocumentsPage/ContractPreview';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 
@@ -30,6 +31,7 @@ export default function DocumentManagementPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [previewContract, setPreviewContract] = useState<Document | null>(null);
   // Hydration-safe theme detection — Phase-4 contractor port pattern.
   const [isMintEditorial, setIsMintEditorial] = useState(false);
   useEffect(() => {
@@ -282,14 +284,13 @@ export default function DocumentManagementPage() {
   };
 
   // Download document (contracts download as PDF)
-  const handleDownload = (doc: Document) => {
+  const handleDownload = async (doc: Document) => {
     if (doc.is_contract && doc.contract_id) {
-      // Download contract as PDF
-      const link = document.createElement('a');
-      link.href = `/api/contracts/${doc.contract_id}/pdf`;
-      link.download = `${doc.name}.pdf`;
-      link.click();
-      toast.success(`Downloading ${doc.name} as PDF...`);
+      try {
+        await downloadContractPdf(doc.contract_id, doc.name);
+      } catch {
+        toast.error('Could not download this PDF. Try Download PDF again.');
+      }
       return;
     }
     const documentUrl = safeNavigationUrl(doc.public_url);
@@ -309,10 +310,7 @@ export default function DocumentManagementPage() {
   // View document inline in a new tab (PDFs render in browser; images/docs open)
   const handleView = (doc: Document) => {
     if (doc.is_contract && doc.contract_id) {
-      const preview = document.createElement('a');
-      preview.href = `/api/contracts/${doc.contract_id}/pdf`;
-      preview.click();
-      toast('Opening contract PDF…');
+      setPreviewContract(doc);
       return;
     }
     const documentUrl = safeNavigationUrl(doc.public_url);
@@ -363,6 +361,14 @@ export default function DocumentManagementPage() {
           : 'min-h-0 bg-gradient-to-br from-emerald-50 via-white to-red-50'
       }
     >
+      {previewContract?.contract_id && (
+        <ContractPreview
+          key={previewContract.id}
+          id={previewContract.contract_id}
+          document={previewContract}
+          onClose={() => setPreviewContract(null)}
+        />
+      )}
       {/* Mint Editorial — hero panel + 2-col grid matching the
           2026-05-21 mockup. Legacy theme keeps the emerald gradient
           + sidebar/grid layout untouched. */}
