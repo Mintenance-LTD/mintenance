@@ -9,6 +9,7 @@ import { QuotesStatsGrid } from './components/QuotesStatsGrid';
 import { QuotesFilterBar } from './components/QuotesFilterBar';
 import { QuoteCard } from './components/QuoteCard';
 import { MintEditorialQuotesView } from './components/MintEditorialQuotesView';
+import { QuoteWorkspaceNav } from './components/QuoteWorkspaceNav';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -47,23 +48,27 @@ export default function QuotesPage() {
 
   if (isMintEditorial) {
     return (
-      <MintEditorialQuotesView
-        loading={loading}
-        stats={stats}
-        filteredQuotes={filteredQuotes}
-        filterTabs={filterTabs}
-        activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        showActionMenu={showActionMenu}
-        setShowActionMenu={setShowActionMenu}
-      />
+      <>
+        <QuoteWorkspaceNav current='quotes' />
+        <MintEditorialQuotesView
+          loading={loading}
+          stats={stats}
+          filteredQuotes={filteredQuotes}
+          filterTabs={filterTabs}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          showActionMenu={showActionMenu}
+          setShowActionMenu={setShowActionMenu}
+        />
+      </>
     );
   }
 
   return (
     <div className='space-y-6'>
+      <QuoteWorkspaceNav current='quotes' />
       {/* Header */}
       <motion.div
         initial='hidden'

@@ -337,10 +337,10 @@ function ContractorPublicProfilePage2025() {
 
             <ContractorPerformanceStats
               responseTime={contractor.responseTime}
+              basis={contractor.performanceBasis}
               onTimeCompletion={contractor.stats.onTimeCompletion}
               repeatCustomers={contractor.stats.repeatCustomers}
               yearsExperience={contractor.yearsExperience}
-              completedJobs={contractor.completedJobs}
             />
 
             {contractor.specialties.length > 0 && (
@@ -376,7 +376,6 @@ function ContractorPublicProfilePage2025() {
               rating={contractor.rating}
               reviewCount={contractor.reviewCount}
               avgProjectValue={contractor.stats.avgProjectValue}
-              responseTime={contractor.responseTime}
               yearsExperience={contractor.yearsExperience}
               onRequestQuote={handleRequestQuote}
               onSendMessage={navigateToMessageFlow}

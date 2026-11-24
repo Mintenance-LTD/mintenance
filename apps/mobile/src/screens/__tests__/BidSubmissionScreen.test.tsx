@@ -221,6 +221,7 @@ jest.mock('../../config/supabase', () => ({
 
 const mockNavigation = {
   navigate: jest.fn(),
+  replace: jest.fn(),
   goBack: jest.fn(),
   canGoBack: jest.fn(() => true),
   setOptions: jest.fn(),
@@ -233,6 +234,7 @@ const mockNavigation = {
 
 const baseJob = {
   id: 'job-123',
+  status: 'posted',
   title: 'Fix the boiler',
   description: 'Boiler needs servicing',
   budget: 300,
@@ -563,6 +565,7 @@ describe('BidSubmissionScreen', () => {
   it('hydrates and PATCHes an existing bid (edit mode)', async () => {
     mockGetMyBidForJob.mockResolvedValue({
       id: 'bid-9',
+      status: 'pending',
       amount: 400,
       description: VALID_DESC,
       estimated_duration_days: 7,
@@ -613,6 +616,7 @@ describe('BidSubmissionScreen', () => {
     // an invalid date string -> skipped.
     mockGetMyBidForJob.mockResolvedValue({
       id: 'bid-7',
+      status: 'pending',
       amount: 'not-a-number',
       message: VALID_DESC,
       estimated_duration_days: 0,
@@ -640,13 +644,33 @@ describe('BidSubmissionScreen', () => {
     await waitFor(() => expect(mockLoggerWarn).toHaveBeenCalled());
   });
 
-  it('ignores hydration when bid id does not match', async () => {
+  it('keeps the editor closed when the bid id does not match', async () => {
     mockGetMyBidForJob.mockResolvedValue({ id: 'other', amount: 99 });
     const utils = renderScreen(
       makeRoute({ jobId: 'job-123', existingBidId: 'bid-9' })
     );
-    await waitFor(() => utils.getByLabelText('Bid amount in pounds'));
-    expect(utils.getByLabelText('Bid amount in pounds').props.value).toBe('');
+    expect(await utils.findByText('Bid unavailable')).toBeTruthy();
+    expect(utils.queryByLabelText('Bid amount in pounds')).toBeNull();
+  });
+
+  it('opens the exact job from a read-only accepted bid', async () => {
+    mockGetMyBidForJob.mockResolvedValue({
+      id: 'bid-9',
+      status: 'accepted',
+      amount: 1.2,
+    });
+    const utils = renderScreen(
+      makeRoute({ jobId: 'job-123', existingBidId: 'bid-9' })
+    );
+    expect(
+      await utils.findByText('Bid accepted · Read-only record')
+    ).toBeTruthy();
+    expect(utils.queryByLabelText('Bid amount in pounds')).toBeNull();
+    fireEvent.press(utils.getByText('View job'));
+    expect(mockNavigation.replace).toHaveBeenCalledWith('JobDetails', {
+      jobId: 'job-123',
+    });
+    expect(mockApiPatch).not.toHaveBeenCalled();
   });
 
   // --- Bid limit branches ----------------------------------------------------

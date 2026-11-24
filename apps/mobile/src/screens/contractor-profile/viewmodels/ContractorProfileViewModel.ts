@@ -13,6 +13,7 @@ import { Share, Linking, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { logger } from '../../../utils/logger';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
+import type { ContractorPerformanceBasis } from '@mintenance/shared';
 
 export interface ContractorProfileContext {
   /**
@@ -66,6 +67,7 @@ interface ContractorProfileState {
      * — the metrics call is best-effort and must never fail the profile.
      */
     responseTime?: string | null;
+    performanceBasis?: ContractorPerformanceBasis;
     onTimeCompletion?: number | null;
     repeatCustomers?: number | null;
     yearsExperience?: number | null;
@@ -119,9 +121,10 @@ interface ApiContractor {
 
 /** Shape of GET /api/contractors/:id/metrics. */
 interface ApiMetrics {
-  responseTime?: string;
-  onTimeCompletion?: number;
-  repeatCustomers?: number;
+  responseTime?: string | null;
+  onTimeCompletion?: number | null;
+  repeatCustomers?: number | null;
+  basis?: ContractorPerformanceBasis;
 }
 
 /**
@@ -234,6 +237,7 @@ export const useContractorProfileViewModel = (
           setContractor((prev) => ({
             ...prev,
             responseTime: metrics.responseTime ?? null,
+            performanceBasis: metrics.basis,
             onTimeCompletion: metrics.onTimeCompletion ?? null,
             repeatCustomers: metrics.repeatCustomers ?? null,
           }));
