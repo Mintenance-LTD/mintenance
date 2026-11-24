@@ -13,11 +13,11 @@ export const GET = withApiHandler(
     const { data: report, error } = await serverSupabase
       .from('anonymous_reports')
       .select(
-        'category,description,urgency,property_id,job_id,status,properties!inner(owner_id,address)'
+        'category,description,urgency,property_id,job_id,status,properties!inner(owner_id,address),anonymous_report_tokens!inner(owner_id)'
       )
       .eq('id', id.data)
       .eq('properties.owner_id', user.id)
-      .is('properties.deleted_at', null)
+      .eq('anonymous_report_tokens.owner_id', user.id)
       .maybeSingle();
     if (error) throw error;
     const property = Array.isArray(report?.properties)
