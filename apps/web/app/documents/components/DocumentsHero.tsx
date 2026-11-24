@@ -92,7 +92,7 @@ export function DocumentsHero({ counts, needsAttention }: DocumentsHeroProps) {
               marginBottom: 8,
             }}
           >
-            Your paperwork, in one place.
+            Job paperwork
           </h1>
           <p
             className='t-body'
@@ -103,8 +103,7 @@ export function DocumentsHero({ counts, needsAttention }: DocumentsHeroProps) {
               fontSize: 14,
             }}
           >
-            Contracts, bids and payment records — auto-filed from every job you
-            post.
+            Contracts, bids and payment records for your jobs.
           </p>
         </div>
 

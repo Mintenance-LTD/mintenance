@@ -13,14 +13,17 @@ import { ContractTimeline } from './contract/ContractTimeline';
 import { ContractActions } from './contract/ContractActions';
 import { ContractCompactCard } from './contract/ContractCompactCard';
 
-interface ContractManagementProps {
-  jobId: string;
-  userRole: 'homeowner' | 'contractor';
-  userId: string;
-}
+type ContractManagementProps =
+  | {
+      jobId: string;
+      userRole: 'homeowner' | 'contractor';
+      userId: string;
+      contractId?: never;
+    }
+  | { contractId: string; userRole: 'homeowner'; jobId?: never };
 
 export function ContractManagement(props: ContractManagementProps) {
-  const { jobId = '', userRole = 'homeowner' } = props || {};
+  const { jobId, userRole, contractId } = props;
   const {
     contract,
     loading,
@@ -40,7 +43,8 @@ export function ContractManagement(props: ContractManagementProps) {
     handleRejectContract,
     handleDeleteContract,
     handleDownloadPdf,
-  } = useContractData(jobId, userRole);
+    fetchContract,
+  } = useContractData(jobId, userRole, contractId);
 
   if (loading) {
     return (
@@ -54,6 +58,26 @@ export function ContractManagement(props: ContractManagementProps) {
   }
 
   if (!contract) {
+    if (contractId) {
+      return (
+        <div className='rounded-xl border border-gray-200 bg-white p-6'>
+          {error ? (
+            <>
+              <p role='alert'>{error}</p>
+              <button
+                type='button'
+                onClick={() => void fetchContract()}
+                className='mt-3 text-sm font-semibold text-teal-800 underline'
+              >
+                Try again
+              </button>
+            </>
+          ) : (
+            <p role='status'>This agreement is unavailable.</p>
+          )}
+        </div>
+      );
+    }
     return (
       <div className='bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center'>
         <div className='w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4'>
@@ -152,6 +176,8 @@ export function ContractManagement(props: ContractManagementProps) {
       </div>
     </div>
   );
+
+  if (contractId) return contractDetail;
 
   return (
     <>

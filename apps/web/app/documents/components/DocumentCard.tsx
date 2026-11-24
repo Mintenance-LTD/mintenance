@@ -180,6 +180,7 @@ export function DocumentCard({ doc }: DocumentCardProps) {
   );
   const awaiting = isAwaiting(doc);
   const primaryLabel = awaitingPrimaryLabel(doc.type);
+  const viewLabel = doc.type === 'contract' ? 'View agreement' : 'View record';
 
   // Awaiting cards get the spec's `.attn` treatment — the entire
   // border switches to the brand colour + a soft brand shadow — so
@@ -305,7 +306,7 @@ export function DocumentCard({ doc }: DocumentCardProps) {
       </Link>
       <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
         <Link href={doc.href} className='btn btn-ghost btn-sm'>
-          {awaiting && primaryLabel ? primaryLabel : 'View record'}
+          {awaiting && primaryLabel ? primaryLabel : viewLabel}
         </Link>
         {doc.type === 'contract' && doc.contract_id && (
           <a
