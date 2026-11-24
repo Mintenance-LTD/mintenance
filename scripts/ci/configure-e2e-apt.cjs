@@ -2,10 +2,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 // Keep Ubuntu's suites, components and signature/keyring settings intact. Only
-// replace the Azure mirror that repeatedly stalled our hosted E2E runners.
+// replace the hosted-runner cloud mirrors that repeatedly stalled E2E jobs.
 function useUbuntuArchive(source) {
   return source.replace(
-    /(^|\s)https?:\/\/azure\.archive\.ubuntu\.com\/ubuntu\/?(?=\s|$)/gm,
+    /(^|\s)https?:\/\/(?:azure|[a-z0-9-]+\.ec2)\.archive\.ubuntu\.com\/ubuntu\/?(?=\s|$)/gm,
     '$1https://archive.ubuntu.com/ubuntu/'
   );
 }
