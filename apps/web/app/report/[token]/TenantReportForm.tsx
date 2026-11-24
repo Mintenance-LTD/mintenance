@@ -21,6 +21,23 @@ interface PropertyInfo {
   address: string;
   emergencyPhone?: string;
 }
+
+function PropertyEmergencyContact({ phone }: { phone?: string }) {
+  if (!phone) {
+    return (
+      <span className='mt-2 block font-semibold'>
+        No emergency or out-of-hours number is listed for this property. Use any
+        emergency contact details you already have from your property team.
+      </span>
+    );
+  }
+
+  return (
+    <a className='mt-2 block font-semibold underline' href={`tel:${phone}`}>
+      Call the property emergency contact {phone}
+    </a>
+  );
+}
 const CATEGORIES = [
   { value: 'plumbing', label: 'Plumbing' },
   { value: 'electrical', label: 'Electrical' },
@@ -271,15 +288,8 @@ export function TenantReportForm({ token }: { token: string }) {
           >
             Your emergency report is saved and awaiting human acknowledgment. Do
             not wait for a reply if anyone is in danger. Contact the appropriate
-            emergency service and your property manager directly.
-            {property?.emergencyPhone && (
-              <a
-                className='mt-2 block font-semibold underline'
-                href={`tel:${property.emergencyPhone}`}
-              >
-                Call the property emergency contact {property.emergencyPhone}
-              </a>
-            )}
+            emergency service.
+            <PropertyEmergencyContact phone={property?.emergencyPhone} />
           </p>
         ) : null}
         {reportId && (
@@ -510,17 +520,8 @@ export function TenantReportForm({ token }: { token: string }) {
                 className='mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950'
               >
                 Do not wait for a reply here if there is immediate danger.
-                Contact the appropriate emergency service and your property
-                manager using their emergency contact details.
-                {property?.emergencyPhone && (
-                  <a
-                    className='mt-2 block font-semibold underline'
-                    href={`tel:${property.emergencyPhone}`}
-                  >
-                    Call the property emergency contact{' '}
-                    {property.emergencyPhone}
-                  </a>
-                )}
+                Contact the appropriate emergency service.
+                <PropertyEmergencyContact phone={property?.emergencyPhone} />
               </p>
             )}
           </fieldset>

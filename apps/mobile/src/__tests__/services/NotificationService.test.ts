@@ -354,6 +354,7 @@ describe('NotificationService', () => {
       const mockChain = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
+        or: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnThis(),
         range: jest
           .fn()
@@ -370,6 +371,12 @@ describe('NotificationService', () => {
       expect(result).toHaveLength(1);
       expect(result[0].title).toBe('Job Update');
       expect(result[0].read).toBe(false);
+      expect(mockChain.eq).toHaveBeenCalledWith('user_id', 'user-1');
+      expect(mockChain.or).toHaveBeenCalledWith(
+        expect.stringContaining('type.not.in.')
+      );
+      expect(mockChain.order).toHaveBeenCalledWith('id', { ascending: false });
+      expect(mockChain.range).toHaveBeenCalledWith(0, 19);
     });
   });
 

@@ -1,3 +1,4 @@
+import { contractorStartHref } from '@/lib/contractor/payment-links';
 import { applyPaymentIntentState } from '@/lib/services/stripe-webhook/payment-state-transition';
 import { getEscrowCashRequirement } from '@/lib/services/payment/PaymentFundingService';
 import { NextResponse } from 'next/server';
@@ -248,10 +249,11 @@ export const POST = withApiHandler(
       const contractorNotifPromise = job.contractor_id
         ? NotificationService.createNotification({
             userId: job.contractor_id,
-            title: `${fmtAmount} funded — you're cleared to start`,
-            message: `Escrow is good on "${jobTitle}". Upload before-photos and tap Start Job when you're on site.`,
-            type: 'payment',
-            actionUrl: `/contractor/jobs/${jobId}`,
+            title: 'Payment secured — review start conditions',
+            message: `The customer funded "${jobTitle}". Open the start checklist to see what is still required before you start.`,
+            type: 'payment_secured',
+            actionUrl: contractorStartHref(jobId),
+            metadata: { jobId, escrowId: escrowTransaction.id },
           })
         : Promise.resolve<string | null>(null);
 

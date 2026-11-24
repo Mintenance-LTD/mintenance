@@ -45,7 +45,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobCRUDService } from '../../services/JobCRUDService';
 import { JobsStackParamList } from '../../navigation/types';
-import { goBackSafe } from '../../navigation/hooks';
+import { goBackSafe, goToTab } from '../../navigation/hooks';
 import { me } from '../../design-system/mint-editorial';
 import { ContractSignatureSection } from './components/ContractSignatureSection';
 import { ContractTermsView } from './components/ContractTermsView';
@@ -76,7 +76,15 @@ interface Props {
 }
 
 export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { jobId } = route.params;
+  const { jobId, contractId } = route.params;
+  const isPreview = !!contractId;
+  const back = () => {
+    if (isPreview) {
+      goToTab(navigation, 'ProfileTab', { screen: 'Documents' });
+    } else {
+      goBackSafe(navigation, 'JobsList');
+    }
+  };
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [contract, setContract] = useState<Contract | null>(null);
@@ -86,6 +94,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const [signing, setSigning] = useState(false);
   const [consent, setConsent] = useState(emptyConsent);
   const [savingPdf, setSavingPdf] = useState(false);
+  const [pdfFailed, setPdfFailed] = useState(false);
   const pdfBusy = useRef(false);
   const [rejecting, setRejecting] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
@@ -100,10 +109,11 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const fetchContract = useCallback(async () => {
     try {
       setLoading(true);
+      setPdfFailed(false);
       setQuoteLoading(true);
       setQuoteItems([]);
       setError(null);
-      const row = await JobCRUDService.getContractByJobId(jobId);
+      const row = await JobCRUDService.getContractByJobId(jobId, contractId);
       if (row) {
         const c = row.contractor as ContractParty | undefined;
         const h = row.homeowner as ContractParty | undefined;
@@ -146,7 +156,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             .single();
           if (quoteError) throw quoteError;
           if (q?.line_items) setQuoteItems(q.line_items as QuoteLineItem[]);
-        } else {
+        } else if (!contractId) {
           // Try by job_id + contractor_id
           const { supabase } = await import('../../config/supabase');
           const { data: q, error: quoteError } = await supabase
@@ -169,7 +179,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
       setLoading(false);
       setQuoteLoading(false);
     }
-  }, [jobId]);
+  }, [jobId, contractId]);
 
   useEffect(() => {
     fetchContract();
@@ -259,6 +269,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const legacyReview =
+    !isPreview &&
     user?.role === 'homeowner' &&
     contract?.status === 'accepted' &&
     !contract.cancellation_deadline;
@@ -291,6 +302,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleViewPdf = useCallback(async () => {
     if (!contract || pdfBusy.current) return;
     pdfBusy.current = true;
+    setPdfFailed(false);
     setSavingPdf(true);
     try {
       const result = await saveContractPdf(contract.id);
@@ -300,7 +312,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           'The contract was saved to your selected folder.'
         );
     } catch {
-      Alert.alert('Error', 'Failed to open contract PDF.');
+      setPdfFailed(true);
     } finally {
       pdfBusy.current = false;
       setSavingPdf(false);
@@ -336,16 +348,18 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   }, []);
 
   const canSign =
+    !isPreview &&
     contract &&
     !NON_SIGNABLE_STATUSES.includes(contract.status) &&
     ((userRole === 'contractor' && !contract.contractor_signed_at) ||
       (userRole === 'homeowner' && !contract.homeowner_signed_at));
   const canReject =
+    !isPreview &&
     contract !== null &&
     contract.status === 'pending_homeowner' &&
     userRole === 'homeowner';
   const showPrepareButton =
-    contract?.status === 'draft' && userRole === 'contractor';
+    !isPreview && contract?.status === 'draft' && userRole === 'contractor';
   const showSignButton =
     canSign && !quoteLoading && contract?.status !== 'draft';
 
@@ -366,14 +380,13 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
         <Text style={styles.emptyTitle}>{error || 'No contract found'}</Text>
         <Text style={styles.emptySubtitle}>
-          {userRole === 'contractor'
-            ? 'A contract will be created after a bid is accepted.'
-            : 'The contractor will create a contract after accepting the bid.'}
+          {isPreview
+            ? 'This agreement is unavailable. Return to Documents and try again.'
+            : userRole === 'contractor'
+              ? 'A contract will be created after a bid is accepted.'
+              : 'The contractor will create a contract after accepting the bid.'}
         </Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={() => goBackSafe(navigation, 'JobsList')}
-        >
+        <TouchableOpacity style={styles.retryButton} onPress={back}>
           <Text style={styles.retryButtonText}>Go back</Text>
         </TouchableOpacity>
       </View>
@@ -390,7 +403,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => goBackSafe(navigation, 'JobsList')}
+          onPress={back}
           accessibilityRole='button'
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -404,7 +417,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           disabled={savingPdf}
           accessibilityState={{ busy: savingPdf, disabled: savingPdf }}
           accessibilityRole='button'
-          accessibilityLabel='Download PDF'
+          accessibilityLabel={pdfFailed ? 'Retry PDF download' : 'Download PDF'}
         >
           {savingPdf ? (
             <ActivityIndicator size='small' color={me.ink} />
@@ -435,9 +448,26 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           </Text>
         )}
         <View style={styles.screenHeader}>
-          <Text style={styles.eyebrow}>Contract</Text>
+          <Text style={styles.eyebrow}>
+            {isPreview
+              ? `Agreement #${contract.id.slice(0, 8).toUpperCase()}`
+              : 'Contract'}
+          </Text>
           <Text style={styles.headline}>Contract</Text>
         </View>
+        {pdfFailed && (
+          <Text accessibilityLiveRegion='polite'>
+            Could not download this PDF. Use the download button to retry.
+          </Text>
+        )}
+        {isPreview && (
+          <TouchableOpacity
+            accessibilityRole='button'
+            onPress={() => navigation.navigate('JobDetails', { jobId })}
+          >
+            <Text style={styles.retryButtonText}>View job</Text>
+          </TouchableOpacity>
+        )}
 
         {showPrepareButton && (
           <View style={styles.draftBanner}>
@@ -485,12 +515,20 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         <ContractStartChoices
           key={`${contract.id}:${contract.updated_at}:${user?.id}`}
           contract={contract}
-          homeowner={userRole === 'homeowner' && user?.id === contract.homeowner_id}
-          onSaved={() => { void fetchContract(); }}
+          homeowner={
+            !isPreview &&
+            userRole === 'homeowner' &&
+            user?.id === contract.homeowner_id
+          }
+          onSaved={() => {
+            void fetchContract();
+          }}
         />
-        {userRole === 'homeowner' && contract.status !== 'draft' && (
-          <CustomerCancellation contractId={contract.id} />
-        )}
+        {!isPreview &&
+          userRole === 'homeowner' &&
+          contract.status !== 'draft' && (
+            <CustomerCancellation contractId={contract.id} />
+          )}
 
         <View style={styles.amountCard}>
           <View style={styles.amountRow}>
@@ -544,6 +582,9 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           description={contract.description}
           start_date={contract.start_date}
           end_date={contract.end_date}
+          signed={
+            !!(contract.homeowner_signed_at && contract.contractor_signed_at)
+          }
           terms={contract.terms}
           formatDate={formatContractDate}
         />

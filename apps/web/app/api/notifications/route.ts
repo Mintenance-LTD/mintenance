@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { resolveInboxActions } from '@/lib/notifications/inbox-actions';
+import { resolveVisitAlert } from '@/lib/notifications/visit-actions';
 import {
   serverSupabase,
   resolveRequestDbClient,
@@ -77,19 +79,29 @@ export const GET = withApiHandler(
         ? requestedOffset
         : 0;
 
-    const mappedNotifications = await fetchNotificationFeed(userId, {
-      db: userDb,
-      limit: feedLimit,
-      offset: feedOffset,
-      includeHistory,
-    });
+    const mappedNotifications = (
+      await fetchNotificationFeed(userId, {
+        db: userDb,
+        limit: feedLimit,
+        offset: feedOffset,
+        includeHistory,
+      })
+    ).map((row) => resolveVisitAlert(row, user.role));
 
     // History mode: skip the realtime-enrichment block (quote views,
     // unread messages, project reminders). Those are recency-sensitive
     // synthetic rows that don't belong in a paginated history view —
     // they would interleave unpredictably across pages.
     if (includeHistory) {
-      return NextResponse.json({ notifications: mappedNotifications });
+      const notifications =
+        user.role === 'contractor'
+          ? await resolveInboxActions(
+              serverSupabase,
+              user,
+              mappedNotifications.map((row) => ({ ...row, approval_key: null }))
+            )
+          : mappedNotifications;
+      return NextResponse.json({ notifications });
     }
 
     // Debug: Log specific notification types

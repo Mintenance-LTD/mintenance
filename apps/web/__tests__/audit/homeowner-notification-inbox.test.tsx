@@ -8,16 +8,21 @@ import {
 } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import NotificationsPage from '@/app/notifications/page';
+import ContractorNotificationsPage from '@/app/contractor/(dashboard)/notifications/page';
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   write: vi.fn(),
   confirm: vi.fn(),
+  role: 'homeowner',
 }));
 vi.unmock('@tanstack/react-query');
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('@/hooks/useCurrentUser', () => ({
-  useCurrentUser: () => ({ user: { id: 'homeowner' }, loading: false }),
+  useCurrentUser: () => ({
+    user: { id: mocks.role, role: mocks.role },
+    loading: false,
+  }),
 }));
 vi.mock('@/app/dashboard/components/HomeownerPageWrapper', () => ({
   HomeownerPageWrapper: ({ children }: { children: React.ReactNode }) =>
@@ -36,6 +41,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.clearAllMocks();
   delete document.documentElement.dataset.theme;
+  mocks.role = 'homeowner';
 });
 
 const cursor = {
@@ -54,14 +60,14 @@ const paymentReminder = {
 };
 const response = (body: unknown) => new Response(JSON.stringify(body));
 
-function renderInbox(theme: string) {
+function renderInbox(theme: string, Page = NotificationsPage) {
   document.documentElement.dataset.theme = theme;
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   render(
     <QueryClientProvider client={client}>
-      <NotificationsPage />
+      <Page />
     </QueryClientProvider>
   );
 }
@@ -151,4 +157,58 @@ it('keeps loaded notifications visible if loading an older page fails', async ()
     screen.getByRole('button', { name: 'Load older notifications' })
   );
   await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+});
+
+it('shows the contractor bell total, opens an older exact dispute and persists read before navigation', async () => {
+  mocks.role = 'contractor';
+  const release = {
+    ...paymentReminder,
+    id: 'release',
+    title: 'Payment released',
+    action_url: '/contractor/payments/escrow-id',
+  };
+  const dispute = {
+    ...paymentReminder,
+    id: 'dispute',
+    title: 'Dispute opened',
+    type: 'dispute_opened',
+    action_url: '/disputes/escrow-id',
+    action_status: undefined,
+  };
+  let unread = true;
+  const fetcher = vi.fn((url: string) =>
+    Promise.resolve(
+      response({
+        notifications: url.includes('beforeId')
+          ? [{ ...dispute, read: !unread }]
+          : [release],
+        unreadCount: unread ? 113 : 112,
+        nextCursor: url.includes('beforeId') ? null : cursor,
+      })
+    )
+  );
+  vi.stubGlobal('fetch', fetcher);
+  mocks.write.mockImplementation(async () => {
+    expect(mocks.push).not.toHaveBeenCalled();
+    unread = false;
+    return response({ success: true });
+  });
+  renderInbox('mint-editorial', ContractorNotificationsPage);
+  expect(
+    await screen.findByText('1 of 113 unread notifications loaded')
+  ).toBeVisible();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Load older notifications' })
+  );
+  fireEvent.click(await screen.findByText('View dispute'));
+  await waitFor(() =>
+    expect(mocks.push).toHaveBeenCalledWith('/disputes/escrow-id')
+  );
+  expect(mocks.write).toHaveBeenCalledWith(
+    '/api/notifications/dispute/read?inbox=1',
+    { method: 'POST' }
+  );
+  expect(
+    await screen.findByText('1 of 112 unread notifications loaded')
+  ).toBeVisible();
 });

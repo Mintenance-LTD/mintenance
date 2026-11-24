@@ -20,21 +20,24 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
+import {
+  performanceBasisLabels,
+  type ContractorPerformanceBasis,
+} from '@mintenance/shared';
 
 export interface ProfilePerformanceProps {
   /** Free-text summary from /metrics, e.g. "< 2 hours". */
   responseTime?: string | null;
-  /** Percentage 0-100, only meaningful when jobsCompleted > 0. */
+  basis?: ContractorPerformanceBasis;
+  /** Percentage 0–100 when there are enough dated completions. */
   onTimeCompletion?: number | null;
-  /** Percentage 0-100, only meaningful when jobsCompleted > 0. */
+  /** Percentage 0–100 when there are enough distinct customers. */
   repeatCustomers?: number | null;
   /** Whole years on the platform; 0 means "joined within the year". */
   yearsExperience?: number | null;
-  /** Gate for the derived percentages — no jobs means no basis. */
-  jobsCompleted: number;
 }
 
-const EMPTY = '—';
+const EMPTY = 'Not enough data';
 
 function percent(value: number | null | undefined, hasBasis: boolean): string {
   if (!hasBasis || value === null || value === undefined) return EMPTY;
@@ -46,9 +49,9 @@ export const ProfilePerformance: React.FC<ProfilePerformanceProps> = ({
   onTimeCompletion,
   repeatCustomers,
   yearsExperience,
-  jobsCompleted,
+  basis,
 }) => {
-  const hasBasis = jobsCompleted > 0;
+  const labels = performanceBasisLabels(basis);
 
   const tenure =
     yearsExperience === null || yearsExperience === undefined
@@ -64,30 +67,34 @@ export const ProfilePerformance: React.FC<ProfilePerformanceProps> = ({
     bg: string;
     value: string;
     label: string;
+    detail?: string | null;
   }[] = [
     {
       key: 'response',
       icon: 'time-outline',
       tint: me.brand,
       bg: me.brandSoft,
-      value: responseTime && responseTime.length > 0 ? responseTime : EMPTY,
-      label: 'Responds in',
+      value: labels.responses ? (responseTime ?? EMPTY) : EMPTY,
+      label: 'Response time',
+      detail: labels.responses,
     },
     {
       key: 'ontime',
       icon: 'trending-up',
       tint: '#3B82F6',
       bg: '#DBEAFE',
-      value: percent(onTimeCompletion, hasBasis),
+      value: percent(onTimeCompletion, !!labels.onTime),
       label: 'On time',
+      detail: labels.onTime,
     },
     {
       key: 'repeat',
       icon: 'people-outline',
       tint: me.accent,
       bg: me.warnBg,
-      value: percent(repeatCustomers, hasBasis),
+      value: percent(repeatCustomers, !!labels.repeat),
       label: 'Repeat clients',
+      detail: labels.repeat,
     },
     {
       key: 'tenure',
@@ -115,19 +122,25 @@ export const ProfilePerformance: React.FC<ProfilePerformanceProps> = ({
             </View>
             <View style={styles.textCol}>
               <Text
-                style={styles.value}
+                style={[
+                  styles.value,
+                  item.value === EMPTY && styles.emptyValue,
+                ]}
                 testID={`performance-${item.key}-value`}
               >
                 {item.value}
               </Text>
               <Text style={styles.label}>{item.label}</Text>
+              {item.detail && item.value !== EMPTY && (
+                <Text style={styles.label}>{item.detail}</Text>
+              )}
             </View>
           </View>
         ))}
       </View>
-      {!hasBasis && (
+      {items.slice(0, 3).every((item) => item.value === EMPTY) && (
         <Text style={styles.footnote}>
-          Some figures appear once this tradesperson completes their first job.
+          Figures appear once at least three records qualify for that measure.
         </Text>
       )}
     </View>
@@ -185,6 +198,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
     fontWeight: '500',
   },
+  emptyValue: { fontSize: 13, letterSpacing: 0, color: me.ink2 },
   footnote: {
     fontSize: 11,
     color: me.ink3,

@@ -6,6 +6,9 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { EmergencyReportsClient } from '@/app/maintenance/emergencies/EmergencyReportsClient';
+vi.mock('@/app/dashboard/components/HomeownerPageWrapper', () => ({
+  HomeownerPageWrapper: ({ children }: { children: React.ReactNode }) => children,
+}));
 vi.mock('@/lib/hooks/useCSRF', () => ({
   useCSRF: () => ({
     csrfToken: 'csrf',
@@ -42,14 +45,14 @@ it('keeps responsibility pending when acknowledgment fails and permits retry', a
       }),
     });
   vi.stubGlobal('fetch', fetcher);
-  render(<EmergencyReportsClient initialReports={[report]} />);
+  render(<EmergencyReportsClient initialReports={[report]} coverage={[]} />);
   fireEvent.click(
     screen.getByRole('button', { name: 'Acknowledge responsibility' })
   );
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'could not be confirmed'
   );
-  expect(screen.queryByText(/Acknowledged —/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Acknowledged\. Arrange/)).not.toBeInTheDocument();
   fireEvent.click(
     screen.getByRole('button', { name: 'Acknowledge responsibility' })
   );
@@ -74,7 +77,7 @@ it('does not optimistically acknowledge while the server is pending', async () =
         })
     )
   );
-  render(<EmergencyReportsClient initialReports={[report]} />);
+  render(<EmergencyReportsClient initialReports={[report]} coverage={[]} />);
   fireEvent.click(
     screen.getByRole('button', { name: 'Acknowledge responsibility' })
   );
@@ -91,10 +94,11 @@ it('exposes uncovered reports instead of claiming someone is responding', () => 
   render(
     <EmergencyReportsClient
       initialReports={[{ ...report, needs_attention: true }]}
+      coverage={[]}
     />
   );
   expect(screen.getByRole('alert')).toHaveTextContent(
-    'no responder has acknowledged'
+    'No responder has acknowledged'
   );
-  expect(screen.getByText(/not a response guarantee/)).toBeInTheDocument();
+  expect(screen.getByText(/Response times vary/)).toBeInTheDocument();
 });

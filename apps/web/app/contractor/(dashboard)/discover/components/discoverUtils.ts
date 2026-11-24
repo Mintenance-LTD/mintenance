@@ -30,10 +30,10 @@ export function resolveJobCoordsAndDistance(
   const distance =
     typeof job.serverDistanceKm === 'number'
       ? job.serverDistanceKm
-      : contractorLocation?.latitude &&
-          contractorLocation?.longitude &&
-          lat &&
-          lng
+      : contractorLocation?.latitude != null &&
+          contractorLocation?.longitude != null &&
+          lat != null &&
+          lng != null
         ? haversineDistance(
             contractorLocation.latitude,
             contractorLocation.longitude,

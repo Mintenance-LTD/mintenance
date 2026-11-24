@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { MapPin, LayoutGrid, Map } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { milesToKm } from '@mintenance/shared';
+import { DISCOVER_RADII_MILES } from '../discover-radius';
 
 import { resolveJobCoordsAndDistance } from './discoverUtils';
 import { useDiscoverJobActions } from './useDiscoverJobActions';
@@ -37,6 +38,7 @@ interface ContractorDiscoverClientProps {
   jobs: DiscoverJob[];
   contractorId: string;
   contractorLocation?: ContractorLocation | null;
+  radiusSearchAvailable: boolean;
   /** Active service areas (primary first) — coverage overlay +
    * viewport fallback when no stored location exists. 2026-07-17. */
   coverageAreas?: CoverageAreaForMap[];
@@ -49,6 +51,7 @@ export function ContractorDiscoverClient({
   jobs,
   contractorId,
   contractorLocation: initialLocation,
+  radiusSearchAvailable,
   coverageAreas = [],
 }: ContractorDiscoverClientProps) {
   const router = useRouter();
@@ -73,6 +76,13 @@ export function ContractorDiscoverClient({
   // vocabulary Service Areas already uses (Standard 6 mi / Extended 10 mi) and
   // widens the default net slightly, which is contractor-friendly.
   const [selectedRadius, setSelectedRadius] = useState(10);
+  const nextRadius = DISCOVER_RADII_MILES.find(
+    (radius) => radius > selectedRadius
+  );
+  const expandRadius =
+    radiusSearchAvailable && nextRadius != null
+      ? () => setSelectedRadius(nextRadius)
+      : undefined;
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [minBudget, setMinBudget] = useState(0);
   const [aiAssessedOnly, setAiAssessedOnly] = useState(false);
@@ -80,8 +90,10 @@ export function ContractorDiscoverClient({
   // UI state
   const [viewMode, setViewMode] = useState<'split' | 'cards'>('split');
   const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
+  const [focusedJobId, setFocusedJobId] = useState<string | null>(null);
 
   const mapRef = useRef<google.maps.Map | null>(null);
+  const mapPanelRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const coverageCirclesRef = useRef<google.maps.Circle[]>([]);
 
@@ -97,17 +109,18 @@ export function ContractorDiscoverClient({
   }, []);
 
   // Location prompt
+  const hasLocation =
+    contractorLocation?.latitude != null &&
+    contractorLocation?.longitude != null;
   useEffect(() => {
-    const hasLoc =
-      contractorLocation?.latitude && contractorLocation?.longitude;
     if (
-      !hasLoc &&
+      !hasLocation &&
       localStorage.getItem('location-prompt-dismissed') !== 'true'
     ) {
       const t = setTimeout(() => setShowLocationPrompt(true), 1000);
       return () => clearTimeout(t);
     }
-  }, [contractorLocation]);
+  }, [hasLocation]);
 
   // Available jobs (skip filter)
   const availableJobs = useMemo(
@@ -135,9 +148,6 @@ export function ContractorDiscoverClient({
 
   // Apply all filters
   const filteredJobs = useMemo(() => {
-    const hasLoc = !!(
-      contractorLocation?.latitude && contractorLocation?.longitude
-    );
     return (
       jobsWithCoords
         // Include jobs without coordinates (they just won't appear on map)
@@ -147,10 +157,8 @@ export function ContractorDiscoverClient({
         // comparison rather than converting every job's distance.
         .filter(
           (j) =>
-            !hasLoc ||
-            !(j.lat && j.lng) ||
-            !j.distance ||
-            j.distance <= milesToKm(selectedRadius)
+            !radiusSearchAvailable ||
+            (j.distance != null && j.distance <= milesToKm(selectedRadius))
         )
         .filter((j) => !selectedCategory || j.category === selectedCategory)
         .filter((j) => j.budget >= minBudget)
@@ -164,18 +172,18 @@ export function ContractorDiscoverClient({
     selectedCategory,
     minBudget,
     aiAssessedOnly,
-    contractorLocation,
+    radiusSearchAvailable,
   ]);
 
-  // Pan map to hovered job
+  const pinJobId = hoveredJobId ?? focusedJobId;
   useEffect(() => {
-    if (!hoveredJobId || !mapRef.current) return;
-    const job = filteredJobs.find((j) => j.id === hoveredJobId) as
+    if (viewMode !== 'split' || !pinJobId || !mapRef.current) return;
+    const job = filteredJobs.find((j) => j.id === pinJobId) as
       | (JobWithCoords & { lat?: number; lng?: number })
       | undefined;
-    if (job?.lat && job?.lng)
+    if (job?.lat != null && job?.lng != null)
       mapRef.current.panTo({ lat: job.lat, lng: job.lng });
-  }, [hoveredJobId, filteredJobs]);
+  }, [pinJobId, filteredJobs, viewMode]);
 
   // Update map markers when filtered jobs change
   const runUpdateMarkers = () => {
@@ -204,7 +212,8 @@ export function ContractorDiscoverClient({
       mapRef.current,
       markersRef.current,
       mapJobs,
-      contractorLocation as ContractorLocationForMap
+      contractorLocation as ContractorLocationForMap,
+      (id) => router.push(`/contractor/bid/${encodeURIComponent(id)}/details`)
     );
   };
 
@@ -213,27 +222,38 @@ export function ContractorDiscoverClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredJobs, isGeocoding]);
 
-  // Save/skip handlers
-
   // Derived values
-  const hasLocation = !!(
-    contractorLocation?.latitude && contractorLocation?.longitude
-  );
+  const searchCentre = [contractorLocation?.city, contractorLocation?.postcode]
+    .filter(Boolean)
+    .join(' · ');
   const categories = useMemo(
     () => [...new Set(jobs.map((j) => j.category).filter(Boolean))] as string[],
     [jobs]
   );
   const isInitialLoading = isGeocoding || loadingSavedJobs;
 
-  const cardProps = (job: JobWithCoords) => ({
-    job,
-    isSaved: savedJobIds.has(job.id),
-    isLoading: actionLoadingId === job.id,
-    onSaveToggle: handleSaveToggle,
-    onSkip: handleSkip,
-    onNavigate: (id: string) => router.push(`/contractor/bid/${id}/details`),
-    onHover: setHoveredJobId,
-  });
+  const cardProps = (job: JobWithCoords) => {
+    const { lat, lng } = job;
+    return {
+      job,
+      isSaved: savedJobIds.has(job.id),
+      isLoading: actionLoadingId === job.id,
+      onSaveToggle: handleSaveToggle,
+      onSkip: handleSkip,
+      onNavigate: (id: string) => router.push(`/contractor/bid/${id}/details`),
+      onHover: setHoveredJobId,
+      onFocusPin:
+        viewMode === 'split' && lat != null && lng != null
+          ? () => {
+              setFocusedJobId(job.id);
+              mapRef.current?.panTo({ lat, lng });
+              if (window.innerWidth < 1024)
+                mapPanelRef.current?.scrollIntoView({ block: 'nearest' });
+            }
+          : undefined,
+      pinFocused: job.id === focusedJobId,
+    };
+  };
 
   return (
     <ContractorPageWrapper>
@@ -251,11 +271,16 @@ export function ContractorDiscoverClient({
         filteredJobCount={filteredJobs.length}
         savedJobCount={savedJobIds.size}
         selectedRadius={selectedRadius}
-        hasContractorLocation={hasLocation}
+        hasContractorLocation={radiusSearchAvailable}
         totalJobCount={jobs.length}
         onReviewAgain={resetReviewed}
       />
 
+      <p className='mb-3 text-sm' style={{ color: 'var(--me-ink-2)' }}>
+        {hasLocation
+          ? `Search centre · Saved location${searchCentre ? ` (${searchCentre})` : ''}`
+          : 'No saved search centre. Set a location to search by distance.'}
+      </p>
       {/* Header: count + view toggle + filter chips */}
       <div className='mb-4'>
         <div className='flex items-center justify-between mb-2'>
@@ -264,7 +289,7 @@ export function ContractorDiscoverClient({
             style={isMintEditorial ? undefined : { color: 'var(--me-ink)' }}
           >
             Available jobs ({filteredJobs.length})
-            {hasLocation && (
+            {radiusSearchAvailable && (
               <>
                 {' '}
                 <span
@@ -327,7 +352,7 @@ export function ContractorDiscoverClient({
           onMinBudgetChange={setMinBudget}
           aiAssessedOnly={aiAssessedOnly}
           onAiAssessedToggle={() => setAiAssessedOnly((v) => !v)}
-          hasLocation={hasLocation}
+          hasLocation={radiusSearchAvailable}
         />
       </div>
 
@@ -357,7 +382,8 @@ export function ContractorDiscoverClient({
         /* Empty state */
         <DiscoverJobsEmptyState
           hasLocation={hasLocation}
-          onExpandRadius={() => setSelectedRadius((r) => Math.min(r * 2, 100))}
+          radiusSearchAvailable={radiusSearchAvailable}
+          onExpandRadius={expandRadius}
         />
       ) : viewMode === 'split' ? (
         /* Split: cards left, map right */
@@ -369,9 +395,8 @@ export function ContractorDiscoverClient({
             {filteredJobs.length === 0 && (
               <DiscoverJobsEmptyState
                 hasLocation={hasLocation}
-                onExpandRadius={() =>
-                  setSelectedRadius((r) => Math.min(r * 2, 100))
-                }
+                radiusSearchAvailable={radiusSearchAvailable}
+                onExpandRadius={expandRadius}
               />
             )}
             {filteredJobs.map((job) => (
@@ -379,7 +404,7 @@ export function ContractorDiscoverClient({
             ))}
           </div>
 
-          <div className='flex-1'>
+          <div ref={mapPanelRef} className='flex-1'>
             <div
               className='rounded-xl px-5 py-3 mb-4 flex items-center gap-3'
               style={{
@@ -392,20 +417,26 @@ export function ContractorDiscoverClient({
                 style={{ color: 'var(--me-brand)' }}
               />
               <span className='text-sm' style={{ color: 'var(--me-ink-2)' }}>
-                {filteredJobs.length} jobs near you
-                {hasLocation && (
+                {filteredJobs.length
+                  ? `${filteredJobs.length} ${filteredJobs.length === 1 ? 'job' : 'jobs'} found`
+                  : 'No available jobs match these filters'}
+                {radiusSearchAvailable && (
                   <span style={{ color: 'var(--me-ink-3)' }}>
                     {' '}
                     · within {selectedRadius} mi
                   </span>
                 )}
               </span>
-              <span
-                className='text-xs ml-auto'
-                style={{ color: 'var(--me-ink-3)' }}
-              >
-                Hover a card to focus the map
-              </span>
+              {filteredJobs.some(
+                (job) => job.lat != null && job.lng != null
+              ) && (
+                <span
+                  className='text-xs ml-auto'
+                  style={{ color: 'var(--me-ink-3)' }}
+                >
+                  Select a card to focus its map pin
+                </span>
+              )}
             </div>
             <div
               className='rounded-xl overflow-hidden'
@@ -419,12 +450,12 @@ export function ContractorDiscoverClient({
                 center={{
                   // Stored location → primary service area → London.
                   lat:
-                    contractorLocation?.latitude ||
-                    coverageAreas[0]?.lat ||
+                    contractorLocation?.latitude ??
+                    coverageAreas[0]?.lat ??
                     51.5074,
                   lng:
-                    contractorLocation?.longitude ||
-                    coverageAreas[0]?.lng ||
+                    contractorLocation?.longitude ??
+                    coverageAreas[0]?.lng ??
                     -0.1278,
                 }}
                 zoom={12}

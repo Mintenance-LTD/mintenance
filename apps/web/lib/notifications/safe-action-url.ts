@@ -29,6 +29,7 @@ const ALLOWED_PREFIXES = [
   '/admin',
   '/profile',
   '/scheduling',
+  '/appointments',
   '/timeline',
   '/financials',
   '/disputes',

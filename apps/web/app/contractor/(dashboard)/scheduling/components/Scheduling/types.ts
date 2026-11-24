@@ -17,6 +17,7 @@ export interface Appointment {
     | 'completed'
     | 'cancelled';
   jobTitle?: string;
+  clientResponse?: string | null;
 }
 
 export interface AppointmentApiResponse {
@@ -38,6 +39,7 @@ export interface AppointmentApiResponse {
     | 'completed'
     | 'cancelled';
   jobTitle?: string;
+  clientResponse?: string | null;
 }
 
 export interface Stats {

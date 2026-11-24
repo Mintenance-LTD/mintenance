@@ -5,9 +5,6 @@ import Link from 'next/link';
 import { exportToPDFAdvanced } from '@/lib/utils/exportUtils';
 import {
   Shield,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldX,
   Upload,
   ChevronDown,
   ChevronUp,
@@ -24,13 +21,12 @@ import {
   overallBadge,
 } from './complianceHelpers';
 
-// Types live in `./compliance-types.ts` (Slice 4 added room link).
-// Types live in `./compliance-types.ts` (Slice 4 added room link).
 import type {
   PropertyWithCompliance,
   ComplianceSummary,
 } from './compliance-types';
 import { ApplicabilityForm } from './ApplicabilityForm';
+import { ComplianceSummaryTiles } from './ComplianceSummaryTiles';
 import { CertificateFormModal } from './CertificateFormModal';
 import { RenewalButton } from './RenewalButton';
 
@@ -49,7 +45,15 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
   );
 
   const [exporting, setExporting] = useState(false);
-
+  const [unassessedOnly, setUnassessedOnly] = useState(false);
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  const isUnassessed = (property: PropertyWithCompliance, type: string) =>
+    (property.applicability?.[type]?.decision ?? 'unknown') === 'unknown';
+  const visibleProperties = unassessedOnly
+    ? properties.filter((property) =>
+        Object.keys(CERT_LABELS).some((type) => isUnassessed(property, type))
+      )
+    : properties;
   const [certTarget, setCertTarget] = useState<{
     propertyId: string;
     propertyName: string;
@@ -60,7 +64,6 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
   // + summary tiles for the canonical .t-h1 / .kpi components from the
   // design system reference (redesign-v2). The legacy gradient-iconed
   // tiles stay in place for users on the default theme.
-  const [isMintEditorial, setIsMintEditorial] = useState(false);
   useEffect(() => {
     if (typeof document === 'undefined') return;
     setIsMintEditorial(
@@ -146,91 +149,16 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
       )}
 
       <p className='mb-4 text-sm text-slate-600'>
-        Applicability depends on the property and its use. Record your
-        assessment below; these records are not a legal compliance
-        certification. {summary.unassessedCount || 0} categories have not been
-        assessed.
+        Assess each check for the property and its use. Missing means a check is
+        required and has no record. These records do not certify legal
+        compliance.
       </p>
-      {/* Summary Cards */}
-      {isMintEditorial ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: 14,
-            marginBottom: 22,
-          }}
-        >
-          <div className='kpi'>
-            <div className='label'>Properties</div>
-            <div className='num'>{summary.totalProperties}</div>
-            <div className='sub'>
-              <span>under your management</span>
-            </div>
-          </div>
-          <div className='kpi'>
-            <div className='label'>Valid</div>
-            <div className='num'>{summary.validCount}</div>
-            <div className='sub'>
-              <span>
-                {summary.validCount === 1 ? 'certificate' : 'certificates'} in
-                date
-              </span>
-            </div>
-          </div>
-          <div className='kpi'>
-            <div className='label'>Expiring soon</div>
-            <div className='num'>{summary.expiringCount}</div>
-            <div className='sub'>
-              <span>
-                {summary.expiringCount > 0
-                  ? 'within 90 days'
-                  : 'nothing imminent'}
-              </span>
-            </div>
-          </div>
-          <div className='kpi'>
-            <div className='label'>Expired or missing</div>
-            <div className='num'>
-              {summary.expiredCount + summary.missingCount}
-            </div>
-            <div className='sub'>
-              <span>
-                {summary.expiredCount + summary.missingCount > 0
-                  ? 'review applicable records'
-                  : 'no recorded overdue items'}
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-8'>
-          <SummaryCard
-            icon={<Building2 className='w-5 h-5 text-blue-600' />}
-            label='Properties'
-            value={summary.totalProperties}
-            bgColor='bg-blue-50'
-          />
-          <SummaryCard
-            icon={<ShieldCheck className='w-5 h-5 text-green-600' />}
-            label='Valid'
-            value={summary.validCount}
-            bgColor='bg-green-50'
-          />
-          <SummaryCard
-            icon={<ShieldAlert className='w-5 h-5 text-amber-600' />}
-            label='Expiring Soon'
-            value={summary.expiringCount}
-            bgColor='bg-amber-50'
-          />
-          <SummaryCard
-            icon={<ShieldX className='w-5 h-5 text-red-600' />}
-            label='Expired / Missing'
-            value={summary.expiredCount + summary.missingCount}
-            bgColor='bg-red-50'
-          />
-        </div>
-      )}
+      <ComplianceSummaryTiles
+        summary={summary}
+        isMintEditorial={isMintEditorial}
+        unassessedOnly={unassessedOnly}
+        onToggle={() => setUnassessedOnly((value) => !value)}
+      />
 
       {/* Empty State */}
       {properties.length === 0 && (
@@ -252,9 +180,13 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
       )}
 
       {/* Property Cards */}
-      <div className='space-y-4'>
-        {properties.map((property) => {
-          const isExpanded = expandedProperty === property.id;
+      <div id='compliance-property-checks' className='space-y-4'>
+        {unassessedOnly && <p role='status'>Showing unassessed checks</p>}
+        {unassessedOnly && visibleProperties.length === 0 && (
+          <p>All property checks have been assessed.</p>
+        )}
+        {visibleProperties.map((property) => {
+          const isExpanded = unassessedOnly || expandedProperty === property.id;
           const badge = overallBadge(property.overallStatus);
 
           return (
@@ -266,6 +198,8 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
               <button
                 type='button'
                 onClick={() => toggleExpand(property.id)}
+                disabled={unassessedOnly}
+                aria-expanded={isExpanded}
                 className='w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors text-left'
               >
                 <div className='flex items-center gap-3 min-w-0'>
@@ -301,6 +235,8 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
                 <div className='border-t border-gray-100 px-6 py-4'>
                   <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
                     {Object.entries(CERT_LABELS).map(([type, label]) => {
+                      if (unassessedOnly && !isUnassessed(property, type))
+                        return null;
                       const cert = property.certMap[type];
                       const days = cert ? daysUntil(cert.expiry_date) : null;
 
@@ -414,7 +350,7 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
                   </div>
 
                   {/* Additional Certs */}
-                  {property.additionalCerts.length > 0 && (
+                  {!unassessedOnly && property.additionalCerts.length > 0 && (
                     <div className='mt-4 pt-4 border-t border-gray-100'>
                       <h4 className='text-sm font-medium text-gray-700 mb-2'>
                         Additional Certificates
@@ -464,30 +400,6 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
           onClose={() => setCertTarget(null)}
         />
       )}
-    </div>
-  );
-}
-
-// ── Summary Card ─────────────────────────────────────────────────────
-
-function SummaryCard({
-  icon,
-  label,
-  value,
-  bgColor,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  bgColor: string;
-}) {
-  return (
-    <div className={`${bgColor} rounded-xl p-4 border border-gray-100`}>
-      <div className='flex items-center gap-2 mb-2'>
-        {icon}
-        <span className='text-sm text-gray-600'>{label}</span>
-      </div>
-      <p className='text-2xl font-bold text-gray-900'>{value}</p>
     </div>
   );
 }

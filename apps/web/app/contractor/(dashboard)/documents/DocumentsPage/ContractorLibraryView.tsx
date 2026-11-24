@@ -43,6 +43,7 @@ interface ContractorLibraryViewProps {
   onUploadClick: () => void;
   onToggleStar: (doc: Document) => void;
   onView: (doc: Document) => void;
+  onDownload: (doc: Document) => void;
 }
 
 // ── Category styling ───────────────────────────────────────────────
@@ -160,6 +161,7 @@ export function ContractorLibraryView({
   onUploadClick,
   onToggleStar,
   onView,
+  onDownload,
 }: ContractorLibraryViewProps) {
   return (
     <div style={{ overflow: 'visible' }}>
@@ -311,15 +313,6 @@ export function ContractorLibraryView({
             return (
               <article
                 key={doc.id}
-                role='button'
-                tabIndex={0}
-                onClick={() => onView(doc)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onView(doc);
-                  }
-                }}
                 style={{
                   position: 'relative',
                   background: 'var(--me-surface)',
@@ -327,7 +320,6 @@ export function ContractorLibraryView({
                   border: '1px solid var(--me-line)',
                   borderLeft: `4px solid ${s.borderColor}`,
                   padding: 18,
-                  cursor: 'pointer',
                   display: 'grid',
                   gridTemplateColumns: '60px 1fr auto',
                   gap: 16,
@@ -352,7 +344,13 @@ export function ContractorLibraryView({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {doc.name}
+                    <button
+                      type='button'
+                      className='max-w-full truncate text-left hover:underline'
+                      onClick={() => onView(doc)}
+                    >
+                      {doc.name}
+                    </button>
                   </h3>
                   <div
                     style={{
@@ -386,19 +384,32 @@ export function ContractorLibraryView({
                       }}
                     >
                       {relativeDate(doc.created_at)} ·{' '}
-                      {doc.is_contract
-                        ? 'Generated PDF'
-                        : formatKB(doc.size_bytes)}
+                      {doc.is_contract ? 'Agreement' : formatKB(doc.size_bytes)}
                     </span>
                   </div>
+                  {doc.is_contract && (
+                    <div className='mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold'>
+                      <button
+                        type='button'
+                        className='underline underline-offset-4'
+                        onClick={() => onView(doc)}
+                      >
+                        View contract
+                      </button>
+                      <button
+                        type='button'
+                        className='underline underline-offset-4'
+                        onClick={() => onDownload(doc)}
+                      >
+                        Download PDF
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <button
                   type='button'
                   aria-label={doc.starred ? 'Unstar document' : 'Star document'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleStar(doc);
-                  }}
+                  onClick={() => onToggleStar(doc)}
                   style={{
                     background: 'transparent',
                     border: 'none',

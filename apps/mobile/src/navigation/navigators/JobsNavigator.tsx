@@ -19,6 +19,9 @@ import { QuoteAmendmentsScreen } from '../../screens/job-details/QuoteAmendments
 import { DisputeScreen } from '../../screens/DisputeScreen';
 import { RetainedDisputesScreen } from '../../screens/RetainedDisputesScreen';
 import { DisputeDetailsScreen } from '../../screens/DisputeDetailsScreen';
+import { ContractorPaymentDetailsScreen } from '../../screens/ContractorPaymentDetailsScreen';
+import { VisitDetailsScreen } from '../../screens/VisitDetailsScreen';
+import { JobWorkWindowScreen } from '../../screens/JobWorkWindowScreen';
 import { BidReviewScreen } from '../../screens/BidReviewScreen';
 import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerPhotoReviewScreen';
 import { JobPhotoUploadScreen } from '../../screens/job-details/JobPhotoUploadScreen';
@@ -246,6 +249,21 @@ const JobsNavigator: React.FC = () => {
         name='DisputeDetails'
         component={SafeDisputeDetailsScreen}
         options={{ title: 'Dispute details' }}
+      />
+      <JobsStack.Screen
+        name='ContractorPaymentDetails'
+        component={ContractorPaymentDetailsScreen}
+        options={{ title: 'Payment details' }}
+      />
+      <JobsStack.Screen
+        name='VisitDetails'
+        component={VisitDetailsScreen}
+        options={{ title: 'Visit details' }}
+      />
+      <JobsStack.Screen
+        name='JobWorkWindow'
+        component={JobWorkWindowScreen}
+        options={{ title: 'Current work window' }}
       />
       <JobsStack.Screen
         name='BidReview'

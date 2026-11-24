@@ -1,6 +1,10 @@
 'use client';
 
 import { Clock, TrendingUp, Users, Award } from 'lucide-react';
+import {
+  performanceBasisLabels,
+  type ContractorPerformanceBasis,
+} from '@mintenance/shared';
 
 /**
  * Performance signals on the public contractor profile.
@@ -15,28 +19,25 @@ import { Clock, TrendingUp, Users, Award } from 'lucide-react';
  * relabel from "Years experience"). Mirrors mobile's ProfilePerformance.
  */
 interface ContractorPerformanceStatsProps {
-  responseTime: string;
-  onTimeCompletion: number;
-  repeatCustomers: number;
+  responseTime: string | null;
+  onTimeCompletion: number | null;
+  repeatCustomers: number | null;
   yearsExperience: number;
-  /** Basis for the derived percentages — no completed jobs, no figures. */
-  completedJobs: number;
+  basis?: ContractorPerformanceBasis;
 }
 
-const EMPTY = '—';
+const EMPTY = 'Not enough data';
 
 export function ContractorPerformanceStats({
   responseTime,
   onTimeCompletion,
   repeatCustomers,
   yearsExperience,
-  completedJobs,
+  basis,
 }: ContractorPerformanceStatsProps) {
-  const hasBasis = completedJobs > 0;
-  const percent = (value: number) =>
-    hasBasis && value !== null && value !== undefined
-      ? `${Math.round(value)}%`
-      : EMPTY;
+  const labels = performanceBasisLabels(basis);
+  const percent = (value: number | null, label: string | null) =>
+    label && value != null ? `${Math.round(value)}%` : EMPTY;
 
   const tenure =
     yearsExperience > 0
@@ -48,19 +49,22 @@ export function ContractorPerformanceStats({
       key: 'response',
       Icon: Clock,
       label: 'Response time',
-      value: responseTime && responseTime.length > 0 ? responseTime : EMPTY,
+      value: labels.responses ? (responseTime ?? EMPTY) : EMPTY,
+      detail: labels.responses,
     },
     {
       key: 'ontime',
       Icon: TrendingUp,
       label: 'On-time completion',
-      value: percent(onTimeCompletion),
+      value: percent(onTimeCompletion, labels.onTime),
+      detail: labels.onTime,
     },
     {
       key: 'repeat',
       Icon: Users,
       label: 'Repeat customers',
-      value: percent(repeatCustomers),
+      value: percent(repeatCustomers, labels.repeat),
+      detail: labels.repeat,
     },
     {
       key: 'tenure',
@@ -74,24 +78,31 @@ export function ContractorPerformanceStats({
     <div className='border-b border-gray-200 pb-8'>
       <h2 className='text-2xl font-semibold text-gray-900 mb-6'>Performance</h2>
       <div className='grid grid-cols-2 gap-6'>
-        {items.map(({ key, Icon, label, value }) => (
+        {items.map(({ key, Icon, label, value, detail }) => (
           <div key={key} data-testid={`performance-${key}`}>
             <div className='flex items-center gap-2 mb-2'>
               <Icon className='w-5 h-5 text-gray-600' />
               <span className='text-sm text-gray-600'>{label}</span>
             </div>
             <p
-              className='text-2xl font-semibold text-gray-900'
+              className={
+                value === EMPTY
+                  ? 'text-sm font-medium text-gray-600'
+                  : 'text-2xl font-semibold text-gray-900'
+              }
               data-testid={`performance-${key}-value`}
             >
               {value}
             </p>
+            {detail && value !== EMPTY && (
+              <p className='mt-1 text-xs text-gray-600'>{detail}</p>
+            )}
           </div>
         ))}
       </div>
-      {!hasBasis && (
+      {items.some((item) => item.value === EMPTY) && (
         <p className='text-sm text-gray-500 mt-4'>
-          Some figures appear once this tradesperson completes their first job.
+          Figures appear once at least three records qualify for that measure.
         </p>
       )}
     </div>

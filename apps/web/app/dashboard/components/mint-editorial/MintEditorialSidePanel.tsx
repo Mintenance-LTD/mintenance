@@ -1,6 +1,7 @@
 import { PAYMENT_RELEASE_COPY } from '@mintenance/shared';
 import Link from 'next/link';
 import { ArrowRight, AlertCircle, ShieldCheck, Home } from 'lucide-react';
+import { AgencyDashboardStart } from '../AgencyDashboardStart';
 import {
   formatGBP,
   initials,
@@ -291,6 +292,7 @@ export function MintEditorialSidePanel({
       <NeedsYouCard items={needsYou ?? []} topBidFallback={topBid} />
       {appointments.length > 0 && <UpNextCard appointments={appointments} />}
       {escrowHeld > 0 && <PaymentProtectedCard escrow={escrowHeld} />}
+      <AgencyDashboardStart />
     </div>
   );
 }

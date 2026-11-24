@@ -22,6 +22,9 @@ export interface NotificationRoute {
 
 interface NormalizedPayload {
   jobId?: string;
+  escrowId?: string;
+  contractorPaymentId?: string;
+  workWindowProposalId?: string;
   phoneCallId?: string;
   conversationId?: string;
   meetingId?: string;
@@ -98,6 +101,11 @@ function parseActionUrl(actionUrl?: string): Partial<NormalizedPayload> {
     const jobId = pickFromUuidPath(pathname, '/jobs');
     if (jobId) out.jobId = jobId;
   }
+  if (!out.jobId && /^\/contractor\/bid\/[^/]+\/details$/.test(pathname)) {
+    out.jobId = pickFromUuidPath(pathname, '/contractor/bid/');
+  }
+  out.escrowId = pickFromUuidPath(pathname, '/disputes/');
+  out.contractorPaymentId = pickFromUuidPath(pathname, '/contractor/payments/');
 
   // /messages/:jobId — conversationId IS jobId by app convention.
   // /api/notifications synthesises action_url like
@@ -154,6 +162,9 @@ export function normalizePayload(data: unknown): NormalizedPayload {
   return {
     phoneCallId: pick('phone_call_id'),
     jobId: pick('jobId', 'job_id') ?? fromUrl.jobId,
+    escrowId: fromUrl.escrowId ?? pick('escrowId', 'escrow_id'),
+    contractorPaymentId: fromUrl.contractorPaymentId,
+    workWindowProposalId: pick('workWindowProposalId'),
     conversationId:
       pick('conversationId', 'conversation_id') ?? fromUrl.conversationId,
     meetingId: pick('meetingId', 'meeting_id'),
@@ -237,6 +248,43 @@ export function routeForNotification(
     return routeForNotification('message_received', data);
 
   switch (type) {
+    case 'dispute':
+    case 'dispute_opened':
+    case 'dispute_created':
+    case 'dispute_filed':
+    case 'escrow_disputed': {
+      const params = p.escrowId
+        ? { escrowId: p.escrowId }
+        : p.jobId
+          ? { jobId: p.jobId }
+          : null;
+      return params
+        ? {
+            screen: 'Main',
+            params: {
+              screen: 'JobsTab',
+              params: { screen: 'DisputeDetails', params },
+            },
+          }
+        : NOTIFICATIONS_FALLBACK;
+    }
+    case 'payment_released':
+    case 'escrow_released':
+    case 'escrow_auto_released':
+      return p.contractorPaymentId
+        ? {
+            screen: 'Main',
+            params: {
+              screen: 'JobsTab',
+              params: {
+                screen: 'ContractorPaymentDetails',
+                params: { escrowId: p.contractorPaymentId },
+              },
+            },
+          }
+        : p.jobId
+          ? jobDetailsRoute(p.jobId)
+          : NOTIFICATIONS_FALLBACK;
     case 'quote_amendment_update':
       return p.jobId
         ? {
@@ -253,7 +301,6 @@ export function routeForNotification(
     case 'review_requested':
     case 'contract_created':
     case 'contract_signed':
-    case 'payment_released':
     case 'bid_rejected':
     // 2026-05-27 audit-70 P1: live notifications table has 6
     // `job_nearby` rows (contractor proximity alerts emitted when a
@@ -288,8 +335,6 @@ export function routeForNotification(
     // JobDetails so the homeowner / contractor lands on the relevant
     // surface instead of the inbox.
     case 'payment':
-    case 'escrow_released':
-    case 'escrow_auto_released':
     case 'changes_requested':
     // 2026-07-31 audit P0-2/P1-3: payment_required is the dedicated
     // "fund the escrow" prompt fired at contract acceptance
@@ -399,8 +444,31 @@ export function routeForNotification(
     // isn't tied to a job). Job-linked → JobDetails; otherwise drop the
     // user on Calendar where they can see the new slot in context.
     // Previously both fell through to the inbox.
+    case 'appointment_update':
+      return p.appointmentId
+        ? {
+            screen: 'Main',
+            params: {
+              screen: 'JobsTab',
+              params: {
+                screen: 'VisitDetails',
+                params: { appointmentId: p.appointmentId },
+              },
+            },
+          }
+        : p.jobId
+          ? jobDetailsRoute(p.jobId)
+          : NOTIFICATIONS_FALLBACK;
     case 'appointment_scheduled':
     case 'job_scheduled':
+      if (p.jobId && p.workWindowProposalId)
+        return {
+          screen: 'Main',
+          params: {
+            screen: 'JobsTab',
+            params: { screen: 'JobWorkWindow', params: { jobId: p.jobId } },
+          },
+        };
       if (p.jobId) return jobDetailsRoute(p.jobId);
       return {
         screen: 'Main',

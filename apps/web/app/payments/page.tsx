@@ -21,81 +21,15 @@ import { PaymentsFilters } from './components/PaymentsFilters';
 import { TransactionList } from './components/TransactionList';
 import { PaymentsRefundModal } from './components/PaymentsRefundModal';
 import { PaymentsReceiptModal } from './components/PaymentsReceiptModal';
+import { loadPaymentHistory } from './load-payment-history';
+import {
+  paymentHistoryCsv,
+  toTransaction,
+  type PaymentData,
+  type Transaction,
+} from './payment-history-view';
 
-interface Transaction {
-  id: string;
-  amount: number;
-  remainingAmount?: number;
-  refundNeedsReview?: boolean;
-  status:
-    | 'pending'
-    | 'held'
-    | 'release_pending'
-    | 'released'
-    | 'refunded'
-    | 'disputed'
-    | 'completed';
-  type: 'payment' | 'refund' | 'escrow';
-  created_at: string;
-  updated_at: string;
-  job_title?: string;
-  job_id?: string;
-  job_status?: string;
-  contractor_name?: string;
-  contractor_id?: string;
-  release_reason?: string;
-  refund_reason?: string;
-  platformFee?: number;
-  processingFee?: number;
-  subtotal?: number;
-  /**
-   * Whether the homeowner has already approved the work. Drives whether the
-   * action reads "Release" or "Approve & Release" — releasing an unapproved
-   * escrow requires the homeowner to also waive the 48-hour cooling-off
-   * window, which needs its own confirmation copy.
-   */
-  homeowner_approval?: boolean;
-  /** End of an active 48-hour cooling-off window, if one is running. */
-  cooling_off_ends_at?: string;
-}
-
-interface PaymentData {
-  id: string;
-  amount: number;
-  remainingAmount?: number;
-  refundNeedsReview?: boolean;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  jobId?: string;
-  jobStatus?: string;
-  payerId?: string;
-  payeeId?: string;
-  job?: { title: string; description?: string } | null;
-  payer?: {
-    first_name: string;
-    last_name: string;
-    company_name?: string;
-  } | null;
-  payee?: {
-    first_name: string;
-    last_name: string;
-    company_name?: string;
-  } | null;
-  created_at?: string;
-  updated_at?: string;
-  job_id?: string;
-  job_title?: string;
-  contractor_name?: string;
-  contractor_id?: string;
-  transaction_type?: string;
-  release_reason?: string;
-  refund_reason?: string;
-  platformFee?: number;
-  stripeProcessingFee?: number;
-  homeownerApproval?: boolean;
-  coolingOffEndsAt?: string;
-}
+const TABLE_PAGE_SIZE = 20;
 
 export default function PaymentsPage2025() {
   const router = useRouter();
@@ -103,9 +37,15 @@ export default function PaymentsPage2025() {
   const scopedJobId = searchParams.get('jobId');
   const scopedPaymentId = searchParams.get('paymentId');
   const { user, loading: loadingUser } = useCurrentUser();
+  const userId = user?.id;
   const { csrfToken } = useCSRF();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [loadedScope, setLoadedScope] = useState<string>();
+  const [failedScope, setFailedScope] = useState<string>();
+  const [retryCount, setRetryCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const scope = JSON.stringify([userId, scopedPaymentId, retryCount]);
+  const loadingTransactions = loadedScope !== scope && failedScope !== scope;
   const [filter, setFilter] = useState<
     'all' | 'pending' | 'completed' | 'refunded'
   >('all');
@@ -133,63 +73,27 @@ export default function PaymentsPage2025() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
+    const controller = new AbortController();
 
     const fetchTransactions = async () => {
       try {
-        const response = await fetch('/api/payments/history');
-        if (!response.ok) throw new Error('Failed to fetch transactions');
-
-        const { payments } = await response.json();
-        const transformedTransactions: Transaction[] = (payments || []).map(
-          (t: PaymentData) => {
-            const amount = Number(t.amount) || 0;
-            const platformFee = t.platformFee;
-            const processingFee = t.stripeProcessingFee;
-
-            // Prefer the trading name; fall back to the person's name.
-            const contractorName =
-              t.contractor_name ||
-              t.payee?.company_name ||
-              (t.payee
-                ? `${t.payee.first_name || ''} ${t.payee.last_name || ''}`.trim()
-                : undefined);
-
-            const jobTitle = t.job_title || t.job?.title;
-
-            return {
-              id: t.id,
-              amount,
-              remainingAmount: t.remainingAmount,
-              refundNeedsReview: t.refundNeedsReview,
-              status: t.status,
-              type: (t.transaction_type || 'payment') as Transaction['type'],
-              created_at: t.created_at || t.createdAt,
-              updated_at: t.updated_at || t.updatedAt,
-              job_title: jobTitle,
-              job_id: t.job_id || t.jobId,
-              job_status: t.jobStatus,
-              contractor_name: contractorName || undefined,
-              contractor_id: t.contractor_id || t.payeeId,
-              release_reason: t.release_reason,
-              refund_reason: t.refund_reason,
-              platformFee,
-              processingFee,
-              homeowner_approval: t.homeownerApproval ?? false,
-              cooling_off_ends_at: t.coolingOffEndsAt,
-            };
-          }
+        const payments = await loadPaymentHistory<PaymentData>(
+          controller.signal,
+          scopedPaymentId
         );
-        setTransactions(transformedTransactions);
+        if (!controller.signal.aborted) {
+          setTransactions(payments.map(toTransaction));
+          setLoadedScope(scope);
+        }
       } catch {
-        toast.error('Failed to load payment history');
-      } finally {
-        setLoadingTransactions(false);
+        if (!controller.signal.aborted) setFailedScope(scope);
       }
     };
 
-    fetchTransactions();
-  }, [user]);
+    void fetchTransactions();
+    return () => controller.abort();
+  }, [userId, scopedPaymentId, scope]);
 
   const handleReleasePayment = async (transactionId: string) => {
     if (
@@ -323,14 +227,14 @@ export default function PaymentsPage2025() {
   // `refunded`. The previous filter put `release_pending` rows into
   // neither bucket so they silently disappeared from the stats and
   // the filter menu both.
-  const scopedTransactions = transactions.filter(
+  const scopedTransactions = (loadedScope === scope ? transactions : []).filter(
     (t) =>
       (!scopedJobId || t.job_id === scopedJobId) &&
       (!scopedPaymentId || t.id === scopedPaymentId)
   );
+  const daysAgo = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
+  const cutoff = Date.now() - daysAgo * 24 * 60 * 60 * 1000;
   const filteredTransactions = scopedTransactions.filter((t) => {
-    if (scopedJobId && t.job_id !== scopedJobId) return false;
-    if (scopedPaymentId && t.id !== scopedPaymentId) return false;
     let matchesStatus = true;
     if (filter === 'pending') {
       matchesStatus = t.status === 'pending' || t.status === 'held';
@@ -342,18 +246,21 @@ export default function PaymentsPage2025() {
       matchesStatus = paymentAmounts(t).refunded > 0;
     }
 
-    let matchesDateRange = true;
-    if (dateRange !== 'all') {
-      const transactionDate = new Date(t.created_at);
-      const now = new Date();
-      const daysAgo = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
-      const cutoffDate = new Date(
-        now.getTime() - daysAgo * 24 * 60 * 60 * 1000
-      );
-      matchesDateRange = transactionDate >= cutoffDate;
-    }
-    return matchesStatus && matchesDateRange;
+    return (
+      matchesStatus &&
+      (dateRange === 'all' || Date.parse(t.created_at) >= cutoff)
+    );
   });
+  const pageCount = Math.max(
+    1,
+    Math.ceil(filteredTransactions.length / TABLE_PAGE_SIZE)
+  );
+  const currentPage = Math.min(page, pageCount);
+  const firstIndex = (currentPage - 1) * TABLE_PAGE_SIZE;
+  const visibleTransactions = filteredTransactions.slice(
+    firstIndex,
+    firstIndex + TABLE_PAGE_SIZE
+  );
 
   // Rows that count as "paid" — money that has left the homeowner's card into
   // the platform (held/release_pending) or all the way through (completed/
@@ -368,7 +275,7 @@ export default function PaymentsPage2025() {
     refundedAmount,
     disputedAmount,
     releasedAmount,
-  } = summarizePayments(scopedTransactions);
+  } = summarizePayments(filteredTransactions);
   // The "Protected" stat card previously showed pre-charge `pending`
   // rows — money that hadn't actually hit Mintenance's escrow yet. Now
   // it reflects the real "held in escrow by the platform" total:
@@ -381,33 +288,7 @@ export default function PaymentsPage2025() {
       toast.error('No transactions to export');
       return;
     }
-    const csvHeaders = [
-      'Date',
-      'Description',
-      'Amount (GBP)',
-      'Refunded (GBP)',
-      'Amount after refunds (GBP)',
-      'Status',
-    ];
-    const csvRows = filteredTransactions.map((t) => {
-      const date = new Date(t.created_at).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      });
-      const description = (t.job_title || 'Payment').replace(/"/g, '""');
-      // escrow_transactions.amount is stored as a DECIMAL in pounds — the
-      // previous `amount / 100` treated it as pence and exported £100 as
-      // £1.00 (off by 100x). formatMoney on the stat cards already knew
-      // this; the CSV path didn't.
-      const amount = t.amount.toFixed(2);
-      const amounts = paymentAmounts(t);
-      const status = t.status
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-      return `"${date}","${description}","${amount}","${amounts.refunded.toFixed(2)}","${amounts.remaining.toFixed(2)}","${status}"`;
-    });
-    const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+    const csvContent = paymentHistoryCsv(filteredTransactions);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -441,7 +322,12 @@ export default function PaymentsPage2025() {
           </button>
         )}
 
-        <PaymentsHeader onExport={handleExport} />
+        <PaymentsHeader
+          onExport={handleExport}
+          exportDisabled={
+            loadedScope !== scope || filteredTransactions.length === 0
+          }
+        />
         {(scopedJobId || scopedPaymentId) && (
           <p className='my-4' role='status'>
             Showing{' '}
@@ -459,64 +345,121 @@ export default function PaymentsPage2025() {
           </p>
         )}
 
-        <PaymentsStatsCards
-          totalPaid={totalPaid}
-          paidTransactionCount={paidTransactionCount}
-          pendingAmount={inEscrowAmount}
-          disputedAmount={disputedAmount}
-          releasedAmount={releasedAmount}
-          refundedAmount={refundedAmount}
-          transactionCount={transactions.length}
-        />
+        {loadedScope === scope && (
+          <PaymentsStatsCards
+            totalPaid={totalPaid}
+            paidTransactionCount={paidTransactionCount}
+            pendingAmount={inEscrowAmount}
+            disputedAmount={disputedAmount}
+            releasedAmount={releasedAmount}
+            refundedAmount={refundedAmount}
+            transactionCount={filteredTransactions.length}
+          />
+        )}
 
         <PaymentsFilters
           filter={filter}
-          onFilterChange={setFilter}
+          onFilterChange={(value) => {
+            setFilter(value);
+            setPage(1);
+          }}
           dateRange={dateRange}
-          onDateRangeChange={setDateRange}
+          onDateRangeChange={(value) => {
+            setDateRange(value);
+            setPage(1);
+          }}
         />
 
-        <TransactionList
-          transactions={filteredTransactions}
-          loading={loadingTransactions}
-          filter={filter}
-          userRole={user?.role}
-          onReleasePayment={handleReleasePayment}
-          onRequestRefund={(transaction) => {
-            try {
-              const pending = readPendingRefund(user.id, transaction.id);
-              const current = transactions.find(
-                (item) => item.id === transaction.id
-              );
-              if (!current)
-                throw new Error(
-                  'Payment is no longer available. Refresh and retry.'
+        {failedScope === scope ? (
+          <div
+            role='alert'
+            className='rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950'
+          >
+            Could not load the full payment history.{' '}
+            <button
+              type='button'
+              className='underline'
+              onClick={() => setRetryCount((count) => count + 1)}
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <TransactionList
+            transactions={visibleTransactions}
+            loading={loadingTransactions}
+            filter={filter}
+            userRole={user?.role}
+            onReleasePayment={handleReleasePayment}
+            onRequestRefund={(transaction) => {
+              try {
+                const pending = readPendingRefund(user.id, transaction.id);
+                const current = transactions.find(
+                  (item) => item.id === transaction.id
                 );
-              if (current.refundNeedsReview)
-                throw new Error(
-                  'This payment needs support review before another refund.'
+                if (!current)
+                  throw new Error(
+                    'Payment is no longer available. Refresh and retry.'
+                  );
+                if (current.refundNeedsReview)
+                  throw new Error(
+                    'This payment needs support review before another refund.'
+                  );
+                setSelectedTransaction(current);
+                setRefundReason(pending?.body.reason ?? '');
+                setRefundRequestedAmount(
+                  pending
+                    ? pending.body.amount
+                    : (current.remainingAmount ?? current.amount)
                 );
-              setSelectedTransaction(current);
-              setRefundReason(pending?.body.reason ?? '');
-              setRefundRequestedAmount(
-                pending
-                  ? pending.body.amount
-                  : (current.remainingAmount ?? current.amount)
-              );
-              setShowRefundModal(true);
-            } catch (error) {
-              toast.error(
-                error instanceof Error
-                  ? error.message
-                  : 'Could not recover refund request'
-              );
-            }
-          }}
-          onViewReceipt={(transaction) => {
-            setSelectedTransaction(transaction);
-            setShowReceiptModal(true);
-          }}
-        />
+                setShowRefundModal(true);
+              } catch (error) {
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : 'Could not recover refund request'
+                );
+              }
+            }}
+            onViewReceipt={(transaction) => {
+              setSelectedTransaction(transaction);
+              setShowReceiptModal(true);
+            }}
+          />
+        )}
+        {pageCount > 1 && (
+          <nav
+            aria-label='Payment history pages'
+            className='mt-4 flex flex-wrap items-center justify-between gap-3'
+          >
+            <p role='status' className='text-sm'>
+              Showing {firstIndex + 1}–
+              {Math.min(
+                firstIndex + TABLE_PAGE_SIZE,
+                filteredTransactions.length
+              )}{' '}
+              of {filteredTransactions.length} payments
+            </p>
+            <div className='flex gap-2'>
+              <button
+                type='button'
+                className='btn btn-secondary btn-sm'
+                disabled={currentPage === 1}
+                onClick={() => setPage(currentPage - 1)}
+              >
+                Previous
+              </button>
+              <button
+                type='button'
+                className='btn btn-secondary btn-sm'
+                disabled={currentPage === pageCount}
+                onClick={() => setPage(currentPage + 1)}
+              >
+                Next
+              </button>
+            </div>
+          </nav>
+        )}
 
         <PaymentsRefundModal
           isOpen={showRefundModal && selectedTransaction !== null}

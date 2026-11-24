@@ -1,134 +1,73 @@
 import { NextRequest } from 'next/server';
-import { POST } from '@/app/api/jobs/[id]/schedule/route';
-const m = vi.hoisted(() => ({
-  from: vi.fn(),
-  notify: vi.fn(),
-  update: vi.fn(),
-  filters: vi.fn(),
-  status: 'assigned',
-  agreement: true,
-  saved: true,
-  end: null as string | null,
-}));
+import { PATCH, POST } from '@/app/api/jobs/[id]/schedule/route';
+
+const rpc = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler: (_: unknown, handler: unknown) => handler,
 }));
-vi.mock('@/lib/api/supabaseServer', () => ({
-  serverSupabase: { from: m.from },
-}));
-vi.mock('@/lib/services/notifications/NotificationService', () => ({
-  NotificationService: { createNotification: m.notify },
-}));
-beforeEach(() => {
-  vi.clearAllMocks();
-  m.status = 'assigned';
-  m.agreement = true;
-  m.saved = true;
-  m.end = null;
-  m.from.mockImplementation((table) => {
-    const q = {
-      select: vi.fn().mockReturnThis(),
-      eq: (...args: unknown[]) => {
-        m.filters(...args);
-        return q;
-      },
-      not: vi.fn().mockReturnThis(),
-      update: (data: unknown) => {
-        m.update(data);
-        return q;
-      },
-      single: async () => ({
-        data: {
-          id: 'job',
-          title: 'Repair',
-          homeowner_id: 'homeowner',
-          payer_user_id: 'payer',
-          contractor_id: 'contractor',
-          status: m.status,
-          scheduled_end_date: m.end,
-          updated_at: 'version',
-        },
-        error: null,
-      }),
-      maybeSingle: async () => ({
-        data: (table === 'contracts' ? m.agreement : m.saved)
-          ? { id: 'saved' }
-          : null,
-        error: null,
-      }),
-    };
-    return q;
-  });
-});
-const body = {
-  scheduled_start_date: '2099-11-16T09:00:00Z',
-  scheduled_end_date: '2099-11-17T09:00:00Z',
-};
-const request = (data: unknown = body) =>
-  new NextRequest('http://localhost/api/jobs/job/schedule', {
-    method: 'POST',
+vi.mock('@/lib/api/supabaseServer', () => ({ serverSupabase: { rpc } }));
+beforeEach(() => rpc.mockReset());
+
+const id = '00000000-0000-4000-8000-000000000001';
+const proposalId = '00000000-0000-4000-8000-000000000002';
+const context = { user: { role: 'contractor', id: 'actor' }, params: { id } };
+const request = (method: string, data: unknown) =>
+  new NextRequest('http://localhost/api/jobs/' + id + '/schedule', {
+    method,
     body: JSON.stringify(data),
   });
-const context = (role: string, id = role) => ({
-  user: { role, id },
-  params: { id: 'job' },
-});
-it.each(['homeowner', 'contractor'])(
-  'saves the job window and notifies both parties as %s without rewriting signed dates or visits',
-  async (role) => {
-    const response = await POST(request(), context(role) as never);
-    expect(response.status).toBe(200);
-    expect(m.update).toHaveBeenCalledOnce();
-    expect(m.update).toHaveBeenCalledWith(expect.objectContaining(body));
-    expect(m.filters).toHaveBeenCalledWith('updated_at', 'version');
-    expect(m.filters).toHaveBeenCalledWith('status', 'assigned');
-    expect(m.notify).toHaveBeenCalledTimes(2);
-    expect(m.notify.mock.calls.map((call) => call[0].userId).sort()).toEqual([
-      'contractor',
-      'homeowner',
-    ]);
-    expect(m.from.mock.calls.map((call) => call[0])).not.toContain(
-      'appointments'
-    );
-  }
-);
-it('rejects unrelated users before any mutation', async () => {
-  await expect(
-    POST(request(), context('contractor', 'stranger') as never)
-  ).rejects.toThrow('Not authorized');
-  expect(m.update).not.toHaveBeenCalled();
-});
-it.each(['completed', 'cancelled', 'posted'])(
-  'rejects scheduling a %s job',
-  async (status) => {
-    m.status = status;
-    await expect(
-      POST(request(), context('homeowner') as never)
-    ).rejects.toThrow('Only active assigned');
-    expect(m.update).not.toHaveBeenCalled();
-  }
-);
-it('requires both signatures', async () => {
-  m.agreement = false;
-  await expect(POST(request(), context('contractor') as never)).rejects.toThrow(
-    'Both parties must sign'
+
+it('proposes a window using the authenticated actor and the transactional queue-backed RPC', async () => {
+  rpc.mockResolvedValue({
+    data: { id: proposalId, state: 'pending' },
+    error: null,
+  });
+  const response = await POST(
+    request('POST', { uk_start: '2099-07-10T12:00', uk_end: null }),
+    context as never
   );
-  expect(m.update).not.toHaveBeenCalled();
+  expect(await response.json()).toEqual({
+    proposal: { id: proposalId, state: 'pending' },
+  });
+  expect(rpc).toHaveBeenCalledWith('apply_job_work_window_action', {
+    p_job: id,
+    p_actor: 'actor',
+    p_start: '2099-07-10T11:00:00.000Z',
+    p_end: null,
+    p_duration: null,
+    p_proposal: null,
+    p_action: 'propose',
+  });
 });
-it('rejects a lost update without sending success notifications', async () => {
-  m.saved = false;
-  await expect(POST(request(), context('homeowner') as never)).rejects.toThrow(
-    'job changed'
+
+it('accepts the exact proposal and reports stale data or queue failure as an error', async () => {
+  const req = () => request('PATCH', { proposalId, decision: 'accepted' });
+  rpc
+    .mockResolvedValueOnce({ error: { code: '40001' } })
+    .mockResolvedValueOnce({ error: { code: '23514' } });
+  await expect(PATCH(req(), context as never)).rejects.toThrow(
+    'proposal changed'
   );
-  expect(m.notify).not.toHaveBeenCalled();
+  await expect(PATCH(req(), context as never)).rejects.toThrow(
+    'Unable to save'
+  );
+  expect(rpc).toHaveBeenCalledWith(
+    'apply_job_work_window_action',
+    expect.objectContaining({
+      p_actor: 'actor',
+      p_job: id,
+      p_proposal: proposalId,
+      p_action: 'accepted',
+    })
+  );
 });
-it('validates an existing end date when the client omits it', async () => {
-  m.end = '2099-11-15T09:00:00Z';
+
+it('rejects an ambiguous UK wall time before any database write', async () => {
   await expect(
     POST(
-      request({ scheduled_start_date: body.scheduled_start_date }),
-      context('homeowner') as never
+      request('POST', { uk_start: '2026-10-25T01:30', uk_end: null }),
+      context as never
     )
-  ).rejects.toThrow('End time');
-  expect(m.update).not.toHaveBeenCalled();
+  ).rejects.toThrow('occurs twice');
+  expect(rpc).not.toHaveBeenCalled();
 });

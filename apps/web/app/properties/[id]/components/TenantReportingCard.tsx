@@ -4,6 +4,7 @@ import { Copy, Link2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getCsrfToken } from '@/lib/csrf-client';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
+import { ReportingLinkCoverage } from '@/app/landlord/reporting-links/ReportingLinkCoverage';
 
 interface ReportToken {
   id: string;
@@ -28,6 +29,7 @@ export function TenantReportingCard({
   const [updating, setUpdating] = useState<string | null>(null);
   const [phone, setPhone] = useState('');
   const [savedPhone, setSavedPhone] = useState('');
+  const [hasFallback, setHasFallback] = useState<boolean | null>(null);
   const [savingPhone, setSavingPhone] = useState(false);
   const phoneInputId = `tenant-emergency-phone-${propertyId}`;
   const mutationPending = useRef(false);
@@ -45,6 +47,7 @@ export function TenantReportingCard({
       const contact = data.emergency_phone ?? '';
       setPhone(contact);
       setSavedPhone(contact);
+      setHasFallback(data.has_emergency_fallback ?? null);
     } catch {
       setLoadError(true);
     } finally {
@@ -195,6 +198,16 @@ export function TenantReportingCard({
       </p>
       {!loading && !loadError && (
         <div className='mb-4 space-y-2'>
+          <ReportingLinkCoverage
+            properties={[{ id: propertyId, property_name: propertyName }]}
+            coverage={[
+              {
+                propertyId,
+                hasEmergencyPhone: !!savedPhone,
+                hasFallbackResponder: hasFallback,
+              },
+            ]}
+          />
           <label htmlFor={phoneInputId} className='block text-sm font-medium'>
             Emergency contact number
           </label>

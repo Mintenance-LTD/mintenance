@@ -8,6 +8,7 @@ export function VisitResponse({
   end,
   response,
   canRespond,
+  past,
   onSaved,
 }: {
   id: string;
@@ -16,6 +17,7 @@ export function VisitResponse({
   end?: string;
   response?: string;
   canRespond?: boolean;
+  past?: boolean;
   onSaved: () => void;
 }) {
   const [busy, setBusy] = useState(false),
@@ -40,7 +42,14 @@ export function VisitResponse({
   }
   return (
     <View>
-      <Text>Client response: {response || 'pending'}</Text>
+      <Text>
+        {past ? 'Last homeowner response: ' : 'Homeowner response: '}
+        {response === 'confirmed'
+          ? 'Confirmed'
+          : response === 'change_requested'
+            ? 'Requested another time'
+            : 'Pending'}
+      </Text>
       {!!error && <Text accessibilityRole='alert'>{error}</Text>}
       {canRespond && (
         <>

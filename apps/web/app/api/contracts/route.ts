@@ -14,8 +14,8 @@ import {
   updateContractSchema,
 } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { isValidUUID } from '@/lib/validation/uuid';
 import { EmailService } from '@/lib/email-service';
+import { isValidUUID } from '@/lib/validation/uuid';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 // Type definitions for contracts
@@ -39,8 +39,8 @@ export const GET = withApiHandler(
   async (request, { user }) => {
     const searchParams = request.nextUrl.searchParams;
     const jobId = searchParams.get('job_id');
-    const status = searchParams.get('status');
     const contractId = searchParams.get('contract_id');
+    const status = searchParams.get('status');
     if (contractId !== null && !isValidUUID(contractId)) {
       throw new BadRequestError('Invalid contract ID format');
     }
@@ -76,7 +76,11 @@ export const GET = withApiHandler(
       // and the unfiltered document list can still retrieve cancelled history.
       if (!status && !contractId) query = query.neq('status', 'cancelled');
     }
-    if (contractId) query = query.eq('id', contractId).neq('status', 'draft');
+    if (contractId) {
+      query = query.eq('id', contractId);
+      if (!jobId || user.role !== 'contractor')
+        query = query.neq('status', 'draft');
+    }
     if (status) {
       query = query.eq('status', status);
     }

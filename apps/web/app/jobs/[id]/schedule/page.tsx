@@ -4,7 +4,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { JobScheduling } from '../components/JobScheduling';
 
-export const metadata = { title: 'Change job schedule | Mintenance' };
+export const metadata = { title: 'Job work window | Mintenance' };
 
 export default async function JobSchedulePage({
   params,
@@ -44,7 +44,7 @@ export default async function JobSchedulePage({
         Back to job
       </Link>
       <h1 className='text-2xl font-semibold my-4'>
-        Change schedule: {job.title}
+        Work window for {job.title}
       </h1>
       {['completed', 'cancelled'].includes(job.status) ? (
         <p>This job is closed and its schedule cannot be changed.</p>

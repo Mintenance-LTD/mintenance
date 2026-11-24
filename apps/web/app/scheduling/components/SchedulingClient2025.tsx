@@ -224,7 +224,15 @@ export function SchedulingClient2025({ events }: SchedulingClient2025Props) {
                       className='col'
                       style={{ gap: 4, flex: 1, minWidth: 0 }}
                     >
-                      <h4 className='t-h4'>{event.title}</h4>
+                      <h4 className='t-h4'>
+                        {event.href ? (
+                          <Link href={event.href} className='hover:underline'>
+                            {event.title}
+                          </Link>
+                        ) : (
+                          event.title
+                        )}
+                      </h4>
                       <span
                         style={{ alignSelf: 'flex-start' }}
                         className={eventBadgeClass(event.type)}
@@ -334,7 +342,13 @@ export function SchedulingClient2025({ events }: SchedulingClient2025Props) {
                     className='p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors'
                   >
                     <h4 className='font-medium text-gray-900 mb-2'>
-                      {event.title}
+                      {event.href ? (
+                        <Link href={event.href} className='hover:underline'>
+                          {event.title}
+                        </Link>
+                      ) : (
+                        event.title
+                      )}
                     </h4>
                     <div className='flex items-center gap-2 text-sm text-gray-600'>
                       <CalendarIcon className='w-4 h-4' />

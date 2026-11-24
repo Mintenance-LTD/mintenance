@@ -65,6 +65,9 @@ it('navigates months, renders week dates, and includes the November 30 appointme
   expect(screen.getByLabelText('30 November 2026')).toHaveTextContent(
     'Boiler visit'
   );
+  expect(
+    screen.getByRole('link', { name: /View visit: Boiler visit/ })
+  ).toHaveAttribute('href', '/contractor/appointments/a');
   fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
   expect(screen.getByText('December 2026')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Previous month' }));

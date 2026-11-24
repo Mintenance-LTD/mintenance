@@ -217,8 +217,9 @@ test.describe('Subscription Status API', () => {
 });
 
 for (const role of ['homeowner', 'contractor'] as const) {
-  test(`${role} sees the visit and saves a job window without changing the signed agreement`, async ({
+  test(`${role} proposes a work window for the other party to accept`, async ({
     page,
+    browser,
   }) => {
     const jobId = process.env[`E2E_REVIEW_${role.toUpperCase()}_JOB_ID`];
     expect(jobId, 'Disposable review fixture must be seeded').toBeTruthy();
@@ -243,18 +244,47 @@ for (const role of ['homeowner', 'contractor'] as const) {
     const end = new Date(
       Date.parse(process.env.E2E_REVIEW_END!) + 2 * 86400000
     ).toISOString();
-    await page.getByLabel('Start Date & Time *').fill(ukDateTimeInput(start));
-    await page.getByLabel('End Date & Time').fill(ukDateTimeInput(end));
+    await page
+      .getByLabel('Start date and time (UK)', { exact: true })
+      .fill(ukDateTimeInput(start));
+    await page
+      .getByLabel('End date and time (UK)', { exact: true })
+      .fill(ukDateTimeInput(end));
     const saved = page.waitForResponse(
       (response) =>
         response.url().endsWith(`/api/jobs/${jobId}/schedule`) &&
         response.request().method() === 'POST'
     );
-    await page.getByRole('button', { name: 'Save Schedule' }).click();
+    await page.getByRole('button', { name: 'Send proposal' }).click();
     expect((await saved).ok()).toBe(true);
     const current = await page.request.get(`/api/jobs/${jobId}/schedule`);
     expect(current.ok()).toBe(true);
     expect(Date.parse((await current.json()).scheduled_start_date)).toBe(
+      Date.parse(process.env.E2E_REVIEW_START!)
+    );
+    const other = await browser.newPage({
+      baseURL: new URL(page.url()).origin,
+    });
+    try {
+      const otherRole = role === 'contractor' ? 'homeowner' : 'contractor';
+      expect(
+        await establishSessionInContext(other, TEST_USERS[otherRole])
+      ).toBe(true);
+      await other.goto(new URL(`/jobs/${jobId}/schedule`, page.url()).href);
+      const accepted = other.waitForResponse(
+        (response) =>
+          response.url().endsWith(`/api/jobs/${jobId}/schedule`) &&
+          response.request().method() === 'PATCH'
+      );
+      await other
+        .getByRole('button', { name: 'Accept proposed dates' })
+        .click();
+      expect((await accepted).ok()).toBe(true);
+    } finally {
+      await other.close();
+    }
+    const updated = await page.request.get(`/api/jobs/${jobId}/schedule`);
+    expect(Date.parse((await updated.json()).scheduled_start_date)).toBe(
       Date.parse(start)
     );
     const afterResponse = await page.request.get(

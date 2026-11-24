@@ -225,6 +225,7 @@ function setupStartJobMocks(
     escrowData?: unknown;
     photoCount?: number;
     updateError?: unknown;
+    workWindowEnd?: string;
   } = {}
 ) {
   const jobResult = {
@@ -264,7 +265,14 @@ function setupStartJobMocks(
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               select: vi.fn().mockResolvedValue({
-                data: updateResult.error ? null : [{ id: 'job-1' }],
+                data: updateResult.error
+                  ? null
+                  : [
+                      {
+                        id: 'job-1',
+                        scheduled_end_date: overrides.workWindowEnd,
+                      },
+                    ],
                 error: updateResult.error,
               }),
             }),
@@ -449,6 +457,17 @@ describe('POST /api/jobs/[id]/start', () => {
     const body = await res.json();
     expect(body.success).toBe(true);
     expect(body.message).toContain('started successfully');
+  });
+
+  it('records a start after the agreed work window once the usual checks pass', async () => {
+    setupStartJobMocks({ workWindowEnd: '2026-01-01T17:00:00Z' });
+    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/start');
+    const response = await POST(req, segmentData('job-1'));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      success: true,
+      outsideWorkWindow: true,
+    });
   });
 
   // ---- Verifies notifications are sent ----

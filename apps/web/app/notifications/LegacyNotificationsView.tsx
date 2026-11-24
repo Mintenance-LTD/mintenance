@@ -36,6 +36,7 @@ interface Counts {
 }
 
 interface Props {
+  dashboardHref?: string;
   notifications: NotificationItem[];
   loading: boolean;
   filter: FilterType;
@@ -92,6 +93,7 @@ function filteredList(
 }
 
 export function LegacyNotificationsView({
+  dashboardHref = '/dashboard',
   notifications,
   loading,
   filter,
@@ -110,7 +112,7 @@ export function LegacyNotificationsView({
     <>
       {/* Back to Dashboard Button */}
       <button
-        onClick={() => router.push('/dashboard')}
+        onClick={() => router.push(dashboardHref)}
         className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
       >
         <ArrowLeft className='w-5 h-5' />

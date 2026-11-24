@@ -4,7 +4,7 @@
  * The behaviour worth protecting is the EMPTY STATE. Web's equivalent
  * renders raw numbers, so a contractor with no history reads as
  * "0% on-time, 0% repeat customers, 0 years" — indistinguishable from a
- * genuinely bad tradesperson, and unfair to anyone new. Mobile shows "—"
+ * genuinely bad tradesperson, and unfair to anyone new. Mobile shows "Not enough data"
  * until there is a completed job to derive those percentages from.
  */
 import React from 'react';
@@ -19,7 +19,11 @@ describe('ProfilePerformance', () => {
         onTimeCompletion={92}
         repeatCustomers={40}
         yearsExperience={3}
-        jobsCompleted={12}
+        basis={{
+          onTime: { count: 11, total: 12 },
+          repeat: { count: 2, total: 5 },
+          responses: 12,
+        }}
       />
     );
 
@@ -31,26 +35,29 @@ describe('ProfilePerformance', () => {
     expect(getByTestId('performance-tenure-value').props.children).toBe('3y');
   });
 
-  it('shows "—" instead of 0% for a contractor with no completed jobs', () => {
+  it('shows "Not enough data" instead of 0% for a contractor with no completed jobs', () => {
     const { getByTestId, queryByText } = render(
       <ProfilePerformance
         responseTime={null}
         onTimeCompletion={0}
         repeatCustomers={0}
         yearsExperience={0}
-        jobsCompleted={0}
       />
     );
 
     // The regression guard: a new contractor must NOT be labelled 0%.
-    expect(getByTestId('performance-ontime-value').props.children).toBe('—');
-    expect(getByTestId('performance-repeat-value').props.children).toBe('—');
-    expect(getByTestId('performance-response-value').props.children).toBe('—');
+    expect(getByTestId('performance-ontime-value').props.children).toBe(
+      'Not enough data'
+    );
+    expect(getByTestId('performance-repeat-value').props.children).toBe(
+      'Not enough data'
+    );
+    expect(getByTestId('performance-response-value').props.children).toBe(
+      'Not enough data'
+    );
     // Under a year on the platform reads "New", not "0".
     expect(getByTestId('performance-tenure-value').props.children).toBe('New');
-    expect(
-      queryByText(/appear once this tradesperson completes their first job/i)
-    ).toBeTruthy();
+    expect(queryByText(/once at least three records qualify/i)).toBeTruthy();
   });
 
   it('still suppresses percentages when metrics are absent but jobs exist', () => {
@@ -61,12 +68,15 @@ describe('ProfilePerformance', () => {
         onTimeCompletion={undefined}
         repeatCustomers={undefined}
         yearsExperience={2}
-        jobsCompleted={5}
       />
     );
 
-    expect(getByTestId('performance-ontime-value').props.children).toBe('—');
-    expect(getByTestId('performance-repeat-value').props.children).toBe('—');
+    expect(getByTestId('performance-ontime-value').props.children).toBe(
+      'Not enough data'
+    );
+    expect(getByTestId('performance-repeat-value').props.children).toBe(
+      'Not enough data'
+    );
     expect(getByTestId('performance-tenure-value').props.children).toBe('2y');
   });
 
@@ -76,7 +86,11 @@ describe('ProfilePerformance', () => {
         onTimeCompletion={66.6666}
         repeatCustomers={33.3333}
         yearsExperience={1}
-        jobsCompleted={3}
+        basis={{
+          onTime: { count: 2, total: 3 },
+          repeat: { count: 1, total: 3 },
+          responses: 0,
+        }}
       />
     );
 
@@ -90,12 +104,15 @@ describe('ProfilePerformance', () => {
         onTimeCompletion={80}
         repeatCustomers={20}
         yearsExperience={1}
-        jobsCompleted={4}
+        responseTime='About 1 hour'
+        basis={{
+          onTime: { count: 4, total: 5 },
+          repeat: { count: 1, total: 5 },
+          responses: 4,
+        }}
       />
     );
 
-    expect(
-      queryByText(/appear once this tradesperson completes their first job/i)
-    ).toBeNull();
+    expect(queryByText(/once at least three records qualify/i)).toBeNull();
   });
 });

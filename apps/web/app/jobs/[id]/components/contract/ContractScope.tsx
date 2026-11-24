@@ -179,7 +179,9 @@ export function ContractScope({ contract, visibleTerms }: ContractScopeProps) {
           <div className='flex items-center gap-2 mb-3'>
             <Calendar className='w-4 h-4 text-teal-600' />
             <h4 className='text-xs font-semibold uppercase tracking-wider text-gray-400'>
-              Schedule
+              {contract.homeowner_signed_at && contract.contractor_signed_at
+                ? 'Signed agreement dates'
+                : 'Agreement dates'}
             </h4>
           </div>
           <div className='grid grid-cols-2 gap-3'>

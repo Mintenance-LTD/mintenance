@@ -68,6 +68,26 @@ it('keeps the caller ownership filter when narrowing history to contractor recei
   mocks.user = 'payer';
 });
 describe('payment history balance boundary', () => {
+  it('continues across equal timestamps without dropping the database precision', async () => {
+    const cursor = '2026-09-01T11:00:00.432109+00:00';
+    balances = [];
+    rows = [
+      { id, amount: 10, status: 'held', created_at: cursor },
+      { id: 'older', amount: 12, status: 'held', created_at: cursor },
+    ];
+    const url = 'http://localhost/api/payments/history';
+    const first = await GET(new NextRequest(`${url}?limit=1`), {} as never);
+    expect(await first.json()).toMatchObject({
+      nextCursor: cursor,
+      nextCursorId: id,
+    });
+    expect(query.order).toHaveBeenCalledWith('id', { ascending: false });
+    const params = new URLSearchParams({ cursor, cursorId: id });
+    await GET(new NextRequest(`${url}?${params}`), {} as never);
+    expect(query.or).toHaveBeenCalledWith(
+      `created_at.lt.${cursor},and(created_at.eq.${cursor},id.lt.${id})`
+    );
+  });
   it('reports a completed payout as released and preserves recorded fees', async () => {
     balances = [];
     rows = [

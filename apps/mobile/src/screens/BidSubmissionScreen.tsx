@@ -31,6 +31,7 @@ import { me } from '../design-system/mint-editorial';
 import { styles } from './BidSubmissionStyles';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import { JobRoomScope } from './components/JobRoomScope';
+import { formatCurrency } from '../utils/formatCurrency';
 import { supabase } from '../config/supabase';
 import type { JobRoomScopeOption } from './create-quote/components/LineItemScopeToolbar';
 import { featureAccess } from '../utils/featureAccess';
@@ -88,6 +89,9 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [bidRecord, setBidRecord] =
+    useState<Awaited<ReturnType<typeof BidService.getMyBidForJob>>>(null);
+  const [checkedBidId, setCheckedBidId] = useState<string>();
 
   // 2026-05-28 U5: client-side monthly bid-limit pre-warning. Mirrors the
   // server's CONTRACTOR_BID_LIMIT gate so a contractor learns they're at
@@ -231,6 +235,8 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         // and we don't need to filter by bidId on the client.
         const result = await BidService.getMyBidForJob(resolvedJobId);
         if (cancelled || !result || result.id !== existingBidId) return;
+        setBidRecord(result);
+        if (result.status !== 'pending') return;
         // The /api/contractor/bids GET returns a wider shape than the
         // local Bid type (which is the wire shape of submitBid), so
         // pull the hydration fields via a typed record cast rather
@@ -256,6 +262,8 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         }
       } catch (err) {
         logger.warn('Failed to hydrate existing bid', { err });
+      } finally {
+        if (!cancelled) setCheckedBidId(existingBidId);
       }
     })();
     return () => {
@@ -512,6 +520,41 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         <Text style={{ color: me.ink2 }}>
           {loading ? 'Loading...' : 'Job not found'}
         </Text>
+      </View>
+    );
+  }
+
+  if (
+    existingBidId &&
+    (bidRecord?.id !== existingBidId ||
+      bidRecord.status !== 'pending' ||
+      job.status !== 'posted')
+  ) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text
+          style={{ color: me.ink, fontSize: 17, fontWeight: '700' }}
+          accessibilityRole='header'
+        >
+          {bidRecord?.id === existingBidId && bidRecord.status
+            ? `Bid ${bidRecord.status} · Read-only record`
+            : checkedBidId === existingBidId
+              ? 'Bid unavailable'
+              : 'Checking your bid'}
+        </Text>
+        {bidRecord?.id === existingBidId &&
+          Number.isFinite(Number(bidRecord.amount)) && (
+            <Text style={{ color: me.ink2 }}>
+              {formatCurrency(bidRecord.amount, 'GBP')}
+            </Text>
+          )}
+        <TouchableOpacity
+          accessibilityRole='button'
+          style={{ padding: 14 }}
+          onPress={() => navigation.replace('JobDetails', { jobId })}
+        >
+          <Text style={{ color: me.brand, fontWeight: '700' }}>View job</Text>
+        </TouchableOpacity>
       </View>
     );
   }

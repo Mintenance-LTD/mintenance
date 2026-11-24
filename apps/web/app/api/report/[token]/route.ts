@@ -244,15 +244,18 @@ export const GET = withApiHandler(
       );
     }
 
-    return NextResponse.json({
-      valid: true,
-      property: {
-        id: linkedProperty.id,
-        property_name: linkedProperty.property_name,
-        address: linkedProperty.address,
+    return NextResponse.json(
+      {
+        valid: true,
+        property: {
+          id: linkedProperty.id,
+          property_name: linkedProperty.property_name,
+          address: linkedProperty.address,
+        },
+        emergency_phone: linkedProperty.tenant_emergency_phone ?? null,
+        label: tokenRecord.label,
       },
-      emergency_phone: linkedProperty.tenant_emergency_phone ?? null,
-      label: tokenRecord.label,
-    });
+      { headers: intakeHeaders }
+    );
   }
 );
