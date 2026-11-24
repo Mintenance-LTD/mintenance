@@ -1,3 +1,6 @@
+import { contractorPaymentHref } from '@/lib/contractor/payment-links';
+import { disputeHref } from '@/lib/disputes/presentation';
+import { StartChecklist } from './components/StartChecklist';
 import { cleanAddress } from '@/lib/utils/location';
 import { hasEarlyStartRequest } from '@/lib/services/contracts/early-start';
 import { workStartRestriction } from '@/lib/services/contracts/work-start';
@@ -163,6 +166,7 @@ export default async function ContractorJobDetailPage({
       'id, status, amount, platform_fee, contractor_payout, stripe_processing_fee, homeowner_approval, admin_hold_status'
     )
     .eq('job_id', resolvedParams.id)
+    .eq('payee_id', user.id)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -237,10 +241,28 @@ export default async function ContractorJobDetailPage({
     ...(currentStage === 'waiting_to_start' && startRestriction
       ? { subtitle: startRestriction }
       : {}),
+    ...(currentStage === 'ready_to_start'
+      ? {
+          title: 'Review start checklist',
+          subtitle: 'Check the work window and before photos before starting.',
+        }
+      : {}),
     ...(contractorStageUsesPaymentMessage(currentStage, payment)
       ? { title: payment.label, subtitle: payment.detail }
       : {}),
   };
+  const windowPassed = Date.parse(job.scheduled_end_date ?? '') < Date.now();
+  const showStartChecklist = [
+    'awaiting_payment',
+    'waiting_to_start',
+    'ready_to_start',
+  ].includes(currentStage);
+  const paymentHref =
+    escrowTransaction && contractorPaymentHref(escrowTransaction.id);
+  const caseHref =
+    escrowTransaction?.status === 'disputed'
+      ? disputeHref(escrowTransaction.id)
+      : null;
 
   const currentStatus =
     JOB_STATUS_CONFIG[job.status || 'posted'] || JOB_STATUS_CONFIG.posted;
@@ -363,6 +385,10 @@ export default async function ContractorJobDetailPage({
           }))}
           payment={payment}
           escrowId={escrowTransaction?.id ?? null}
+          paymentHref={paymentHref}
+          caseHref={caseHref}
+          windowPassed={windowPassed}
+          showStartChecklist={showStartChecklist}
           paymentAmounts={
             escrowTransaction
               ? {
@@ -484,6 +510,7 @@ export default async function ContractorJobDetailPage({
       </div>
 
       {/* ═══ ZONE 2: PRIMARY ACTION CARD ═══ */}
+      <div id='start-checklist' className='scroll-mt-24' />
       {job.status !== 'cancelled' && (
         <Card
           padding='lg'
@@ -544,14 +571,25 @@ export default async function ContractorJobDetailPage({
           </div>
 
           {/* Stage-specific primary content */}
-          {(payment.kind === 'released' ||
-            payment.kind === 'release_pending') && (
-            <Link
-              href='/contractor/payouts'
-              className='mb-4 inline-block underline'
-            >
-              View Payouts
-            </Link>
+          <div id='payment-status' className='scroll-mt-24'>
+            {!showStartChecklist && <p className='text-sm'>{payment.detail}</p>}
+            {caseHref && (
+              <Link href={caseHref} className='underline'>
+                View dispute
+              </Link>
+            )}
+            {paymentHref && (
+              <Link href={paymentHref} className='mb-4 block underline'>
+                View payment record
+              </Link>
+            )}
+          </div>
+          {showStartChecklist && (
+            <StartChecklist
+              funded={payment.funded}
+              beforePhotoCount={existingBeforePhotosCount ?? 0}
+              windowPassed={windowPassed}
+            />
           )}
           {currentStage === 'contract_pending' && (
             <ContractManagement
@@ -685,21 +723,25 @@ export default async function ContractorJobDetailPage({
 
           {/* Scheduling - only after contract accepted */}
           {(currentStage === 'awaiting_payment' ||
+            currentStage === 'waiting_to_start' ||
             currentStage === 'ready_to_start' ||
             currentStage === 'in_progress') && (
-            <JobScheduling
-              jobId={resolvedParams.id}
-              userRole='contractor'
-              userId={user.id}
-              currentSchedule={{
-                scheduled_start_date:
-                  job.scheduled_start_date || contract?.start_date || null,
-                scheduled_end_date:
-                  job.scheduled_end_date || contract?.end_date || null,
-                scheduled_duration_hours: job.scheduled_duration_hours || null,
-              }}
-              contractStatus={contractStatus}
-            />
+            <div id='job-schedule' className='scroll-mt-24'>
+              <JobScheduling
+                jobId={resolvedParams.id}
+                userRole='contractor'
+                userId={user.id}
+                currentSchedule={{
+                  scheduled_start_date:
+                    job.scheduled_start_date || contract?.start_date || null,
+                  scheduled_end_date:
+                    job.scheduled_end_date || contract?.end_date || null,
+                  scheduled_duration_hours:
+                    job.scheduled_duration_hours || null,
+                }}
+                contractStatus={contractStatus}
+              />
+            </div>
           )}
 
           {/* On My Way + Location Sharing - only when work is relevant */}

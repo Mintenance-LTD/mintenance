@@ -21,6 +21,8 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
+import { hasEarlyStartRequest } from '@/lib/services/contracts/early-start';
+import { workStartRestriction } from '@/lib/services/contracts/work-start';
 
 interface JobAccessRow {
   id: string;
@@ -32,13 +34,17 @@ interface JobAccessRow {
 
 interface ContractRow {
   id: string;
-  status: string | null;
+  status: string;
   homeowner_signed_at: string | null;
+  cancellation_deadline: string | null;
+  cancellation_requested_at: string | null;
 }
 
 interface EscrowRow {
   id: string;
   status: string | null;
+  payee_id: string | null;
+  admin_hold_status: string | null;
 }
 
 interface ReviewRow {
@@ -103,7 +109,9 @@ export const GET = withApiHandler(
     ] = await Promise.allSettled([
       serverSupabase
         .from('contracts')
-        .select('id, status, homeowner_signed_at')
+        .select(
+          'id, status, homeowner_signed_at, cancellation_deadline, cancellation_requested_at'
+        )
         .eq('job_id', jobId)
         .neq('status', 'cancelled')
         .order('created_at', { ascending: false })
@@ -111,7 +119,7 @@ export const GET = withApiHandler(
         .maybeSingle(),
       serverSupabase
         .from('escrow_transactions')
-        .select('id, status')
+        .select('id, status, payee_id, admin_hold_status')
         .eq('job_id', jobId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -176,6 +184,25 @@ export const GET = withApiHandler(
       afterPhotoRes.status === 'fulfilled'
         ? (afterPhotoRes.value.count ?? 0)
         : 0;
+    const canCheckEarlyStart =
+      contract?.status === 'accepted' &&
+      !contract.cancellation_requested_at &&
+      Date.parse(contract.cancellation_deadline ?? '') > Date.now();
+    const contractorStartRestriction =
+      isAssignedContractor && row.status === 'assigned'
+        ? (workStartRestriction(
+            contract,
+            Boolean(
+              canCheckEarlyStart &&
+              (await hasEarlyStartRequest(contract.id).catch(() => false))
+            )
+          ) ??
+          (['admin_hold', 'pending_review'].includes(
+            escrow?.admin_hold_status ?? ''
+          )
+            ? 'Mintenance is reviewing this payment. Wait for the hold to clear before starting.'
+            : null))
+        : null;
 
     return NextResponse.json({
       contractStatus: contract?.status ?? null,
@@ -186,6 +213,9 @@ export const GET = withApiHandler(
       // and the deal deadlocks after the homeowner signs.
       contractHomeownerSigned: !!contract?.homeowner_signed_at,
       escrowStatus: escrow?.status ?? null,
+      contractorEscrowId:
+        isAssignedContractor && escrow?.payee_id === user.id ? escrow.id : null,
+      contractorStartRestriction,
       hasReviewed: !!review,
       buildingAssessment: assessment
         ? {

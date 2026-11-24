@@ -53,6 +53,7 @@ import { JobIssueButton } from './JobIssueButton';
 import { JobMapCard } from './JobMapCard';
 import { ContractorTipsReceivedCard } from './ContractorTipsReceivedCard';
 import { PreArrivalPhotoGallery } from './PreArrivalPhotoGallery';
+import { StartChecklist } from './StartChecklist';
 import type { ContractorPaymentPresentation } from '../payment-presentation';
 import {
   platformFeeBreakdown,
@@ -137,6 +138,10 @@ interface MintEditorialJobDetailViewProps {
   steps: ProgressStep[];
   payment: ContractorPaymentPresentation;
   escrowId: string | null;
+  paymentHref?: string | null;
+  caseHref?: string | null;
+  windowPassed?: boolean;
+  showStartChecklist?: boolean;
   paymentAmounts?: {
     gross: number;
     fee: number | null;
@@ -204,6 +209,10 @@ export function MintEditorialJobDetailView({
   steps,
   payment,
   escrowId,
+  paymentHref,
+  caseHref,
+  windowPassed = false,
+  showStartChecklist = false,
   paymentAmounts,
   jobPhotoUrls,
   existingBeforePhotosCount = 0,
@@ -372,22 +381,35 @@ export function MintEditorialJobDetailView({
           {/* Stage action card */}
           {job.status !== 'cancelled' && (
             <div
-              className='card card-pad'
+              id='start-checklist'
+              className='card card-pad scroll-mt-24'
               style={{ borderLeft: '4px solid var(--me-brand)' }}
             >
               <div className='col' style={{ gap: 14 }}>
                 <div className='col' style={{ gap: 4 }}>
                   <h2 className='t-h2'>{stageTitle}</h2>
                   <p className='t-body'>{stageSubtitle}</p>
-                  {(isReleased || payment.kind === 'release_pending') && (
-                    <Link
-                      href='/contractor/payouts'
-                      className='t-meta underline'
-                    >
-                      View Payouts
-                    </Link>
-                  )}
+                  <div id='payment-status' className='scroll-mt-24'>
+                    {caseHref && (
+                      <Link href={caseHref} className='t-meta underline'>
+                        View dispute
+                      </Link>
+                    )}
+                    {paymentHref &&
+                      (isReleased || payment.kind === 'release_pending') && (
+                        <Link href={paymentHref} className='t-meta underline'>
+                          View payment record
+                        </Link>
+                      )}
+                  </div>
                 </div>
+                {showStartChecklist && (
+                  <StartChecklist
+                    funded={payment.funded}
+                    beforePhotoCount={existingBeforePhotosCount}
+                    windowPassed={windowPassed}
+                  />
+                )}
 
                 {currentStage === 'contract_pending' ? (
                   <ContractManagement
@@ -580,21 +602,25 @@ export function MintEditorialJobDetailView({
             )}
 
           {/* Scheduling */}
-          {(currentStage === 'ready_to_start' ||
+          {(currentStage === 'waiting_to_start' ||
+            currentStage === 'ready_to_start' ||
             currentStage === 'in_progress') && (
-            <JobScheduling
-              jobId={job.id}
-              userRole='contractor'
-              userId={userId}
-              currentSchedule={{
-                scheduled_start_date: job.scheduled_start_date ?? null,
-                scheduled_end_date: job.scheduled_end_date ?? null,
-                scheduled_duration_hours: job.scheduled_duration_hours || null,
-              }}
-              contractStatus={
-                contractStatus as 'none' | 'pending' | 'accepted' | undefined
-              }
-            />
+            <div id='job-schedule' className='scroll-mt-24'>
+              <JobScheduling
+                jobId={job.id}
+                userRole='contractor'
+                userId={userId}
+                currentSchedule={{
+                  scheduled_start_date: job.scheduled_start_date ?? null,
+                  scheduled_end_date: job.scheduled_end_date ?? null,
+                  scheduled_duration_hours:
+                    job.scheduled_duration_hours || null,
+                }}
+                contractStatus={
+                  contractStatus as 'none' | 'pending' | 'accepted' | undefined
+                }
+              />
+            </div>
           )}
 
           {/* Travel is available only after the same waiting-to-start gates as work. */}
@@ -1064,9 +1090,11 @@ export function MintEditorialJobDetailView({
                   entitlement. The platform balance and a bank payout are
                   separate amounts.
                 </p>
-                <Link href='/contractor/payouts' className='t-meta'>
-                  Check transfer and bank payout status
-                </Link>
+                {paymentHref && (
+                  <Link href={paymentHref} className='t-meta underline'>
+                    Check transfer and bank payout status
+                  </Link>
+                )}
                 <p
                   className='t-meta'
                   style={{

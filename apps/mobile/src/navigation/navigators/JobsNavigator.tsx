@@ -19,6 +19,7 @@ import { QuoteAmendmentsScreen } from '../../screens/job-details/QuoteAmendments
 import { DisputeScreen } from '../../screens/DisputeScreen';
 import { RetainedDisputesScreen } from '../../screens/RetainedDisputesScreen';
 import { DisputeDetailsScreen } from '../../screens/DisputeDetailsScreen';
+import { ContractorPaymentDetailsScreen } from '../../screens/ContractorPaymentDetailsScreen';
 import { BidReviewScreen } from '../../screens/BidReviewScreen';
 import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerPhotoReviewScreen';
 import { JobPhotoUploadScreen } from '../../screens/job-details/JobPhotoUploadScreen';
@@ -246,6 +247,11 @@ const JobsNavigator: React.FC = () => {
         name='DisputeDetails'
         component={SafeDisputeDetailsScreen}
         options={{ title: 'Dispute details' }}
+      />
+      <JobsStack.Screen
+        name='ContractorPaymentDetails'
+        component={ContractorPaymentDetailsScreen}
+        options={{ title: 'Payment details' }}
       />
       <JobsStack.Screen
         name='BidReview'

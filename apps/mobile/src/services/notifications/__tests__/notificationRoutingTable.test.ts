@@ -657,3 +657,28 @@ it('routes a scheduled phone call reminder to its conversation', () => {
     routeForNotification('message_received', payload)
   );
 });
+it('opens exact contractor payments and disputes from notification links', () => {
+  const escrowId = '00000000-0000-4000-8000-000000000001';
+  expect(
+    routeForNotification('payment_released', {
+      actionUrl: '/contractor/payments/' + escrowId,
+    })
+  ).toMatchObject({
+    screen: 'Main',
+    params: {
+      screen: 'JobsTab',
+      params: { screen: 'ContractorPaymentDetails', params: { escrowId } },
+    },
+  });
+  expect(
+    routeForNotification('dispute_opened', {
+      actionUrl: '/disputes/' + escrowId,
+    })
+  ).toMatchObject({
+    screen: 'Main',
+    params: {
+      screen: 'JobsTab',
+      params: { screen: 'DisputeDetails', params: { escrowId } },
+    },
+  });
+});

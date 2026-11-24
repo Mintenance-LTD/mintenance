@@ -37,7 +37,7 @@ import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
 
 export type NotificationType = 'job' | 'bid' | 'message' | 'payment' | 'system';
 
-export type InboxFilter = 'all' | 'jobs' | 'messages' | 'money';
+export type InboxFilter = 'all' | 'unread' | 'jobs' | 'messages' | 'money';
 
 export interface InboxNotification {
   id: string;
@@ -67,6 +67,8 @@ interface NotificationsInboxViewProps {
   /** Route for the Preferences button. Differs per role. */
   preferencesHref: string;
   unreadTotal?: number;
+  showUnreadFilter?: boolean;
+  onClearLoaded?: () => void;
   onMarkAllRead: () => void;
   onNotificationClick: (n: InboxNotification) => void;
   onDelete: (id: string) => void;
@@ -86,6 +88,7 @@ function filteredList(
   filter: InboxFilter
 ): InboxNotification[] {
   if (filter === 'all') return notifications;
+  if (filter === 'unread') return notifications.filter((n) => !n.is_read);
   return notifications.filter((n) => mapFilter(n.type) === filter);
 }
 
@@ -291,6 +294,16 @@ function NotificationRow({
             View dispute
           </span>
         )}
+        {notification.action_url?.endsWith('#start-checklist') && (
+          <span className='w-fit text-xs font-semibold text-teal-800'>
+            View start checklist
+          </span>
+        )}
+        {notification.action_url?.startsWith('/contractor/payments/') && (
+          <span className='w-fit text-xs font-semibold text-teal-800'>
+            View payment record
+          </span>
+        )}
         <span
           className='t-meta'
           style={{ fontSize: 12, color: 'var(--me-ink-3)' }}
@@ -347,6 +360,8 @@ export function NotificationsInboxView({
   onFilterChange,
   preferencesHref,
   unreadTotal,
+  showUnreadFilter = false,
+  onClearLoaded,
   onMarkAllRead,
   onNotificationClick,
   onDelete,
@@ -389,6 +404,15 @@ export function NotificationsInboxView({
               Mark all read
             </button>
           ) : null}
+          {onClearLoaded && notifications.length > 0 && (
+            <button
+              type='button'
+              className='btn btn-secondary btn-sm'
+              onClick={onClearLoaded}
+            >
+              Clear loaded
+            </button>
+          )}
           <Link
             href={preferencesHref}
             className='btn btn-ghost btn-sm'
@@ -414,7 +438,14 @@ export function NotificationsInboxView({
           overflowX: 'auto',
         }}
       >
-        {TABS.map((tab) => {
+        {(showUnreadFilter
+          ? [
+              TABS[0],
+              { id: 'unread', label: 'Unread', countKey: 'unread' } as const,
+              ...TABS.slice(1),
+            ]
+          : TABS
+        ).map((tab) => {
           const isActive = filter === tab.id;
           const count = counts[tab.countKey];
           return (

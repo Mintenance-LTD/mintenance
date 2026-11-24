@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resolveInboxActions } from '@/lib/notifications/inbox-actions';
 import {
   serverSupabase,
   resolveRequestDbClient,
@@ -89,7 +90,15 @@ export const GET = withApiHandler(
     // synthetic rows that don't belong in a paginated history view —
     // they would interleave unpredictably across pages.
     if (includeHistory) {
-      return NextResponse.json({ notifications: mappedNotifications });
+      const notifications =
+        user.role === 'contractor'
+          ? await resolveInboxActions(
+              serverSupabase,
+              user,
+              mappedNotifications.map((row) => ({ ...row, approval_key: null }))
+            )
+          : mappedNotifications;
+      return NextResponse.json({ notifications });
     }
 
     // Debug: Log specific notification types

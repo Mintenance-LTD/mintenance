@@ -422,6 +422,56 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           locationStr={locationStr}
           daysAgo={daysAgo}
         />
+        {!!user?.id && job.contractor_id === user.id && (
+          <View style={styles.sectionPadded}>
+            {job.status === 'assigned' &&
+              viewModel.contractStatus === 'accepted' && (
+                <>
+                  <Text style={styles.sectionLabel}>Start checklist</Text>
+                  <Text>
+                    {viewModel.escrowStatus === 'held'
+                      ? 'Customer payment secured'
+                      : viewModel.escrowStatus === 'pending'
+                        ? 'Payment is settling'
+                        : !viewModel.escrowStatus
+                          ? 'Waiting for homeowner payment'
+                          : 'Check the payment status before starting'}
+                  </Text>
+                  {!!viewModel.contractorStartRestriction && (
+                    <Text>{viewModel.contractorStartRestriction}</Text>
+                  )}
+                  <Text>
+                    {viewModel.beforePhotoCount
+                      ? 'Before photos uploaded'
+                      : 'Upload at least one before photo on site'}
+                  </Text>
+                  {Date.parse(
+                    (job as { scheduledEndDate?: string }).scheduledEndDate ??
+                      ''
+                  ) < Date.now() && (
+                    <Text>
+                      The work window has passed. You can start once the other
+                      checks pass. If the visit did not go ahead, agree a new
+                      date with the homeowner first.
+                    </Text>
+                  )}
+                </>
+              )}
+            {viewModel.contractorEscrowId && (
+              <TouchableOpacity
+                accessibilityRole='button'
+                onPress={() => {
+                  if (viewModel.contractorEscrowId)
+                    navigation.navigate('ContractorPaymentDetails', {
+                      escrowId: viewModel.contractorEscrowId,
+                    });
+                }}
+              >
+                <Text style={styles.sectionLabel}>View payment record</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {showLiveHero && jobLat != null && jobLng != null && (
           <View style={styles.sectionPadded}>
@@ -767,6 +817,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         contractStatus: viewModel.contractStatus,
         contractHomeownerSigned: viewModel.contractHomeownerSigned,
         escrowStatus: viewModel.escrowStatus,
+        contractorStartRestriction: viewModel.contractorStartRestriction,
         hasReviewed: viewModel.hasReviewed,
         beforePhotoCount: viewModel.beforePhotoCount,
         bidsArray,
