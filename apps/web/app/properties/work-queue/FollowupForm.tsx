@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   propertyFollowupDate,
   propertyFollowupDeadline,
@@ -13,6 +14,8 @@ interface Data {
     waiting_for: string;
   } | null;
   people: { id: string; first_name: string; last_name: string }[];
+  hasEligibleManager?: boolean;
+  currentUserId?: string;
   updates: {
     id: string;
     body: string;
@@ -203,6 +206,23 @@ function FollowupEditor({ propertyId, kind, sourceId, onSaved }: Props) {
         </p>
       ) : (
         <>
+          {kind === 'report' && data.hasEligibleManager === false && (
+            <div className='rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950'>
+              <p className='font-semibold'>
+                No eligible manager for this property
+              </p>
+              <p>
+                An active teammate must accept a Manager or Admin invitation
+                before you can assign this report to them.
+              </p>
+              <Link
+                className='font-semibold underline underline-offset-2'
+                href={`/properties/${encodeURIComponent(propertyId)}?tab=manage&manage=people`}
+              >
+                People and access
+              </Link>
+            </div>
+          )}
           <fieldset disabled={busy} className='flex flex-wrap gap-4'>
             <label>
               Responsible person{' '}
@@ -213,7 +233,11 @@ function FollowupEditor({ propertyId, kind, sourceId, onSaved }: Props) {
                 <option value=''>Unassigned</option>
                 {data.people.map((person) => (
                   <option key={person.id} value={person.id}>
-                    {person.first_name} {person.last_name}
+                    {person.id === data.currentUserId
+                      ? 'You'
+                      : [person.first_name, person.last_name]
+                          .filter(Boolean)
+                          .join(' ') || 'Property team member'}
                   </option>
                 ))}
               </select>

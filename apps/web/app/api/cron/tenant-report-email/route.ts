@@ -16,15 +16,16 @@ export const GET = withCronHandler('tenant-report-email', async () => {
       .maybeSingle();
     if (access.error) throw access.error;
     const eligible = access.data?.enabled && access.data?.verified_at;
-    const url = `${REPORT_ORIGIN}/maintenance/report-access?reportId=${item.report_id}`;
+    const url = `${REPORT_ORIGIN}/maintenance/reports/${item.report_id}`;
+    const recovery = `${REPORT_ORIGIN}/maintenance/report-access?reportId=${item.report_id}`;
     const delivered =
       !eligible ||
       (await EmailService.sendEmail({
         to: access.data!.email,
         subject: 'Your maintenance report has an update',
         timeoutMs: 8000,
-        text: `There is an update to your maintenance report. Open your saved private link, or recover access here: ${url}\nYou can turn off reply emails in your report conversation.`,
-        html: `<p>There is an update to your maintenance report.</p><p>Open your saved private link, or <a href="${url}">recover access to your report</a>.</p><p>You can turn off reply emails in your report conversation.</p>`,
+        text: `There is an update to your maintenance report. View the report: ${url}\nIf you need to recover access, open ${recovery}. You can turn off update emails in the report.`,
+        html: `<p>There is an update to your maintenance report.</p><p><a href="${url}">View your maintenance report</a> or <a href="${recovery}">recover access</a>.</p><p>You can turn off update emails in the report.</p>`,
       }));
     if (delivered) {
       const ack = await serverSupabase

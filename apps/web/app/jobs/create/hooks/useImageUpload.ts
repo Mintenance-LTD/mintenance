@@ -25,6 +25,7 @@ interface UseImageUploadReturn {
   uploadedImages: string[];
   isUploading: boolean;
   handleImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  addFiles: (files: File[]) => boolean;
   removeImage: (index: number) => void;
   uploadImages: (csrfToken?: string) => Promise<string[]>;
   clearImages: () => void;
@@ -54,18 +55,16 @@ export function useImageUpload({
     []
   );
 
-  const handleImageSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files || []);
-      if (files.length === 0) return;
-
+  const addFiles = useCallback(
+    (files: File[]) => {
+      if (files.length === 0) return false;
       // Validate file count
-      if (imagePreviews.length + files.length > maxImages) {
+      if (previewsRef.current.length + files.length > maxImages) {
         const errorMessage = `Maximum ${maxImages} photos allowed`;
         if (onError) {
           onError(errorMessage);
         }
-        return;
+        return false;
       }
 
       // Create previews
@@ -78,9 +77,15 @@ export function useImageUpload({
       previewsRef.current = [...previewsRef.current, ...newPreviews];
       setImagePreviews(previewsRef.current);
       setUploadedImages([]);
-      e.target.value = '';
+      return true;
     },
-    [imagePreviews.length, maxImages, onError]
+    [maxImages, onError]
+  );
+  const handleImageSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (addFiles(Array.from(e.target.files || []))) e.target.value = '';
+    },
+    [addFiles]
   );
 
   const removeImage = useCallback((index: number) => {
@@ -193,6 +198,7 @@ export function useImageUpload({
     uploadedImages,
     isUploading,
     handleImageSelect,
+    addFiles,
     removeImage,
     uploadImages,
     clearImages,

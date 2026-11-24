@@ -4,6 +4,9 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 import { reportPhotos } from './followup';
+import { readReportStaffFollowup } from './staff-followup';
+import { readReportRepairProgress } from './repair-progress';
+import type { ReportRepairProgress } from '@mintenance/shared';
 const input = z.object({
   reportId: z.string().uuid(),
   messageId: z.string().uuid().optional(),
@@ -74,10 +77,13 @@ export async function conversation(request: NextRequest, actor: string | null) {
   }
   let summary = null;
   let summary_unavailable = false;
+  let staffFollowup;
+  let repairProgress: ReportRepairProgress | null = null;
+  let repairProgressUnavailable = false;
   if (request.method === 'GET') {
     const result = await serverSupabase
       .from('anonymous_reports')
-      .select('category,description,created_at')
+      .select('category,description,created_at,property_id,job_id')
       .eq('id', value.data.reportId)
       .maybeSingle();
     summary_unavailable = !!result.error || !result.data;
@@ -87,6 +93,23 @@ export async function conversation(request: NextRequest, actor: string | null) {
         description: result.data.description,
         created_at: result.data.created_at,
       };
+    if (actor && data.role === 'manager' && result.data?.property_id)
+      staffFollowup = await readReportStaffFollowup(
+        actor,
+        value.data.reportId,
+        result.data.property_id
+      );
+    if (result.data?.job_id && result.data.property_id) {
+      try {
+        repairProgress = await readReportRepairProgress(
+          result.data.job_id,
+          result.data.property_id
+        );
+        repairProgressUnavailable = !repairProgress;
+      } catch {
+        repairProgressUnavailable = true;
+      }
+    }
   }
   let photos: { url: string; slot: number }[] = [];
   let photos_unavailable = false;
@@ -103,6 +126,9 @@ export async function conversation(request: NextRequest, actor: string | null) {
       summary_unavailable,
       photos,
       photos_unavailable,
+      ...(staffFollowup ? { staffFollowup } : {}),
+      ...(repairProgress ? { repairProgress } : {}),
+      ...(repairProgressUnavailable ? { repairProgressUnavailable } : {}),
       ...(request.method === 'POST' ? { messageId: value.data.messageId } : {}),
     },
     {

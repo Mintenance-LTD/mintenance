@@ -306,8 +306,22 @@ describe('CreateJobPage', () => {
       const user = userEvent.setup();
       const reportId = '44444444-4444-4444-8444-444444444444';
       mockSearchParams.set('tenant_report_id', reportId);
-      mockSearchParams.set('category', 'garden_exterior');
-      mockSearchParams.set('is_rental_property', 'true');
+      vi.mocked(fetch).mockImplementation(async (url) =>
+        Response.json(
+          String(url).includes('/job-draft')
+            ? {
+                category: 'garden_exterior',
+                urgency: 'medium',
+                description: 'Private resident description.',
+                propertyId: PROP_HOUSE_ID,
+                location: mockProperties[0].address,
+                photos: [],
+              }
+            : String(url).includes('/upload-photos')
+              ? { urls: ['https://example.invalid/leak.jpg'] }
+              : { properties: mockProperties }
+        )
+      );
       vi.mocked(submitJob).mockResolvedValue({
         success: true,
         jobId: 'job-123',
@@ -316,8 +330,10 @@ describe('CreateJobPage', () => {
       render(<CreateJobPage />);
 
       expect(
-        screen.getByTestId('category-gardening').getAttribute('style')
+        (await screen.findByTestId('category-gardening')).getAttribute('style')
       ).toContain('background: var(--me-brand-soft)');
+      expect(screen.getByDisplayValue('Private resident description.')).toBeVisible();
+      expect(screen.getByText('This report stays open until you submit the job.')).toBeVisible();
       await completeAllSteps(user);
 
       // Submit button copy is "Post job" in the Mint Editorial redesign.

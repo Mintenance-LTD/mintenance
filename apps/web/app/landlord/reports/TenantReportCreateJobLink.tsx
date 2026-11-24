@@ -10,9 +10,6 @@ export function TenantReportCreateJobLink({
     job_id?: string | null;
     properties: { id: string } | null;
     status: string;
-    category: string;
-    description: string;
-    urgency: string;
   };
   className: string;
 }) {
@@ -29,12 +26,7 @@ export function TenantReportCreateJobLink({
       href={{
         pathname: '/jobs/create',
         query: {
-          is_rental_property: 'true',
-          property_id: report.properties.id,
           tenant_report_id: report.id,
-          category: report.category,
-          description: report.description,
-          urgency: report.urgency,
         },
       }}
     >

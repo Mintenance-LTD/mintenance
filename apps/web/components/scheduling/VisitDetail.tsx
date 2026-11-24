@@ -81,6 +81,12 @@ export function VisitDetail({
           {slot.responseAt ? ` · ${formatUKSchedule(slot.responseAt)}` : ''}
         </p>
         {latestChange && <VisitEventDetails event={latestChange} />}
+        {visit.job && !past && (
+          <p className='text-sm'>
+            Access confirmation:{' '}
+            {visit.canRespond ? 'You' : visit.client?.name || 'The client'}.
+          </p>
+        )}
         {(participant?.name || location) && (
           <dl className='grid gap-2 text-sm'>
             {participant?.name && (

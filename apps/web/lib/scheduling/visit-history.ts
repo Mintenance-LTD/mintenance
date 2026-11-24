@@ -105,7 +105,7 @@ export function currentVisitSlot(visit: VisitRecord): VisitSlot {
   };
 }
 
-export function formatVisitSlot(slot: VisitSlot) {
+export function formatVisitSlot(slot: Pick<VisitSlot, 'date' | 'start' | 'end'>) {
   const date = new Date(`${slot.date}T12:00:00Z`).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',

@@ -2,6 +2,11 @@ import { visitHref } from '@/lib/scheduling/visit-history';
 import { isValidUUID } from '@/lib/validation/uuid';
 import type { FeedNotification } from './feed';
 
+export function isVisitRecordLink(url?: string | null): boolean {
+  const match = url?.match(/^\/(?:contractor\/)?appointments\/([^/]+)$/);
+  return !!match && isValidUUID(match[1]);
+}
+
 export function resolveVisitAlert<T extends FeedNotification>(
   row: T,
   role?: string

@@ -97,7 +97,15 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
     .is('deleted_at', null);
   if (error) throw error;
   return NextResponse.json(
-    { followup, updates: results[0].data, people },
+    {
+      followup,
+      updates: results[0].data,
+      people: people ?? [],
+      hasEligibleManager: (people ?? []).some(
+        (person) => person.id !== owner.owner_id
+      ),
+      currentUserId: user.id,
+    },
     { headers: { 'Cache-Control': 'private, no-store' } }
   );
 });

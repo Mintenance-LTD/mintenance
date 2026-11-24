@@ -53,6 +53,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  window.history.replaceState(null, '', '/');
 });
 it('shows responsibility and view-only access without a follow-up editor', async () => {
   render(<Page />);
@@ -115,9 +116,39 @@ it('shows the age and missing assignment on a prioritised tenant report', async 
   ).toHaveAttribute('data-priority', '0');
   expect(screen.getByRole('link', { name: 'Review report' })).toHaveAttribute(
     'href',
-    '/maintenance/reports/report'
+    '/maintenance/reports/report?from=action-queue'
   );
-  expect(screen.getByRole('button', { name: 'Manage follow-up' })).toBeVisible();
+  expect(
+    screen.getByRole('button', { name: 'Manage follow-up' })
+  ).toBeVisible();
+});
+it('restores the unassigned filters, page and focus on the report', async () => {
+  window.history.replaceState(
+    null,
+    '',
+    '/properties/work-queue?scope=unassigned&priority=0&sort=due&offset=25#queue-report-report'
+  );
+  fetcher.mockResolvedValue(
+    response('unassigned', [
+      {
+        ...item,
+        id: 'report',
+        kind: 'report',
+        title: 'Mould report',
+        urgency: 0,
+      },
+    ])
+  );
+  render(<Page />);
+  const review = await screen.findByRole('link', { name: 'Review report' });
+  expect(screen.getByLabelText('Team queue')).toHaveValue('unassigned');
+  expect(screen.getByLabelText('Priority')).toHaveValue('0');
+  expect(review).toHaveFocus();
+  expect(screen.getByText('Page 2')).toBeInTheDocument();
+  expect(review).toHaveAttribute(
+    'href',
+    '/maintenance/reports/report?scope=unassigned&priority=0&sort=due&offset=25&from=action-queue'
+  );
 });
 it('rejects a response for the wrong scope instead of showing an unfiltered queue', async () => {
   render(<Page />);

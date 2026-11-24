@@ -33,6 +33,8 @@ import { PhotosStep } from './_components/photos-step';
 import { BudgetStep } from './_components/budget-step';
 import { ReviewStep } from './_components/review-step';
 import { StepNavigation } from './_components/step-navigation';
+import { useTenantJobSource } from './hooks/useTenantJobSource';
+import { ReportPhotoPicker } from './_components/report-photo-picker';
 
 /** Map AI damage type to job service category */
 function mapDamageTypeToCategory(damageType: string): string | null {
@@ -86,11 +88,29 @@ function mapAIUrgency(
 }
 
 export default function CreateJobPage2025() {
+  const searchParams = useSearchParams();
+  const account = useCurrentUser();
+  return (
+    <CreateJobForm
+      key={`${account.user?.id ?? ''}:${searchParams?.get('tenant_report_id') ?? ''}`}
+      account={account}
+    />
+  );
+}
+
+function CreateJobForm({
+  account,
+}: {
+  account: ReturnType<typeof useCurrentUser>;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading: loadingUser } = useCurrentUser();
+  const { user, loading: loadingUser } = account;
   const { csrfToken } = useCSRF();
   const [currentStep, setCurrentStep] = useState(1);
+  const reportId = searchParams?.get('tenant_report_id') || undefined;
+  const { source, retry: retryReport } = useTenantJobSource(reportId, user?.id);
+  const sourceForm = source && 'form' in source ? source.form : undefined;
 
   // URL query params can seed title / category / urgency / budget when
   // the user navigates in from a deep-link (e.g. a property's "Request
@@ -108,10 +128,13 @@ export default function CreateJobPage2025() {
   );
 
   const draft = useJobDraft(
-    user?.id,
-    searchParams?.toString() || '',
+    reportId && !sourceForm ? undefined : user?.id,
+    reportId
+      ? new URLSearchParams({ tenant_report_id: reportId }).toString()
+      : searchParams?.toString() || '',
     formData,
-    setFormData
+    setFormData,
+    sourceForm
   );
   const [properties, setProperties] = useState<Property[]>([]);
   // Start loading=true so the first render shows "Loading…" instead of flashing
@@ -270,9 +293,17 @@ export default function CreateJobPage2025() {
   }, [buildingAssessment.assessment]);
 
   const handleSubmit = async () => {
+    if (reportId && (!sourceForm || !draft.ready)) return;
     const submissionForm = sharedProperty
       ? { ...formData, who_pays: undefined, payer_email: undefined }
-      : formData;
+      : sourceForm
+        ? {
+            ...formData,
+            property_id: sourceForm.property_id,
+            location: sourceForm.location,
+            is_rental_property: true,
+          }
+        : formData;
     const errors = validateJobForm(
       submissionForm,
       imageUpload.uploadedImages,
@@ -325,7 +356,7 @@ export default function CreateJobPage2025() {
 
       const result = await submitJob({
         submissionId: draft.submissionId(),
-        tenantReportId: searchParams?.get('tenant_report_id') ?? undefined,
+        tenantReportId: reportId,
         formData: submissionForm,
         photoUrls: imageUrls,
         csrfToken: csrfToken || '',
@@ -428,6 +459,32 @@ export default function CreateJobPage2025() {
 
   if (!user) return null;
 
+  if (reportId && (!sourceForm || !draft.ready)) {
+    return (
+      <HomeownerPageWrapper>
+        <div className='p-8' role='status'>
+          {source && 'jobId' in source ? (
+            <button
+              className='underline'
+              onClick={() => router.push(`/jobs/${source.jobId}`)}
+            >
+              View the job created from this report
+            </button>
+          ) : source && 'error' in source ? (
+            <>
+              {source.error}{' '}
+              <button className='underline' onClick={retryReport}>
+                Try again
+              </button>
+            </>
+          ) : (
+            'Loading the private tenant report…'
+          )}
+        </div>
+      </HomeownerPageWrapper>
+    );
+  }
+
   const hasImages =
     imageUpload.imagePreviews.length > 0 ||
     imageUpload.uploadedImages.length > 0;
@@ -466,6 +523,11 @@ export default function CreateJobPage2025() {
           style={{ padding: '28px 32px' }}
         >
           <div style={{ maxWidth: 768, margin: '0 auto' }}>
+            {reportId && (
+              <p className='mb-4 rounded-lg bg-teal-50 p-3'>
+                This report stays open until you submit the job.
+              </p>
+            )}
             {/* Hire-again banner — surfaces when the homeowner came
                 in via the "Hire again" CTA on a completed job. */}
             <HireAgainBanner
@@ -491,7 +553,13 @@ export default function CreateJobPage2025() {
                 <DetailsStep
                   formData={formData}
                   setFormData={setFormData}
-                  properties={properties}
+                  properties={
+                    sourceForm
+                      ? properties.filter(
+                          (property) => property.id === sourceForm.property_id
+                        )
+                      : properties
+                  }
                   loadingProperties={loadingProperties}
                   ownerPays={!!sharedProperty}
                   validationErrors={validationErrors}
@@ -501,13 +569,25 @@ export default function CreateJobPage2025() {
               )}
 
               {currentStep === 2 && (
-                <PhotosStep
-                  imagePreviews={imageUpload.imagePreviews}
-                  onFileChange={handleFileChange}
-                  onRemoveImage={imageUpload.removeImage}
-                  isAssessing={buildingAssessment.isAssessing}
-                  assessment={buildingAssessment.assessment}
-                />
+                <>
+                  {source && 'photos' in source && (
+                    <ReportPhotoPicker
+                      photos={source.photos}
+                      filenames={imageUpload.imagePreviews.map(
+                        ({ file }) => file.name
+                      )}
+                      addFiles={imageUpload.addFiles}
+                      reload={retryReport}
+                    />
+                  )}
+                  <PhotosStep
+                    imagePreviews={imageUpload.imagePreviews}
+                    onFileChange={handleFileChange}
+                    onRemoveImage={imageUpload.removeImage}
+                    isAssessing={buildingAssessment.isAssessing}
+                    assessment={buildingAssessment.assessment}
+                  />
+                </>
               )}
 
               {currentStep === 3 && (

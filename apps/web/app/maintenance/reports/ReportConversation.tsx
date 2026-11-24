@@ -10,32 +10,45 @@ import {
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
   reportConversationHref,
-  reportConversationReturn,
+  reportReturnLink,
   type ReportConversationOrigin,
 } from '@/lib/reports/conversation-navigation';
 import { ReportExtras } from './ReportExtras';
+import { StaffFollowup } from './StaffFollowup';
+import { RepairProgress } from './RepairProgress';
 
 const publicNextSteps = new Map([
   ['new', 'Waiting for the property team to review.'],
   ['acknowledged', 'Waiting for the property team to confirm the next steps.'],
-  ['converted', 'Check the recorded updates for what happens next.'],
+  ['converted', 'Track the repair and confirmed visit times here.'],
 ]);
 
 export function ReportConversation({
   reportId,
   origin = 'action-queue',
+  queueSearch,
 }: {
   reportId: string;
   origin?: ReportConversationOrigin;
+  queueSearch?: string;
 }) {
-  return <CaseConversation key={reportId} reportId={reportId} origin={origin} />;
+  return (
+    <CaseConversation
+      key={reportId}
+      reportId={reportId}
+      origin={origin}
+      queueSearch={queueSearch}
+    />
+  );
 }
 function CaseConversation({
   reportId,
   origin,
+  queueSearch,
 }: {
   reportId: string;
   origin: ReportConversationOrigin;
+  queueSearch?: string;
 }) {
   const mounted = useRef(true),
     sending = useRef(false);
@@ -56,8 +69,17 @@ function CaseConversation({
     [body, setBody] = useState(''),
     [busy, setBusy] = useState(false),
     [pending, setPending] = useState<{ id: string; body: string } | null>(null);
-  const nextStep = data && publicNextSteps.get(data.status);
-  const returnLink = reportConversationReturn[origin];
+  const staffFollowup =
+    !receipt && data?.role === 'manager' ? data.staffFollowup : undefined;
+  const nextStep =
+    data?.status === 'new' && staffFollowup?.assigneeName === 'You'
+      ? 'Review the original report and share an update when you know the next step.'
+      : data?.status === 'new' &&
+          staffFollowup?.canManage &&
+          !staffFollowup.assigneeName
+        ? 'Choose who will review the report, or assign it to yourself.'
+        : data && publicNextSteps.get(data.status);
+  const returnLink = reportReturnLink(origin, reportId, queueSearch);
   useEffect(() => {
     const readReceipt = () => {
       const hash = window.location.hash.slice(1);
@@ -186,16 +208,15 @@ function CaseConversation({
           className='space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4'
         >
           <p>{error}</p>
-          {receipt ? (
-            <a
-              className='inline-block rounded-lg bg-[#2d6a5b] px-4 py-2 font-semibold text-white'
-              href={`/maintenance/report-access?reportId=${reportId}`}
-            >
-              Recover access by email
-            </a>
-          ) : (
+          <a
+            className='inline-block rounded-lg bg-[#2d6a5b] px-4 py-2 font-semibold text-white'
+            href={`/maintenance/report-access?reportId=${reportId}`}
+          >
+            Recover access by email
+          </a>
+          {!receipt && (
             <Link
-              href={`/login?redirect=${encodeURIComponent(reportConversationHref(reportId, origin))}`}
+              href={`/login?redirect=${encodeURIComponent(reportConversationHref(reportId, origin, queueSearch === undefined ? undefined : new URLSearchParams(queueSearch)))}`}
             >
               Sign in to this report
             </Link>
@@ -218,6 +239,22 @@ function CaseConversation({
             </Link>
           )}
           <p>Current status: {reportStatusLabel(data.status)}</p>
+          {data.repairProgress && (
+            <RepairProgress progress={data.repairProgress} />
+          )}
+          {data.repairProgressUnavailable && (
+            <p role='status'>Repair progress unavailable. Refresh to retry.</p>
+          )}
+          {staffFollowup && (
+            <StaffFollowup
+              followup={staffFollowup}
+              reportId={reportId}
+              onSaved={() => {
+                setNotice('Follow-up saved.');
+                setAttempt((value) => value + 1);
+              }}
+            />
+          )}
           {nextStep && (
             <section
               aria-label='Next step'
