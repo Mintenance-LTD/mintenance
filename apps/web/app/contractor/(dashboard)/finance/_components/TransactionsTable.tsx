@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { CONTRACTOR_DISPUTE_NEXT_STEP } from '@mintenance/shared';
+import { disputeHref } from '@/lib/disputes/presentation';
 import {
   Search,
   Calendar,
@@ -261,12 +264,18 @@ export function TransactionsTable({
                     </div>
                   </td>
                   <td className='py-4 px-6 text-right'>
+                    {transaction.status === 'disputed' && (
+                      <div className='mb-2 space-y-1 text-sm'>
+                        <Link className='font-semibold underline' href={disputeHref(transaction.id)}>View dispute</Link>
+                        <p className='max-w-56 text-xs text-gray-700'>Payment paused. {CONTRACTOR_DISPUTE_NEXT_STEP}</p>
+                      </div>
+                    )}
                     <button
                       onClick={() => onViewDetails(transaction)}
                       className='text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1 ml-auto'
                     >
                       <Eye className='w-4 h-4' />
-                      Details
+                      {transaction.status === 'disputed' ? 'Fee details' : 'Details'}
                     </button>
                   </td>
                 </tr>

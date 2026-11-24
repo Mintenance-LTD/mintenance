@@ -284,7 +284,8 @@ export default function ContractorFinancePage2025() {
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
           <KpiCards
             thisMonthRevenue={thisMonthRevenue}
-            pendingPayouts={pendingPayouts}
+            pendingPayouts={summary?.heldNotDisputed ?? pendingPayouts}
+            heldInDispute={summary?.heldInDispute ?? 0}
             allTimeRevenue={allTimeRevenue}
             avgJobValue={avgJobValue}
           />

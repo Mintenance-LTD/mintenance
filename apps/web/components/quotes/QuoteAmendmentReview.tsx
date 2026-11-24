@@ -34,6 +34,19 @@ type Amendment = {
     created_at: string;
   }[];
 };
+type Agreement = {
+  id: string;
+  quote_id: string | null;
+  version: number | null;
+  total: number;
+  status: string;
+};
+type HistoryOnly = 'signed_or_funded' | 'payment_activity' | 'job_status';
+const historyTitles: Record<HistoryOnly, string> = {
+  signed_or_funded: 'History only: this agreement is already signed or funded',
+  payment_activity: 'History only: payment activity is already recorded',
+  job_status: 'History only: the job is no longer at the amendment stage',
+};
 const money = (value: unknown) =>
   value === null || value === undefined || !Number.isFinite(Number(value))
     ? 'Not recorded'
@@ -105,12 +118,20 @@ function AmendmentCard({
   jobId,
   canApprove,
   isContractor,
+  actionsEnabled,
+  agreedTotal,
+  agreement,
+  historyOnly,
   onChanged,
 }: {
   amendment: Amendment;
   jobId: string;
   canApprove: boolean;
   isContractor: boolean;
+  actionsEnabled: boolean;
+  agreedTotal?: number | null;
+  agreement?: Agreement | null;
+  historyOnly?: HistoryOnly | null;
   onChanged: () => Promise<void>;
 }) {
   const [reviewed, setReviewed] = useState(false),
@@ -170,9 +191,36 @@ function AmendmentCard({
       setBusy(false);
     }
   };
-  const customerAction = canApprove && a.status === 'published',
+  const customerAction =
+      actionsEnabled && canApprove && a.status === 'published',
     contractorAction =
-      isContractor && ['published', 'approved'].includes(a.status);
+      actionsEnabled &&
+      isContractor &&
+      ['published', 'approved'].includes(a.status);
+  const awaitingAction =
+    !historyOnly && ['published', 'approved'].includes(a.status);
+  const proposed = a.after_snapshot.total_amount;
+  const difference =
+    agreedTotal != null && proposed != null
+      ? (Math.round(Number(proposed) * 100) -
+          Math.round(Number(agreedTotal) * 100)) /
+        100
+      : null;
+  const appliedAgreement =
+    a.applied_quote_id &&
+    agreement?.quote_id === a.applied_quote_id &&
+    agreement.version != null
+      ? agreement
+      : null;
+  const revisionHref =
+    appliedAgreement && a.applied_quote_id
+      ? `/jobs/${jobId}/amendments/agreement?` +
+        new URLSearchParams({
+          contract: appliedAgreement.id,
+          quote: a.applied_quote_id,
+          version: String(appliedAgreement.version),
+        })
+      : null;
   return (
     <article className={styles.card}>
       <header className={styles.cardHeader}>
@@ -193,22 +241,63 @@ function AmendmentCard({
         <h3>Reason for amendment</h3>
         <p>{a.reason}</p>
       </div>
+      {awaitingAction && (
+        <section className={styles.nextStep} aria-label='Pricing and next step'>
+          <dl className={styles.summaryPrices}>
+            <div>
+              <dt>Current agreed total</dt>
+              <dd>{money(agreedTotal)}</dd>
+            </div>
+            <div>
+              <dt>Proposed total</dt>
+              <dd>{money(proposed)}</dd>
+            </div>
+            <div>
+              <dt>Difference</dt>
+              <dd>
+                {difference !== null && difference > 0 ? '+' : ''}
+                {money(difference)}
+              </dd>
+            </div>
+          </dl>
+          <p>
+            {a.status === 'approved'
+              ? 'The contractor needs to apply the approved pricing. The current price stays in effect until then.'
+              : canApprove && !isContractor
+                ? 'Your turn to review the proposal and approve or reject it.'
+                : 'The person responsible for payment needs to approve or reject this proposal.'}
+          </p>
+        </section>
+      )}
       <div className={styles.comparison}>
         <Prices value={a.before_snapshot} label='Previously accepted pricing' />
         <Prices value={a.after_snapshot} label='Proposed pricing' />
       </div>
-      {a.status === 'approved' && (
-        <p>
-          Customer approval is recorded. The original price remains in effect
-          until the contractor applies this amendment.
-        </p>
-      )}
       {a.status === 'applied' && (
-        <p>
-          Pricing applied to a new quote and the unsigned contract. The contract
-          is back in draft and must be reviewed and signed through the normal
-          contract process.
-        </p>
+        <section className={styles.nextStep} aria-label='Applied pricing'>
+          {appliedAgreement && revisionHref ? (
+            <>
+              <h3>Revised contract · Version {appliedAgreement.version}</h3>
+              <p>
+                <strong>{money(appliedAgreement.total)}</strong> total including
+                tax
+              </p>
+              {appliedAgreement.status === 'draft' && (
+                <p>
+                  The contractor needs to send the revised draft for signature.
+                </p>
+              )}
+              <Link href={revisionHref} className={styles.primaryButton}>
+                Review revised contract
+              </Link>
+            </>
+          ) : (
+            <p>
+              This amendment was applied. The current agreement may have changed
+              since then.
+            </p>
+          )}
+        </section>
       )}
       {a.applied_quote_id && isContractor && (
         <Link
@@ -335,6 +424,9 @@ export function QuoteAmendmentReview({ jobId }: { jobId: string }) {
     can_approve: boolean;
     is_contractor: boolean;
     next_before: number | null;
+    agreed_total?: number | null;
+    current_agreement?: Agreement | null;
+    history_only?: HistoryOnly | null;
   } | null>(null);
   const [error, setError] = useState(''),
     [loading, setLoading] = useState(false);
@@ -399,24 +491,45 @@ export function QuoteAmendmentReview({ jobId }: { jobId: string }) {
           <RefreshCw size={16} aria-hidden='true' /> Refresh review
         </button>
       </header>
-      <aside className={styles.guidance} aria-label='About amendment approval'>
-        <ShieldCheck size={22} aria-hidden='true' />
-        <div>
-          <h2>Review first. Approve when you’re ready.</h2>
-          <p>
-            Review the complete replacement pricing before approving. Approval
-            records your decision; it does not sign a contract, charge a card or
-            issue a refund.
-          </p>
-          <details>
-            <summary>When can pricing be applied?</summary>
+      {data?.history_only ? (
+        <aside
+          className={styles.guidance}
+          aria-labelledby='amendment-history-only'
+        >
+          <ShieldCheck size={22} aria-hidden='true' />
+          <div>
+            <h2 id='amendment-history-only'>
+              {historyTitles[data.history_only]}
+            </h2>
             <p>
-              Application is available only before signatures, consent evidence
-              or funding, and returns the contract to draft for review.
+              You can review the pricing and decisions recorded for this job.
             </p>
-          </details>
-        </div>
-      </aside>
+          </div>
+        </aside>
+      ) : (
+        <aside
+          className={styles.guidance}
+          aria-label='About amendment approval'
+        >
+          <ShieldCheck size={22} aria-hidden='true' />
+          <div>
+            <h2>Review first. Approve when you’re ready.</h2>
+            <p>
+              Review the complete replacement pricing before approving. Approval
+              records your decision; it does not sign a contract, charge a card
+              or issue a refund.
+            </p>
+            <details>
+              <summary>When can pricing be applied?</summary>
+              <p>
+                Application is available only before signatures, consent
+                evidence or funding, and returns the contract to draft for
+                review.
+              </p>
+            </details>
+          </div>
+        </aside>
+      )}
       {loading && <p role='status'>Loading amendments…</p>}
       {error && (
         <p role='alert' className={styles.error}>
@@ -435,8 +548,12 @@ export function QuoteAmendmentReview({ jobId }: { jobId: string }) {
           key={`${a.id}:${a.version}:${reviewEpoch}`}
           amendment={a}
           jobId={jobId}
-          canApprove={data.can_approve && !loading && !error}
-          isContractor={data.is_contractor && !loading && !error}
+          canApprove={data.can_approve}
+          isContractor={data.is_contractor}
+          actionsEnabled={!data.history_only && !loading && !error}
+          agreedTotal={data.agreed_total}
+          agreement={data.current_agreement}
+          historyOnly={data.history_only}
           onChanged={load}
         />
       ))}

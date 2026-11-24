@@ -1,4 +1,10 @@
-export function DisputeEvidenceLinks({ items }: { items?: unknown[] }) {
+export function DisputeEvidenceLinks({
+  items,
+  showHeading = true,
+}: {
+  items?: unknown[];
+  showHeading?: boolean;
+}) {
   const evidence = (items ?? []).filter(
     (item): item is { label: string; url: string | null } =>
       typeof item === 'object' &&
@@ -12,7 +18,7 @@ export function DisputeEvidenceLinks({ items }: { items?: unknown[] }) {
   if (!evidence.length) return null;
   return (
     <section aria-label='Dispute evidence'>
-      <h3>Supporting evidence</h3>
+      {showHeading && <h3>Supporting evidence</h3>}
       <ul>
         {evidence.map((item, index) => (
           <li key={index}>

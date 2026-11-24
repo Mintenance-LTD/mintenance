@@ -1,4 +1,8 @@
 import { PAYMENT_RELEASE_COPY } from '@mintenance/shared';
+import {
+  DISPUTE_UNDER_REVIEW,
+  type JobDispute,
+} from '@/lib/disputes/presentation';
 /**
  * Helpers for the Mint Editorial /jobs/[id] surface. Pure functions —
  * kept out of the component file so the component stays under the
@@ -23,6 +27,7 @@ export interface JobLifecycleInputs {
   contractorAssigned: boolean;
   contractStatus?: string | null; // pending_contractor | pending_homeowner | accepted | …
   escrowStatus?: string | null; // pending | held | release_pending | released | completed
+  dispute?: JobDispute;
   completionConfirmed: boolean;
 }
 
@@ -121,6 +126,7 @@ export function computeNextStepForJob(
     bidCount: number;
     contractStatus?: string | null;
     escrowStatus?: string | null;
+    dispute?: JobDispute;
     completionConfirmed: boolean;
   }
 ): NextStepInfo {
@@ -131,6 +137,7 @@ export function computeNextStepForJob(
       contractorAssigned: !!job.contractor_id,
       contractStatus: lifecycle.contractStatus,
       escrowStatus: lifecycle.escrowStatus,
+      dispute: lifecycle.dispute,
       completionConfirmed: lifecycle.completionConfirmed,
     },
     job.id
@@ -157,12 +164,30 @@ export function computeNextStep(
     contractStatus,
     escrowStatus,
     completionConfirmed,
+    dispute,
   } = inputs;
 
+  if (dispute) {
+    return {
+      title: dispute.title,
+      body: [
+        dispute.paymentPaused && 'Payment release is paused.',
+        `Mediation status is ${dispute.mediation.toLowerCase()}.`,
+        dispute.nextStep,
+      ]
+        .filter(Boolean)
+        .join(' '),
+      cta: { label: 'View dispute', href: dispute.href },
+    };
+  }
   if (escrowStatus === 'disputed' || jobStatus === 'disputed') {
     return {
-      title: 'Dispute under review',
-      body: 'Payment release is paused while the dispute is reviewed.',
+      title: DISPUTE_UNDER_REVIEW,
+      body:
+        escrowStatus === 'disputed'
+          ? 'Payment release is paused while the dispute is reviewed.'
+          : 'Check Payments for the current status of this dispute.',
+      cta: { label: 'View payments', href: `/payments?jobId=${jobId}` },
     };
   }
   if (escrowStatus === 'refunded') {

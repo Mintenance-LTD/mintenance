@@ -136,26 +136,34 @@ it('prioritises unapproved completed work and excludes approved work', () => {
     },
   ]);
 });
-it('keeps refunded completion evidence available while removing review actions', () => {
-  render(
-    <HomeownerPhotoReview
-      jobId='refunded'
-      beforePhotos={[]}
-      afterPhotos={[{ id: 'a', photo_url: '/after.jpg' }]}
-      isConfirmed={false}
-      paymentRefunded
-    />
-  );
-  expect(
-    screen.getByRole('heading', { name: 'Completion evidence' })
-  ).toBeVisible();
-  expect(screen.getByText(/payment was refunded/i)).toBeVisible();
-  expect(
-    screen.getByRole('img', { name: 'Completed work photo' })
-  ).toBeVisible();
-  expect(screen.queryByRole('button', { name: 'Approve Work' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request Changes' })).toBeNull();
-});
+it.each([
+  [{ paymentRefunded: true }, /payment was refunded/i],
+  [{ paymentDisputed: true }, /payment release is paused/i],
+] as const)(
+  'keeps completion evidence available without review actions for %j',
+  (payment, explanation) => {
+    render(
+      <HomeownerPhotoReview
+        jobId='refunded'
+        beforePhotos={[]}
+        afterPhotos={[{ id: 'a', photo_url: '/after.jpg' }]}
+        isConfirmed={false}
+        {...payment}
+      />
+    );
+    expect(
+      screen.getByRole('heading', { name: 'Completion evidence' })
+    ).toBeVisible();
+    expect(screen.getByText(explanation)).toBeVisible();
+    expect(
+      screen.getByRole('img', { name: 'Completed work photo' })
+    ).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Approve Work' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Request Changes' })
+    ).toBeNull();
+  }
+);
 it('makes all three after photos available when there is only one before photo', async () => {
   render(
     <HomeownerPhotoReview

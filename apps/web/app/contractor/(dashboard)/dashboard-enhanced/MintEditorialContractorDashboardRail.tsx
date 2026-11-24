@@ -33,7 +33,8 @@ interface Metrics {
   completedJobs: number;
   completionRate: number;
   pendingEscrowAmount: number;
-  pendingEscrowCount: number;
+  heldNotDisputed?: number;
+  heldInDispute?: number;
 }
 
 interface Props {
@@ -54,6 +55,8 @@ export function MintEditorialContractorDashboardRail({
   metrics,
   availableJobs,
 }: Props) {
+  const held = metrics.heldNotDisputed ?? metrics.pendingEscrowAmount;
+  const disputed = metrics.heldInDispute ?? 0;
   // Pick exactly one Mint AI copy variant based on the strongest
   // signal in the contractor's current state. Deterministic — no
   // randomisation, so the same conditions always surface the same
@@ -61,8 +64,8 @@ export function MintEditorialContractorDashboardRail({
   const aiTip =
     metrics.completionRate >= 90 && metrics.completedJobs >= 3
       ? `Your completion rate is ${Math.round(metrics.completionRate)}%. Keep customers informed as work progresses.`
-      : metrics.pendingEscrowAmount > 0
-        ? `${formatMoney(metrics.pendingEscrowAmount)} held in escrow before fees. ${PAYMENT_RELEASE_COPY.summary} ${PAYMENT_RELEASE_COPY.details}`
+      : held > 0
+        ? `${formatMoney(held)} held in escrow before fees. ${PAYMENT_RELEASE_COPY.summary} ${PAYMENT_RELEASE_COPY.details}`
         : 'Reply promptly during business hours and give homeowners a clear next step.';
 
   return (
@@ -207,10 +210,12 @@ export function MintEditorialContractorDashboardRail({
             className='t-body'
             style={{ fontSize: 13, color: 'var(--me-ink-2)', margin: 0 }}
           >
-            {formatMoney(metrics.pendingEscrowAmount)} is held in escrow across{' '}
-            {metrics.pendingEscrowCount} active{' '}
-            {metrics.pendingEscrowCount === 1 ? 'job' : 'jobs'}.{' '}
-            {PAYMENT_RELEASE_COPY.details}
+            {held > 0 && `${formatMoney(held)} held in escrow. ${PAYMENT_RELEASE_COPY.details}`}
+            {disputed > 0 && (
+              <span style={{ display: 'block', marginTop: held > 0 ? 8 : 0 }}>
+                {formatMoney(disputed)} held in dispute. Payment release is paused.
+              </span>
+            )}
           </p>
         </div>
       ) : (

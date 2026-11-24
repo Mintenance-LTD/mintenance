@@ -25,7 +25,7 @@ await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_
  ALTER TABLE contracts ADD COLUMN agreement_formed_at timestamptz,ADD COLUMN cancellation_requested_at timestamptz,ADD COLUMN cancellation_deadline timestamptz;
  CREATE TABLE jobs(id uuid PRIMARY KEY,homeowner_id uuid,payer_user_id uuid,contractor_id uuid,status text,budget numeric);
  CREATE TABLE bids(id uuid PRIMARY KEY,job_id uuid,quote_id uuid,contractor_id uuid,amount numeric,status text,updated_at timestamptz);
- CREATE TABLE escrow_transactions(id uuid DEFAULT gen_random_uuid(),job_id uuid);
+ CREATE TABLE escrow_transactions(id uuid DEFAULT gen_random_uuid(),job_id uuid,status text,funded_at timestamptz);
  CREATE TABLE payment_funding_reservations(job_id uuid);
  CREATE TABLE invoices(job_id uuid); CREATE TABLE payments(job_id uuid); CREATE TABLE escrow_payments(job_id uuid);
  CREATE TABLE payment_tracking(job_id uuid); CREATE TABLE tax_payment_records(job_id uuid); CREATE TABLE contractor_payout_credit_events(job_id uuid);
@@ -43,6 +43,7 @@ await db.exec(sql('20261106132613_quote_amendment_history.sql'));
 await db.exec(
   `BEGIN; ${sql('20261106135704_quote_amendment_approval.sql')} COMMIT;`
 );
+await db.exec(sql('20261123234147_quote_amendment_review_context.sql'));
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 await db.exec(
   `BEGIN; ${sql('20261106202654_quote_amendment_notifications.sql')} COMMIT;`
@@ -289,9 +290,12 @@ await test('publish, approve, apply, original preservation and exact retry', asy
   assert.equal((await transition('publish')).id, published.id);
   const review = await read();
   assert.equal(review.can_approve, true);
+  assert.equal(review.history_only, null);
+  assert.equal(review.agreed_total, 100);
   assert.equal(review.amendments[0].before_snapshot.notes, undefined);
   assert.equal(review.amendments[0].after_snapshot.notes, undefined);
   await transition('approve', customer, 1, 'Reviewed the extra part');
+  assert.equal((await read()).agreed_total, 100);
   assert.equal(
     (await one('SELECT amount FROM bids WHERE id=$1', [bid])).amount,
     '100'
@@ -321,6 +325,28 @@ await test('publish, approve, apply, original preservation and exact retry', asy
   assert.equal(currentContract.contract_version, 2);
   assert.equal(currentContract.homeowner_signed_at, null);
   assert.equal(currentContract.quote_id, applied.applied_quote_id);
+  const revised = {
+    id: contract,
+    quote_id: applied.applied_quote_id,
+    version: 2,
+    total: 120,
+    status: 'draft',
+  };
+  assert.deepEqual((await read()).current_agreement, revised);
+  const contractorReview = await one(
+    'SELECT read_job_quote_amendments($1,$2) AS result',
+    [job, owner]
+  );
+  assert.deepEqual(contractorReview.result.current_agreement, revised);
+  assert.equal((await read()).agreed_total, 120);
+  assert.equal(
+    (await one('SELECT count(*)::int AS total FROM escrow_transactions')).total,
+    0
+  );
+  assert.equal(
+    (await one('SELECT count(*)::int AS total FROM payments')).total,
+    0
+  );
   assert.equal(
     (await one('SELECT budget FROM jobs WHERE id=$1', [job])).budget,
     '100'
@@ -392,6 +418,21 @@ await test('reject preserves originals and prevents application', async () => {
     (await one('SELECT amount FROM bids WHERE id=$1', [bid])).amount,
     '100'
   );
+});
+await test('read context identifies signed agreements and funded escrow before presenting actions', async () => {
+  await db.query(
+    'INSERT INTO escrow_transactions(job_id,status,funded_at) VALUES($1,$2,now())',
+    [job, 'held']
+  );
+  assert.equal((await read()).history_only, 'signed_or_funded');
+  await db.exec(
+    "UPDATE escrow_transactions SET status='pending', funded_at=NULL"
+  );
+  assert.equal((await read()).history_only, 'payment_activity');
+  await db.exec(
+    'DELETE FROM escrow_transactions; UPDATE contracts SET homeowner_signed_at=now()'
+  );
+  assert.equal((await read()).history_only, 'signed_or_funded');
 });
 for (const [name, change] of [
   ['homeowner signature', `UPDATE contracts SET homeowner_signed_at=now()`],

@@ -20,6 +20,10 @@ import { render, fireEvent, screen } from '@testing-library/react-native';
 
 import { ContractorDashboard } from '../ContractorDashboard';
 
+jest.mock('../../../hooks/useContractorJobActions', () => ({
+  useContractorJobActions: () => ({ data: [], refetch: jest.fn() }),
+}));
+
 // ---- Navigation -----------------------------------------------------------
 // Keep the child boundary consistent with the other cards below. The real
 // onboarding card is exercised with ThemeProvider in its own component suite.

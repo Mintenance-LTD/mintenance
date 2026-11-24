@@ -42,6 +42,7 @@ interface LifecycleData {
   escrowFundedAt?: string | null;
   escrowReleasedAt?: string | null;
   escrowStatus?: string | null;
+  dispute?: import('@/lib/disputes/presentation').JobDispute;
   bidCount?: number;
   pendingBidCount?: number;
   completionConfirmed: boolean;
@@ -290,6 +291,7 @@ export function MintEditorialJobTabBody({
             escrowFundedAt: lifecycle?.escrowFundedAt,
             escrowReleasedAt: lifecycle?.escrowReleasedAt,
             escrowStatus: lifecycle?.escrowStatus,
+            dispute: lifecycle?.dispute,
             completionConfirmed: !!lifecycle?.completionConfirmed,
           }}
         />

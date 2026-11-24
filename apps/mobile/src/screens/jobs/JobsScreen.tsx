@@ -33,6 +33,8 @@ import { JobsPropertyChips } from './JobsPropertyChips';
 import { useJobPropertyFilter } from './useJobPropertyFilter';
 import { useJobsListStats } from './useJobsListStats';
 import { JobsEmptyState } from './JobsEmptyState';
+import { useContractorJobActions } from '../../hooks/useContractorJobActions';
+import { isActiveContractorJob } from '../../utils/jobActivity';
 
 const JobsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -125,7 +127,12 @@ const JobsScreen: React.FC = () => {
     enabled: !!user && isContractor,
   });
 
-  const { stats, filterCounts } = useJobsListStats(allJobs, bidPendingJobs);
+  const { stats, filterCounts } = useJobsListStats(allJobs, bidPendingJobs, isContractor);
+  const { data: contractorJobs } = useContractorJobActions(isContractor ? user?.id : undefined);
+  const contractorJobsById = useMemo(
+    () => new Map(contractorJobs?.map(job => [job.id, job])),
+    [contractorJobs]
+  );
 
   // -- Sort & filter --
   const { propertyFilter, setPropertyFilter, jobProperties, byProperty } =
@@ -142,11 +149,7 @@ const JobsScreen: React.FC = () => {
       // silently drop the property filter on this one tab.
       data = byProperty(bidPendingJobs);
     } else if (selectedFilter === 'active' && isContractor) {
-      data = data.filter(
-        (j) =>
-          !j.archived_at &&
-          (j.status === 'in_progress' || j.status === 'assigned')
-      );
+      data = data.filter(isActiveContractorJob);
     } else if (selectedFilter !== 'all') {
       data = data.filter(
         (j) =>
@@ -329,6 +332,7 @@ const JobsScreen: React.FC = () => {
       bidCount={item.bids?.length}
       isContractor={isContractor}
       hasUserBid={selectedFilter === 'bid' || bidJobIds.has(item.id)}
+      contractorJob={contractorJobsById.get(item.id)}
     />
   );
 

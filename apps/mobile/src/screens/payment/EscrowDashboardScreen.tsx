@@ -14,7 +14,10 @@ import {
 } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { ProfileStackParamList } from '../../navigation/types';
+import type { ProfileStackParamList, RootTabParamList } from '../../navigation/types';
+import type { NavigationProp } from '@react-navigation/native';
+import { CONTRACTOR_DISPUTE_NEXT_STEP } from '@mintenance/shared';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
 import { ErrorView } from '../../components/shared';
@@ -81,6 +84,14 @@ const ProgressBar: React.FC<{ stage: 0 | 1 | 2 | 3 }> = ({ stage }) => (
 const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const isContractor = user?.role === 'contractor';
+  const { data: balances, refetch: refetchBalances } = useQuery({
+    queryKey: ['contractor-escrow-balances', user?.id],
+    enabled: !!user?.id && isContractor,
+    queryFn: ({ signal }) => mobileApiClient.get<{ heldNotDisputed: number; heldInDispute: number }>(
+      '/api/contractor/finance-summary', { signal }
+    ),
+  });
 
   const {
     data: records = [],
@@ -127,12 +138,15 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   });
   const handleRefresh = () => {
     void refetch();
+    if (isContractor) void refetchBalances();
   };
 
   const heldRecords = records.filter((r) =>
     ['held', 'release_pending'].includes(r.status)
   );
-  const totalHeld = heldRecords.reduce((sum, r) => sum + r.amount, 0);
+  const totalHeld = balances?.heldNotDisputed ?? heldRecords.reduce((sum, r) => sum + r.amount, 0);
+  const totalDisputed = balances?.heldInDispute ?? records.reduce((sum, r) =>
+    r.status === 'disputed' ? sum + r.amount : sum, 0);
 
   const renderRecord = ({ item }: { item: EscrowRecord }) => {
     const presentation = getEscrowPresentation(item);
@@ -146,7 +160,18 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
         </View>
         <Text style={styles.recordMeta}>{presentation.label}</Text>
         <Text style={styles.recordMeta}>{presentation.description}</Text>
-        {presentation.group === 'Needs attention' && (
+        {item.status === 'disputed' ? (
+          <>
+            {isContractor && <Text style={styles.recordMeta}>{CONTRACTOR_DISPUTE_NEXT_STEP}</Text>}
+            <TouchableOpacity accessibilityRole='button'
+              onPress={() => navigation.getParent<NavigationProp<RootTabParamList>>()?.navigate(
+                'JobsTab', { screen: 'DisputeDetails', params: { escrowId: item.id } }
+              )}
+            >
+              <Text style={styles.recordMeta}>View dispute</Text>
+            </TouchableOpacity>
+          </>
+        ) : presentation.group === 'Needs attention' && (
           <TouchableOpacity
             accessibilityRole='button'
             onPress={() => navigation.navigate('HelpCenter')}
@@ -217,7 +242,7 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
                 <View style={styles.heroCard}>
                   <View style={styles.heroBody}>
-                    <Text style={styles.heroEyebrow}>Held in escrow</Text>
+                    <Text style={styles.heroEyebrow}>{isContractor ? 'Held · not disputed' : 'Held in escrow'}</Text>
                     <Text style={styles.heroAmount}>
                       {formatCurrency(totalHeld)}
                     </Text>
@@ -226,6 +251,7 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
                         ? 'No confirmed funds currently held.'
                         : `${heldRecords.length} ${heldRecords.length === 1 ? 'job' : 'jobs'} · funds held until release checks pass`}
                     </Text>
+                    {isContractor && <Text style={styles.heroSub}>{formatCurrency(totalDisputed)} held in dispute</Text>}
                   </View>
                   <Ionicons
                     name='lock-closed'

@@ -60,12 +60,14 @@ const response = (status: number, data: unknown) => ({
   ok: status < 400,
   json: async () => data,
 });
-const page = (row = amendment, contractor = false) =>
+const page = (row = amendment, contractor = false, context = {}) =>
   response(200, {
     amendments: [row],
     can_approve: !contractor,
     is_contractor: contractor,
     next_before: null,
+    agreed_total: 100,
+    ...context,
   });
 beforeEach(() => {
   vi.resetAllMocks();
@@ -95,6 +97,87 @@ const open = async () => {
   await screen.findByRole('heading', { name: 'Amendment 1', exact: true });
 };
 const review = () => fireEvent.click(screen.getByRole('checkbox'));
+it('shows signed or funded history up front and removes decision actions', async () => {
+  mocks.read.mockResolvedValue(
+    page(amendment, false, { history_only: 'signed_or_funded' })
+  );
+  await open();
+  expect(
+    screen.getByRole('heading', {
+      name: 'History only: this agreement is already signed or funded',
+    })
+  ).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Approve proposal' })).toBeNull();
+});
+it('shows the live agreed total, proposed total, difference and responsible person', async () => {
+  mocks.read.mockResolvedValue(
+    page(amendment, false, { agreed_total: 100.75 })
+  );
+  await open();
+  const summary = within(
+    screen.getByRole('region', { name: 'Pricing and next step' })
+  );
+  expect(summary.getByText('£100.75')).toBeVisible();
+  expect(summary.getByText('£120.00')).toBeVisible();
+  expect(summary.getByText('+£19.25')).toBeVisible();
+  expect(summary.getByText(/Your turn to review/)).toBeVisible();
+});
+it.each([false, true])(
+  'shows the same exact applied agreement to each side (contractor: %s)',
+  async (contractor) => {
+    mocks.read.mockResolvedValue(
+      response(200, {
+        amendments: [
+          {
+            ...amendment,
+            status: 'applied',
+            version: 3,
+            applied_quote_id: 'new',
+          },
+        ],
+        current_agreement: {
+          id: 'contract',
+          quote_id: 'new',
+          version: 2,
+          total: 120,
+          status: 'draft',
+        },
+        can_approve: !contractor,
+        is_contractor: contractor,
+      })
+    );
+    await open();
+    expect(
+      screen.getByRole('heading', { name: 'Revised contract · Version 2' })
+    ).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Review revised contract' })
+    ).toHaveAttribute(
+      'href',
+      '/jobs/job/amendments/agreement?contract=contract&quote=new&version=2'
+    );
+  }
+);
+it('does not link an older applied amendment to a newer agreement', async () => {
+  mocks.read.mockResolvedValue(
+    response(200, {
+      amendments: [
+        { ...amendment, status: 'applied', applied_quote_id: 'old' },
+      ],
+      current_agreement: {
+        id: 'contract',
+        quote_id: 'new',
+        version: 3,
+        total: 130,
+        status: 'draft',
+      },
+    })
+  );
+  await open();
+  expect(
+    screen.queryByRole('link', { name: 'Review revised contract' })
+  ).toBeNull();
+});
 it('explains withdrawn pricing without offering an approval or application', async () => {
   mocks.read.mockResolvedValue(
     page({ ...amendment, status: 'withdrawn', version: 2 })
@@ -170,9 +253,7 @@ it('requires review and sends actual CSRF-protected approval with the loaded ver
     confirmed: true,
     note: '',
   });
-  expect(
-    screen.getByText(/original price remains in effect/)
-  ).toBeInTheDocument();
+  expect(screen.getByText(/current price stays in effect/)).toBeInTheDocument();
   expect(screen.queryByText('Apply approved pricing')).toBeNull();
 });
 it('shows a read-only review to a homeowner who is not the designated payer', async () => {
@@ -213,11 +294,20 @@ it('allows contractor application only for approved proposals and preserves the 
         version: 3,
         applied_quote_id: 'new',
       } as typeof amendment,
-      true
+      true,
+      {
+        current_agreement: {
+          id: 'contract',
+          quote_id: 'new',
+          version: 2,
+          total: 120,
+          status: 'draft',
+        },
+      }
     )
   );
   fireEvent.click(screen.getByText('Apply approved pricing'));
-  await screen.findByText(/contract is back in draft/);
+  await screen.findByRole('link', { name: 'Review revised contract' });
   expect(screen.getByText('View applied quote')).toHaveAttribute(
     'href',
     '/contractor/quotes/new'

@@ -20,6 +20,7 @@ import {
   safeEvidenceUrl,
 } from '../services/DisputeReader';
 import { me } from '../design-system/mint-editorial';
+import { CONTRACTOR_DISPUTE_TITLE, CONTRACTOR_DISPUTE_NEXT_STEP } from '@mintenance/shared';
 
 interface Props {
   route: RouteProp<JobsStackParamList, 'DisputeDetails'>;
@@ -108,17 +109,30 @@ export function DisputeDetailsScreen({ route, navigation }: Props) {
           ) : (
             <>
               <Text style={styles.heading}>
-                {data.archived ? 'Retained dispute record' : 'Dispute record'}
-              </Text>
-              <Text style={styles.body}>
-                Status:{' '}
                 {data.archived
-                  ? 'Archived'
-                  : (data.dispute_record_status ?? 'Awaiting review').replace(
-                      /_/g,
-                      ' '
-                    )}
+                  ? 'Retained dispute record'
+                  : data.status === 'disputed'
+                    ? CONTRACTOR_DISPUTE_TITLE
+                    : 'Dispute record'}
               </Text>
+              {!data.archived && data.status === 'disputed' && (
+                <>
+                  <Text style={styles.body}>Payment release is paused.</Text>
+                  {user.role === 'contractor' && (
+                    <Text style={styles.body}>{CONTRACTOR_DISPUTE_NEXT_STEP}</Text>
+                  )}
+                </>
+              )}
+              {(data.archived || data.status !== 'disputed') && (
+                <Text style={styles.body}>
+                  {data.archived
+                    ? 'Archived'
+                    : (data.dispute_record_status ?? 'Awaiting review').replace(
+                        /_/g,
+                        ' '
+                      )}
+                </Text>
+              )}
               {data.archived && (
                 <Text style={styles.body}>
                   This is a retained record. Archived does not mean the dispute
