@@ -30,6 +30,7 @@ interface PhotoRecordWithDate extends PhotoRecord {
 }
 
 interface Props {
+  backToJobsHref?: string;
   job: JobShape & {
     completion_confirmed_by_homeowner?: boolean | null;
   };
@@ -60,6 +61,7 @@ interface Props {
 }
 
 export function MintEditorialJobDetailView({
+  backToJobsHref,
   job,
   property,
   contractor,
@@ -85,6 +87,7 @@ export function MintEditorialJobDetailView({
       <JobViewTracker jobId={job.id} />
       <HomeownerPageWrapper>
         <MintEditorialJobDetail
+          backToJobsHref={backToJobsHref}
           job={job}
           property={property}
           contractor={contractor}

@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { MotionArticle, MotionDiv } from '@/components/ui/MotionDiv';
 import { JobCardQuickActions } from './JobCardQuickActions';
 import { cleanAddress } from '@/lib/utils/location';
+import type { JobWorkspaceStatus } from '@/lib/jobs/workspace-status';
 
 interface AIAssessment {
   id: string;
@@ -56,8 +57,10 @@ interface JobCard2025Props {
     contractor_id?: string | null;
     ai_assessment?: AIAssessment | null;
     nextAction?: NextAction;
+    workspaceStatus?: JobWorkspaceStatus;
   };
   viewMode?: 'grid' | 'list';
+  detailHref?: string;
   prefersReducedMotion?: boolean;
   selectionMode?: boolean;
   isSelected?: boolean;
@@ -67,12 +70,14 @@ interface JobCard2025Props {
 export const JobCard2025 = React.memo(
   function JobCard2025({
     job,
+    detailHref,
     viewMode = 'grid',
     prefersReducedMotion = false,
     selectionMode = false,
     isSelected = false,
     onToggleSelection,
   }: JobCard2025Props) {
+    const status = job.workspaceStatus?.disputed ? 'disputed' : job.status;
     const getStatusColor = (status: string) => {
       const colors: Record<string, string> = {
         posted: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -81,6 +86,7 @@ export const JobCard2025 = React.memo(
         review: 'bg-purple-100 text-purple-700 border-purple-200',
         completed: 'bg-emerald-100 text-emerald-700 border-emerald-200',
         cancelled: 'bg-gray-100 text-gray-700 border-gray-200',
+        disputed: 'bg-amber-100 text-amber-800 border-amber-200',
       };
       return colors[status] || 'bg-gray-100 text-gray-700 border-gray-200';
     };
@@ -175,7 +181,7 @@ export const JobCard2025 = React.memo(
 
     return (
       <Link
-        href={selectionMode ? '#' : `/jobs/${job.id}`}
+        href={selectionMode ? '#' : (detailHref ?? `/jobs/${job.id}`)}
         onClick={handleCardClick}
       >
         <MotionArticle
@@ -356,9 +362,9 @@ export const JobCard2025 = React.memo(
             <div className='flex items-center gap-2 flex-wrap mb-4'>
               {/* Status Badge */}
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(job.status)}`}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(status)}`}
               >
-                {job.status.replace('_', ' ').toUpperCase()}
+                {status.replace('_', ' ').toUpperCase()}
               </span>
 
               {/* Category Badge */}
@@ -635,6 +641,13 @@ export const JobCard2025 = React.memo(
       prevProps.job.id === nextProps.job.id &&
       prevProps.job.status === nextProps.job.status &&
       prevProps.job.budget === nextProps.job.budget &&
+      prevProps.job.title === nextProps.job.title &&
+      prevProps.job.location === nextProps.job.location &&
+      prevProps.job.workspaceStatus?.disputed ===
+        nextProps.job.workspaceStatus?.disputed &&
+      prevProps.job.nextAction?.label === nextProps.job.nextAction?.label &&
+      prevProps.job.nextAction?.urgency === nextProps.job.nextAction?.urgency &&
+      prevProps.detailHref === nextProps.detailHref &&
       prevProps.viewMode === nextProps.viewMode &&
       prevProps.prefersReducedMotion === nextProps.prefersReducedMotion &&
       prevProps.selectionMode === nextProps.selectionMode &&

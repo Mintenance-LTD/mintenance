@@ -208,6 +208,26 @@ it.each(['default', 'mint-editorial'])(
 );
 
 it.each(['default', 'mint-editorial'])(
+  'provides a return link to the same filtered jobs workspace (%s)',
+  async (theme) => {
+    s.theme = theme;
+    render(
+      await Page({
+        params: Promise.resolve({ id: 'job' }),
+        searchParams: Promise.resolve({
+          fromJobs: 'view=done&jobCategory=plumbing&q=tap',
+        }),
+      })
+    );
+    expect(s.detail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        backToJobsHref: '/jobs?view=done&jobCategory=plumbing&q=tap',
+      })
+    );
+  }
+);
+
+it.each(['default', 'mint-editorial'])(
   'preserves bid data and signed job photos without querying unused posts (%s)',
   async (theme) => {
     s.theme = theme;

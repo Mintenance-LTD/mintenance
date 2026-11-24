@@ -23,6 +23,7 @@ interface JobsStatusTabsProps {
     completed: number;
     draft: number;
     awaitingAction: number;
+    cancelled?: number;
     archived: number;
   };
   prefersReducedMotion?: boolean;
@@ -42,7 +43,7 @@ export function JobsStatusTabs({
     },
     {
       value: 'awaiting_action' as FilterStatus,
-      label: 'Needs Attention',
+      label: 'Needs attention',
       count: jobCounts.awaitingAction,
       highlight: true,
     },
@@ -62,6 +63,12 @@ export function JobsStatusTabs({
       value: 'completed' as FilterStatus,
       label: 'Completed',
       count: jobCounts.completed,
+      highlight: false,
+    },
+    {
+      value: 'cancelled' as FilterStatus,
+      label: 'Cancelled',
+      count: jobCounts.cancelled ?? 0,
       highlight: false,
     },
     {

@@ -1,6 +1,5 @@
 'use client';
 
-
 import React, { useState } from 'react';
 import {
   Search,
@@ -70,8 +69,8 @@ export function JobsToolbar({
           />
           <input
             type='search'
-            placeholder='Search jobs by title or description...'
-            aria-label='Search jobs by title or description'
+            placeholder='Search jobs by title or property'
+            aria-label='Search jobs by title or property'
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className='w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all shadow-sm'

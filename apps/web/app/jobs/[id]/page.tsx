@@ -17,6 +17,7 @@ import { HomeownerPhotoReview } from './components/HomeownerPhotoReview';
 import { MintEditorialJobDetailView } from './components/mint-editorial/MintEditorialJobDetailView';
 import { RecommendedContractors } from './components/RecommendedContractors';
 import { formatBidsForClient, type BidWithContractor } from './lib/formatBids';
+import { returnToWorkspace } from '@/lib/jobs/workspace-navigation';
 
 export const metadata: Metadata = {
   title: 'Job Details | Mintenance',
@@ -26,10 +27,13 @@ export const metadata: Metadata = {
 
 export default async function JobDetailPage2025({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ fromJobs?: string | string[] }>;
 }) {
   const resolvedParams = await params;
+  const backToJobsHref = returnToWorkspace((await searchParams)?.fromJobs);
   const user = await getCurrentUserFromCookies();
 
   if (!user) {
@@ -355,6 +359,7 @@ export default async function JobDetailPage2025({
           Quote amendments
         </Link>
         <MintEditorialJobDetailView
+          backToJobsHref={backToJobsHref}
           job={{
             id: job.id,
             title: job.title || 'Untitled Job',
@@ -415,6 +420,7 @@ export default async function JobDetailPage2025({
 
       <HomeownerPageWrapper>
         <JobDetailsProfessional
+          backToJobsHref={backToJobsHref}
           job={{
             id: job.id,
             title: job.title || 'Untitled Job',

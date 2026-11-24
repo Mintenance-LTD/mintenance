@@ -4,6 +4,22 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import styles from './jobs-list.module.css';
 import {
+  isCancelledJob,
+  type JobWorkspaceStatus,
+} from '@/lib/jobs/workspace-status';
+import {
+  matchesWorkspaceSearch,
+  workspaceLocation,
+  type WorkspaceLocation,
+} from '@/lib/jobs/workspace-location';
+import {
+  workspaceHref,
+  workspaceJobHref,
+  type WorkspaceFilters,
+  type WorkspaceScope,
+  type WorkspaceView,
+} from '@/lib/jobs/workspace-navigation';
+import {
   Plus,
   ArrowRight,
   Check,
@@ -12,23 +28,27 @@ import {
   Trees,
   Brush,
   Briefcase,
+  Search,
 } from 'lucide-react';
 
-interface JobListItem {
+interface JobListItem extends WorkspaceLocation {
   id: string;
   title: string;
   status: string;
   budget: number;
   category?: string;
-  location?: string;
   created_at: string;
   contractor_id?: string;
+  workspaceStatus?: JobWorkspaceStatus;
 }
 
 interface Props {
   jobs: JobListItem[];
   initialCategory?: string;
   scoped?: boolean;
+  scope?: WorkspaceScope;
+  filters?: WorkspaceFilters;
+  onFiltersChange?: (filters: WorkspaceFilters) => void;
 }
 
 function CategoryThumb({ category }: { category?: string }) {
@@ -97,14 +117,14 @@ function metaLine(job: JobListItem): string {
       : diffDays === 1
         ? 'Posted yesterday'
         : `Posted ${diffDays} days ago`;
-  const where = job.location || 'Location not set';
+  const where = workspaceLocation(job) || 'Location not set';
   return `${where} · ${when}`;
 }
 
-function JobRow({ job }: { job: JobListItem }) {
+function JobRow({ job, listHref }: { job: JobListItem; listHref: string }) {
   return (
     <Link
-      href={`/jobs/${job.id}`}
+      href={workspaceJobHref(job.id, listHref)}
       className={styles.jobRow}
       data-testid='job-card'
     >
@@ -112,39 +132,73 @@ function JobRow({ job }: { job: JobListItem }) {
       <div className={styles.details}>
         <div className={styles.heading}>
           <h3 className='t-h4'>{job.title}</h3>
-          {statusBadge(job.status)}
+          {statusBadge(job.workspaceStatus?.disputed ? 'disputed' : job.status)}
         </div>
         <p className={styles.meta}>{metaLine(job)}</p>
+        {job.workspaceStatus && (
+          <p
+            className={
+              job.workspaceStatus.needsAttention
+                ? styles.attention
+                : styles.meta
+            }
+          >
+            {job.workspaceStatus.label}
+          </p>
+        )}
       </div>
       <ArrowRight className={styles.arrow} size={18} aria-hidden='true' />
     </Link>
   );
 }
 
-type Tab = 'all' | 'awaiting' | 'active' | 'done';
-
-const TABS: { id: Tab; label: string; match: (s: string) => boolean }[] = [
+const TABS: {
+  id: WorkspaceView;
+  label: string;
+  match: (job: JobListItem) => boolean;
+}[] = [
   { id: 'all', label: 'All', match: () => true },
+  {
+    id: 'attention',
+    label: 'Needs attention',
+    match: (job) => job.workspaceStatus?.needsAttention === true,
+  },
   {
     id: 'awaiting',
     label: 'Awaiting bids',
-    match: (s) => s === 'posted' || s === 'pending',
+    match: ({ status }) => status === 'posted' || status === 'pending',
   },
   {
     id: 'active',
     label: 'Assigned / in progress',
-    match: (s) => s === 'in_progress' || s === 'assigned',
+    match: ({ status }) => status === 'in_progress' || status === 'assigned',
   },
-  { id: 'done', label: 'Done', match: (s) => s === 'completed' },
+  { id: 'done', label: 'Done', match: ({ status }) => status === 'completed' },
+  {
+    id: 'cancelled',
+    label: 'Cancelled',
+    match: ({ status }) => isCancelledJob(status),
+  },
 ];
 
 export function MintEditorialJobsList({
   jobs,
   initialCategory = 'all',
   scoped = false,
+  scope,
+  filters,
+  onFiltersChange,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>('all');
-  const [category, setCategory] = useState(initialCategory);
+  const [internalFilters, setInternalFilters] = useState<WorkspaceFilters>({
+    view: 'all',
+    category: initialCategory,
+    query: '',
+  });
+  const currentFilters = filters ?? internalFilters;
+  const { view, category, query } = currentFilters;
+  const activeTab = TABS.find((tab) => tab.id === view) ?? TABS[0];
+  const updateFilters = onFiltersChange ?? setInternalFilters;
+  const listHref = workspaceHref(currentFilters, scope);
   const categories = useMemo(
     () =>
       [
@@ -161,30 +215,34 @@ export function MintEditorialJobsList({
   const counts = useMemo(
     () =>
       Object.fromEntries(
-        TABS.map((t) => [t.id, jobs.filter((j) => t.match(j.status)).length])
-      ) as Record<Tab, number>,
+        TABS.map((t) => [t.id, jobs.filter(t.match).length])
+      ) as Record<WorkspaceView, number>,
     [jobs]
   );
 
   const visible = useMemo(() => {
-    const matcher = TABS.find((t) => t.id === activeTab)!.match;
     return jobs.filter(
       (j) =>
-        matcher(j.status) && (category === 'all' || j.category === category)
+        activeTab.match(j) &&
+        (category === 'all' || j.category === category) &&
+        matchesWorkspaceSearch(j, query)
     );
-  }, [jobs, activeTab, category]);
+  }, [jobs, activeTab, category, query]);
 
   // Split visible jobs into "active-ish" (everything except completed) and
   // "recently completed" — matches the design's two grouped sections.
   const isCompleted = (s: string) => s.toLowerCase() === 'completed';
   const activeGroup = visible.filter(
-    (j) =>
-      !isCompleted(j.status) && !['cancelled', 'canceled'].includes(j.status)
+    (j) => !isCompleted(j.status) && !isCancelledJob(j.status)
   );
-  const closedGroup = visible.filter((j) =>
-    ['cancelled', 'canceled'].includes(j.status)
-  );
+  const closedGroup = visible.filter((j) => isCancelledJob(j.status));
   const doneGroup = visible.filter((j) => isCompleted(j.status));
+  const noJobs =
+    jobs.length === 0 &&
+    !scoped &&
+    activeTab.id === 'all' &&
+    category === 'all' &&
+    !query;
 
   return (
     <>
@@ -201,9 +259,9 @@ export function MintEditorialJobsList({
             <button
               type='button'
               key={t.id}
-              className={'chip ' + (activeTab === t.id ? 'on' : '')}
-              aria-pressed={activeTab === t.id}
-              onClick={() => setActiveTab(t.id)}
+              className={'chip ' + (activeTab.id === t.id ? 'on' : '')}
+              aria-pressed={activeTab.id === t.id}
+              onClick={() => updateFilters({ ...currentFilters, view: t.id })}
             >
               {t.label} · {counts[t.id]}
             </button>
@@ -213,13 +271,28 @@ export function MintEditorialJobsList({
 
       {/* Top actions row */}
       <div className={styles.toolbar}>
+        <label className={styles.search}>
+          <Search size={16} aria-hidden='true' />
+          <input
+            aria-label='Search jobs by title or property'
+            type='search'
+            placeholder='Search title or property'
+            maxLength={120}
+            value={query}
+            onChange={(event) =>
+              updateFilters({ ...currentFilters, query: event.target.value })
+            }
+          />
+        </label>
         <label className='row' style={{ gap: 8 }}>
           Category
           <select
             aria-label='Filter jobs by category'
             className='btn btn-secondary btn-sm'
             value={category}
-            onChange={(event) => setCategory(event.target.value)}
+            onChange={(event) =>
+              updateFilters({ ...currentFilters, category: event.target.value })
+            }
           >
             <option value='all'>All categories</option>
             {categories.map((value) => (
@@ -241,11 +314,11 @@ export function MintEditorialJobsList({
           style={{ padding: '56px 24px', textAlign: 'center' }}
         >
           <p className='t-body' style={{ marginBottom: 12 }}>
-            {!scoped && activeTab === 'all' && category === 'all'
+            {noJobs
               ? 'No jobs yet. Post your first one and local tradespeople will respond.'
               : 'No jobs match this filter.'}
           </p>
-          {!scoped && activeTab === 'all' && category === 'all' ? (
+          {noJobs ? (
             <Link href='/jobs/create' className='btn btn-primary'>
               <Plus size={14} strokeWidth={2} /> Post your first job
             </Link>
@@ -257,10 +330,9 @@ export function MintEditorialJobsList({
             <button
               type='button'
               className='btn btn-secondary'
-              onClick={() => {
-                setActiveTab('all');
-                setCategory('all');
-              }}
+              onClick={() =>
+                updateFilters({ view: 'all', category: 'all', query: '' })
+              }
             >
               See all jobs
             </button>
@@ -281,7 +353,7 @@ export function MintEditorialJobsList({
                   <span>{group.jobs.length}</span>
                 </div>
                 {group.jobs.map((job) => (
-                  <JobRow key={job.id} job={job} />
+                  <JobRow key={job.id} job={job} listHref={listHref} />
                 ))}
               </section>
             ))}
