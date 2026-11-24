@@ -222,8 +222,6 @@ export function ContractorDiscoverClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredJobs, isGeocoding]);
 
-  // Save/skip handlers
-
   // Derived values
   const searchCentre = [contractorLocation?.city, contractorLocation?.postcode]
     .filter(Boolean)

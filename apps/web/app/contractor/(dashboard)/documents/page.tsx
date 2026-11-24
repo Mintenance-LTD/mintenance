@@ -17,7 +17,10 @@ import { DocumentsView } from './DocumentsPage/DocumentsView';
 import { UploadModal } from './DocumentsPage/UploadModal';
 import { ContractorLibraryHero } from './DocumentsPage/ContractorLibraryHero';
 import { ContractorLibraryView } from './DocumentsPage/ContractorLibraryView';
-import { ContractPreview, downloadContractPdf } from './DocumentsPage/ContractPreview';
+import {
+  ContractPreview,
+  downloadContractPdf,
+} from './DocumentsPage/ContractPreview';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 
@@ -391,6 +394,7 @@ export default function DocumentManagementPage() {
             onUploadClick={() => router.push('/contractor/documents/upload')}
             onToggleStar={handleToggleStar}
             onView={handleView}
+            onDownload={handleDownload}
           />
         </div>
       ) : (

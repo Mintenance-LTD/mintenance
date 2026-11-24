@@ -41,7 +41,8 @@ export const GET = withApiHandler(
     const jobId = searchParams.get('job_id');
     const contractId = searchParams.get('contract_id');
     const status = searchParams.get('status');
-    if (contractId && !isValidUUID(contractId)) throw new BadRequestError('Invalid contract ID');
+    if (contractId && !isValidUUID(contractId))
+      throw new BadRequestError('Invalid contract ID');
 
     // 2026-05-13 bid → contract pipeline audit: pull the linked
     // contractor_quotes row inline so the UI can render the actual
@@ -407,7 +408,8 @@ export const POST = withApiHandler(
             userId: customerId,
             type: 'contract_created',
             title: `Contract sent for ${job.title || 'your job'}`,
-            message: 'Review the agreement and sign when you are ready. Funding is a separate step after both parties sign.',
+            message:
+              'Review the agreement and sign when you are ready. Funding is a separate step after both parties sign.',
             actionUrl: `/jobs/${job_id}`,
             metadata: { jobId: job_id, contractorId: user.id },
           })

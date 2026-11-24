@@ -697,18 +697,28 @@ describe('MessagingScreen — retry message', () => {
 });
 
 describe('MessagingScreen — composer typing + error clearing', () => {
-  it.each([HOMEOWNER, CONTRACTOR])('isolates unsent drafts by conversation for $role', (account) => {
-    mockShared.user = { ...account, id: `draft-test-${account.role}` };
-    const { getByTestId, rerender } = renderScreen();
-    const input = () => getByTestId('composer-input');
-    fireEvent.changeText(input(), 'First job draft');
-    rerender(<MessagingScreen navigation={mockNavigation} route={makeRoute({ conversationId: 'job-2' })} />);
-    expect(input().props.value).toBe('');
-    fireEvent.changeText(input(), 'Second job draft');
-    rerender(<MessagingScreen navigation={mockNavigation} route={makeRoute()} />);
-    expect(input().props.value).toBe('First job draft');
-    expect(mockShared.mutateAsync).not.toHaveBeenCalled();
-  });
+  it.each([HOMEOWNER, CONTRACTOR])(
+    'isolates unsent drafts by conversation for $role',
+    (account) => {
+      mockShared.user = { ...account, id: `draft-test-${account.role}` };
+      const { getByTestId, rerender } = renderScreen();
+      const input = () => getByTestId('composer-input');
+      fireEvent.changeText(input(), 'First job draft');
+      rerender(
+        <MessagingScreen
+          navigation={mockNavigation}
+          route={makeRoute({ conversationId: 'job-2' })}
+        />
+      );
+      expect(input().props.value).toBe('');
+      fireEvent.changeText(input(), 'Second job draft');
+      rerender(
+        <MessagingScreen navigation={mockNavigation} route={makeRoute()} />
+      );
+      expect(input().props.value).toBe('First job draft');
+      expect(mockShared.mutateAsync).not.toHaveBeenCalled();
+    }
+  );
   it('broadcasts typing on input and clears existing composer error', async () => {
     mockShared.mutateAsync.mockRejectedValueOnce(new Error('net'));
     mockShared.getQueryData.mockReturnValue([]);
@@ -1097,5 +1107,6 @@ describe('MessagingScreen — no authenticated user', () => {
 });
 
 jest.mock('../../hooks/usePagedJobMessages', () => ({
-  usePagedJobMessages: (...args: unknown[]) => require('../../hooks/useMessaging').useJobMessages(...args),
+  usePagedJobMessages: (...args: unknown[]) =>
+    require('../../hooks/useMessaging').useJobMessages(...args),
 }));

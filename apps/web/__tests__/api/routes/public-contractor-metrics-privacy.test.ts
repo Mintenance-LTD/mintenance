@@ -15,7 +15,10 @@ beforeEach(() => {
       return chain;
     };
     chain.maybeSingle = async () => ({ data: mocks.eligible ? { id: 'contractor' } : null, error: mocks.failed ? new Error('unavailable') : null });
-    chain.then = (resolve: Function) => resolve({ data: [], error: null });
+    chain.range = async (from: number, to: number) => {
+      expect([from, to]).toEqual([0, 499]);
+      return { data: [], error: null };
+    };
     return chain;
   });
 });
@@ -26,7 +29,8 @@ it('returns public performance without private payment metrics or payment querie
   const response = await read();
   expect(response.status).toBe(200);
   const { metrics } = await response.json();
-  expect(metrics).toHaveProperty('onTimeCompletion');
+  expect(metrics.onTimeCompletion).toBeNull();
+  expect(metrics.responseTime).toBeNull();
   expect(metrics).not.toHaveProperty('earnings');
   expect(metrics).not.toHaveProperty('avgProjectValue');
   expect(mocks.filters).toContainEqual(['eq', 'role', 'contractor']);

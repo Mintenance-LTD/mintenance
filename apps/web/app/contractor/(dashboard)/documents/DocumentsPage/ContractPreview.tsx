@@ -10,6 +10,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { formatMoney } from '@/lib/utils/currency';
+import {
+  TERMS_HIDDEN_KEYS,
+  formatDateTime,
+} from '@/app/jobs/[id]/components/contract/contractHelpers';
 import type { Document } from './types';
 
 interface Agreement {
@@ -20,6 +24,7 @@ interface Agreement {
   status: string;
   contractor_signed_at?: string | null;
   homeowner_signed_at?: string | null;
+  terms?: Record<string, unknown> | null;
   quote?: { terms?: string | null } | null;
 }
 
@@ -31,7 +36,11 @@ export async function downloadContractPdf(id: string, name: string) {
   ) {
     throw new Error('Contract PDF is unavailable');
   }
-  const url = URL.createObjectURL(await response.blob());
+  const pdf = await response.blob();
+  if ((await pdf.slice(0, 5).text()) !== '%PDF-') {
+    throw new Error('Contract PDF is invalid');
+  }
+  const url = URL.createObjectURL(pdf);
   const link = document.createElement('a');
   link.href = url;
   link.download = `${name}.pdf`;
@@ -40,9 +49,7 @@ export async function downloadContractPdf(id: string, name: string) {
 }
 
 const signature = (value?: string | null) =>
-  value
-    ? `Signed ${new Date(value).toLocaleDateString('en-GB', { dateStyle: 'long', timeZone: 'Europe/London' })}`
-    : 'Awaiting signature';
+  value ? `Signed ${formatDateTime(value)}` : 'Awaiting signature';
 
 export function ContractPreview({
   id,
@@ -77,6 +84,9 @@ export function ContractPreview({
     },
     retry: false,
   });
+  const terms = Object.entries(agreement?.terms ?? {}).filter(
+    ([key]) => !TERMS_HIDDEN_KEYS.includes(key)
+  );
 
   async function download() {
     if (downloading) return;
@@ -154,6 +164,25 @@ export function ContractPreview({
                 <p className='whitespace-pre-wrap text-sm'>
                   {agreement.quote.terms}
                 </p>
+              </section>
+            )}
+            {terms.length > 0 && (
+              <section>
+                <h3 className='font-semibold'>Additional terms</h3>
+                <dl className='space-y-2 text-sm'>
+                  {terms.map(([key, value]) => (
+                    <div key={key}>
+                      <dt className='font-medium capitalize'>
+                        {key.replace(/_/g, ' ')}
+                      </dt>
+                      <dd className='whitespace-pre-wrap break-words'>
+                        {typeof value === 'string'
+                          ? value
+                          : JSON.stringify(value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               </section>
             )}
           </div>

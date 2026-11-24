@@ -9,13 +9,17 @@ import {
 import { fetchWithCsrf } from '@/lib/csrf-client';
 import { ukDateTimeToISO } from '@/lib/scheduling/uk-date-time';
 import type { Appointment } from './types';
+import { canRescheduleVisit } from '@/lib/scheduling/visit-history';
 
 export function EditAppointmentDialog({
   appointment,
   onClose,
   onSaved,
 }: {
-  appointment: Appointment;
+  appointment: Pick<
+    Appointment,
+    'id' | 'title' | 'client' | 'date' | 'time' | 'endTime'
+  > & { status: string };
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -26,11 +30,9 @@ export function EditAppointmentDialog({
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
   const [error, setError] = useState('');
-  const canEdit = ['scheduled', 'confirmed', 'rescheduled'].includes(
-    appointment.status
-  );
+  const canEdit = canRescheduleVisit(appointment);
   async function save() {
-    if (inFlight.current || !canEdit) return;
+    if (inFlight.current || !canRescheduleVisit(appointment)) return;
     setError('');
     try {
       ukDateTimeToISO(date + 'T' + start);
@@ -173,7 +175,7 @@ export function EditAppointmentDialog({
                 }
                 type='submit'
               >
-                {busy ? 'Saving visit…' : 'Save new visit time'}
+                {busy ? 'Saving visit…' : 'Propose visit time'}
               </button>
             </>
           ) : (

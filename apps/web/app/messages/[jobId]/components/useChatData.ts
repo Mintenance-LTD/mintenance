@@ -166,7 +166,7 @@ export function useChatData(jobId: string) {
     if (!user || !jobId || !otherUserId || sending) {
       if (!otherUserId)
         toast.error('Unable to determine recipient. Please refresh the page.');
-      return;
+      return false;
     }
     try {
       setSending(true);
@@ -178,6 +178,7 @@ export function useChatData(jobId: string) {
       );
       setMessages((prev) => [...prev, newMessage]);
       scrollToBottom();
+      return true;
     } catch (err) {
       logger.error('Error sending message', err);
       toast.error(
@@ -185,6 +186,7 @@ export function useChatData(jobId: string) {
           ? err.message
           : 'Failed to send message. Please try again.'
       );
+      return false;
     } finally {
       setSending(false);
     }

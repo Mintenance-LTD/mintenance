@@ -18,8 +18,12 @@ interface ChatPageProps {
   params: Promise<{ jobId: string }>;
 }
 
-function ChatContent({ params }: ChatPageProps) {
+function ChatRoute({ params }: ChatPageProps) {
   const { jobId } = use(params);
+  return <ChatContent key={jobId} jobId={jobId} />;
+}
+
+function ChatContent({ jobId }: { jobId: string }) {
   const router = useRouter();
 
   const chat = useChatData(jobId);
@@ -133,7 +137,9 @@ function ChatContent({ params }: ChatPageProps) {
 
       <div style={{ flexShrink: 0 }}>
         <MessageInput
-          key={jobId}
+          key={chat.user.id}
+          userId={chat.user.id}
+          conversationId={jobId}
           onSendMessage={chat.handleSendMessage}
           disabled={chat.sending || !chat.otherUserId}
           placeholder={chat.sending ? 'Sending...' : 'Type a message...'}
@@ -199,7 +205,7 @@ export default function ChatPage({ params }: ChatPageProps) {
         </div>
       }
     >
-      <ChatContent params={params} />
+      <ChatRoute params={params} />
     </Suspense>
   );
 }

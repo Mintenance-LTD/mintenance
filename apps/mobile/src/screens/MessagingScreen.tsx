@@ -78,8 +78,12 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   const { isDesktop } = useResponsive();
 
   const [newMessage, setNewMessage] = useConversationDraft(user?.id, jobId);
-  const [composerFailure, setComposerFailure] = useState<{ jobId: string; message: string } | null>(null);
-  const composerError = composerFailure?.jobId === jobId ? composerFailure.message : null;
+  const [composerFailure, setComposerFailure] = useState<{
+    jobId: string;
+    message: string;
+  } | null>(null);
+  const composerError =
+    composerFailure?.jobId === jobId ? composerFailure.message : null;
   const setComposerError = (message: string | null) => {
     setComposerFailure(message ? { jobId, message } : null);
   };

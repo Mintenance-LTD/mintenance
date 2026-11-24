@@ -20,68 +20,71 @@ export async function getUserNotifications(
   offset: number = 0
 ): Promise<NotificationData[]> {
   try {
-    if (offset === 0) {
-      try {
-        // history=1 — request the paginated, unfiltered inbox view.
-        // Without it the API returns the dashboard-style feed (recent
-        // OR unread, capped at 7) and the mobile inbox looks empty for
-        // users whose recent activity is already read.
-        //
-        // 2026-05-01 audit follow-up (review pass 4): the response
-        // shape now carries `metadata` — the canonical jsonb column.
-        // Older builds may still see `data` (the legacy column name);
-        // we read metadata first, then data for backwards compat with
-        // any not-yet-redeployed instance, then fall back to deriving
-        // an actionUrl wrapper for very old payloads.
-        const response = await mobileApiClient.get<{
-          notifications?: {
-            id: string;
-            title?: string;
-            message?: string;
-            body?: string;
-            type?: NotificationData['type'];
-            priority?: NotificationData['priority'];
-            read?: boolean;
-            created_at?: string;
-            createdAt?: string;
-            metadata?: Record<string, unknown> | null;
-            data?: unknown;
-            link?: string;
-            action_url?: string;
-          }[];
-        }>(`/api/notifications?history=1&limit=${limit}&offset=${offset}`);
+    try {
+      // history=1 — request the paginated, unfiltered inbox view.
+      // Without it the API returns the dashboard-style feed (recent
+      // OR unread, capped at 7) and the mobile inbox looks empty for
+      // users whose recent activity is already read.
+      //
+      // 2026-05-01 audit follow-up (review pass 4): the response
+      // shape now carries `metadata` — the canonical jsonb column.
+      // Older builds may still see `data` (the legacy column name);
+      // we read metadata first, then data for backwards compat with
+      // any not-yet-redeployed instance, then fall back to deriving
+      // an actionUrl wrapper for very old payloads.
+      const response = await mobileApiClient.get<{
+        notifications?: {
+          id: string;
+          title?: string;
+          message?: string;
+          body?: string;
+          type?: NotificationData['type'];
+          priority?: NotificationData['priority'];
+          read?: boolean;
+          created_at?: string;
+          createdAt?: string;
+          metadata?: Record<string, unknown> | null;
+          data?: unknown;
+          link?: string;
+          action_url?: string;
+        }[];
+      }>(`/api/notifications?history=1&limit=${limit}&offset=${offset}`);
 
-        if (response.notifications) {
-          return response.notifications.map((row) => ({
-            id: row.id,
-            title: row.title || 'Notification',
-            body: row.message || row.body || '',
-            data:
-              row.metadata ??
-              row.data ??
-              (row.action_url || row.link
-                ? { actionUrl: row.action_url || row.link }
-                : undefined),
-            type: row.type || 'system',
-            priority: row.priority || 'normal',
-            userId,
-            createdAt:
-              row.created_at || row.createdAt || new Date().toISOString(),
-            read: Boolean(row.read),
-          }));
-        }
-      } catch (apiError) {
-        logger.warn('Notification API feed unavailable, falling back to DB', {
-          error: apiError,
-        });
+      if (response.notifications) {
+        return response.notifications.map((row) => ({
+          id: row.id,
+          title: row.title || 'Notification',
+          body: row.message || row.body || '',
+          data: {
+            ...(row.metadata ??
+              (typeof row.data === 'object' ? row.data : null)),
+            ...((row.action_url || row.link) && {
+              actionUrl: row.action_url || row.link,
+            }),
+          },
+          type: row.type || 'system',
+          priority: row.priority || 'normal',
+          userId,
+          createdAt:
+            row.created_at || row.createdAt || new Date().toISOString(),
+          read: Boolean(row.read),
+        }));
       }
+    } catch (apiError) {
+      logger.warn('Notification API feed unavailable, falling back to DB', {
+        error: apiError,
+      });
     }
 
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
+      .or(
+        'type.is.null,type.not.in.(' + SOCIAL_NOTIFICATION_TYPES.join(',') + ')'
+      )
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {

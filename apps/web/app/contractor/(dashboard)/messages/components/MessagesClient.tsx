@@ -46,14 +46,21 @@ export function MessagesClient() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
-  const [thread, setThread] = useState<{ id: string; messages: Message[] } | null>(null);
+  const [thread, setThread] = useState<{
+    id: string;
+    messages: Message[];
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread' | 'archived'>('all');
   const conversationId = selectedConversation?.id;
-  const messages = thread && thread.id === conversationId ? thread.messages : null;
-  const [messageInput, setMessageInput] = useConversationDraft(user?.id, conversationId);
+  const messages =
+    thread && thread.id === conversationId ? thread.messages : null;
+  const [messageInput, setMessageInput] = useConversationDraft(
+    user?.id,
+    conversationId
+  );
   const [sending, setSending] = useState(false);
   const [jobContext, setJobContext] = useState<JobContext | null>(null);
   const [showVideoCallDialog, setShowVideoCallDialog] = useState(false);
@@ -166,10 +173,9 @@ export function MessagesClient() {
         if (signal.aborted) return;
         setThread({ id: conversationId, messages: transformedMessages });
         try {
-          const jobResponse = await fetch(
-            '/api/jobs/' + conversationId,
-            { signal }
-          );
+          const jobResponse = await fetch('/api/jobs/' + conversationId, {
+            signal,
+          });
           if (jobResponse.ok) {
             const jobData = await jobResponse.json();
             if (signal.aborted) return;
@@ -182,12 +188,14 @@ export function MessagesClient() {
             });
           }
         } catch (error) {
-          if (!signal.aborted) logger.warn('Failed to load job context', { error });
+          if (!signal.aborted)
+            logger.warn('Failed to load job context', { error });
         }
-        await fetch(
-          '/api/messages/threads/' + conversationId + '/read',
-          { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal }
-        );
+        await fetch('/api/messages/threads/' + conversationId + '/read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal,
+        });
       } catch {
         if (!signal.aborted) toast.error('Failed to load messages');
       } finally {
@@ -199,9 +207,11 @@ export function MessagesClient() {
   }, [conversationId]);
 
   const appendMessage = (message: Message) => {
-    setThread((current) => current && current.id === conversationId
-      ? { ...current, messages: [...current.messages, message] }
-      : current);
+    setThread((current) =>
+      current && current.id === conversationId
+        ? { ...current, messages: [...current.messages, message] }
+        : current
+    );
   };
 
   const handleSendMessage = async () => {
@@ -243,7 +253,7 @@ export function MessagesClient() {
         read: false,
       };
       appendMessage(newMessage);
-      setMessageInput((current) => current === messageInput ? '' : current);
+      setMessageInput((current) => (current === messageInput ? '' : current));
       setConversations((prev) =>
         prev.map((conv) =>
           conv.id === selectedConversation.id

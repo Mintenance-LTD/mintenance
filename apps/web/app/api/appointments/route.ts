@@ -1,7 +1,15 @@
 import { appointmentLocalTime } from '@/lib/utils/appointment-local-time';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
+import { isValidUUID } from '@/lib/validation/uuid';
+import { readVisitRecords } from '@/lib/queries/visit-history';
+import {
+  activeVisitStatuses,
+  closedVisitStatuses,
+} from '@/lib/scheduling/visit-history';
 
 /**
  * GET /api/appointments
@@ -12,7 +20,8 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 60 }, csrf: false },
   async (request, { user }) => {
-    const now = appointmentLocalTime(new Date());
+    const now = new Date();
+    const { date: today, time: nowTime } = appointmentLocalTime(now);
     const isContractor = user.role === 'contractor';
 
     // 2026-05-23 audit-21 P1: CalendarScreen used to call the
@@ -24,24 +33,31 @@ export const GET = withApiHandler(
     // Defaults preserve the historical "next 10 upcoming" behaviour
     // for the older dashboard widgets that don't pass either param.
     const { searchParams } = new URL(request.url);
-    const daysAheadRaw = searchParams.get('daysAhead');
-    const limitRaw = searchParams.get('limit');
-    const weekStart = searchParams.get('weekStart');
-    const validWeekStart =
-      weekStart && /^\d{4}-\d{2}-\d{2}$/.test(weekStart)
-        ? new Date(`${weekStart}T00:00:00Z`)
-        : null;
-    if (
-      weekStart &&
-      (!validWeekStart ||
-        !Number.isFinite(validWeekStart.getTime()) ||
-        validWeekStart.toISOString().slice(0, 10) !== weekStart)
-    ) {
+    const view = searchParams.get('view');
+    if (view && !['homeowner', 'contractor'].includes(user.role)) {
+      throw new ForbiddenError('Visit unavailable');
+    }
+    if (view === 'visit') {
+      const id = searchParams.get('id');
+      if (!id || !isValidUUID(id))
+        throw new BadRequestError('Invalid visit ID');
+      const [visit] = await readVisitRecords(user, { id });
       return NextResponse.json(
-        { error: 'Invalid calendar week' },
-        { status: 400 }
+        { visit: visit ?? null },
+        { headers: { 'Cache-Control': 'private, no-store' } }
       );
     }
+    if (view === 'job') {
+      const jobId = searchParams.get('jobId');
+      if (!jobId || !isValidUUID(jobId))
+        throw new BadRequestError('Invalid job ID');
+      return NextResponse.json({
+        appointments: await readVisitRecords(user, { jobId }),
+      });
+    }
+    const past = view === 'past';
+    const daysAheadRaw = searchParams.get('daysAhead');
+    const limitRaw = searchParams.get('limit');
     const daysAhead = (() => {
       const n = daysAheadRaw ? parseInt(daysAheadRaw, 10) : NaN;
       return Number.isFinite(n) && n > 0 ? Math.min(n, 365) : null;
@@ -58,31 +74,57 @@ export const GET = withApiHandler(
       .select(
         `
         id, title, appointment_date, start_time, end_time,
-        location_type, location_address, video_call_url, status, notes, client_id, client_response,
+        location_type, location_address, video_call_url, status, notes, client_id, client_response, client_response_at,
         contractor:profiles!contractor_id(id, first_name, last_name),
         client:profiles!client_id(id, first_name, last_name),
         job:jobs!job_id(id, title, status)
       `
       )
-      .order('appointment_date', { ascending: true })
-      .order('start_time', { ascending: true })
+      .order('appointment_date', { ascending: !past && view !== 'calendar' })
+      .order('start_time', { ascending: !past && view !== 'calendar' })
       .limit(limit);
 
-    if (validWeekStart && weekStart) {
-      validWeekStart.setUTCDate(validWeekStart.getUTCDate() + 7);
+    if (past) {
+      query = query.or(
+        `status.in.(${closedVisitStatuses.join(',')}),appointment_date.lt.${today},and(appointment_date.eq.${today},end_time.lte.${nowTime})`
+      );
+    } else if (view === 'upcoming') {
       query = query
-        .gte('appointment_date', weekStart)
-        .lt('appointment_date', validWeekStart.toISOString().slice(0, 10));
+        .in('status', activeVisitStatuses)
+        .or(
+          `appointment_date.gt.${today},and(appointment_date.eq.${today},end_time.gt.${nowTime})`
+        );
+    } else if (view === 'calendar') {
+      query = query.in('status', [
+        ...activeVisitStatuses,
+        'completed',
+        'no_show',
+      ]);
+      const start = searchParams.get('startDate');
+      const end = searchParams.get('endDate');
+      if (start || end) {
+        if (
+          !start ||
+          !end ||
+          !z.iso.date().safeParse(start).success ||
+          !z.iso.date().safeParse(end).success ||
+          start > end
+        )
+          throw new BadRequestError('Invalid calendar date range');
+        query = query
+          .gte('appointment_date', start)
+          .lte('appointment_date', end);
+      }
     } else {
       query = query
-        .gte('appointment_date', now.date)
+        .gte('appointment_date', today)
         .in('status', ['scheduled', 'confirmed', 'rescheduled']);
     }
 
-    if (!validWeekStart && daysAhead != null) {
-      const upper = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0];
+    if (!past && daysAhead != null) {
+      const upper = appointmentLocalTime(
+        new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000)
+      ).date;
       query = query.lte('appointment_date', upper);
     }
 
@@ -108,7 +150,8 @@ export const GET = withApiHandler(
       if (user.email) {
         // sanitise: client_email is just an EQ filter, escape with
         // standard PostgREST syntax (no wildcards needed).
-        orFilters.push(`client_email.eq.${user.email}`);
+        const email = user.email.replace(/["\\]/g, '\\$&');
+        orFilters.push(`and(client_id.is.null,client_email.eq."${email}")`);
       }
 
       // Look up jobs this homeowner owns so we can pick up
@@ -139,10 +182,6 @@ export const GET = withApiHandler(
         : apt.contractor;
       const client = Array.isArray(apt.client) ? apt.client[0] : apt.client;
       const job = Array.isArray(apt.job) ? apt.job[0] : apt.job;
-      const date = String(apt.appointment_date);
-      const past =
-        date < now.date ||
-        (date === now.date && String(apt.end_time) <= now.time);
       return {
         id: apt.id,
         title: apt.title,
@@ -154,8 +193,8 @@ export const GET = withApiHandler(
         locationAddress: apt.location_address,
         status: apt.status,
         clientResponse: apt.client_response,
-        canRespond: apt.client_id === user.id && (!validWeekStart || !past),
-        ...(validWeekStart && { past }),
+        clientResponseAt: apt.client_response_at,
+        canRespond: !past && apt.client_id === user.id,
         notes: apt.notes,
         contractor: contractor
           ? {

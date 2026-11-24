@@ -45,6 +45,7 @@ interface BuildingAssessmentDisplayProps {
   onCorrection?: (assessmentId: string, corrections: unknown[]) => void;
   jobId?: string;
   canEditPhotos?: boolean;
+  historical?: boolean;
   photoUrls?: string[];
   /**
    * The job's declared category (plumbing / electrical / roofing / ...).
@@ -67,6 +68,7 @@ export function BuildingAssessmentDisplay({
   onCorrection: _onCorrection,
   jobId,
   canEditPhotos = false,
+  historical = false,
   photoUrls,
   jobCategory,
   frameUrls,
@@ -110,11 +112,19 @@ export function BuildingAssessmentDisplay({
   if (isAssessmentUnassessable(assessment))
     return (
       <div
-        role='alert'
+        role={historical ? undefined : 'alert'}
         className='rounded-xl border border-amber-300 bg-amber-50 p-4'
       >
-        <h3 className='font-semibold'>New photos needed</h3>
-        <p>{getRecaptureMessage(assessment)}</p>
+        <h3 className='font-semibold'>
+          {historical
+            ? 'Original job photos couldn’t be assessed'
+            : 'New photos needed'}
+        </h3>
+        <p>
+          {historical
+            ? 'The original customer brief did not provide enough visual evidence for an assessment.'
+            : getRecaptureMessage(assessment)}
+        </p>
       </div>
     );
 

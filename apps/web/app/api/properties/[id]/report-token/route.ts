@@ -49,9 +49,13 @@ export const GET = withApiHandler(
   async (_req, { user, params }) => {
     const propertyId = params.id;
 
-    await getPropertyForManagement(user, propertyId, 'manage_contacts');
+    const property = await getPropertyForManagement(
+      user,
+      propertyId,
+      'manage_contacts'
+    );
 
-    const [links, contact] = await Promise.all([
+    const [links, contact, fallback] = await Promise.all([
       serverSupabase
         .from('anonymous_report_tokens')
         .select('id, token, property_id, label, is_active, created_at')
@@ -62,6 +66,11 @@ export const GET = withApiHandler(
         .select('tenant_emergency_phone')
         .eq('id', propertyId)
         .single(),
+      serverSupabase.rpc('emergency_report_fallback', {
+        p_property: propertyId,
+        p_owner: property.owner_id,
+        p_current: property.owner_id,
+      }),
     ]);
 
     if (links.error || contact.error) {
@@ -75,6 +84,7 @@ export const GET = withApiHandler(
       {
         tokens: links.data ?? [],
         emergency_phone: contact.data?.tenant_emergency_phone ?? null,
+        has_emergency_fallback: fallback.error ? null : !!fallback.data,
       },
       { headers: { 'Cache-Control': 'private, no-store' } }
     );

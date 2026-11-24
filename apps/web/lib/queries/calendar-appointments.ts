@@ -1,4 +1,5 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { activeVisitStatuses } from '@/lib/scheduling/visit-history';
 
 async function ownedCalendarJobIds(userId: string) {
   const { data: jobs, error } = await serverSupabase
@@ -17,9 +18,9 @@ export async function fetchCalendarAppointments(
   let query = serverSupabase
     .from('appointments')
     .select(
-      'id,title,job_id,appointment_date,start_time,end_time,status,job:jobs!job_id(status)'
+      'id,title,job_id,appointment_date,start_time,end_time,status,client_response,job:jobs!job_id(status)'
     )
-    .in('status', ['scheduled', 'confirmed', 'rescheduled']);
+    .in('status', [...activeVisitStatuses, 'completed', 'no_show']);
   if (role === 'contractor') {
     query = query.eq('contractor_id', userId);
   } else {

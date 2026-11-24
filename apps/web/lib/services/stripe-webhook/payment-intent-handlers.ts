@@ -1,3 +1,4 @@
+import { contractorStartHref } from '@/lib/contractor/payment-links';
 import { applyPaymentIntentState } from './payment-state-transition';
 import {
   getEscrowCashRequirement,
@@ -292,7 +293,10 @@ export async function handlePaymentIntentSucceeded(
             return 'Your payment has been secured in escrow and will be released once the work is approved.';
           return 'Your payment has been secured in escrow and will be released after you approve the completed work.';
         },
-        actionUrlFor: () => `/jobs/${jobIdForFanout}`,
+        actionUrlFor: (role) =>
+          role === 'contractor'
+            ? contractorStartHref(jobIdForFanout)
+            : `/jobs/${jobIdForFanout}`,
         emailTenants: true,
         tenantJobStatus: 'assigned',
       });

@@ -117,7 +117,10 @@ function MessagesPageContent() {
     useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread' | 'archived'>('all');
-  const [messageInput, setMessageInput] = useConversationDraft(user?.id, selectedConversation?.id);
+  const [messageInput, setMessageInput] = useConversationDraft(
+    user?.id,
+    selectedConversation?.id
+  );
   const [sending, setSending] = useState(false);
 
   const { isOtherTyping, broadcastTyping } = useTypingIndicator({
@@ -254,7 +257,7 @@ function MessagesPageContent() {
           )
       );
 
-      setMessageInput((current) => current === messageInput ? '' : current);
+      setMessageInput((current) => (current === messageInput ? '' : current));
     } catch {
       toast.error('Failed to send message');
     } finally {

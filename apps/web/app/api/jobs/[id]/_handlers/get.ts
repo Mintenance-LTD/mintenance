@@ -40,7 +40,7 @@ export async function handleGet(
       // both fell through silently — a homeowner who'd already approved the
       // work saw "Review Work" again, and the auto-release timer-aware copy
       // never appeared.
-      'id, title, description, status, homeowner_id, payer_user_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, completed_at, completion_confirmed_at, completion_confirmed_by_homeowner, created_at, updated_at'
+      'id, title, description, status, homeowner_id, payer_user_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, scheduled_end_date, flexible_timeline, access_info, requirements, property_id, completed_at, completion_confirmed_at, completion_confirmed_by_homeowner, created_at, updated_at'
     )
     .eq('id', id)
     .single();
@@ -360,6 +360,7 @@ export async function handleGet(
     // entitled to access info or there are no contacts.
     propertyContacts,
     scheduledStartDate: row.scheduled_start_date,
+    scheduledEndDate: row.scheduled_end_date,
     images: signedPhotos,
     photos: signedPhotos,
     lifecyclePhotos,

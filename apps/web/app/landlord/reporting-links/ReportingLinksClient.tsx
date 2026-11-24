@@ -14,6 +14,10 @@ import {
 import toast from 'react-hot-toast';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
+import {
+  ReportingLinkCoverage,
+  type ReportingCoverage,
+} from './ReportingLinkCoverage';
 
 interface Property {
   id: string;
@@ -35,9 +39,11 @@ interface Token {
 export function ReportingLinksClient({
   properties,
   tokens: initialTokens,
+  coverage,
 }: {
   properties: Property[];
   tokens: Token[];
+  coverage: ReportingCoverage | null;
 }) {
   const [tokens, setTokens] = useState(initialTokens);
   const [creating, setCreating] = useState(false);
@@ -152,6 +158,7 @@ export function ReportingLinksClient({
       </div>
 
       {/* Create New Link */}
+      <ReportingLinkCoverage coverage={coverage} properties={properties} />
       <div className='bg-white rounded-xl border border-gray-200 p-4 mb-6'>
         <h3 className='font-medium text-gray-900 mb-3'>Create New Link</h3>
         <div className='flex flex-col sm:flex-row gap-3'>

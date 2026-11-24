@@ -184,6 +184,31 @@ describe('NotificationScreen — load states', () => {
 });
 
 describe('NotificationScreen — populated list', () => {
+  it('loads older notifications while keeping the full unread count', async () => {
+    mockGetUserNotifications.mockImplementation(
+      async (_userId, _limit, offset) =>
+        offset
+          ? [makeNotif({ id: 'older', title: 'Older disputed payment' })]
+          : Array.from({ length: 50 }, (_, index) =>
+              makeNotif({
+                id: 'recent-' + index,
+                title: 'Recent notice ' + index,
+                read: true,
+              })
+            )
+    );
+    mockGetUnreadCount.mockResolvedValue(113);
+
+    const { findByLabelText, findByText, queryByLabelText } = render(
+      <NotificationScreen />
+    );
+    expect(await findByText('113 unread')).toBeTruthy();
+    fireEvent.press(await findByLabelText(/Filter Unread/));
+    fireEvent.press(await findByLabelText('Load older notifications'));
+    expect(await findByText('Older disputed payment')).toBeTruthy();
+    expect(mockGetUserNotifications).toHaveBeenLastCalledWith('user-1', 50, 50);
+    expect(queryByLabelText('Load older notifications')).toBeNull();
+  });
   it('clears the previous inbox on sign-out', async () => {
     mockGetUserNotifications.mockResolvedValue([
       makeNotif({ title: 'Private item' }),

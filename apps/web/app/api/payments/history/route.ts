@@ -10,8 +10,9 @@ import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const querySchema = z.object({
-  limit: z.coerce.number().min(1).max(50).default(20),
+  limit: z.coerce.number().int().min(1).max(250).default(20),
   cursor: z.string().optional(),
+  cursorId: z.string().uuid().optional(),
   status: z.string().optional(),
   transactionId: z.string().uuid().optional(),
   direction: z.enum(['received', 'sent']).optional(),
@@ -150,6 +151,7 @@ export const GET = withApiHandler(
     const parsed = querySchema.safeParse({
       limit: url.searchParams.get('limit') ?? undefined,
       cursor: url.searchParams.get('cursor') ?? undefined,
+      cursorId: url.searchParams.get('cursorId') ?? undefined,
       status: url.searchParams.get('status') ?? undefined,
       transactionId: url.searchParams.get('transactionId') ?? undefined,
       direction: url.searchParams.get('direction') ?? undefined,
@@ -159,15 +161,27 @@ export const GET = withApiHandler(
       throw new BadRequestError('Invalid query parameters');
     }
 
-    const { limit, cursor, status, transactionId, direction } = parsed.data;
+    const { limit, cursor, cursorId, status, transactionId, direction } =
+      parsed.data;
 
     let cursorIso: string | undefined;
+    if (cursorId && !cursor) {
+      throw new BadRequestError('Invalid cursor value');
+    }
     if (cursor) {
       const ts = Date.parse(cursor);
       if (Number.isNaN(ts)) {
         throw new BadRequestError('Invalid cursor value');
       }
-      cursorIso = new Date(ts).toISOString();
+      // Preserve the database timestamp's fractional precision for keyset
+      // pagination. Converting it to a Date truncates it to milliseconds.
+      if (
+        cursorId &&
+        !z.iso.datetime({ offset: true }).safeParse(cursor).success
+      ) {
+        throw new BadRequestError('Invalid cursor value');
+      }
+      cursorIso = cursorId ? cursor : new Date(ts).toISOString();
     }
 
     let query = userDb
@@ -175,9 +189,14 @@ export const GET = withApiHandler(
       .select(selectFields)
       .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .limit(limit + 1);
 
-    if (cursorIso) {
+    if (cursorIso && cursorId) {
+      query = query.or(
+        `created_at.lt.${cursorIso},and(created_at.eq.${cursorIso},id.lt.${cursorId})`
+      );
+    } else if (cursorIso) {
       query = query.lt('created_at', cursorIso);
     }
 
@@ -242,9 +261,7 @@ export const GET = withApiHandler(
         refundNeedsReview: balance?.needs_review ?? false,
       };
     });
-    const nextCursorValue = hasMore
-      ? limitedRows[limitedRows.length - 1]?.created_at
-      : undefined;
+    const cursorRow = hasMore ? limitedRows.at(-1) : undefined;
 
     logger.info('Payment history retrieved', {
       service: 'payments',
@@ -253,6 +270,11 @@ export const GET = withApiHandler(
       hasMore,
     });
 
-    return NextResponse.json({ payments, nextCursor: nextCursorValue, limit });
+    return NextResponse.json({
+      payments,
+      nextCursor: cursorRow?.created_at,
+      nextCursorId: cursorRow?.id,
+      limit,
+    });
   }
 );

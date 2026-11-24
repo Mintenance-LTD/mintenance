@@ -1,8 +1,8 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import * as WebBrowser from 'expo-web-browser';
 import { CalendarScreen } from '../CalendarScreen';
+import { goToTab } from '../../navigation/hooks';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 jest.mock('react-native', () => {
@@ -36,9 +36,9 @@ jest.mock('../../contexts/AuthContext', () => ({
 jest.mock('../../utils/mobileApiClient', () => ({
   mobileApiClient: { get: jest.fn() },
 }));
-jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn() }));
+jest.mock('../../navigation/hooks', () => ({ goToTab: jest.fn() }));
 
-it('opens the selected visit and carries that job into the web proposal form', async () => {
+it('opens the exact selected visit when two appointments have the same title', async () => {
   const today = new Date();
   const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   jest.mocked(mobileApiClient.get).mockResolvedValue({
@@ -76,16 +76,10 @@ it('opens the selected visit and carries that job into the web proposal form', a
     </QueryClientProvider>
   );
   fireEvent.press(await screen.findByLabelText('Garden visit at 16:00'));
-  expect(screen.getByText('cancelled · Past visit')).toBeTruthy();
-  fireEvent.press(screen.getByText('Propose a new visit on web'));
-  await waitFor(() =>
-    expect(WebBrowser.openBrowserAsync).toHaveBeenCalledTimes(1)
-  );
-  const href =
-    jest.mocked(WebBrowser.openBrowserAsync).mock.calls[0]?.[0] ?? '';
-  const destination = new URL(href);
-  expect(destination.pathname).toBe('/contractor/scheduling');
-  expect(destination.searchParams.get('jobId')).toBe('job-two');
+  await waitFor(() => expect(goToTab).toHaveBeenCalledWith(navigation, 'JobsTab', {
+    screen: 'VisitDetails',
+    params: { appointmentId: 'visit-two' },
+  }));
   screen.unmount();
   queryClient.clear();
 });

@@ -11,6 +11,7 @@
 
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { contractorPaymentHref } from '@/lib/contractor/payment-links';
 
 export interface AutoReleaseNotifyContext {
   escrowId: string;
@@ -44,7 +45,7 @@ export async function notifyAutoRelease(
         type: 'escrow_auto_released',
         title: 'Payment Released',
         message: contractorMessage,
-        actionUrl: `/contractor/jobs/${ctx.jobId}`,
+        actionUrl: contractorPaymentHref(ctx.escrowId),
         metadata: {
           jobId: ctx.jobId,
           escrowId: ctx.escrowId,

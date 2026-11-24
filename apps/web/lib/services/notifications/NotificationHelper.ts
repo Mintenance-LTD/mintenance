@@ -5,6 +5,7 @@
  * Following Single Responsibility Principle - only handles notification creation logic
  */
 
+import { contractorPaymentHref } from '@/lib/contractor/payment-links';
 import { NotificationService } from './NotificationService';
 import { logger } from '@mintenance/shared';
 
@@ -227,11 +228,11 @@ export async function notifyPaymentEvent(
 
       case 'released':
         title = 'Payment Released 🎉';
-        message = `${formattedAmount} has been released from escrow for "${jobTitle}". Funds are now available.`;
+        message = `Escrow was released for "${jobTitle}". Open the payment to check Stripe balance and bank payout status.`;
         type = 'payment_released';
         actionUrl = transactionId
-          ? `/payments/${transactionId}`
-          : `/jobs/${jobId}`;
+          ? contractorPaymentHref(transactionId)
+          : `/contractor/jobs/${jobId}#payment-status`;
         break;
 
       case 'required':
@@ -258,6 +259,10 @@ export async function notifyPaymentEvent(
       title,
       message,
       actionUrl,
+      metadata: {
+        jobId,
+        ...(transactionId ? { escrowId: transactionId } : {}),
+      },
     }).catch((error) => {
       logger.error('Failed to create payment notification', error, {
         service: 'NotificationHelper',

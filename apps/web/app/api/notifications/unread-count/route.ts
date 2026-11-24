@@ -8,7 +8,7 @@ export const GET = withApiHandler(
   { rateLimit: { maxRequests: 60 }, csrf: false },
   async (_request, { user }) => {
     const { count, error } =
-      user.role === 'homeowner'
+      user.role === 'homeowner' || user.role === 'contractor'
         ? { count: await fetchWebUnreadCount(user.id), error: null }
         : await serverSupabase
             .from('notifications')
