@@ -41,8 +41,9 @@ export const GET = withApiHandler(
     const jobId = searchParams.get('job_id');
     const contractId = searchParams.get('contract_id');
     const status = searchParams.get('status');
-    if (contractId && !isValidUUID(contractId))
-      throw new BadRequestError('Invalid contract ID');
+    if (contractId !== null && !isValidUUID(contractId)) {
+      throw new BadRequestError('Invalid contract ID format');
+    }
 
     // 2026-05-13 bid → contract pipeline audit: pull the linked
     // contractor_quotes row inline so the UI can render the actual
@@ -75,7 +76,11 @@ export const GET = withApiHandler(
       // and the unfiltered document list can still retrieve cancelled history.
       if (!status && !contractId) query = query.neq('status', 'cancelled');
     }
-    if (contractId) query = query.eq('id', contractId);
+    if (contractId) {
+      query = query.eq('id', contractId);
+      if (!jobId || user.role !== 'contractor')
+        query = query.neq('status', 'draft');
+    }
     if (status) {
       query = query.eq('status', status);
     }

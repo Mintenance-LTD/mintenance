@@ -20,15 +20,23 @@ import { ContractTimeline } from './contract/ContractTimeline';
 import { ContractActions } from './contract/ContractActions';
 import { ContractCompactCard } from './contract/ContractCompactCard';
 
-interface ContractManagementProps {
-  jobId: string;
-  userRole: 'homeowner' | 'contractor';
-  userId: string;
-  revision?: ContractRevision;
-}
+type ContractManagementProps =
+  | {
+      jobId: string;
+      userRole: 'homeowner' | 'contractor';
+      userId: string;
+      revision?: ContractRevision;
+      contractId?: never;
+    }
+  | {
+      contractId: string;
+      userRole: 'homeowner';
+      jobId?: never;
+      revision?: never;
+    };
 
 export function ContractManagement(props: ContractManagementProps) {
-  const { jobId = '', userRole = 'homeowner', revision } = props || {};
+  const { jobId, userRole, revision, contractId } = props;
   const {
     contract,
     loading,
@@ -48,7 +56,8 @@ export function ContractManagement(props: ContractManagementProps) {
     handleRejectContract,
     handleDeleteContract,
     handleDownloadPdf,
-  } = useContractData(jobId, userRole, revision);
+    fetchContract,
+  } = useContractData(jobId, userRole, contractId ?? revision);
 
   if (loading) {
     return (
@@ -68,6 +77,26 @@ export function ContractManagement(props: ContractManagementProps) {
           {error ||
             'This contract revision is unavailable. Return to Quote amendments to check the latest agreement.'}
         </p>
+      );
+    }
+    if (contractId) {
+      return (
+        <div className='rounded-xl border border-gray-200 bg-white p-6'>
+          {error ? (
+            <>
+              <p role='alert'>{error}</p>
+              <button
+                type='button'
+                onClick={() => void fetchContract()}
+                className='mt-3 text-sm font-semibold text-teal-800 underline'
+              >
+                Try again
+              </button>
+            </>
+          ) : (
+            <p role='status'>This agreement is unavailable.</p>
+          )}
+        </div>
       );
     }
     return (
@@ -175,7 +204,7 @@ export function ContractManagement(props: ContractManagementProps) {
     </div>
   );
 
-  if (revision) return contractDetail;
+  if (revision || contractId) return contractDetail;
 
   return (
     <>

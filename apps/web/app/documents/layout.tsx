@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 
 export const metadata: Metadata = {
-  title: 'Documents | Mintenance',
+  title: 'Job paperwork | Mintenance',
 };
 
 /**

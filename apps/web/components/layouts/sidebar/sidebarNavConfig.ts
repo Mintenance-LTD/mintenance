@@ -75,7 +75,7 @@ export function useNavSections(
             badge: 'messages',
             shortcut: 'g m',
           },
-          { label: 'Documents', href: '/documents', icon: FolderOpen },
+          { label: 'Job paperwork', href: '/documents', icon: FolderOpen },
           {
             label: 'Visit confirmations',
             href: '/appointments/response',

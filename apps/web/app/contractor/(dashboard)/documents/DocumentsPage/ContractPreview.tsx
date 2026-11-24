@@ -70,8 +70,10 @@ export function ContractPreview({
   } = useQuery({
     queryKey: ['contractor', 'contract-preview', id],
     queryFn: async ({ signal }): Promise<Agreement> => {
+      const params = new URLSearchParams({ contract_id: id });
+      if (document.job_id) params.set('job_id', document.job_id);
       const response = await fetch(
-        `/api/contracts?${new URLSearchParams({ contract_id: id })}`,
+        `/api/contracts?${params}`,
         { signal }
       );
       if (!response.ok) throw new Error('Contract is unavailable');

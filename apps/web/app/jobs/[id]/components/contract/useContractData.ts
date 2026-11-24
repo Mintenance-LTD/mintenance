@@ -88,9 +88,9 @@ export interface ContractRevision {
 }
 
 export function useContractData(
-  jobId: string,
+  jobId: string | undefined,
   userRole: string,
-  revision?: ContractRevision
+  selection?: string | ContractRevision
 ) {
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,16 +103,20 @@ export function useContractData(
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { csrfToken } = useCSRF();
   const confirm = useConfirm();
-  const { id: contractId, quoteId, version } = revision ?? {};
+  const contractId = typeof selection === 'string' ? selection : undefined;
+  const { id: revisionId, quoteId, version } =
+    typeof selection === 'object' ? selection : {};
 
   const fetchContract = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `/api/contracts?job_id=${encodeURIComponent(jobId)}`,
-        { cache: 'no-store' }
-      );
+      const params = contractId
+        ? new URLSearchParams({ contract_id: contractId })
+        : new URLSearchParams({ job_id: jobId ?? '' });
+      const response = await fetch(`/api/contracts?${params}`, {
+        cache: 'no-store',
+      });
       if (!response.ok) {
         if (response.status === 404) {
           setContract(null);
@@ -121,27 +125,26 @@ export function useContractData(
         }
         throw new Error('Failed to fetch contract');
       }
-      const data = await response.json();
-      const contracts: Contract[] = data.contracts ?? [];
-      if (contractId) {
-        setContract(
-          contracts.find(
+      const data: { contracts?: Contract[] } = await response.json();
+      const contracts = data.contracts ?? [];
+      const selected = revisionId
+        ? contracts.find(
             (item) =>
-              item.id === contractId &&
+              item.id === revisionId &&
               item.quote_id === quoteId &&
               item.contract_version === version
-          ) ?? null
-        );
-      } else {
-        setContract(contracts[0] ?? null);
-      }
+          )
+        : contractId
+          ? contracts.find((item) => item.id === contractId)
+          : contracts[0];
+      setContract(selected ?? null);
     } catch (err) {
-      if (contractId) setContract(null);
+      if (contractId || revisionId) setContract(null);
       setError(err instanceof Error ? err.message : 'Failed to load contract');
     } finally {
       setLoading(false);
     }
-  }, [jobId, contractId, quoteId, version]);
+  }, [jobId, contractId, revisionId, quoteId, version]);
 
   useEffect(() => {
     fetchContract();
@@ -300,5 +303,6 @@ export function useContractData(
     handleRejectContract,
     handleDeleteContract,
     handleDownloadPdf,
+    fetchContract,
   };
 }
