@@ -145,6 +145,15 @@ eq(
 );
 await respond(id(3), '10:00', '11:30');
 await respond(id(3), '10:00', '11:30');
+eq(
+  (
+    await db.query(
+      'SELECT action_url FROM notification_queue WHERE user_id=$1',
+      [id(2)]
+    )
+  ).rows,
+  [{ action_url: '/contractor/appointments/' + id(1) }]
+);
 const [, confirmed] = await readHistory();
 eq((await readHistory()).length, 2);
 eq(confirmed.kind, 'response');

@@ -16,22 +16,20 @@ describe('visit rescheduling concurrency and client confirmation (local database
     contractor = await createTestUser({ role: 'contractor' });
     client = await createTestUser({ role: 'homeowner' });
     outsider = await createTestUser({ role: 'contractor' });
-    const result = await db
-      .from('appointments')
-      .insert(
-        ids.map((id, i) => ({
-          id,
-          contractor_id: contractor.id,
-          client_id: client.id,
-          title: 'itest_synthetic_reschedule',
-          appointment_date: day,
-          start_time: i ? '13:00' : '09:00',
-          end_time: i ? '14:30' : '10:30',
-          status: 'confirmed',
-          client_response: 'confirmed',
-          client_response_at: new Date().toISOString(),
-        }))
-      );
+    const result = await db.from('appointments').insert(
+      ids.map((id, i) => ({
+        id,
+        contractor_id: contractor.id,
+        client_id: client.id,
+        title: 'itest_synthetic_reschedule',
+        appointment_date: day,
+        start_time: i ? '13:00' : '09:00',
+        end_time: i ? '14:30' : '10:30',
+        status: 'confirmed',
+        client_response: 'confirmed',
+        client_response_at: new Date().toISOString(),
+      }))
+    );
     if (result.error) throw result.error;
   });
   afterAll(async () => {
@@ -89,7 +87,7 @@ describe('visit rescheduling concurrency and client confirmation (local database
     expect(queue.error).toBeNull();
     expect(queue.data).toHaveLength(1);
     expect(queue.data![0]).toMatchObject({
-      action_url: '/appointments/response',
+      action_url: '/appointments/' + ids[winner],
       metadata: { appointmentId: ids[winner] },
     });
     const homeowner = await createAuthenticatedClient(
@@ -144,6 +142,8 @@ describe('visit rescheduling concurrency and client confirmation (local database
       .eq('user_id', contractor.id)
       .eq('notification_type', 'appointment_update');
     expect(reply.error).toBeNull();
-    expect(reply.data).toEqual([{ action_url: '/contractor/scheduling' }]);
+    expect(reply.data).toEqual([
+      { action_url: '/contractor/appointments/' + ids[winner] },
+    ]);
   });
 });
