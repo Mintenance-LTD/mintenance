@@ -65,8 +65,14 @@ export const POST = withApiHandler({}, async (request, { user, params }) => {
       'Check the report details and choose up to 50 different photos.'
     );
   const v = parsed.data;
+  if (v.kind !== 'routine' && !v.notes && !v.photo_ids.length && !v.outcome)
+    throw new APIError(
+      'INSPECTION_EVIDENCE_REVIEW_REQUIRED',
+      'Add observations or photos, select No issues found, or confirm saving without evidence.',
+      422
+    );
   const { data, error } = await db.rpc(
-    'create_property_inspection_report_with_context',
+    'create_property_inspection_report_with_outcome',
     {
       p_actor: user.id,
       p_property: params.id,
@@ -78,6 +84,7 @@ export const POST = withApiHandler({}, async (request, { user, params }) => {
       p_photos: v.photo_ids,
       p_corrects: v.corrects_report_id ?? null,
       p_exception: v.date_exception_reason ?? null,
+      p_outcome: v.outcome ?? null,
     }
   );
   if (error?.code === 'PT422')

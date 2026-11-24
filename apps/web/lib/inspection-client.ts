@@ -1,13 +1,23 @@
 'use client';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { readTenancyOverlap } from '@mintenance/shared';
 
 export class InspectionRequestError extends Error {
   constructor(
     message: string,
-    readonly code?: string
+    readonly code?: string,
+    readonly details?: unknown
   ) {
     super(message);
   }
+}
+export function inspectionOverlap(error: unknown) {
+  if (
+    !(error instanceof InspectionRequestError) ||
+    error.code !== 'TENANCY_PERIOD_OVERLAP'
+  )
+    return null;
+  return readTenancyOverlap(error.details);
 }
 export async function inspectionRequest<T>(
   url: string,
@@ -37,7 +47,11 @@ export async function inspectionRequest<T>(
         typeof failure?.message === 'string' &&
         typeof failure?.code === 'string'
       )
-        throw new InspectionRequestError(failure.message, failure.code);
+        throw new InspectionRequestError(
+          failure.message,
+          failure.code,
+          failure.details
+        );
     }
     if (response.status === 401)
       throw new Error('Sign in to view this property’s inspection records.');

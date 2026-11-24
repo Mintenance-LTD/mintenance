@@ -8,6 +8,7 @@ const m = vi.hoisted(() => ({
   entitled: true,
   error: null as { code: string } | null,
   rpcError: null as { code: string } | null,
+  folderResult: null as unknown,
   filters: vi.fn(),
   rpc: vi.fn(),
   download: vi.fn(),
@@ -50,7 +51,13 @@ vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     rpc: (...args: unknown[]) => {
       m.rpc(...args);
-      return Promise.resolve({ data: report, error: m.rpcError ?? m.error });
+      const data =
+        args[0] === 'read_property_tenancy_checkout_folders'
+          ? [{ folder_id: folder }]
+          : args[0] === 'save_property_tenancy_folder_with_overlap'
+            ? (m.folderResult ?? { id: folder })
+            : report;
+      return Promise.resolve({ data, error: m.rpcError ?? m.error });
     },
     storage: { from: () => ({ download: m.download }) },
     from: (table: string) => {
@@ -128,6 +135,7 @@ beforeEach(() => {
   m.entitled = true;
   m.error = null;
   m.rpcError = null;
+  m.folderResult = null;
   m.photo = true;
   m.photoPath = `property-room-photos/uploader/${property}/kitchen/photo.jpg`;
   m.download.mockResolvedValue({
@@ -210,7 +218,7 @@ it('passes verified actor/property to atomic report RPC', async () => {
     })
   );
   expect(m.rpc).toHaveBeenCalledWith(
-    'create_property_inspection_report_with_context',
+    'create_property_inspection_report_with_outcome',
     expect.objectContaining({
       p_actor: 'actor',
       p_property: property,
@@ -218,6 +226,7 @@ it('passes verified actor/property to atomic report RPC', async () => {
       p_photos: [],
       p_corrects: null,
       p_exception: null,
+      p_outcome: null,
     })
   );
 });
@@ -238,8 +247,8 @@ it('requires an explicit confirmation if a date edit excludes saved inspections'
     statusCode: 422,
   });
   expect(m.rpc).toHaveBeenLastCalledWith(
-    'update_property_tenancy_folder_with_confirmation',
-    expect.objectContaining({ p_confirm: false })
+    'save_property_tenancy_folder_with_overlap',
+    expect.objectContaining({ p_confirm_dates: false })
   );
   m.rpcError = null;
   await updateFolder(
@@ -253,9 +262,71 @@ it('requires an explicit confirmation if a date edit excludes saved inspections'
     })
   );
   expect(m.rpc).toHaveBeenLastCalledWith(
-    'update_property_tenancy_folder_with_confirmation',
-    expect.objectContaining({ p_confirm: true })
+    'save_property_tenancy_folder_with_overlap',
+    expect.objectContaining({ p_confirm_dates: true })
   );
+});
+it('returns the conflicting tenancy dates and accepts its confirmation token', async () => {
+  const overlap = {
+    token: 'a'.repeat(32),
+    count: 1,
+    folders: [
+      {
+        id: folder,
+        label: 'November',
+        starts_on: '2026-11-01',
+        ends_on: '2026-11-24',
+      },
+    ],
+  };
+  const value = { label: 'December', starts_on: '2026-11-20', ends_on: null };
+  m.folderResult = { overlap };
+  await expect(createFolder(request('POST', value))).rejects.toMatchObject({
+    statusCode: 409,
+    code: 'TENANCY_PERIOD_OVERLAP',
+    details: overlap,
+  });
+  expect(m.rpc).toHaveBeenLastCalledWith(
+    'save_property_tenancy_folder_with_overlap',
+    expect.objectContaining({ p_overlap_token: null })
+  );
+  m.folderResult = { id: folder };
+  expect(
+    (
+      await createFolder(
+        request('POST', { ...value, overlap_token: overlap.token })
+      )
+    ).status
+  ).toBe(201);
+  expect(m.rpc).toHaveBeenLastCalledWith(
+    'save_property_tenancy_folder_with_overlap',
+    expect.objectContaining({ p_overlap_token: overlap.token })
+  );
+});
+
+it('requires an explicit outcome before saving an empty check-out', async () => {
+  const value = {
+    folder_id: folder,
+    title: 'Check-out',
+    inspected_on: '2026-11-24',
+    kind: 'check_out',
+    notes: '',
+    photo_ids: [],
+  };
+  await expect(createReport(request('POST', value))).rejects.toMatchObject({
+    statusCode: 422,
+    code: 'INSPECTION_EVIDENCE_REVIEW_REQUIRED',
+  });
+  expect(m.rpc).not.toHaveBeenCalled();
+  for (const outcome of ['no_issues_found', 'evidence_free']) {
+    expect(
+      (await createReport(request('POST', { ...value, outcome }))).status
+    ).toBe(201);
+    expect(m.rpc).toHaveBeenLastCalledWith(
+      'create_property_inspection_report_with_outcome',
+      expect.objectContaining({ p_outcome: outcome })
+    );
+  }
 });
 it('never turns missing migration into empty success', async () => {
   m.error = { code: '42P01' };

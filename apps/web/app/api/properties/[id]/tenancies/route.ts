@@ -1,5 +1,6 @@
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase as db } from '@/lib/api/supabaseServer';
+import type { TenancyFolder } from '@mintenance/shared';
 import {
   APIError,
   BadRequestError,
@@ -31,11 +32,7 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
       .maybeSingle();
     databaseError(error);
     if (!data) throw new NotFoundError('Tenancy folder not found');
-    return reply({
-      items: [data],
-      hasMore: false,
-      canCreate: await mayCreate(params.id, role),
-    });
+    return folderPage(params.id, user.id, role, [data as TenancyFolder], false);
   }
   const start = offset(request.nextUrl.searchParams.get('offset'));
   const { data, error } = await db
@@ -46,45 +43,81 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
     .order('id')
     .range(start, start + 25);
   databaseError(error);
-  return reply({
-    items: (data ?? []).slice(0, 25),
-    hasMore: (data ?? []).length > 25,
-    canCreate: await mayCreate(params.id, role),
-  });
+  return folderPage(
+    params.id,
+    user.id,
+    role,
+    (data ?? []).slice(0, 25) as TenancyFolder[],
+    (data ?? []).length > 25
+  );
 });
+async function folderPage(
+  propertyId: string,
+  actor: string,
+  role: string | null,
+  items: TenancyFolder[],
+  hasMore: boolean
+) {
+  const [canCreate, checkouts] = await Promise.all([
+    mayCreate(propertyId, role),
+    items.length
+      ? db.rpc('read_property_tenancy_checkout_folders', {
+          p_property: propertyId,
+          p_folders: items.map((item) => item.id),
+        })
+      : null,
+  ]);
+  databaseError(checkouts?.error ?? null);
+  const recorded = new Set(
+    (checkouts?.data ?? []).map((row: { folder_id: string }) => row.folder_id)
+  );
+  return reply({
+    items: items.map((item) => ({
+      ...item,
+      check_out_recorded: recorded.has(item.id),
+    })),
+    hasMore,
+    canCreate,
+    ...(canCreate ? { draftScope: actor } : {}),
+  });
+}
+
 export const POST = withApiHandler({}, async (request, { user, params }) => {
   await writeAccess(user.id, params.id);
   const parsed = folderInput.safeParse(await inspectionBody(request));
   if (!parsed.success)
     throw new BadRequestError('Enter a folder name and valid tenancy dates.');
-  const v = parsed.data;
-  const { data, error } = await db.rpc('create_property_tenancy_folder', {
-    p_actor: user.id,
-    p_property: params.id,
-    p_label: v.label,
-    p_starts: v.starts_on,
-    p_ends: v.ends_on,
-  });
-  databaseError(error);
-  return reply({ id: data }, 201);
+  return saveTenancy(user.id, params.id, parsed.data);
 });
 export const PATCH = withApiHandler({}, async (request, { user, params }) => {
   await writeAccess(user.id, params.id);
   const parsed = folderUpdate.safeParse(await inspectionBody(request));
   if (!parsed.success)
     throw new BadRequestError('Check the folder name and tenancy dates.');
-  const v = parsed.data;
+  return saveTenancy(user.id, params.id, parsed.data, parsed.data);
+});
+
+async function saveTenancy(
+  actor: string,
+  propertyId: string,
+  value: ReturnType<typeof folderInput.parse>,
+  edit?: Pick<
+    ReturnType<typeof folderUpdate.parse>,
+    'id' | 'revision' | 'confirm_inspection_date_change'
+  >
+) {
   const { data, error } = await db.rpc(
-    'update_property_tenancy_folder_with_confirmation',
+    'save_property_tenancy_folder_with_overlap',
     {
-      p_actor: user.id,
-      p_property: params.id,
-      p_folder: v.id,
-      p_revision: v.revision,
-      p_label: v.label,
-      p_starts: v.starts_on,
-      p_ends: v.ends_on,
-      p_confirm: v.confirm_inspection_date_change ?? false,
+      p_actor: actor,
+      p_property: propertyId,
+      p_folder: edit?.id ?? null,
+      p_revision: edit?.revision ?? null,
+      p_label: value.label,
+      p_starts: value.starts_on,
+      p_ends: value.ends_on,
+      p_confirm_dates: edit?.confirm_inspection_date_change ?? false,
+      p_overlap_token: value.overlap_token ?? null,
     }
   );
   if (error?.code === 'PT422')
@@ -94,5 +127,14 @@ export const PATCH = withApiHandler({}, async (request, { user, params }) => {
       422
     );
   databaseError(error);
-  return reply({ id: data });
-});
+  if (data?.overlap)
+    throw new APIError(
+      'TENANCY_PERIOD_OVERLAP',
+      'These dates overlap another tenancy on this property.',
+      409,
+      data.overlap
+    );
+  if (typeof data?.id !== 'string')
+    throw new Error('Tenancy save did not return a record');
+  return reply({ id: data.id }, edit ? 200 : 201);
+}
