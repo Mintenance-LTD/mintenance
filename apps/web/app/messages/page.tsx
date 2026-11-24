@@ -20,6 +20,7 @@ import { MessagesEmptyState } from './components/MessagesEmptyState';
 import { MintEditorialMessagesSidebar } from './components/MintEditorialMessagesSidebar';
 import { MintEditorialMessagesChat } from './components/MintEditorialMessagesChat';
 import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator';
+import { useConversationDraft } from '@/hooks/useConversationDraft';
 
 interface Conversation {
   id: string;
@@ -116,7 +117,10 @@ function MessagesPageContent() {
     useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread' | 'archived'>('all');
-  const [messageInput, setMessageInput] = useState('');
+  const [messageInput, setMessageInput] = useConversationDraft(
+    user?.id,
+    selectedConversation?.id
+  );
   const [sending, setSending] = useState(false);
 
   const { isOtherTyping, broadcastTyping } = useTypingIndicator({
@@ -253,7 +257,7 @@ function MessagesPageContent() {
           )
       );
 
-      setMessageInput('');
+      setMessageInput((current) => (current === messageInput ? '' : current));
     } catch {
       toast.error('Failed to send message');
     } finally {

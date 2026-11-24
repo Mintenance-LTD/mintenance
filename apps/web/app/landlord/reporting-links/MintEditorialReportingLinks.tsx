@@ -34,6 +34,10 @@ import toast from 'react-hot-toast';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
+import {
+  ReportingLinkCoverage,
+  type ReportingCoverage,
+} from './ReportingLinkCoverage';
 
 interface Property {
   id: string;
@@ -55,9 +59,11 @@ interface Token {
 export function MintEditorialReportingLinks({
   properties,
   tokens: initialTokens,
+  coverage,
 }: {
   properties: Property[];
   tokens: Token[];
+  coverage: ReportingCoverage | null;
 }) {
   const [tokens, setTokens] = useState(initialTokens);
   const [creating, setCreating] = useState(false);
@@ -137,6 +143,7 @@ export function MintEditorialReportingLinks({
       </div>
 
       {/* Create new link */}
+      <ReportingLinkCoverage coverage={coverage} properties={properties} />
       <div className='card card-pad' style={{ marginBottom: 18 }}>
         <h2 className='t-h4' style={{ marginBottom: 12 }}>
           New reporting link

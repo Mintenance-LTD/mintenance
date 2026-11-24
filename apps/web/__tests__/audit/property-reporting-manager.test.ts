@@ -8,6 +8,7 @@ const m = vi.hoisted(() => ({
   tier: vi.fn(),
   filters: vi.fn(),
   update: vi.fn(),
+  fallback: vi.fn(),
   entitled: true,
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
@@ -31,6 +32,7 @@ vi.mock('@/lib/feature-access-config', () => ({
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
+    rpc: m.fallback,
     from: (table: string) => {
       const filters: Record<string, unknown> = {};
       let inserted: unknown;
@@ -88,6 +90,7 @@ beforeEach(() => {
   m.role = 'manager';
   m.membershipError = null;
   m.entitled = true;
+  m.fallback.mockResolvedValue({ data: null, error: null });
 });
 it('creates for the property owner using the owner subscription and accepted membership', async () => {
   expect((await POST(request(), context)).status).toBe(201);
@@ -113,6 +116,7 @@ it.each(['viewer', ''])(
       statusCode: 404,
     });
     expect(m.insert).not.toHaveBeenCalled();
+    expect(m.fallback).not.toHaveBeenCalled();
     expect(m.filters).not.toHaveBeenCalledWith(
       'anonymous_report_tokens',
       expect.anything(),
@@ -120,6 +124,17 @@ it.each(['viewer', ''])(
     );
   }
 );
+it('shows an authorised manager whether the property has an eligible fallback', async () => {
+  const response = await GET(request('GET'), context);
+  expect(await response.json()).toMatchObject({
+    has_emergency_fallback: false,
+  });
+  expect(m.fallback).toHaveBeenCalledWith('emergency_report_fallback', {
+    p_property: 'property',
+    p_owner: 'owner',
+    p_current: 'owner',
+  });
+});
 it('fails closed on a membership lookup error', async () => {
   m.membershipError = { code: '08006' };
   await expect(POST(request(), context)).rejects.toMatchObject({

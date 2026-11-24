@@ -5,22 +5,27 @@ import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import { createMessageAttachmentPath } from '@/lib/utils/message-attachment-path';
+import { useConversationDraft } from '@/hooks/useConversationDraft';
 
 interface MessageInputProps {
+  userId: string;
+  conversationId: string;
   onSendMessage: (
     message: string,
     attachment?: { url: string; name: string; type: string }
-  ) => void;
+  ) => Promise<boolean>;
   disabled?: boolean;
   placeholder?: string;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
+  userId,
+  conversationId,
   disabled = false,
   placeholder = 'Type a message...',
 }) => {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useConversationDraft(userId, conversationId);
   const [isComposing, setIsComposing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingFile, setPendingFile] = useState<{
@@ -31,15 +36,16 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmedMessage = message.trim();
     if ((trimmedMessage || pendingFile) && !disabled) {
-      onSendMessage(
+      const sent = await onSendMessage(
         trimmedMessage || (pendingFile ? `Sent file: ${pendingFile.name}` : ''),
         pendingFile || undefined
       );
-      setMessage('');
-      setPendingFile(null);
+      if (!sent) return;
+      setMessage((current) => (current === message ? '' : current));
+      setPendingFile((current) => (current === pendingFile ? null : current));
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }

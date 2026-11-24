@@ -369,7 +369,7 @@ const KNOWN_LARGE_FILES = new Set([
   // A clean split would lift everything into a hook
   // (useContractorMessagesController) and is out of scope for this
   // single-file theme port.
-  'apps/web/app/contractor/messages/components/MessagesClient.tsx', // 771 lines (was 585)
+  'apps/web/app/contractor/(dashboard)/messages/components/MessagesClient.tsx',
   // Added 2026-05-12 (Phase-4 contractor port): contractor reviews
   // surface. The page.tsx was already 475 LOC; the Mint Editorial
   // branch adds the hooked `isMintEditorial` state + ~33-LOC branch

@@ -4,12 +4,14 @@ import { Search, Maximize2 } from 'lucide-react';
 
 interface DiscoverJobsEmptyStateProps {
   hasLocation: boolean;
-  onExpandRadius: () => void;
+  radiusSearchAvailable: boolean;
+  onExpandRadius?: () => void;
 }
 
 /** Empty state for the map-based job discover page when no jobs match filters */
 export function DiscoverJobsEmptyState({
   hasLocation,
+  radiusSearchAvailable,
   onExpandRadius,
 }: DiscoverJobsEmptyStateProps) {
   return (
@@ -29,19 +31,21 @@ export function DiscoverJobsEmptyState({
         className='text-lg font-semibold mb-2'
         style={{ color: 'var(--me-ink)' }}
       >
-        No jobs found nearby
+        {radiusSearchAvailable ? 'No jobs found nearby' : 'No jobs to show'}
       </h3>
 
       <p
         className='text-sm mb-6 max-w-xs leading-relaxed'
         style={{ color: 'var(--me-ink-3)' }}
       >
-        {hasLocation
+        {radiusSearchAvailable
           ? 'No available jobs match your current filters and search radius.'
-          : 'Add your location to discover jobs near you.'}
+          : hasLocation
+            ? 'Distance results are temporarily unavailable. Refresh to try again.'
+            : 'Add your location to discover jobs near you.'}
       </p>
 
-      {hasLocation && (
+      {onExpandRadius && (
         <button
           onClick={onExpandRadius}
           className='inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors'

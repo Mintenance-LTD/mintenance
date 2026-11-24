@@ -466,8 +466,9 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                   ) < Date.now() && (
                     <Text>
                       The work window has passed. You can start once the other
-                      checks pass. If the visit did not go ahead, agree a new
-                      date with the homeowner first.
+                      checks pass and Mintenance will record the actual start
+                      time. If the visit did not go ahead, agree a new date with
+                      the homeowner first.
                     </Text>
                   )}
                 </>

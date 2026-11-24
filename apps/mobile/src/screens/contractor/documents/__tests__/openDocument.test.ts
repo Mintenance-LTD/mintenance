@@ -29,7 +29,7 @@ describe('document destinations', () => {
       doc: { ...base, is_contract: true, job_id: 'job-id' },
       navigateToJob,
     });
-    expect(navigateToJob).toHaveBeenCalledWith('job-id');
+    expect(navigateToJob).toHaveBeenCalledWith('job-id', 'file-id');
   });
 
   it('reports a missing job reference without navigating to a made-up job', () => {

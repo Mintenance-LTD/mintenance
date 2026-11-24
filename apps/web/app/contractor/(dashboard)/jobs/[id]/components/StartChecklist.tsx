@@ -29,8 +29,9 @@ export function StartChecklist({
         {windowPassed && (
           <li>
             The scheduled work window has passed. Mintenance still allows you to
-            start once the other checks pass. If the visit did not go ahead,
-            agree a new date with the homeowner first.{' '}
+            start once the other checks pass and records the actual start time.
+            If the visit did not go ahead, agree a new date with the homeowner
+            first.{' '}
             <Link href='#job-schedule' className='underline'>
               View schedule
             </Link>

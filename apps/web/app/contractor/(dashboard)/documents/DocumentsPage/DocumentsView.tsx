@@ -129,7 +129,7 @@ export function DocumentsView({
                 <div className='text-xs text-gray-600 mb-3 space-y-1'>
                   <p>
                     {doc.is_contract
-                      ? 'Generated PDF'
+                      ? 'Agreement'
                       : formatFileSize(doc.size_bytes)}
                   </p>
                   <p>{new Date(doc.created_at).toLocaleDateString('en-GB')}</p>
@@ -145,7 +145,7 @@ export function DocumentsView({
                     aria-label={`View ${doc.name}`}
                   >
                     <Eye className='w-4 h-4' />
-                    View
+                    {doc.is_contract ? 'View contract' : 'View'}
                   </button>
                   <button
                     onClick={() => onDownload(doc)}
@@ -153,7 +153,7 @@ export function DocumentsView({
                     aria-label={`Download ${doc.name}`}
                   >
                     <Download className='w-4 h-4' />
-                    Download
+                    {doc.is_contract ? 'Download PDF' : 'Download'}
                   </button>
                   <button
                     onClick={() => onShare(doc)}
@@ -198,7 +198,7 @@ export function DocumentsView({
                   <div className='flex items-center gap-3 mt-1 text-xs text-gray-600'>
                     <span>
                       {doc.is_contract
-                        ? 'Generated PDF'
+                        ? 'Agreement'
                         : formatFileSize(doc.size_bytes)}
                     </span>
                     <span>&middot;</span>
