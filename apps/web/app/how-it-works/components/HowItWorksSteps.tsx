@@ -12,6 +12,7 @@ import {
   Star,
 } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
+import { PAYMENT_RELEASE_TIMING } from '@/lib/marketing/public-journey';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -31,7 +32,7 @@ const homeownerSteps = [
     number: 1,
     title: 'Post Your Job',
     description:
-      'Describe your maintenance or renovation project in detail. Add photos, specify your budget, and set your timeline.',
+      'Create a free account, then choose the property, describe the repair, and add photos and any preferred dates.',
     icon: FileText,
   },
   {
@@ -66,7 +67,7 @@ const homeownerSteps = [
     number: 6,
     title: 'Review & Release',
     description:
-      'Once satisfied, release payment and leave a review. Your feedback helps other homeowners.',
+      PAYMENT_RELEASE_TIMING,
     icon: Star,
   },
 ];

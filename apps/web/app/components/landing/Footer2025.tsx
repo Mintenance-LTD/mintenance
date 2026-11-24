@@ -31,6 +31,7 @@ const navigation = {
   ],
   company: [
     { name: 'About us', href: '/about' },
+    { name: 'For letting agents', href: '/for-letting-agents' },
     { name: 'Blog', href: '/blog' },
     { name: 'Contact', href: '/contact' },
   ],

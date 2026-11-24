@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { AGENCY_DEMO_PATH } from '@/lib/marketing/public-journey';
 import {
   logger,
   PLATFORM_FEE_RATE_BY_TIER,
@@ -41,10 +43,14 @@ const staggerItem = {
   visible: { opacity: 1, y: 0 },
 };
 
-export function PricingClient() {
+export function PricingClient({
+  initialAudience = 'homeowner',
+}: {
+  initialAudience?: 'homeowner' | 'contractor';
+} = {}) {
   const [isAnnual, setIsAnnual] = useState(false);
   const [userType, setUserType] = useState<'homeowner' | 'contractor'>(
-    'homeowner'
+    initialAudience
   );
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
@@ -386,13 +392,14 @@ export function PricingClient() {
           initial='hidden'
           whileInView='visible'
           viewport={{ once: true }}
-          className={`grid grid-cols-1 ${
+          id='plans'
+          className={`scroll-mt-24 grid grid-cols-1 ${
             plans.length === 2
               ? 'md:grid-cols-2 max-w-5xl mx-auto'
               : 'md:grid-cols-3'
           } gap-8 mb-16`}
         >
-          {plans.map((plan, index) => {
+          {plans.map((plan) => {
             const Icon = plan.icon;
             return (
               <MotionDiv
@@ -505,6 +512,14 @@ export function PricingClient() {
                     plan.cta
                   )}
                 </MotionButton>
+                {plan.id === 'agency' && (
+                  <Link
+                    href={AGENCY_DEMO_PATH}
+                    className='mb-6 block text-center font-semibold underline'
+                  >
+                    Request an agency demo
+                  </Link>
+                )}
 
                 <div className='space-y-3'>
                   {plan.features.map((feature, i) => (
@@ -764,9 +779,17 @@ export function PricingClient() {
                 color: 'var(--me-brand)',
                 borderRadius: 'var(--me-radius-card)',
               }}
-              onClick={() => router.push('/contact')}
+              onClick={() =>
+                router.push(
+                  userType === 'homeowner'
+                    ? AGENCY_DEMO_PATH
+                    : '/contact?subject=Contractor%20plan%20enquiry'
+                )
+              }
             >
-              Contact Sales
+              {userType === 'homeowner'
+                ? 'Request an agency demo'
+                : 'Ask about contractor plans'}
             </MotionButton>
             <MotionButton
               whileHover={{ scale: 1.05 }}

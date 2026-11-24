@@ -12,7 +12,7 @@ const STEPS = [
     number: 1,
     title: 'Post your job',
     description:
-      'Add photos, describe what needs doing and set your budget and preferred timing.',
+      'Choose the property, describe what needs doing, and add photos and any preferred dates.',
   },
   {
     number: 2,

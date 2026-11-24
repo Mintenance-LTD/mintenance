@@ -21,13 +21,12 @@ Posting a job on Mintenance helps you find the right tradesperson for your proje
 
 ## Step-by-Step Guide
 
-1. **Click "Post a Job"** from your dashboard
+1. **Create a free homeowner account** if you don't have one, then choose **Post a job**. Posting is free.
 2. **Select Job Category** - Choose the type of work needed
 3. **Add Job Details**:
    - Job title and description
    - Location and access details
    - Preferred timeline
-   - Budget range
 4. **Upload Photos** - Add clear photos of the work area
 5. **Review and Post** - Double-check details before publishing
 
@@ -36,7 +35,6 @@ Posting a job on Mintenance helps you find the right tradesperson for your proje
 - Be specific about what you need
 - Include all relevant details
 - Add multiple photos from different angles
-- Set a realistic budget range
 - Be clear about your timeline
 - Mention any special requirements
 

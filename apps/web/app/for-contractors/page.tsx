@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import {
+  MINTENANCE_PUBLIC_ORIGIN,
+  publicShareCard,
+} from '@/lib/marketing/public-journey';
+import {
   Briefcase,
   Shield,
   PoundSterling,
@@ -21,18 +25,27 @@ import {
 import { NoLeadFeesSection } from '@/components/marketing/NoLeadFeesSection';
 import { CompetitorComparisonTable } from '@/components/marketing/CompetitorComparisonTable';
 
+const canonical = `${MINTENANCE_PUBLIC_ORIGIN}/for-contractors`;
+const shareImage = publicShareCard(
+  'tradespeople',
+  'From quote to paid work. The Mintenance contractor quote workspace.'
+);
 export const metadata: Metadata = {
   title: 'For Contractors - Grow Your Trade Business | Mintenance',
   description:
     'Join the Mintenance tradesperson network. Get matched with homeowners, manage jobs, track finances, and get paid securely through escrow.',
   keywords:
     'contractor platform, tradesperson jobs, find work UK, secure payments, escrow, property maintenance jobs',
+  alternates: { canonical },
   openGraph: {
     title: 'For Contractors - Grow Your Trade Business | Mintenance',
     description:
       'Join the Mintenance tradesperson network. Get matched with homeowners, manage jobs, and get paid securely through escrow.',
     type: 'website',
+    url: canonical,
+    images: [shareImage],
   },
+  twitter: { card: 'summary_large_image', images: [shareImage] },
 };
 
 const FEATURES: MarketingFeature[] = [
@@ -235,14 +248,14 @@ export default function ForContractorsPage() {
         title: 'Grow Your',
         highlightedWord: 'Trade Business.',
         description:
-          'Explore local jobs, prepare proposals and keep business admin together. See the map, expenses and document tools before you join.',
+          'No per-lead fees. Start free on Basic. Paid plans are optional. A platform fee applies to completed work.',
         primaryCTA: {
           label: 'Join as a Contractor',
           href: '/register?role=contractor',
         },
         secondaryCTA: {
-          label: 'Watch the Job Map Demo',
-          href: '#demo-local-work',
+          label: 'Compare contractor plans',
+          href: '/pricing?audience=contractor#plans',
         },
         desktopScreenshot: {
           src: '/media/landing/contractor-quotes.webp',
@@ -286,7 +299,10 @@ export default function ForContractorsPage() {
           label: 'Get Started Free',
           href: '/register?role=contractor',
         },
-        secondary: { label: 'View Plans', href: '/pricing' },
+        secondary: {
+          label: 'Compare contractor plans',
+          href: '/pricing?audience=contractor#plans',
+        },
       }}
     />
   );

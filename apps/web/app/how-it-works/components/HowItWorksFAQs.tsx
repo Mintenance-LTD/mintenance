@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { HelpCircle, ArrowRight, PlayCircle } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
+import { CONTRACTOR_PLAN_FEES, PAYMENT_RELEASE_TIMING } from '@/lib/marketing/public-journey';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -18,12 +19,12 @@ const faqs = [
   {
     question: 'How much does it cost to use Mintenance?',
     answer:
-      'Homeowners can post jobs for free. Contractors pay a small service fee only when they win a job. No monthly subscriptions required.',
+      `Posting is free for homeowners. Contractors can start free on Basic. ${CONTRACTOR_PLAN_FEES}`,
   },
   {
     question: 'How long does it take to get quotes?',
     answer:
-      'Most jobs receive their first quote within 24 hours. Popular job types often get multiple quotes within a few hours.',
+      'Bid numbers and response times depend on local contractor availability.',
   },
   {
     question: 'Are contractors insured and verified?',
@@ -33,7 +34,7 @@ const faqs = [
   {
     question: "What if I'm not satisfied with the work?",
     answer:
-      'Our escrow system protects you. Payment is only released when you approve the completed work. We also offer dispute resolution support.',
+      `Raise a concern from the job so it can be reviewed. ${PAYMENT_RELEASE_TIMING}`,
   },
 ];
 

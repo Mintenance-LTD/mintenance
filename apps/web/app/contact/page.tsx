@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Contact Us - Get in Touch | Mintenance',
     description:
-      'Reach out to our team for support, sales inquiries, or partnership opportunities. We respond within 24 hours.',
+      'Contact Mintenance for support, partnership enquiries or an agency demo.',
     type: 'website',
     images: [
       {

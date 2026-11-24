@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 
 import Link from 'next/link';
+import { CONTRACTOR_PLAN_FEES, PAYMENT_RELEASE_TIMING } from '@/lib/marketing/public-journey';
 import {
   Search,
   HelpCircle,
@@ -122,7 +123,7 @@ export default function FAQPageClient() {
       id: '4',
       question: 'How does payment protection work?',
       answer:
-        "We use Protected Payment to guard both parties. After accepting a bid, both parties sign the contract. The homeowner then separately funds Protected Payment before work starts, subject to the agreement and cancellation requirements. The contractor completes the work, the homeowner approves it, and then funds are released to the contractor. If there's a dispute, our team helps resolve it fairly.",
+        `Both parties sign the agreement, then the homeowner funds the job before work starts. Review completion and its evidence before approving. ${PAYMENT_RELEASE_TIMING}`,
       category: 'payments',
     },
     {
@@ -136,14 +137,14 @@ export default function FAQPageClient() {
       id: '6',
       question: 'What are your service fees?',
       answer:
-        'Homeowners can post jobs completely free. Contractors pay a small service fee (typically 5-10%) only when they win a job. Optional subscription plans are available; see Pricing for details. The exact fee is clearly shown before you accept any job.',
+        `Homeowners can post jobs free after creating an account. Contractors can start free on Basic. Paid plans are optional, and there are no per-lead fees. ${CONTRACTOR_PLAN_FEES}`,
       category: 'payments',
     },
     {
       id: '7',
       question: 'How long does it take to receive payment as a contractor?',
       answer:
-        'After work approval, release remains subject to the applicable waiting period and final checks. Transfer to the contractor and arrival in their bank account are separate steps; check the payment and payout statuses for updates. You can track all payment statuses in your contractor dashboard under the "Payments" section.',
+        PAYMENT_RELEASE_TIMING,
       category: 'payments',
     },
     {
@@ -159,14 +160,14 @@ export default function FAQPageClient() {
       id: '9',
       question: 'How do I post a job as a homeowner?',
       answer:
-        'Click "Post a Job", describe your project in detail, add at least one photo as required by the job form, set your budget and timeline, and specify your location. Our AI will then match you with suitable contractors in your area who can bid on your project.',
+        'Create a free homeowner account, then choose Post a job. Select your property, describe the work, add at least one photo and include any preferred dates.',
       category: 'jobs',
     },
     {
       id: '10',
       question: 'How many bids will I receive?',
       answer:
-        "This varies based on job type, location, and budget. Bid numbers and response times depend on local contractor availability; neither is guaranteed. You can always adjust your job description or budget if you're not getting enough interest.",
+        'Bid numbers and response times depend on local contractor availability. Include a clear description and photos so contractors can decide whether to quote.',
       category: 'jobs',
     },
     {
@@ -203,7 +204,7 @@ export default function FAQPageClient() {
       id: '15',
       question: 'How do I report a safety concern?',
       answer:
-        'If you have any safety concerns, click the "Report Issue" button on the job page or contact our support team immediately at support@mintenance.co.uk or call our emergency line. We take all safety reports seriously and investigate promptly.',
+        'If someone is in immediate danger, call 999. For an urgent repair in a rented home, use your landlord or letting agent’s emergency contact. For a concern about a Mintenance job, report it on the job or contact support.',
       category: 'safety',
     },
     {
@@ -411,6 +412,12 @@ export default function FAQPageClient() {
                       }}
                     >
                       {faq.answer}
+                      {faq.id === '15' && (
+                        <span className='mt-2 flex flex-wrap gap-4'>
+                          <a className='underline' href='tel:999'>Call 999 in an emergency</a>
+                          <Link className='underline' href='/contact'>Contact Mintenance support</Link>
+                        </span>
+                      )}
                     </p>
                   }
                   className='last:border-b-0'

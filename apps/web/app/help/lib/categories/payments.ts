@@ -4,6 +4,7 @@
  */
 
 import type { Category } from './types';
+import { PAYMENT_RELEASE_TIMING } from '@/lib/marketing/public-journey';
 
 export const paymentsCategory: Category = {
   id: 'payments',
@@ -14,53 +15,18 @@ export const paymentsCategory: Category = {
     { 
       title: 'How payments work', 
       content: 'Understanding our secure escrow payment system.',
-      fullContent: `# How Payments Work
+      fullContent: `# How payments work
 
-Mintenance uses a secure escrow system to protect both homeowners and tradespeople.
+1. Agree the quote and both sign the job agreement.
+2. The homeowner funds the job before work starts.
+3. The contractor completes the job and submits evidence for review.
+4. The homeowner reviews the work and records their decision on the job.
 
-## Escrow System
+## Release and bank arrival
 
-### How It Works
-1. **Deposit**: Initial payment held securely
-2. **Work Progress**: Payments released at milestones
-3. **Completion**: Final payment after approval
-4. **Protection**: Funds held until work is approved
+${PAYMENT_RELEASE_TIMING}
 
-### Benefits
-- **Security**: Funds held securely
-- **Protection**: Both parties protected
-- **Dispute Resolution**: Mediation available
-- **Transparency**: Clear payment tracking
-- **Peace of Mind**: Safe transactions
-
-## Payment Methods
-
-- Credit/Debit Cards
-- Bank Transfer
-- PayPal
-- Apple Pay
-- Google Pay
-
-## Payment Schedule
-
-### Typical Structure
-- **Deposit**: 20-30% upfront
-- **Milestone Payments**: As work progresses
-- **Final Payment**: Upon completion
-
-### Customizable
-- Agree on payment schedule
-- Set milestone dates
-- Define completion criteria
-- Adjust as needed
-
-## Security Features
-
-- Encrypted transactions
-- Secure payment processing
-- Fraud protection
-- Dispute resolution
-- Refund protection`
+Check the payment details for the job’s current status. If something goes wrong, raise the issue on the job so the team can review it.`
     },
     { 
       title: 'Payment methods accepted', 

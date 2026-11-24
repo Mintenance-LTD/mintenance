@@ -1,96 +1,32 @@
 import { MetadataRoute } from 'next';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { MINTENANCE_PUBLIC_ORIGIN } from '@/lib/marketing/public-journey';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+  const baseUrl = MINTENANCE_PUBLIC_ORIGIN;
 
   // Static pages
   const staticPages = [
-    '',
+    '/',
     '/about',
     '/how-it-works',
+    '/for-homeowners',
+    '/for-contractors',
+    '/for-letting-agents',
     '/contractors',
     '/pricing',
     '/help',
+    '/help/payments/how-payments-work',
+    '/help/posting-jobs/how-to-post-a-job',
+    '/faq',
     '/contact',
-    '/login',
-    '/register',
     '/privacy',
     '/terms',
     '/cookies',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
-    lastModified: new Date().toISOString(),
     changeFrequency: 'monthly' as const,
-    priority: route === '' ? 1 : 0.8,
-  }));
-
-  // Category pages
-  const categories = [
-    'plumber',
-    'electrician',
-    'carpenter',
-    'painter',
-    'roofer',
-    'hvac',
-    'handyman',
-    'cleaner',
-    'landscaper',
-    'locksmith',
-  ].map((category) => ({
-    url: `${baseUrl}/contractors/${category}`,
-    lastModified: new Date().toISOString(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.7,
-  }));
-
-  // Location pages (major UK cities)
-  const locations = [
-    'london',
-    'manchester',
-    'birmingham',
-    'glasgow',
-    'liverpool',
-    'bristol',
-    'sheffield',
-    'leeds',
-    'edinburgh',
-    'leicester',
-  ].map((city) => ({
-    url: `${baseUrl}/contractors/in/${city}`,
-    lastModified: new Date().toISOString(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.6,
-  }));
-
-  // Help center pages
-  const helpPages = [
-    '/help/getting-started',
-    '/help/homeowner-guide',
-    '/help/contractor-guide',
-    '/help/payments',
-    '/help/safety',
-    '/help/disputes',
-    '/help/account',
-    '/help/trust-and-safety',
-  ].map((route) => ({
-    url: `${baseUrl}${route}`,
-    lastModified: new Date().toISOString(),
-    changeFrequency: 'monthly' as const,
-    priority: 0.5,
-  }));
-
-  // Blog posts (if applicable)
-  const blogPosts = [
-    '/blog/how-to-choose-contractor',
-    '/blog/home-maintenance-tips',
-    '/blog/cost-guide-uk-renovations',
-    '/blog/emergency-repairs-guide',
-  ].map((route) => ({
-    url: `${baseUrl}${route}`,
-    lastModified: new Date().toISOString(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.6,
+    priority: route === '/' ? 1 : 0.8,
   }));
 
   // Dynamic contractor profiles from database
@@ -100,13 +36,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .from('profiles')
       .select('id, updated_at')
       .eq('role', 'contractor')
+      .is('deleted_at', null)
       .order('updated_at', { ascending: false })
       .limit(500);
 
     if (contractors && contractors.length > 0) {
       contractorProfiles = contractors.map((contractor) => ({
-        url: `${baseUrl}/contractor/${contractor.id}`,
-        lastModified: contractor.updated_at || new Date().toISOString(),
+        url: `${baseUrl}/contractors/${contractor.id}`,
+        lastModified: contractor.updated_at || undefined,
         changeFrequency: 'weekly' as const,
         priority: 0.6,
       }));
@@ -116,12 +53,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     contractorProfiles = [];
   }
 
-  return [
-    ...staticPages,
-    ...categories,
-    ...locations,
-    ...helpPages,
-    ...blogPosts,
-    ...contractorProfiles,
-  ];
+  return [...staticPages, ...contractorProfiles];
 }

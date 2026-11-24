@@ -8,7 +8,7 @@ const faqs = [
   {
     question: 'How do I post a job?',
     answer:
-      'Sign up for a free account, click "Post a Job", fill in the details, and submit. You\'ll start receiving bids from qualified contractors immediately.',
+      'Create a free homeowner account, then choose Post a job. Bid numbers and response times depend on local contractor availability.',
   },
   {
     question: 'How are contractors verified?',
@@ -23,7 +23,7 @@ const faqs = [
   {
     question: 'Is there a fee to use the platform?',
     answer:
-      'Posting jobs is free for homeowners. Contractors pay a small service fee only when they win a job. See our pricing page for detailed information.',
+      'Posting jobs is free for homeowners. Contractor platform fees apply to completed work, and paid subscriptions are optional. See Pricing for plan rates.',
   },
 ];
 

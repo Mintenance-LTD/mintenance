@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Pricing Plans - Transparent & Affordable | Mintenance',
     description:
-      'Choose the plan that works best for you. Free plans available for homeowners. Contractors pay low platform fees only when they win jobs.',
+      'Compare free and paid plans for homeowners, letting agents and contractors. Contractor platform fees apply to completed work.',
     type: 'website',
     images: [
       {
@@ -32,13 +32,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PricingPage() {
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ audience?: string }>;
+}) {
+  const { audience } = await searchParams;
   return (
     <ErrorBoundary componentName='PricingPage'>
       <div>
         <LandingNavigation />
         <main id='main-content' tabIndex={-1}>
-          <PricingClient />
+          <PricingClient
+            initialAudience={
+              audience === 'contractor' ? 'contractor' : 'homeowner'
+            }
+          />
         </main>
         <Footer2025 />
       </div>

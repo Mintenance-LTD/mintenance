@@ -103,10 +103,8 @@ export function HeroSection() {
               margin: '0 0 32px',
             }}
           >
-            Snap a photo of what&apos;s broken. Post a job once and get honest
-            quotes from local tradespeople on the platform. Fund the agreed work
-            securely, then approve payment release after reviewing the finished
-            job.
+            Compare local quotes, agree the work in writing, and review the
+            finished job before payment is released.
           </motion.p>
 
           <motion.div
@@ -152,6 +150,9 @@ export function HeroSection() {
           </motion.div>
 
           <p style={{ marginTop: 18, fontSize: 14, color: 'var(--me-ink-2)' }}>
+            Create a free homeowner account first. There&rsquo;s no fee to post a job.
+          </p>
+          <p style={{ marginTop: 12, fontSize: 14, color: 'var(--me-ink-2)' }}>
             Here for your trade business?{' '}
             <Link
               href='/for-contractors'

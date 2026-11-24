@@ -1,5 +1,10 @@
 import type { Metadata } from 'next';
 import {
+  MINTENANCE_PUBLIC_ORIGIN,
+  PAYMENT_RELEASE_TIMING,
+  publicShareCard,
+} from '@/lib/marketing/public-journey';
+import {
   Camera,
   Shield,
   PoundSterling,
@@ -15,18 +20,27 @@ import {
   type MarketingTrustPoint,
 } from '@/components/marketing/MarketingFeaturePage';
 
+const canonical = `${MINTENANCE_PUBLIC_ORIGIN}/for-homeowners`;
+const shareImage = publicShareCard(
+  'homeowners',
+  'See every repair through. A Mintenance homeowner property dashboard.'
+);
 export const metadata: Metadata = {
   title: 'For Homeowners - Your Property, Protected | Mintenance',
   description:
     'Explore the homeowner demo. Organise properties and visits, post maintenance jobs and compare contractor proposals with Mintenance.',
   keywords:
     'homeowner maintenance, property repair, find contractor UK, protected payment, AI building assessment, local tradespeople',
+  alternates: { canonical },
   openGraph: {
     title: 'For Homeowners - Your Property, Protected | Mintenance',
     description:
       'See how property records, maintenance jobs and upcoming visits fit together in Mintenance.',
     type: 'website',
+    url: canonical,
+    images: [shareImage],
   },
+  twitter: { card: 'summary_large_image', images: [shareImage] },
 };
 
 const FEATURES: MarketingFeature[] = [
@@ -34,7 +48,7 @@ const FEATURES: MarketingFeature[] = [
     icon: Search,
     title: 'Describe the Work You Need',
     description:
-      'Describe what needs fixing, choose your property and add photos, a budget and preferred timing so interested contractors can prepare a proposal.',
+      'Choose your property, describe what needs fixing, and add photos and any preferred dates so contractors can prepare a proposal.',
     screenshot: '/media/landing/homeowner-post-job.webp',
     screenshotWidth: 880,
     screenshotHeight: 810,
@@ -83,8 +97,7 @@ const FEATURES: MarketingFeature[] = [
   {
     icon: Shield,
     title: 'Payment Protection',
-    description:
-      'Your money is held securely with Protected Payment. Contractors upload before photos, complete the work, then submit after photos. You compare and approve before a single penny is released.',
+    description: PAYMENT_RELEASE_TIMING,
     screenshot: '/media/landing/homeowner-payments.webp',
     screenshotAlt:
       'Current payments screen with demo paid, protected and refunded amounts',
