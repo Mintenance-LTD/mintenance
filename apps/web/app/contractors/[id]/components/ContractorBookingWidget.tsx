@@ -1,12 +1,11 @@
 'use client';
 
-import { Star, Clock, Shield, Award } from 'lucide-react';
+import { Star, Shield, Award } from 'lucide-react';
 
 interface ContractorBookingWidgetProps {
   rating: number;
   reviewCount: number;
   avgProjectValue: number;
-  responseTime: string;
   yearsExperience: number;
   onRequestQuote: () => void;
   onSendMessage: () => void;
@@ -23,7 +22,6 @@ export function ContractorBookingWidget({
   rating,
   reviewCount,
   avgProjectValue,
-  responseTime,
   yearsExperience,
   onRequestQuote,
   onSendMessage,
@@ -92,15 +90,6 @@ export function ContractorBookingWidget({
         <div className='mt-6 pt-6 border-t border-gray-200'>
           <p className='text-center text-sm text-gray-600 mb-3'>Quick facts</p>
           <div className='space-y-3'>
-            <div className='flex items-center gap-3'>
-              <Clock className='w-5 h-5 text-gray-600' />
-              <div className='flex-1'>
-                <p className='text-sm font-medium text-gray-900'>
-                  Responds in {responseTime}
-                </p>
-                <p className='text-xs text-gray-500'>Usually replies quickly</p>
-              </div>
-            </div>
             <div className='flex items-center gap-3'>
               <Shield className='w-5 h-5 text-teal-600' />
               <div className='flex-1'>

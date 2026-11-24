@@ -6,6 +6,8 @@
  * limit after R7 #9 + #11 added postcode-proof + dispute-history fields.
  */
 
+import type { ContractorPerformanceBasis } from '@mintenance/shared';
+
 export interface PortfolioItem {
   id: string;
   title: string;
@@ -60,7 +62,8 @@ export interface Contractor {
   reviewCount: number;
   completedJobs: number;
   yearsExperience: number;
-  responseTime: string;
+  responseTime: string | null;
+  performanceBasis?: ContractorPerformanceBasis;
   acceptanceRate: number;
   location: string;
   serviceArea: string[];
@@ -73,8 +76,8 @@ export interface Contractor {
   premium: boolean;
   joinDate: string;
   stats: {
-    onTimeCompletion: number;
-    repeatCustomers: number;
+    onTimeCompletion: number | null;
+    repeatCustomers: number | null;
     avgProjectValue: number;
   };
   postcodePrefix?: string | null;
@@ -121,7 +124,7 @@ export function transformContractorData(
     reviewCount: c.reviewCount || 0,
     completedJobs: c.total_jobs_completed || 0,
     yearsExperience,
-    responseTime: '< 24 hours',
+    responseTime: null,
     acceptanceRate: 0,
     location,
     serviceArea: [],
@@ -133,7 +136,7 @@ export function transformContractorData(
     verified: c.verified || false,
     premium: false,
     joinDate: c.created_at || new Date().toISOString(),
-    stats: { onTimeCompletion: 0, repeatCustomers: 0, avgProjectValue: 0 },
+    stats: { onTimeCompletion: null, repeatCustomers: null, avgProjectValue: 0 },
     postcodePrefix: c.postcode_prefix ?? null,
     postcodeProofCount: c.postcode_proof_count ?? null,
     disputeHistory: c.dispute_history
@@ -149,9 +152,10 @@ export function transformContractorData(
 /** Shape of GET /api/contractors/:id/metrics. */
 export interface ContractorMetrics {
   winRate?: number;
-  responseTime?: string;
-  onTimeCompletion?: number;
-  repeatCustomers?: number;
+  responseTime?: string | null;
+  onTimeCompletion?: number | null;
+  repeatCustomers?: number | null;
+  basis?: ContractorPerformanceBasis;
   avgProjectValue?: number;
 }
 
@@ -174,7 +178,8 @@ export function applyContractorMetrics(
     transformed.stats.repeatCustomers = metrics.repeatCustomers;
   if (metrics.avgProjectValue !== undefined)
     transformed.stats.avgProjectValue = metrics.avgProjectValue;
-  if (metrics.responseTime) transformed.responseTime = metrics.responseTime;
+  transformed.responseTime = metrics.responseTime ?? null;
+  transformed.performanceBasis = metrics.basis;
   if (metrics.winRate !== undefined)
     transformed.acceptanceRate = metrics.winRate;
   return transformed;

@@ -3,9 +3,11 @@ import Link from 'next/link';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BidSubmissionClient2025 } from './components/BidSubmissionClient2025';
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import { logger, platformFeeRateForTier } from '@mintenance/shared';
 import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
+import { canViewBidJob, formatJobBudget } from '@/lib/contractor/bid-details';
+import { canAmendAcceptedBid } from '@/lib/quotes/accepted-bid-amendment';
 
 export const metadata: Metadata = {
   title: 'Submit Bid | Mintenance',
@@ -15,8 +17,10 @@ export const metadata: Metadata = {
 
 export default async function BidSubmissionPage2025({
   params,
+  searchParams,
 }: {
   params: Promise<{ jobId: string }>;
+  searchParams?: Promise<{ view?: string }>;
 }) {
   const resolvedParams = await params;
   const user = await getCurrentUserFromCookies();
@@ -92,16 +96,82 @@ export default async function BidSubmissionPage2025({
   }
 
   // Check if contractor already has a bid for this job
-  const { data: existingBid } = await serverSupabase
+  const { data: existingBid, error: bidError } = await serverSupabase
     .from('bids')
     .select('*')
     .eq('job_id', resolvedParams.jobId)
     .eq('contractor_id', user.id)
-    .single();
+    .maybeSingle();
+  if (bidError) throw new Error('Could not load your bid.');
+  if (!canViewBidJob(job, Boolean(existingBid))) notFound();
+
+  const canBid = canViewBidJob(job, false);
+  const recordRequested = (await searchParams)?.view === 'record';
+  const canEdit = canBid && existingBid?.status === 'pending';
+  const canSubmitAgain = canBid && existingBid?.status === 'withdrawn';
+
+  if (existingBid && (recordRequested || (!canEdit && !canSubmitAgain))) {
+    const jobHref =
+      job.contractor_id === user.id
+        ? `/contractor/jobs/${job.id}`
+        : `/contractor/bid/${job.id}/details`;
+    const amendmentAvailable = await canAmendAcceptedBid(
+      job,
+      existingBid,
+      user.id
+    );
+    const message =
+      existingBid.message ||
+      existingBid.proposal_text ||
+      existingBid.description;
+    return (
+      <section className='mx-auto max-w-3xl space-y-5 rounded-xl border border-slate-200 bg-white p-6'>
+        <Link href='/contractor/bid' className='underline'>
+          Back to bid history
+        </Link>
+        <div>
+          <p className='text-sm font-semibold capitalize'>
+            {existingBid.status} · Read-only record
+          </p>
+          <h1 className='text-2xl font-semibold'>{job.title}</h1>
+          <p className='mt-2 text-lg font-semibold'>
+            {formatJobBudget(existingBid.amount ?? existingBid.bid_amount)}
+          </p>
+        </div>
+        {message && <p className='whitespace-pre-wrap'>{message}</p>}
+        <div className='flex flex-wrap items-center gap-4'>
+          <Link
+            href={jobHref}
+            className='rounded-lg bg-teal-600 px-4 py-2 font-semibold text-white'
+          >
+            View job
+          </Link>
+          {canEdit && (
+            <Link href={`/contractor/bid/${job.id}`} className='underline'>
+              Edit pending bid
+            </Link>
+          )}
+          {canSubmitAgain && (
+            <Link href={`/contractor/bid/${job.id}`} className='underline'>
+              Submit a new bid
+            </Link>
+          )}
+          {amendmentAvailable && (
+            <Link
+              href={`/contractor/quotes/${existingBid.quote_id}/history`}
+              className='underline'
+            >
+              Review quote amendments
+            </Link>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   // Tax and line items live on the linked quote, not on the bid row.
   let savedQuote = null;
-  if (existingBid?.quote_id) {
+  if (canEdit && existingBid?.quote_id) {
     const { data, error } = await serverSupabase
       .from('contractor_quotes')
       .select('subtotal,tax_rate,line_items,terms')
@@ -144,7 +214,7 @@ export default async function BidSubmissionPage2025({
             : job.homeowner,
         }}
         existingBid={
-          existingBid
+          canEdit && existingBid
             ? {
                 amount:
                   savedQuote?.subtotal ??

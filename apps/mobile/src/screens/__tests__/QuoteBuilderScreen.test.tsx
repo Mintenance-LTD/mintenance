@@ -3,6 +3,9 @@ import { Alert } from 'react-native';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { QuoteBuilderScreen } from '../QuoteBuilderScreen';
 import type { ContractorQuote } from '../../services/QuoteBuilderService';
+import * as WebBrowser from 'expo-web-browser';
+
+jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn() }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   const React = require('react');
@@ -207,4 +210,13 @@ it('does not request quotes without a signed in account', async () => {
   const ui = show();
   await ui.findByText('No quotes yet');
   expect(mockGetQuotes).not.toHaveBeenCalled();
+});
+
+it('links to the Marketplace bids history from Quotes', async () => {
+  const ui = show();
+  const link = await ui.findByText('Marketplace bids on web');
+  fireEvent.press(link);
+  expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith(
+    expect.stringMatching(/\/contractor\/bid$/)
+  );
 });

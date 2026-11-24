@@ -19,8 +19,10 @@ import {
   User,
 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { logger } from '@mintenance/shared';
 import { DailyRundownBanner } from '@/app/contractor/components/DailyRundownBanner';
+import { QuoteWorkspaceNav } from '../quotes/components/QuoteWorkspaceNav';
 
 interface ActiveBid {
   id: string;
@@ -122,6 +124,7 @@ export default function ContractorBidsOverviewPage() {
   return (
     <ErrorBoundary>
       <ContractorPageWrapper>
+        <QuoteWorkspaceNav current='bids' />
         {/* Daily Rundown Banner - dismissable, shows once per day */}
         <DailyRundownBanner />
         {/* Header */}
@@ -136,7 +139,7 @@ export default function ContractorBidsOverviewPage() {
                   My Bids
                 </h1>
                 <p className='text-gray-600 text-sm sm:text-base'>
-                  Track and manage your active bids
+                  Check submitted bids and their outcomes
                 </p>
               </div>
             </div>
@@ -198,15 +201,15 @@ export default function ContractorBidsOverviewPage() {
           </div>
         </div>
 
-        {/* Active Bids List */}
+        {/* Bid history */}
         <div className='bg-white border border-gray-200 rounded-xl p-6'>
-          <h2 className='text-xl font-bold text-gray-900 mb-6'>Active Bids</h2>
+          <h2 className='text-xl font-bold text-gray-900 mb-6'>Bid history</h2>
 
           {activeBids.length === 0 ? (
             <div className='text-center py-12'>
               <AlertCircle className='w-12 h-12 text-gray-300 mx-auto mb-4' />
               <h3 className='text-lg font-medium text-gray-900 mb-2'>
-                No Active Bids
+                No bids yet
               </h3>
               <p className='text-gray-600 mb-6'>
                 You haven't placed any bids yet
@@ -223,10 +226,7 @@ export default function ContractorBidsOverviewPage() {
               {activeBids.map((bid) => (
                 <MotionDiv
                   key={bid.id}
-                  className='border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-lg transition-shadow cursor-pointer'
-                  onClick={() => router.push(`/contractor/bid/${bid.job_id}`)}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
+                  className='border border-gray-200 rounded-lg p-4 sm:p-6'
                 >
                   <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4'>
                     <div className='flex-1'>
@@ -298,15 +298,22 @@ export default function ContractorBidsOverviewPage() {
                       Submitted{' '}
                       {new Date(bid.created_at).toLocaleDateString('en-GB')}
                     </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/contractor/bid/${bid.job_id}`);
-                      }}
-                      className='text-teal-600 hover:text-teal-700 font-medium text-sm'
-                    >
-                      View Details →
-                    </button>
+                    <div className='flex flex-wrap items-center gap-4'>
+                      {bid.status === 'accepted' && (
+                        <Link
+                          href={`/contractor/jobs/${bid.job_id}`}
+                          className='rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white'
+                        >
+                          View job
+                        </Link>
+                      )}
+                      <Link
+                        href={`/contractor/bid/${bid.job_id}?view=record`}
+                        className='text-teal-600 hover:text-teal-700 font-medium text-sm'
+                      >
+                        View bid
+                      </Link>
+                    </div>
                   </div>
                 </MotionDiv>
               ))}
