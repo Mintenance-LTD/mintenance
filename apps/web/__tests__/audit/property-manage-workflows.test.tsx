@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 const navigation = vi.hoisted(() => ({
   query: 'tab=manage',
+  view: 'rentals',
   listeners: new Set<() => void>(),
   replace: vi.fn(),
 }));
@@ -31,7 +32,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MintEditorialPropertyManage } from '@/app/properties/[id]/components/MintEditorialPropertyManage';
 vi.mock('@/hooks/usePropertyView', () => ({
-  usePropertyView: () => ({ view: 'rentals' }),
+  usePropertyView: () => ({ view: navigation.view }),
 }));
 const mocks = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ default: mocks }));
@@ -43,7 +44,7 @@ vi.mock('@/app/properties/[id]/components/RecurringMaintenance', () => ({
   default: () => null,
 }));
 vi.mock('@/app/properties/[id]/components/TeamAccess', () => ({
-  default: () => null,
+  default: () => <p>Manage team access</p>,
 }));
 vi.mock('@/app/properties/[id]/components/TenantContacts', () => ({
   default: () => null,
@@ -64,6 +65,7 @@ const token = {
 beforeEach(() => {
   vi.clearAllMocks();
   navigation.query = 'tab=manage';
+  navigation.view = 'rentals';
   vi.stubGlobal('fetch', fetchMock);
 });
 const show = () =>
@@ -74,6 +76,18 @@ const show = () =>
       jobs={[]}
     />
   );
+it('honours a People and access link from Home mode', () => {
+  navigation.view = 'home';
+  navigation.query = 'tab=manage&manage=people';
+  show();
+  expect(
+    screen.getByRole('heading', { name: 'People and access' })
+  ).toBeVisible();
+  expect(
+    screen.getByRole('button', { name: /People and access/ })
+  ).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByText('Manage team access')).toBeVisible();
+});
 it('offers task-based management sections and retries a failed reporting-link load', async () => {
   fetchMock
     .mockResolvedValueOnce({ ok: false })

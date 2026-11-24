@@ -61,8 +61,8 @@ export function MintEditorialPropertyManage({
     next.set('manage', value);
     router.replace(pathname + '?' + next.toString(), { scroll: false });
   }
-  const visibleSection =
-    view === 'home' && section === 'people' ? 'records' : section;
+  const showPeopleSection = view !== 'home' || section === 'people';
+  const visibleSection = section;
   const sections = [
     {
       id: 'work',
@@ -87,7 +87,7 @@ export function MintEditorialPropertyManage({
     <div className='pw-stack'>
       <nav aria-label='Property management sections' className='pw-sections'>
         {sections
-          .filter((item) => view !== 'home' || item.id !== 'people')
+          .filter((item) => showPeopleSection || item.id !== 'people')
           .map(({ id, title, detail, icon: Icon }) => (
             <button
               key={id}
@@ -168,7 +168,7 @@ export function MintEditorialPropertyManage({
                 </FeatureGateCard>
               </div>
             )}
-            {showPropertyTool(view, 'team') && (
+            {(showPropertyTool(view, 'team') || section === 'people') && (
               <div className='pw-legacy'>
                 <FeatureGateCard featureId='HOMEOWNER_TEAM_ACCESS'>
                   <TeamAccess propertyId={propertyId} />
