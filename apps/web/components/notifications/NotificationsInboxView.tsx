@@ -34,6 +34,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
+import { isVisitRecordLink } from '@/lib/notifications/visit-actions';
 
 export type NotificationType = 'job' | 'bid' | 'message' | 'payment' | 'system';
 
@@ -292,6 +293,11 @@ function NotificationRow({
         {notification.action_url?.startsWith('/disputes/') && (
           <span className='w-fit text-xs font-semibold text-teal-800'>
             View dispute
+          </span>
+        )}
+        {isVisitRecordLink(notification.action_url) && (
+          <span className='w-fit text-xs font-semibold text-teal-800'>
+            View visit
           </span>
         )}
         {notification.action_url?.endsWith('#start-checklist') && (

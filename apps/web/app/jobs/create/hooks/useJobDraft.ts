@@ -27,7 +27,8 @@ export function useJobDraft(
   userId: string | undefined,
   context: string,
   form: JobFormData,
-  setForm: Dispatch<SetStateAction<JobFormData>>
+  setForm: Dispatch<SetStateAction<JobFormData>>,
+  sourceForm?: JobFormData
 ) {
   const key = userId ? `mintenance-job-draft:${userId}:${context}` : null;
   const [loaded, setLoaded] = useState<string | null>(null);
@@ -39,12 +40,20 @@ export function useJobDraft(
     submitted.current = false;
     request.current = null;
     setRestored(false);
-    let restoredForm = initialFormDataFromParams(new URLSearchParams(context));
+    let restoredForm =
+      sourceForm ?? initialFormDataFromParams(new URLSearchParams(context));
     try {
       const saved = JSON.parse(sessionStorage.getItem(key) || 'null');
       const parsed = draftSchema.safeParse(saved?.form);
       if (parsed.success) {
-        restoredForm = parsed.data;
+        restoredForm = sourceForm
+          ? {
+              ...parsed.data,
+              property_id: sourceForm.property_id,
+              location: sourceForm.location,
+              is_rental_property: true,
+            }
+          : parsed.data;
         setRestored(true);
         if (z.uuid().safeParse(saved.requestId).success)
           request.current = saved.requestId;
@@ -54,7 +63,7 @@ export function useJobDraft(
     }
     setForm(restoredForm);
     setLoaded(key);
-  }, [key, loaded, context, setForm]);
+  }, [key, loaded, context, setForm, sourceForm]);
   useEffect(() => {
     if (!key || loaded !== key || submitted.current) return;
     const timer = setTimeout(() => {
@@ -72,6 +81,7 @@ export function useJobDraft(
     return () => clearTimeout(timer);
   }, [key, loaded, form]);
   return {
+    ready: !!key && loaded === key,
     restored,
     submissionId: () => {
       request.current ||= crypto.randomUUID();

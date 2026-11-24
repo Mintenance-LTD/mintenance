@@ -58,6 +58,34 @@ it('shows original context, recorded status history and UK dates', async () => {
     screen.getByRole('link', { name: 'Back to action queue' })
   ).toHaveAttribute('href', '/properties/work-queue');
 });
+it('shows the resident confirmed visit times and repair milestones without a job link', async () => {
+  fetcher.mockResolvedValue(
+    response({
+      ...historyData(),
+      role: 'resident',
+      status: 'converted',
+      repairProgress: {
+        createdAt: '2026-11-24T12:00:00Z',
+        confirmedVisit: {
+          date: '2026-12-01',
+          start: '09:00:00',
+          end: '10:00:00',
+        },
+        startedAt: '2026-12-01T09:00:00Z',
+        completedAt: '2026-12-01T10:00:00Z',
+        visitUnavailable: false,
+      },
+    })
+  );
+  render(<ReportConversation reportId='first' />);
+  const progress = await screen.findByRole('region', {
+    name: 'Repair progress',
+  });
+  expect(progress).toHaveTextContent('Job created');
+  expect(progress).toHaveTextContent(/1 December 2026.*09:00.*10:00 UK time/);
+  expect(progress).toHaveTextContent('Work completed');
+  expect(progress.querySelector('a')).toBeNull();
+});
 it.each([
   ['tenant-reports', 'Back to tenant reports', '/landlord/reports'],
   ['emergencies', 'Back to emergency reports', '/maintenance/emergencies'],
@@ -301,8 +329,10 @@ it.each([
   async (_name, Component) => {
     render(<Component reports={[report]} initialReportId={report.id} />);
     const link = screen.getByRole('link', { name: /Create Job/i });
-    expect(link.getAttribute('href')).toContain('property_id=home');
-    expect(link.getAttribute('href')).toContain('tenant_report_id=report-1');
+    expect(link).toHaveAttribute(
+      'href',
+      '/jobs/create?tenant_report_id=report-1'
+    );
     fireEvent.click(link);
     expect(fetcher).not.toHaveBeenCalled();
     expect(

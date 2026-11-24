@@ -8,6 +8,7 @@ const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role BYPASSRLS;
 CREATE TABLE appointments(id uuid PRIMARY KEY,contractor_id uuid,client_id uuid,job_id uuid,title text,appointment_date date,start_time time,end_time time,notes text,status text,client_response text DEFAULT 'pending',client_response_at timestamptz,cancellation_reason text,cancelled_at timestamptz,completed_at timestamptz,duration_minutes integer,reminder_sent boolean,reminder_sent_at timestamptz,updated_at timestamptz,CONSTRAINT appointments_status_check CHECK(status IN('scheduled','confirmed','completed','cancelled','no_show','rescheduled')),CHECK(start_time<end_time));
 CREATE TABLE notification_queue(user_id uuid,notification_type text,priority text,title text,message text,action_url text,metadata jsonb,scheduled_for timestamptz);
+CREATE TABLE notifications(type text,title text,message text,metadata jsonb,read boolean);
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;`);
 await db.exec(
   readFileSync(
@@ -57,6 +58,40 @@ const rejects = async (p, re) => {
   await assert.rejects(p, re);
   n++;
 };
+const oldCopy = 'Test visit was moved. Please confirm the new visit time.';
+const neutralCopy =
+  'Test visit was moved. View visit for the latest time and status.';
+const visitMetadata = JSON.stringify({ appointmentId: id(1) });
+await db.query(
+  `INSERT INTO notifications VALUES ('appointment_update','Visit rescheduled',$1,$2,true),
+    ('appointment_update','Visit response received',$1,$2,false)`,
+  [oldCopy, visitMetadata]
+);
+await db.query(
+  `INSERT INTO notification_queue (notification_type,title,message,metadata)
+    VALUES ('appointment_update','Visit rescheduled',$1,$2)`,
+  [oldCopy, visitMetadata]
+);
+await db.exec(
+  readFileSync(
+    new URL(
+      '../supabase/migrations/20261124171707_neutral_visit_reschedule_alerts.sql',
+      import.meta.url
+    ),
+    'utf8'
+  )
+);
+eq(
+  (await db.query('SELECT message,read FROM notifications ORDER BY read DESC'))
+    .rows,
+  [
+    { message: neutralCopy, read: true },
+    { message: oldCopy, read: false },
+  ]
+);
+eq((await db.query('DELETE FROM notification_queue RETURNING message')).rows, [
+  { message: neutralCopy },
+]);
 await db.exec('SET ROLE authenticated');
 await rejects(update(), /permission denied/);
 await rejects(
@@ -120,6 +155,10 @@ eq(
   (await db.query('SELECT action_url FROM notification_queue')).rows[0]
     .action_url,
   '/appointments/' + id(1)
+);
+eq(
+  (await db.query('SELECT message FROM notification_queue')).rows[0].message,
+  'Test visit is now scheduled for 01 Jan 2099 at 10:00 UK time. View visit for the latest time and status.'
 );
 await update();
 eq((await readHistory()).length, 1);
@@ -232,6 +271,112 @@ await rejects(
     [id(10)]
   ),
   /permission denied/
+);
+await db.exec(`
+  RESET ROLE;
+  CREATE TABLE public.jobs (
+    id uuid PRIMARY KEY, property_id uuid, homeowner_id uuid,
+    is_rental_property boolean, status text, started_at timestamptz
+  );
+  CREATE TABLE public.anonymous_reports (
+    id uuid PRIMARY KEY, property_id uuid, job_id uuid, status text,
+    conversation_key_hash text
+  );
+  CREATE TABLE public.report_messages (
+    id uuid PRIMARY KEY, report_id uuid, author_role text, body text
+  );
+  CREATE SCHEMA storage;
+  CREATE TABLE storage.buckets (
+    id text PRIMARY KEY, name text, public boolean,
+    file_size_limit integer, allowed_mime_types text[]
+  );
+`);
+for (const filename of [
+  '20261022195038_tenant_report_followup.sql',
+  '20261124172408_resident_repair_case_updates.sql',
+]) {
+  await db.exec(
+    readFileSync(
+      new URL(`../supabase/migrations/${filename}`, import.meta.url),
+      'utf8'
+    )
+  );
+}
+await db.query("INSERT INTO jobs VALUES ($1,$2,$3,true,'assigned',NULL)", [
+  id(20),
+  id(21),
+  id(3),
+]);
+await db.query(
+  `INSERT INTO anonymous_reports VALUES
+    ($1,$2,$3,'converted',NULL), ($4,$2,$3,'converted',NULL),
+    ($5,$6,$3,'converted',NULL)`,
+  [id(22), id(21), id(20), id(23), id(24), id(25)]
+);
+await db.query(
+  `INSERT INTO report_email_access (report_id,email,verified_at,enabled)
+    VALUES ($1,'verified@example.invalid',now(),true),
+           ($2,'unverified@example.invalid',NULL,true)`,
+  [id(22), id(23)]
+);
+await db.query(
+  `INSERT INTO appointments(id,contractor_id,client_id,job_id,title,appointment_date,start_time,end_time,status)
+    VALUES($1,$2,$3,$4,'Case visit','2099-02-01','09:00','10:00','scheduled')`,
+  [id(26), id(2), id(3), id(20)]
+);
+await db.exec('SET ROLE service_role');
+await db.query('SELECT respond_to_visit($1,$2,$3,$4,$5,$6)', [
+  id(3),
+  id(26),
+  '2099-02-01',
+  '09:00',
+  '10:00',
+  'change_requested',
+]);
+eq(
+  (await db.query('SELECT count(*)::int AS n FROM report_email_outbox')).rows[0]
+    .n,
+  0
+);
+for (let retry = 0; retry < 2; retry++) {
+  await db.query('SELECT respond_to_visit($1,$2,$3,$4,$5,$6)', [
+    id(3),
+    id(26),
+    '2099-02-01',
+    '09:00',
+    '10:00',
+    'confirmed',
+  ]);
+}
+await db.exec('RESET ROLE');
+await db.query(
+  `UPDATE jobs SET status='in_progress',started_at=now() WHERE id=$1`,
+  [id(20)]
+);
+await db.query(`UPDATE jobs SET status='completed' WHERE id=$1`, [id(20)]);
+eq(
+  (
+    await db.query(
+      `SELECT report_email_outbox.report_id,body FROM report_email_outbox JOIN report_messages ON message_id=id ORDER BY body`
+    )
+  ).rows,
+  [
+    { report_id: id(22), body: 'The contractor has started work.' },
+    {
+      report_id: id(22),
+      body: 'Visit confirmed for 01 Feb 2099, 09:00–10:00 UK time.',
+    },
+    { report_id: id(22), body: 'Work completed.' },
+  ]
+);
+eq(
+  (
+    await db.query(
+      'SELECT count(*)::int AS n FROM report_messages WHERE report_id=$1',
+      [id(24)]
+    )
+  ).rows[0].n,
+  0
 );
 await db.close();
 console.log(

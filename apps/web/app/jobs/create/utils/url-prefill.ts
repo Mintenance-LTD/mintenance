@@ -63,6 +63,7 @@ function pickUrgency(raw: string | null | undefined): JobFormData['urgency'] {
  * value from the URL when present and falling back to safe defaults.
  */
 export function initialFormDataFromParams(params: Params): JobFormData {
+  if (params?.get('tenant_report_id')) params = null;
   return {
     title: params?.get('title') ?? '',
     description: params?.get('description') ?? '',

@@ -128,7 +128,7 @@ it('authorizes before counting and reauthorizes the last page', async () => {
   expect(body.summary).not.toHaveProperty('property_id');
   expect(mock.select).toHaveBeenCalledWith(
     'anonymous_reports',
-    'category,description,created_at,property_id'
+    'category,description,created_at,property_id,job_id'
   );
   expect(mock.rpc.mock.invocationCallOrder[0]).toBeLessThan(
     mock.from.mock.invocationCallOrder[0]

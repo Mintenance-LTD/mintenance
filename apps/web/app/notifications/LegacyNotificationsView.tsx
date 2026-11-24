@@ -22,6 +22,7 @@ import {
   getNotificationIcon,
 } from './notification-icons';
 import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
+import { isVisitRecordLink } from '@/lib/notifications/visit-actions';
 import type {
   FilterType,
   NotificationItem,
@@ -317,7 +318,9 @@ export function LegacyNotificationsView({
                                     '/disputes/'
                                   )
                                     ? 'View dispute'
-                                    : 'View'}
+                                    : isVisitRecordLink(notification.action_url)
+                                      ? 'View visit'
+                                      : 'View'}
                                 </button>
                               )}
                               <button

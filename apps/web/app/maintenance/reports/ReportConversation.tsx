@@ -15,11 +15,12 @@ import {
 } from '@/lib/reports/conversation-navigation';
 import { ReportExtras } from './ReportExtras';
 import { StaffFollowup } from './StaffFollowup';
+import { RepairProgress } from './RepairProgress';
 
 const publicNextSteps = new Map([
   ['new', 'Waiting for the property team to review.'],
   ['acknowledged', 'Waiting for the property team to confirm the next steps.'],
-  ['converted', 'Check the recorded updates for what happens next.'],
+  ['converted', 'Track the repair and confirmed visit times here.'],
 ]);
 
 export function ReportConversation({
@@ -207,14 +208,13 @@ function CaseConversation({
           className='space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4'
         >
           <p>{error}</p>
-          {receipt ? (
-            <a
-              className='inline-block rounded-lg bg-[#2d6a5b] px-4 py-2 font-semibold text-white'
-              href={`/maintenance/report-access?reportId=${reportId}`}
-            >
-              Recover access by email
-            </a>
-          ) : (
+          <a
+            className='inline-block rounded-lg bg-[#2d6a5b] px-4 py-2 font-semibold text-white'
+            href={`/maintenance/report-access?reportId=${reportId}`}
+          >
+            Recover access by email
+          </a>
+          {!receipt && (
             <Link
               href={`/login?redirect=${encodeURIComponent(reportConversationHref(reportId, origin, queueSearch === undefined ? undefined : new URLSearchParams(queueSearch)))}`}
             >
@@ -239,6 +239,12 @@ function CaseConversation({
             </Link>
           )}
           <p>Current status: {reportStatusLabel(data.status)}</p>
+          {data.repairProgress && (
+            <RepairProgress progress={data.repairProgress} />
+          )}
+          {data.repairProgressUnavailable && (
+            <p role='status'>Repair progress unavailable. Refresh to retry.</p>
+          )}
           {staffFollowup && (
             <StaffFollowup
               followup={staffFollowup}

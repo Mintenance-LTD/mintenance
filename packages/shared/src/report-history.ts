@@ -5,6 +5,14 @@ export interface ReportStaffFollowup {
   needsReassignment: boolean;
 }
 
+export interface ReportRepairProgress {
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  confirmedVisit: { date: string; start: string; end: string } | null;
+  visitUnavailable: boolean;
+}
+
 export interface ReportHistory {
   status: string;
   role: string;
@@ -25,6 +33,8 @@ export interface ReportHistory {
   photos?: { url: string; slot: number }[];
   photos_unavailable?: boolean;
   staffFollowup?: ReportStaffFollowup;
+  repairProgress?: ReportRepairProgress;
+  repairProgressUnavailable?: boolean;
 }
 
 /** Reject an unconfirmed history response rather than implying an empty case. */

@@ -157,8 +157,24 @@ export async function notifyStakeholders(
   const result = { delivered: 0, skipped: 0, failed: 0 };
   const set = await resolveStakeholders(input.jobId);
   if (!set) return result;
+  // Linked reports deliver resident updates to the verified case contact via
+  // the report outbox. Other tenants at the property should not get job links.
+  let useCase = false;
+  if (set.isRental && (!input.onlyRoles || input.onlyRoles.includes('tenant'))) {
+    const linked = await serverSupabase
+      .from('anonymous_reports')
+      .select('id')
+      .eq('job_id', input.jobId)
+      .limit(1)
+      .maybeSingle();
+    useCase = !!(linked.error || linked.data);
+  }
 
   for (const s of set.stakeholders) {
+    if (s.role === 'tenant' && useCase) {
+      result.skipped += 1;
+      continue;
+    }
     if (input.skipUserId && s.userId === input.skipUserId) {
       result.skipped += 1;
       continue;
@@ -192,6 +208,7 @@ export async function notifyStakeholders(
   // Email-only tenants (no account yet) — best-effort email delivery.
   if (
     input.emailTenants &&
+    !useCase &&
     set.isRental &&
     set.emailOnlyTenants.length > 0 &&
     input.tenantJobStatus

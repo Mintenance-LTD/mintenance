@@ -73,6 +73,44 @@ function renderInbox(theme: string, Page = NotificationsPage) {
 }
 
 it.each(['mint-editorial', 'default'])(
+  'labels an exact reschedule notification View visit and opens that visit (%s)',
+  async (theme) => {
+    const visitHref = '/appointments/00000000-0000-4000-8000-000000000016';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        response({
+          notifications: [
+            {
+              id: 'reschedule-alert',
+              title: 'Visit rescheduled',
+              message: 'View visit for the latest time and status.',
+              type: 'appointment_update',
+              action_url: visitHref,
+              read: false,
+              created_at: cursor.before,
+            },
+          ],
+          unreadCount: 1,
+          nextCursor: null,
+        })
+      )
+    );
+    mocks.write.mockResolvedValue(response({ success: true }));
+    renderInbox(theme);
+
+    fireEvent.click(await screen.findByText('View visit', { exact: true }));
+    expect(mocks.push).toHaveBeenCalledWith(visitHref);
+    await waitFor(() =>
+      expect(mocks.write).toHaveBeenCalledWith(
+        '/api/notifications/reschedule-alert/read?inbox=1',
+        { method: 'POST' }
+      )
+    );
+  }
+);
+
+it.each(['mint-editorial', 'default'])(
   'shows the stale reminder and loads the next page with the same cursor (%s)',
   async (theme) => {
     const fetcher = vi
