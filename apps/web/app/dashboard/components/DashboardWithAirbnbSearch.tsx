@@ -96,7 +96,6 @@ export function DashboardWithAirbnbSearch({
 
   return (
     <div className='space-y-6 pb-12 overflow-x-hidden'>
-      <AgencyDashboardStart />
       {/* Airbnb-Style Search Section */}
       <section className='bg-gradient-to-b from-white to-gray-50 px-4 sm:px-6 lg:px-8 py-8'>
         <div className='max-w-6xl mx-auto min-w-0'>
@@ -382,6 +381,7 @@ export function DashboardWithAirbnbSearch({
 
           {/* Right Column - Recommendations & Activity */}
           <div className='space-y-6'>
+            <AgencyDashboardStart />
             {/* Deferred follow-up #4 — landlord / agency inbound payer view.
                 Self-hides when there are no delegated-payer jobs. */}
             <LandlordPayerJobsCard />
