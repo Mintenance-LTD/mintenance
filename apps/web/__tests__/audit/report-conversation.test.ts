@@ -25,6 +25,7 @@ beforeEach(() => {
       category: 'plumbing',
       description: 'Tap leaking',
       created_at: '2026-11-01T10:00:00Z',
+      property_id: '00000000-0000-4000-8000-000000008006',
     },
     error: null,
   });
@@ -119,13 +120,15 @@ it('authorizes before counting and reauthorizes the last page', async () => {
       p_message: null,
     })
   );
-  expect(await result.json()).toMatchObject({
+  const body = await result.json();
+  expect(body).toMatchObject({
     pageOffset: 50,
     summary: { description: 'Tap leaking' },
   });
+  expect(body.summary).not.toHaveProperty('property_id');
   expect(mock.select).toHaveBeenCalledWith(
     'anonymous_reports',
-    'category,description,created_at'
+    'category,description,created_at,property_id'
   );
   expect(mock.rpc.mock.invocationCallOrder[0]).toBeLessThan(
     mock.from.mock.invocationCallOrder[0]
