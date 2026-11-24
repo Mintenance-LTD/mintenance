@@ -9,15 +9,28 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string | string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
-  const { from } = await searchParams;
+  const search = await searchParams;
+  const { from } = search;
   const origin =
     from === 'tenant-reports' || from === 'emergencies' ? from : 'action-queue';
+  const queueParams = new URLSearchParams();
+  if (from === 'action-queue') {
+    for (const [name, value] of Object.entries(search)) {
+      if (typeof value === 'string') queueParams.set(name, value);
+    }
+  }
   return (
     <main className='mx-auto max-w-2xl p-6'>
-      <ReportConversation reportId={id} origin={origin} />
+      <ReportConversation
+        reportId={id}
+        origin={origin}
+        queueSearch={
+          from === 'action-queue' ? queueParams.toString() : undefined
+        }
+      />
     </main>
   );
 }

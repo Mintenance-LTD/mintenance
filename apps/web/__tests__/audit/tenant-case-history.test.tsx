@@ -61,19 +61,26 @@ it('shows original context, recorded status history and UK dates', async () => {
 it.each([
   ['tenant-reports', 'Back to tenant reports', '/landlord/reports'],
   ['emergencies', 'Back to emergency reports', '/maintenance/emergencies'],
-  ['https://elsewhere.invalid', 'Back to action queue', '/properties/work-queue'],
-])('returns staff to an approved list for source %s', async (from, label, href) => {
-  render(
-    await CasePage({
-      params: Promise.resolve({ id: 'first' }),
-      searchParams: Promise.resolve({ from }),
-    })
-  );
-  expect(await screen.findByRole('link', { name: label })).toHaveAttribute(
-    'href',
-    href
-  );
-});
+  [
+    'https://elsewhere.invalid',
+    'Back to action queue',
+    '/properties/work-queue',
+  ],
+])(
+  'returns staff to an approved list for source %s',
+  async (from, label, href) => {
+    render(
+      await CasePage({
+        params: Promise.resolve({ id: 'first' }),
+        searchParams: Promise.resolve({ from }),
+      })
+    );
+    expect(await screen.findByRole('link', { name: label })).toHaveAttribute(
+      'href',
+      href
+    );
+  }
+);
 it('shows residents a public next step for a new case without staff details', async () => {
   fetcher.mockResolvedValue(
     response({
@@ -83,19 +90,85 @@ it('shows residents a public next step for a new case without staff details', as
       landlord_notes: 'Private landlord note',
       waiting_for: 'Private waiting reason',
       assignee_name: 'Private staff name',
+      staffFollowup: {
+        propertyId: 'property',
+        assigneeName: 'Private staff name',
+        canManage: true,
+        needsReassignment: false,
+      },
     })
   );
   render(<ReportConversation reportId='first' origin='tenant-reports' />);
-  expect(await screen.findByRole('region', { name: 'Next step' })).toHaveTextContent(
-    'Waiting for the property team to review.'
-  );
-  expect(screen.queryByText(/Private landlord note|Private waiting reason|Private staff name/)).toBeNull();
-  expect(screen.queryByRole('link', { name: 'Back to tenant reports' })).toBeNull();
+  expect(
+    await screen.findByRole('region', { name: 'Next step' })
+  ).toHaveTextContent('Waiting for the property team to review.');
+  expect(
+    screen.queryByText(
+      /Private landlord note|Private waiting reason|Private staff name/
+    )
+  ).toBeNull();
+  expect(
+    screen.queryByRole('link', { name: 'Back to tenant reports' })
+  ).toBeNull();
   expect(fetcher).toHaveBeenCalledTimes(1);
   expect(fetcher).toHaveBeenCalledWith(
     expect.stringMatching(/^\/api\/report-conversation\?/),
     expect.objectContaining({ cache: 'no-store' })
   );
+});
+it('shows responsibility and the follow-up editor to the owner and restores the originating queue', async () => {
+  fetcher
+    .mockResolvedValueOnce(
+      response({
+        ...historyData(),
+        status: 'new',
+        staffFollowup: {
+          propertyId: 'property',
+          assigneeName: 'Alex Manager',
+          canManage: true,
+          needsReassignment: false,
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      response({
+        followup: {
+          revision: 1,
+          assigned_to: 'manager',
+          due_at: null,
+          waiting_for: 'manager',
+        },
+        people: [{ id: 'owner', first_name: 'Test', last_name: 'Owner' }],
+        updates: [],
+        hasEligibleManager: false,
+        currentUserId: 'owner',
+      })
+    );
+  render(
+    await CasePage({
+      params: Promise.resolve({ id: 'first' }),
+      searchParams: Promise.resolve({
+        from: 'action-queue',
+        scope: 'unassigned',
+        priority: '0',
+        offset: '25',
+      }),
+    })
+  );
+  expect(await screen.findByText('Alex Manager')).toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: 'Back to action queue' })
+  ).toHaveAttribute(
+    'href',
+    '/properties/work-queue?scope=unassigned&priority=0&offset=25#queue-report-first'
+  );
+  fireEvent.click(screen.getByText('Manage follow-up'));
+  expect(
+    await screen.findByText('No eligible manager for this property')
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: 'People and access' })
+  ).toHaveAttribute('href', '/properties/property?tab=manage&manage=people');
 });
 it('uses the returned latest page for subsequent older-page navigation', async () => {
   fetcher.mockImplementation((url: string) =>
@@ -206,7 +279,10 @@ it.each([
     expect(fetcher).not.toHaveBeenCalled();
     expect(
       screen.getByRole('link', { name: 'Open shared issue conversation' })
-    ).toHaveAttribute('href', '/maintenance/reports/report-1?from=tenant-reports');
+    ).toHaveAttribute(
+      'href',
+      '/maintenance/reports/report-1?from=tenant-reports'
+    );
   }
 );
 it.each([

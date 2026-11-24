@@ -1,3 +1,10 @@
+export interface ReportStaffFollowup {
+  propertyId: string;
+  canManage: boolean;
+  assigneeName: string | null;
+  needsReassignment: boolean;
+}
+
 export interface ReportHistory {
   status: string;
   role: string;
@@ -17,6 +24,7 @@ export interface ReportHistory {
   summary_unavailable?: boolean;
   photos?: { url: string; slot: number }[];
   photos_unavailable?: boolean;
+  staffFollowup?: ReportStaffFollowup;
 }
 
 /** Reject an unconfirmed history response rather than implying an empty case. */

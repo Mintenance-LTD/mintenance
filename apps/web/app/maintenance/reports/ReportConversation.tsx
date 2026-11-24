@@ -10,10 +10,11 @@ import {
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
   reportConversationHref,
-  reportConversationReturn,
+  reportReturnLink,
   type ReportConversationOrigin,
 } from '@/lib/reports/conversation-navigation';
 import { ReportExtras } from './ReportExtras';
+import { StaffFollowup } from './StaffFollowup';
 
 const publicNextSteps = new Map([
   ['new', 'Waiting for the property team to review.'],
@@ -24,18 +25,29 @@ const publicNextSteps = new Map([
 export function ReportConversation({
   reportId,
   origin = 'action-queue',
+  queueSearch,
 }: {
   reportId: string;
   origin?: ReportConversationOrigin;
+  queueSearch?: string;
 }) {
-  return <CaseConversation key={reportId} reportId={reportId} origin={origin} />;
+  return (
+    <CaseConversation
+      key={reportId}
+      reportId={reportId}
+      origin={origin}
+      queueSearch={queueSearch}
+    />
+  );
 }
 function CaseConversation({
   reportId,
   origin,
+  queueSearch,
 }: {
   reportId: string;
   origin: ReportConversationOrigin;
+  queueSearch?: string;
 }) {
   const mounted = useRef(true),
     sending = useRef(false);
@@ -56,8 +68,17 @@ function CaseConversation({
     [body, setBody] = useState(''),
     [busy, setBusy] = useState(false),
     [pending, setPending] = useState<{ id: string; body: string } | null>(null);
-  const nextStep = data && publicNextSteps.get(data.status);
-  const returnLink = reportConversationReturn[origin];
+  const staffFollowup =
+    !receipt && data?.role === 'manager' ? data.staffFollowup : undefined;
+  const nextStep =
+    data?.status === 'new' && staffFollowup?.assigneeName === 'You'
+      ? 'Review the original report and record what happens next.'
+      : data?.status === 'new' &&
+          staffFollowup?.canManage &&
+          !staffFollowup.assigneeName
+        ? 'Choose who will review the report, or assign it to yourself.'
+        : data && publicNextSteps.get(data.status);
+  const returnLink = reportReturnLink(origin, reportId, queueSearch);
   useEffect(() => {
     const readReceipt = () => {
       const hash = window.location.hash.slice(1);
@@ -195,7 +216,7 @@ function CaseConversation({
             </a>
           ) : (
             <Link
-              href={`/login?redirect=${encodeURIComponent(reportConversationHref(reportId, origin))}`}
+              href={`/login?redirect=${encodeURIComponent(reportConversationHref(reportId, origin, queueSearch === undefined ? undefined : new URLSearchParams(queueSearch)))}`}
             >
               Sign in to this report
             </Link>
@@ -218,6 +239,16 @@ function CaseConversation({
             </Link>
           )}
           <p>Current status: {reportStatusLabel(data.status)}</p>
+          {staffFollowup && (
+            <StaffFollowup
+              followup={staffFollowup}
+              reportId={reportId}
+              onSaved={() => {
+                setNotice('Follow-up saved.');
+                setAttempt((value) => value + 1);
+              }}
+            />
+          )}
           {nextStep && (
             <section
               aria-label='Next step'

@@ -84,7 +84,7 @@ try {
     CREATE TABLE properties(id uuid PRIMARY KEY,property_name text,owner_id uuid);
     CREATE TABLE property_team_members(property_id uuid,user_id uuid,status text,role text);
     CREATE TABLE jobs(id uuid PRIMARY KEY,property_id uuid,homeowner_id uuid,contractor_id uuid,title text,status text,scheduled_start_date timestamptz,scheduled_end_date timestamptz);
-    CREATE TABLE anonymous_reports(id uuid PRIMARY KEY,property_id uuid,description text,status text,urgency text,created_at timestamptz);
+    CREATE TABLE anonymous_reports(id uuid PRIMARY KEY,property_id uuid,description text,status text,urgency text,created_at timestamptz,job_id uuid);
     CREATE TABLE recurring_schedules(id uuid PRIMARY KEY,property_id uuid,title text,next_due_date date,is_active boolean);
     CREATE TABLE compliance_certificates(id uuid PRIMARY KEY,property_id uuid,cert_type text,status text,expiry_date date);
     CREATE TABLE notification_queue(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid,notification_type text,priority text,title text,message text,action_url text,metadata jsonb,scheduled_for timestamptz);
@@ -131,7 +131,8 @@ try {
       ]
     );
   await db.query(
-    `INSERT INTO anonymous_reports VALUES($1,$2,'Private tenant report','new','emergency',now());`,
+    `INSERT INTO anonymous_reports(id,property_id,description,status,urgency,created_at)
+     VALUES($1,$2,'Private tenant report','new','emergency',now());`,
     [id(21), id(10)]
   );
   await db.query(
@@ -164,6 +165,14 @@ try {
   cases++;
   await db.exec(sql('20261115181000_portfolio_queue_date_labels.sql'));
   await db.exec(sql('20261123214700_prioritise_unassigned_tenant_reports.sql'));
+  await db.exec(
+    sql('20260930115354_issue_conversations_and_visit_confirmation.sql').split(
+      'ALTER TABLE public.appointments'
+    )[0]
+  );
+  await db.exec(
+    `BEGIN; ${sql('20261124160045_assigned_tenant_report_handoffs.sql')} COMMIT;`
+  );
   await db.exec('SET ROLE service_role');
   await test('team scope respects membership and owner-only tenant reports', async () => {
     const manager = await queue();
@@ -188,10 +197,76 @@ try {
     assert.equal(result.items[0].assignee_name, 'Person 2 Test');
     assert.equal((await queue(2, 'mine', 1, 1)).items.length, 0);
   });
+  await test('the assigned accepted manager sees the report in Mine and opens its case from the notification', async () => {
+    await save({
+      actor: 1,
+      kind: 'report',
+      source: 21,
+      assignee: 2,
+      revision: 0,
+    });
+    const mine = (
+      await one(
+        "SELECT portfolio_filtered_action_queue($1,0,25,'mine') AS queue",
+        [id(2)]
+      )
+    ).queue;
+    const report = mine.items.find((row) => row.id === id(21));
+    assert.equal(report.assignee_name, 'Person 2 Test');
+    assert.equal(report.can_manage_followup, false);
+    for (const actor of [3, 5, 6, 7, 8]) {
+      const result = await filteredQueue(actor, 10);
+      assert.equal(
+        result.items.some((row) => row.id === id(21)),
+        false
+      );
+    }
+    const alert = await one(
+      "SELECT action_url, metadata FROM notification_queue WHERE user_id=$1 AND notification_type='property_followup'",
+      [id(2)]
+    );
+    assert.equal(
+      alert.action_url,
+      `/maintenance/reports/${id(21)}?from=action-queue&scope=mine`
+    );
+    assert.equal(alert.metadata.reportId, id(21));
+    const openedId = new URL(
+      alert.action_url,
+      'https://mintenance.test'
+    ).pathname
+      .split('/')
+      .at(-1);
+    const opened = await one(
+      'SELECT report_conversation($1,$2,NULL) AS history',
+      [openedId, id(2)]
+    );
+    assert.equal(opened.history.role, 'manager');
+    assert.equal(opened.history.status, 'new');
+    assert.equal(Object.hasOwn(opened.history, 'staffFollowup'), false);
+    await rejects(
+      () => one('SELECT report_conversation($1,$2,NULL)', [openedId, id(3)]),
+      '42501'
+    );
+    await db.query(
+      "UPDATE property_team_members SET status='removed' WHERE property_id=$1 AND user_id=$2",
+      [id(10), id(2)]
+    );
+    const revoked = await filteredQueue(2, 10);
+    assert.equal(
+      revoked.items.some((row) => row.id === id(21)),
+      false
+    );
+    await rejects(
+      () => one('SELECT report_conversation($1,$2,NULL)', [openedId, id(2)]),
+      '42501'
+    );
+  });
   await test('ageing unassigned reports are prioritised before filtering and pagination', async () => {
     const property = 30;
     await db.query('INSERT INTO properties VALUES($1,$2,$3)', [
-      id(property), 'Report queue property', id(1),
+      id(property),
+      'Report queue property',
+      id(1),
     ]);
     await db.query(
       "INSERT INTO property_team_members VALUES($1,$2,'accepted','manager')",
@@ -207,7 +282,7 @@ try {
       [37, 8 * 24, 'acknowledged'],
     ]) {
       await db.query(
-        "INSERT INTO anonymous_reports VALUES($1,$2,'Synthetic report',$3,'normal',now()-$4::integer*interval '1 hour')",
+        "INSERT INTO anonymous_reports(id,property_id,description,status,urgency,created_at) VALUES($1,$2,'Synthetic report',$3,'normal',now()-$4::integer*interval '1 hour')",
         [id(source), id(property), status, hoursAgo]
       );
     }

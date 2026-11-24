@@ -1,7 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { reportConversationHref } from '@/lib/reports/conversation-navigation';
+import {
+  queueReportFocus,
+  queueReturnParams,
+  reportConversationHref,
+} from '@/lib/reports/conversation-navigation';
 import { FollowupForm } from './FollowupForm';
 import { PortfolioReport } from './PortfolioReport';
 import { OperationsPage } from '@/components/property-operations/OperationsPage';
@@ -48,6 +52,8 @@ export default function PropertyWorkQueuePage() {
   const [data, setData] = useState<Queue | null>(null);
   const [error, setError] = useState('');
   const [scope, setScope] = useState('team');
+  const [ready, setReady] = useState(false);
+  const restoredFocus = useRef(false);
   const [filters, setFilters] = useState({
     property: '',
     priority: '',
@@ -58,6 +64,42 @@ export default function PropertyWorkQueuePage() {
   const [properties, setProperties] = useState<{ id: string; name: string }[]>(
     []
   );
+  const queueSearch = queueReturnParams(
+    new URLSearchParams({ ...filters, scope, offset: String(offset) })
+  );
+  const queueQuery = queueSearch.toString();
+
+  useEffect(() => {
+    const params = queueReturnParams(
+      new URLSearchParams(window.location.search)
+    );
+    setScope(params.get('scope') ?? 'team');
+    setOffset(Number(params.get('offset') ?? 0));
+    const person = params.get('person') ?? '';
+    setPersonDraft(person);
+    setFilters({
+      property: params.get('property') ?? '',
+      priority: params.get('priority') ?? '',
+      person,
+      sort: params.get('sort') ?? 'priority',
+    });
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    const { pathname, hash } = window.location;
+    const url = `${pathname}${queueQuery ? `?${queueQuery}` : ''}${hash}`;
+    window.history.replaceState(window.history.state, '', url);
+  }, [queueQuery, ready]);
+
+  useEffect(() => {
+    if (!data || restoredFocus.current) return;
+    const focusId = window.location.hash.slice(1);
+    if (!focusId.startsWith('queue-report-')) return;
+    restoredFocus.current = true;
+    document.getElementById(focusId)?.focus();
+  }, [data]);
   const updateFilter = (key: keyof typeof filters, value: string) => {
     setFilters((previous) => ({ ...previous, [key]: value }));
     setOffset(0);
@@ -65,6 +107,7 @@ export default function PropertyWorkQueuePage() {
     setData(null);
   };
   useEffect(() => {
+    if (!ready) return;
     const controller = new AbortController();
     setData(null);
     setError('');
@@ -114,7 +157,7 @@ export default function PropertyWorkQueuePage() {
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [offset, attempt, scope, filters]);
+  }, [offset, attempt, scope, filters, ready]);
   return (
     <OperationsPage
       compact
@@ -353,11 +396,20 @@ export default function PropertyWorkQueuePage() {
                   <div className={styles.actions}>
                     <Link
                       className={styles.primary}
+                      id={
+                        item.kind === 'report'
+                          ? queueReportFocus(item.id)
+                          : undefined
+                      }
                       href={
                         item.kind === 'job' && item.can_open_job
                           ? `/jobs/${item.id}`
                           : item.kind === 'report'
-                            ? reportConversationHref(item.id)
+                            ? reportConversationHref(
+                                item.id,
+                                'action-queue',
+                                queueSearch
+                              )
                             : `/properties/${item.property_id}`
                       }
                     >
