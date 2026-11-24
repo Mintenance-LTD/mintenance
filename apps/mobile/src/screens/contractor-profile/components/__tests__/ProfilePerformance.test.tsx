@@ -4,7 +4,7 @@
  * The behaviour worth protecting is the EMPTY STATE. Web's equivalent
  * renders raw numbers, so a contractor with no history reads as
  * "0% on-time, 0% repeat customers, 0 years" — indistinguishable from a
- * genuinely bad tradesperson, and unfair to anyone new. Mobile shows "—"
+ * genuinely bad tradesperson, and unfair to anyone new. Mobile shows "Not enough data"
  * until there is a completed job to derive those percentages from.
  */
 import React from 'react';
@@ -35,7 +35,7 @@ describe('ProfilePerformance', () => {
     expect(getByTestId('performance-tenure-value').props.children).toBe('3y');
   });
 
-  it('shows "—" instead of 0% for a contractor with no completed jobs', () => {
+  it('shows "Not enough data" instead of 0% for a contractor with no completed jobs', () => {
     const { getByTestId, queryByText } = render(
       <ProfilePerformance
         responseTime={null}
@@ -46,9 +46,15 @@ describe('ProfilePerformance', () => {
     );
 
     // The regression guard: a new contractor must NOT be labelled 0%.
-    expect(getByTestId('performance-ontime-value').props.children).toBe('—');
-    expect(getByTestId('performance-repeat-value').props.children).toBe('—');
-    expect(getByTestId('performance-response-value').props.children).toBe('—');
+    expect(getByTestId('performance-ontime-value').props.children).toBe(
+      'Not enough data'
+    );
+    expect(getByTestId('performance-repeat-value').props.children).toBe(
+      'Not enough data'
+    );
+    expect(getByTestId('performance-response-value').props.children).toBe(
+      'Not enough data'
+    );
     // Under a year on the platform reads "New", not "0".
     expect(getByTestId('performance-tenure-value').props.children).toBe('New');
     expect(queryByText(/once at least three records qualify/i)).toBeTruthy();
@@ -65,8 +71,12 @@ describe('ProfilePerformance', () => {
       />
     );
 
-    expect(getByTestId('performance-ontime-value').props.children).toBe('—');
-    expect(getByTestId('performance-repeat-value').props.children).toBe('—');
+    expect(getByTestId('performance-ontime-value').props.children).toBe(
+      'Not enough data'
+    );
+    expect(getByTestId('performance-repeat-value').props.children).toBe(
+      'Not enough data'
+    );
     expect(getByTestId('performance-tenure-value').props.children).toBe('2y');
   });
 

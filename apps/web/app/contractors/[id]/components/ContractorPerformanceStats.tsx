@@ -1,7 +1,10 @@
 'use client';
 
 import { Clock, TrendingUp, Users, Award } from 'lucide-react';
-import { performanceBasisLabels, type ContractorPerformanceBasis } from '@mintenance/shared';
+import {
+  performanceBasisLabels,
+  type ContractorPerformanceBasis,
+} from '@mintenance/shared';
 
 /**
  * Performance signals on the public contractor profile.
@@ -23,7 +26,7 @@ interface ContractorPerformanceStatsProps {
   basis?: ContractorPerformanceBasis;
 }
 
-const EMPTY = '—';
+const EMPTY = 'Not enough data';
 
 export function ContractorPerformanceStats({
   responseTime,
@@ -34,9 +37,7 @@ export function ContractorPerformanceStats({
 }: ContractorPerformanceStatsProps) {
   const labels = performanceBasisLabels(basis);
   const percent = (value: number | null, label: string | null) =>
-    label && value != null
-      ? `${Math.round(value)}%`
-      : EMPTY;
+    label && value != null ? `${Math.round(value)}%` : EMPTY;
 
   const tenure =
     yearsExperience > 0
@@ -48,7 +49,7 @@ export function ContractorPerformanceStats({
       key: 'response',
       Icon: Clock,
       label: 'Response time',
-      value: labels.responses ? responseTime ?? EMPTY : EMPTY,
+      value: labels.responses ? (responseTime ?? EMPTY) : EMPTY,
       detail: labels.responses,
     },
     {
@@ -84,12 +85,18 @@ export function ContractorPerformanceStats({
               <span className='text-sm text-gray-600'>{label}</span>
             </div>
             <p
-              className='text-2xl font-semibold text-gray-900'
+              className={
+                value === EMPTY
+                  ? 'text-sm font-medium text-gray-600'
+                  : 'text-2xl font-semibold text-gray-900'
+              }
               data-testid={`performance-${key}-value`}
             >
               {value}
             </p>
-            {detail && value !== EMPTY && <p className='mt-1 text-xs text-gray-600'>{detail}</p>}
+            {detail && value !== EMPTY && (
+              <p className='mt-1 text-xs text-gray-600'>{detail}</p>
+            )}
           </div>
         ))}
       </div>

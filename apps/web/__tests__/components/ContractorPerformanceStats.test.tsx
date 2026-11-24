@@ -50,7 +50,7 @@ describe('ContractorPerformanceStats', () => {
     ).toBeNull();
   });
 
-  it('shows "—" rather than 0% for a contractor with no completed jobs', () => {
+  it('shows "Not enough data" rather than 0% for a contractor with no completed jobs', () => {
     render(
       <ContractorPerformanceStats
         responseTime=''
@@ -62,13 +62,13 @@ describe('ContractorPerformanceStats', () => {
 
     // The defect: these must NOT read 0%.
     expect(screen.getByTestId('performance-ontime-value')).toHaveTextContent(
-      '—'
+      'Not enough data'
     );
     expect(screen.getByTestId('performance-repeat-value')).toHaveTextContent(
-      '—'
+      'Not enough data'
     );
     expect(screen.getByTestId('performance-response-value')).toHaveTextContent(
-      '—'
+      'Not enough data'
     );
     expect(screen.getByTestId('performance-tenure-value')).toHaveTextContent(
       'New'

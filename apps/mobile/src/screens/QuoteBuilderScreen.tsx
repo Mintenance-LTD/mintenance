@@ -12,6 +12,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
 import { goToTab } from '../navigation/hooks';
@@ -165,6 +166,23 @@ export const QuoteBuilderScreen = ({
     setSelectedStatus('all');
   };
 
+  async function openMarketplaceBids() {
+    const base =
+      process.env.EXPO_PUBLIC_WEB_URL ||
+      process.env.EXPO_PUBLIC_API_URL ||
+      'https://www.mintenance.co.uk';
+    try {
+      await WebBrowser.openBrowserAsync(
+        new URL('/contractor/bid', base).toString()
+      );
+    } catch {
+      Alert.alert(
+        'Could not open Marketplace bids',
+        'Try again from the Mintenance website.'
+      );
+    }
+  }
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -224,6 +242,15 @@ export const QuoteBuilderScreen = ({
         )}
         ListHeaderComponent={
           <>
+            <TouchableOpacity
+              accessibilityRole='link'
+              onPress={() => void openMarketplaceBids()}
+              style={{ paddingVertical: 12 }}
+            >
+              <Text style={{ color: me.brand2, fontWeight: '600' }}>
+                Marketplace bids on web
+              </Text>
+            </TouchableOpacity>
             {stats && (
               <View style={styles.statsCard}>
                 <View style={styles.statsGrid}>

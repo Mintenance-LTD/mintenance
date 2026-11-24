@@ -57,3 +57,28 @@ it('counts jobs with a recorded end, distinct customers and the first qualifying
     },
   });
 });
+
+it('uses the finish of a two-day job and excludes a job without an agreed deadline', () => {
+  const twoDayJob = {
+    ...job,
+    scheduled_start_date: '2026-11-07T09:00:00Z',
+    scheduled_end_date: '2026-11-08T17:00:00Z',
+    completed_at: '2026-11-08T16:00:00Z',
+  };
+  const metrics = publicContractorPerformance(
+    [
+      twoDayJob,
+      { ...twoDayJob, id: 'b' },
+      { ...twoDayJob, id: 'c' },
+      { ...twoDayJob, id: 'd', scheduled_end_date: null },
+    ],
+    [],
+    []
+  );
+  expect(metrics).toMatchObject({
+    onTimeCompletion: 100,
+    basis: { onTime: { count: 3, total: 3 }, responses: 0 },
+    responseTime: null,
+    responseTimeHours: null,
+  });
+});

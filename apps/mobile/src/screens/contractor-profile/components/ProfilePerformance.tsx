@@ -37,7 +37,7 @@ export interface ProfilePerformanceProps {
   yearsExperience?: number | null;
 }
 
-const EMPTY = '—';
+const EMPTY = 'Not enough data';
 
 function percent(value: number | null | undefined, hasBasis: boolean): string {
   if (!hasBasis || value === null || value === undefined) return EMPTY;
@@ -122,7 +122,10 @@ export const ProfilePerformance: React.FC<ProfilePerformanceProps> = ({
             </View>
             <View style={styles.textCol}>
               <Text
-                style={styles.value}
+                style={[
+                  styles.value,
+                  item.value === EMPTY && styles.emptyValue,
+                ]}
                 testID={`performance-${item.key}-value`}
               >
                 {item.value}
@@ -195,6 +198,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
     fontWeight: '500',
   },
+  emptyValue: { fontSize: 13, letterSpacing: 0, color: me.ink2 },
   footnote: {
     fontSize: 11,
     color: me.ink3,

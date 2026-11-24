@@ -8,6 +8,28 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { MintEditorialContractorSidebar } from './MintEditorialContractorSidebar';
 import { MintEditorialContractorTopNav } from './MintEditorialContractorTopNav';
 
+const contractorPages = [
+  ...[
+    'Jobs',
+    'Customers',
+    'Invoices',
+    'Quotes',
+    'Finance',
+    'Expenses',
+    'Documents',
+    'Scheduling',
+    'Reviews',
+    'Support',
+    'Reporting',
+    'Portfolio',
+  ].map((label) => ({
+    label,
+    href: `/contractor/${label.toLowerCase()}`,
+    aliases: '',
+  })),
+  { label: 'Marketplace bids', href: '/contractor/bid', aliases: 'My Bids' },
+];
+
 interface MintEditorialContractorShellProps {
   /** Display name shown in the sidebar user card. */
   contractorName: string;
@@ -42,6 +64,10 @@ export function MintEditorialContractorShell({
 }: MintEditorialContractorShellProps) {
   const pathname = usePathname();
   const [pageSearch, setPageSearch] = useState('');
+  const search = pageSearch.toLowerCase().trim();
+  const matchingPages = contractorPages.filter(({ label, aliases }) =>
+    `${label} ${aliases}`.toLowerCase().includes(search)
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   useEffect(() => {
     setDrawerOpen(false);
@@ -105,56 +131,24 @@ export function MintEditorialContractorShell({
                 placeholder='Jobs, customers, invoices…'
               />
               <nav aria-label='Matching pages'>
-                {[
-                  'Jobs',
-                  'Customers',
-                  'Invoices',
-                  'Quotes',
-                  'Finance',
-                  'Expenses',
-                  'Documents',
-                  'Scheduling',
-                  'Reviews',
-                  'Support',
-                  'Reporting',
-                  'Portfolio',
-                ]
-                  .filter((label) =>
-                    label
-                      .toLowerCase()
-                      .includes(pageSearch.toLowerCase().trim())
-                  )
-                  .map((label) => (
-                    <Link
-                      key={label}
-                      href={'/contractor/' + label.toLowerCase()}
-                      style={{ display: 'block', padding: '10px 0' }}
-                      onClick={(event) => {
-                        event.currentTarget
-                          .closest('details')
-                          ?.removeAttribute('open');
-                        setPageSearch('');
-                      }}
-                    >
-                      {label}
-                    </Link>
-                  ))}
-                {![
-                  'Jobs',
-                  'Customers',
-                  'Invoices',
-                  'Quotes',
-                  'Finance',
-                  'Expenses',
-                  'Documents',
-                  'Scheduling',
-                  'Reviews',
-                  'Support',
-                  'Reporting',
-                  'Portfolio',
-                ].some((label) =>
-                  label.toLowerCase().includes(pageSearch.toLowerCase().trim())
-                ) && <p>No matching pages.</p>}
+                {matchingPages.map(({ label, href }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    style={{ display: 'block', padding: '10px 0' }}
+                    onClick={(event) => {
+                      event.currentTarget
+                        .closest('details')
+                        ?.removeAttribute('open');
+                      setPageSearch('');
+                    }}
+                  >
+                    {label}
+                  </Link>
+                ))}
+                {matchingPages.length === 0 && (
+                  <p role='status'>No matching pages.</p>
+                )}
               </nav>
             </div>
           </details>

@@ -154,7 +154,8 @@ export function updateMapMarkers(
   map: google.maps.Map,
   existingMarkers: google.maps.Marker[],
   jobs: MapJob[],
-  contractorLocation: ContractorLocationForMap | null | undefined
+  contractorLocation: ContractorLocationForMap | null | undefined,
+  onOpenJob?: (jobId: string) => void
 ): google.maps.Marker[] {
   // Clear existing markers
   existingMarkers.forEach((marker) => marker.setMap(null));
@@ -163,7 +164,10 @@ export function updateMapMarkers(
   const bounds = new google.maps.LatLngBounds();
 
   // ── Contractor location marker ──────────────────────────────────────────
-  if (contractorLocation?.latitude && contractorLocation?.longitude) {
+  if (
+    contractorLocation?.latitude != null &&
+    contractorLocation?.longitude != null
+  ) {
     const contractorMarker = new google.maps.Marker({
       position: {
         lat: contractorLocation.latitude,
@@ -264,15 +268,18 @@ export function updateMapMarkers(
           : undefined,
     });
 
-    const carousel = buildCarouselContent(jobsAtLocation);
-    const infoWindow = new google.maps.InfoWindow({
-      content: carousel.content,
-    });
-
-    marker.addListener('click', () => {
-      carousel.select(0);
-      infoWindow.open(map, marker);
-    });
+    if (jobsAtLocation.length === 1 && onOpenJob) {
+      marker.addListener('click', () => onOpenJob(primaryJob.id));
+    } else {
+      const carousel = buildCarouselContent(jobsAtLocation);
+      const infoWindow = new google.maps.InfoWindow({
+        content: carousel.content,
+      });
+      marker.addListener('click', () => {
+        carousel.select(0);
+        infoWindow.open(map, marker);
+      });
+    }
 
     markers.push(marker);
     bounds.extend({ lat, lng });

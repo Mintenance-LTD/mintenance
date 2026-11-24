@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { MapPin, LayoutGrid, Map } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { milesToKm } from '@mintenance/shared';
+import { DISCOVER_RADII_MILES } from '../discover-radius';
 
 import { resolveJobCoordsAndDistance } from './discoverUtils';
 import { useDiscoverJobActions } from './useDiscoverJobActions';
@@ -37,6 +38,7 @@ interface ContractorDiscoverClientProps {
   jobs: DiscoverJob[];
   contractorId: string;
   contractorLocation?: ContractorLocation | null;
+  radiusSearchAvailable: boolean;
   /** Active service areas (primary first) — coverage overlay +
    * viewport fallback when no stored location exists. 2026-07-17. */
   coverageAreas?: CoverageAreaForMap[];
@@ -49,6 +51,7 @@ export function ContractorDiscoverClient({
   jobs,
   contractorId,
   contractorLocation: initialLocation,
+  radiusSearchAvailable,
   coverageAreas = [],
 }: ContractorDiscoverClientProps) {
   const router = useRouter();
@@ -73,6 +76,13 @@ export function ContractorDiscoverClient({
   // vocabulary Service Areas already uses (Standard 6 mi / Extended 10 mi) and
   // widens the default net slightly, which is contractor-friendly.
   const [selectedRadius, setSelectedRadius] = useState(10);
+  const nextRadius = DISCOVER_RADII_MILES.find(
+    (radius) => radius > selectedRadius
+  );
+  const expandRadius =
+    radiusSearchAvailable && nextRadius != null
+      ? () => setSelectedRadius(nextRadius)
+      : undefined;
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [minBudget, setMinBudget] = useState(0);
   const [aiAssessedOnly, setAiAssessedOnly] = useState(false);
@@ -147,9 +157,8 @@ export function ContractorDiscoverClient({
         // comparison rather than converting every job's distance.
         .filter(
           (j) =>
-            !hasLocation ||
-            j.distance == null ||
-            j.distance <= milesToKm(selectedRadius)
+            !radiusSearchAvailable ||
+            (j.distance != null && j.distance <= milesToKm(selectedRadius))
         )
         .filter((j) => !selectedCategory || j.category === selectedCategory)
         .filter((j) => j.budget >= minBudget)
@@ -163,7 +172,7 @@ export function ContractorDiscoverClient({
     selectedCategory,
     minBudget,
     aiAssessedOnly,
-    hasLocation,
+    radiusSearchAvailable,
   ]);
 
   const pinJobId = hoveredJobId ?? focusedJobId;
@@ -203,7 +212,8 @@ export function ContractorDiscoverClient({
       mapRef.current,
       markersRef.current,
       mapJobs,
-      contractorLocation as ContractorLocationForMap
+      contractorLocation as ContractorLocationForMap,
+      (id) => router.push(`/contractor/bid/${encodeURIComponent(id)}/details`)
     );
   };
 
@@ -263,7 +273,7 @@ export function ContractorDiscoverClient({
         filteredJobCount={filteredJobs.length}
         savedJobCount={savedJobIds.size}
         selectedRadius={selectedRadius}
-        hasContractorLocation={hasLocation}
+        hasContractorLocation={radiusSearchAvailable}
         totalJobCount={jobs.length}
         onReviewAgain={resetReviewed}
       />
@@ -281,7 +291,7 @@ export function ContractorDiscoverClient({
             style={isMintEditorial ? undefined : { color: 'var(--me-ink)' }}
           >
             Available jobs ({filteredJobs.length})
-            {hasLocation && (
+            {radiusSearchAvailable && (
               <>
                 {' '}
                 <span
@@ -344,7 +354,7 @@ export function ContractorDiscoverClient({
           onMinBudgetChange={setMinBudget}
           aiAssessedOnly={aiAssessedOnly}
           onAiAssessedToggle={() => setAiAssessedOnly((v) => !v)}
-          hasLocation={hasLocation}
+          hasLocation={radiusSearchAvailable}
         />
       </div>
 
@@ -374,7 +384,8 @@ export function ContractorDiscoverClient({
         /* Empty state */
         <DiscoverJobsEmptyState
           hasLocation={hasLocation}
-          onExpandRadius={() => setSelectedRadius((r) => Math.min(r * 2, 100))}
+          radiusSearchAvailable={radiusSearchAvailable}
+          onExpandRadius={expandRadius}
         />
       ) : viewMode === 'split' ? (
         /* Split: cards left, map right */
@@ -386,9 +397,8 @@ export function ContractorDiscoverClient({
             {filteredJobs.length === 0 && (
               <DiscoverJobsEmptyState
                 hasLocation={hasLocation}
-                onExpandRadius={() =>
-                  setSelectedRadius((r) => Math.min(r * 2, 100))
-                }
+                radiusSearchAvailable={radiusSearchAvailable}
+                onExpandRadius={expandRadius}
               />
             )}
             {filteredJobs.map((job) => (
@@ -412,7 +422,7 @@ export function ContractorDiscoverClient({
                 {filteredJobs.length
                   ? `${filteredJobs.length} ${filteredJobs.length === 1 ? 'job' : 'jobs'} found`
                   : 'No available jobs match these filters'}
-                {hasLocation && (
+                {radiusSearchAvailable && (
                   <span style={{ color: 'var(--me-ink-3)' }}>
                     {' '}
                     · within {selectedRadius} mi
