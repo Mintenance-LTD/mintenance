@@ -391,6 +391,9 @@
   .page .photo {
     break-inside: avoid;
   }
+  .page .photoLink::after {
+    content: none !important;
+  }
   .page .image {
     height: auto;
     max-height: 105mm;

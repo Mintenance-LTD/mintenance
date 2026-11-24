@@ -4,6 +4,10 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { TrackedQueryClient as QueryClient } from '../../../__tests__/setup/TrackedQueryClient';
 import { TenancyInspections } from '../../../screens/properties/components/TenancyInspections';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
+import { randomUUID } from 'expo-crypto';
+jest.mock('expo-crypto', () => ({
+  randomUUID: jest.fn(),
+}));
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'member', role: 'homeowner' } }),
 }));
@@ -29,6 +33,9 @@ function show() {
 }
 beforeEach(() => {
   jest.clearAllMocks();
+  jest
+    .mocked(randomUUID)
+    .mockReturnValue('00000000-0000-4000-8000-000000000017');
   jest
     .mocked(mobileApiClient.get)
     .mockImplementation(async (url) =>
@@ -111,6 +118,7 @@ it('creates a written report inside the chosen folder', async () => {
         kind: 'check_in',
         notes: 'Clean kitchen',
         photo_ids: [],
+        request_id: '00000000-0000-4000-8000-000000000017',
       }
     )
   );
@@ -127,6 +135,32 @@ it('retains failed form input for retry', async () => {
   fireEvent.press(ui.getByText('Create folder'));
   await ui.findByText(/Unable to save/);
   expect(ui.getByLabelText('Folder name').props.value).toBe('Retain me');
+});
+it('reuses the same report save request when the first response is lost', async () => {
+  jest
+    .mocked(mobileApiClient.post)
+    .mockRejectedValueOnce(new Error('Lost response'));
+  const ui = show();
+  fireEvent.press(await ui.findByLabelText('Tenancy folder: Choose a tenancy'));
+  fireEvent.press(ui.getByText(/Tenancy 2026 · 2026-01-01/));
+  await ui.findByText('Create an inspection for this tenancy');
+  fireEvent.press(ui.getByLabelText('Check-in inspection'));
+  fireEvent.changeText(ui.getByLabelText('Report title'), 'Retry fixture');
+  fireEvent.changeText(
+    ui.getByLabelText('Inspection date (YYYY-MM-DD)'),
+    '2026-11-24'
+  );
+  fireEvent.changeText(ui.getByLabelText('Observations'), 'Kitchen checked');
+  fireEvent.press(ui.getByText('Save shared report'));
+  await ui.findByText(/Unable to save/);
+  jest
+    .mocked(randomUUID)
+    .mockReturnValue('00000000-0000-4000-8000-000000000018');
+  fireEvent.press(ui.getByText('Save shared report'));
+  await waitFor(() => expect(ui.queryByText('Save shared report')).toBeNull());
+  const attempts = jest.mocked(mobileApiClient.post).mock.calls;
+  expect(attempts).toHaveLength(2);
+  expect(attempts[1]).toEqual(attempts[0]);
 });
 
 it('requires evidence review before recording a clean check-out', async () => {

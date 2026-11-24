@@ -66,3 +66,37 @@ export function clearSavedInspectionDraft(key: string, submittedDraft: string) {
     // The report was saved even if the browser no longer allows draft storage.
   }
 }
+
+export function inspectionSaveRequestId(
+  key: string | null,
+  previous: string | null
+) {
+  if (previous) return previous;
+  const requestKey = key && key + ':save-request';
+  const requestId = window.crypto.randomUUID();
+  if (!requestKey) return requestId;
+  try {
+    const existing = z
+      .string()
+      .uuid()
+      .safeParse(window.sessionStorage.getItem(requestKey));
+    if (existing.success) return existing.data;
+    window.sessionStorage.setItem(requestKey, requestId);
+  } catch {
+    // The form still reuses its in-memory request ID if storage is unavailable.
+  }
+  return requestId;
+}
+
+export function clearInspectionSaveRequest(key: string, submittedId?: string) {
+  try {
+    const requestKey = key + ':save-request';
+    if (
+      !submittedId ||
+      window.sessionStorage.getItem(requestKey) === submittedId
+    )
+      window.sessionStorage.removeItem(requestKey);
+  } catch {
+    // The server has already confirmed the save.
+  }
+}

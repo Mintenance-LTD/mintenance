@@ -47,7 +47,11 @@ try {
   started = true;
   await db.connect();
   connected = true;
-  await testInspections(db);
+  await testInspections(db, async () => {
+    const peer = new pg.Client(config);
+    await peer.connect();
+    return peer;
+  });
 } finally {
   if (connected) await db.end();
   if (started) await cluster.stop();

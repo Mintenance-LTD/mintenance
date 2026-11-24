@@ -7,7 +7,7 @@ const m = vi.hoisted(() => ({
   role: 'owner' as string | null,
   entitled: true,
   error: null as { code: string } | null,
-  rpcError: null as { code: string } | null,
+  rpcError: null as { code: string; details?: string } | null,
   folderResult: null as unknown,
   filters: vi.fn(),
   rpc: vi.fn(),
@@ -177,6 +177,20 @@ it('keeps viewer reads available without creation', async () => {
     property
   );
 });
+it.each(['owner', 'admin', 'manager', 'viewer'])(
+  'allows the exact report and photo for a current %s',
+  async (role) => {
+    m.role = role;
+    const response = await detail(request());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      report: { id: report },
+      canCreate: role !== 'viewer',
+    });
+    expect((await photo(request())).status).toBe(200);
+    expect(m.authorize).toHaveBeenCalledWith('actor', property, 'view');
+  }
+);
 it('uses the property owner plan and denies creation after downgrade', async () => {
   m.role = 'manager';
   m.entitled = false;
@@ -206,7 +220,7 @@ it('keeps existing report history after downgrade', async () => {
     report
   );
 });
-it('passes verified actor/property to atomic report RPC', async () => {
+it('passes the verified actor, property and save request to the atomic report RPC', async () => {
   await createReport(
     request('POST', {
       folder_id: folder,
@@ -215,10 +229,11 @@ it('passes verified actor/property to atomic report RPC', async () => {
       kind: 'check_in',
       notes: 'Observed',
       photo_ids: [],
+      request_id: report,
     })
   );
   expect(m.rpc).toHaveBeenCalledWith(
-    'create_property_inspection_report_with_outcome',
+    'save_property_inspection_report',
     expect.objectContaining({
       p_actor: 'actor',
       p_property: property,
@@ -227,11 +242,18 @@ it('passes verified actor/property to atomic report RPC', async () => {
       p_corrects: null,
       p_exception: null,
       p_outcome: null,
+      p_request_id: report,
     })
   );
 });
 it('requires an explicit confirmation if a date edit excludes saved inspections', async () => {
-  m.rpcError = { code: 'PT422' };
+  const details = {
+    count: 1,
+    reports: [
+      { id: report, title: 'Move-in report', inspected_on: '2026-11-01' },
+    ],
+  };
+  m.rpcError = { code: 'PT422', details: JSON.stringify(details) };
   await expect(
     updateFolder(
       request('PATCH', {
@@ -245,6 +267,7 @@ it('requires an explicit confirmation if a date edit excludes saved inspections'
   ).rejects.toMatchObject({
     code: 'TENANCY_DATE_CHANGE_EXCLUDES_INSPECTIONS',
     statusCode: 422,
+    details,
   });
   expect(m.rpc).toHaveBeenLastCalledWith(
     'save_property_tenancy_folder_with_overlap',
@@ -323,10 +346,30 @@ it('requires an explicit outcome before saving an empty check-out', async () => 
       (await createReport(request('POST', { ...value, outcome }))).status
     ).toBe(201);
     expect(m.rpc).toHaveBeenLastCalledWith(
-      'create_property_inspection_report_with_outcome',
-      expect.objectContaining({ p_outcome: outcome })
+      'save_property_inspection_report',
+      expect.objectContaining({ p_outcome: outcome, p_request_id: null })
     );
   }
+});
+it('links a modified retry to the original saved record', async () => {
+  m.rpcError = { code: 'PT409', details: report };
+  await expect(
+    createReport(
+      request('POST', {
+        folder_id: folder,
+        title: 'Changed report',
+        inspected_on: '2026-11-24',
+        kind: 'check_out',
+        notes: 'Observed',
+        photo_ids: [],
+        request_id: report,
+      })
+    )
+  ).rejects.toMatchObject({
+    code: 'INSPECTION_SAVE_ALREADY_RECORDED',
+    statusCode: 409,
+    details: { reportId: report },
+  });
 });
 it('never turns missing migration into empty success', async () => {
   m.error = { code: '42P01' };
