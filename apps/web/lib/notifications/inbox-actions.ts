@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { disputeHref } from '@/lib/disputes/presentation';
 import { isValidUUID } from '@/lib/validation/uuid';
 import type { FeedNotification } from './feed';
+import { resolveVisitAlert } from './visit-actions';
 import {
   contractorAlertTarget,
   presentContractorAlert,
@@ -189,7 +190,7 @@ export async function resolveInboxActions(
       );
     }
     if (caseHref) return { ...row, action_url: caseHref, link: caseHref };
-    if (!approval_key) return row;
+    if (!approval_key) return resolveVisitAlert(row, actor.role);
 
     const related = authorisedPayments.filter(
       (payment) =>

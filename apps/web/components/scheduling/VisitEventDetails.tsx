@@ -9,12 +9,12 @@ export function VisitEventDetails({ event }: { event: VisitEvent }) {
   return event.previousSlot ? (
     <dl className='grid gap-2 text-sm sm:grid-cols-2'>
       <div>
-        <dt className='font-semibold'>Previous slot</dt>
+        <dt className='font-semibold'>Previous time</dt>
         <dd>{formatVisitSlot(event.previousSlot)}</dd>
         <dd>{visitResponseLabel(event.previousSlot)}</dd>
       </div>
       <div>
-        <dt className='font-semibold'>Replacement slot</dt>
+        <dt className='font-semibold'>Proposed time</dt>
         <dd>{formatVisitSlot(event.slot)}</dd>
         <dd>
           {event.slot.response === 'pending'

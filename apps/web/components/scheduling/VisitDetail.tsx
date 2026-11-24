@@ -1,10 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CalendarCheck } from 'lucide-react';
 import {
   currentVisitSlot,
+  canRescheduleVisit,
   formatVisitSlot,
   visitEventLabel,
   visitIsPast,
@@ -16,6 +18,7 @@ import { formatUKSchedule } from '@/lib/scheduling/uk-date-time';
 import { appointmentAddress } from '@/lib/scheduling/appointment-display';
 import { VisitEventDetails } from './VisitEventDetails';
 import { VisitResponseActions } from './VisitResponseActions';
+import { EditAppointmentDialog } from '@/app/contractor/(dashboard)/scheduling/components/Scheduling/EditAppointmentDialog';
 import styles from '@/components/property-operations/operations.module.css';
 
 export function VisitDetail({
@@ -26,8 +29,24 @@ export function VisitDetail({
   role: 'homeowner' | 'contractor';
 }) {
   const router = useRouter();
+  const [editing, setEditing] = useState(false);
   const slot = currentVisitSlot(visit);
   const contractor = role === 'contractor';
+  const past = visitIsPast(visit);
+  const latestChange = visit.history?.find(
+    (event) =>
+      event.kind === 'rescheduled' &&
+      event.previousSlot &&
+      event.slot.date === slot.date &&
+      event.slot.start === slot.start &&
+      event.slot.end === slot.end
+  );
+  const newVisitParams = new URLSearchParams({ newVisit: 'true' });
+  if (visit.job) {
+    newVisitParams.set('jobId', visit.job.id);
+    newVisitParams.set('jobTitle', visit.job.title);
+  }
+  if (visit.client?.name) newVisitParams.set('clientName', visit.client.name);
   const participant = contractor ? visit.client : visit.contractor;
   const location =
     appointmentAddress(visit.locationAddress ?? undefined) ||
@@ -57,9 +76,11 @@ export function VisitDetail({
         </h2>
         <p className={styles.badge}>{visitStatusLabel(slot)}</p>
         <p>
+          {past && 'Last homeowner response: '}
           {visitResponseLabel(slot)}
           {slot.responseAt ? ` · ${formatUKSchedule(slot.responseAt)}` : ''}
         </p>
+        {latestChange && <VisitEventDetails event={latestChange} />}
         {(participant?.name || location) && (
           <dl className='grid gap-2 text-sm'>
             {participant?.name && (
@@ -85,6 +106,33 @@ export function VisitDetail({
           >
             View job
           </Link>
+        )}
+        {contractor && past && (
+          <Link
+            className={styles.secondary}
+            href={'/contractor/scheduling?' + newVisitParams}
+          >
+            Create a new visit
+          </Link>
+        )}
+        {contractor && canRescheduleVisit(visit) && (
+          <button
+            type='button'
+            className={styles.secondary}
+            onClick={() => setEditing(true)}
+          >
+            Propose a new visit time
+          </button>
+        )}
+        {editing && (
+          <EditAppointmentDialog
+            appointment={{ ...visit, client: visit.client?.name ?? 'Client' }}
+            onClose={() => setEditing(false)}
+            onSaved={() => {
+              setEditing(false);
+              router.refresh();
+            }}
+          />
         )}
         <VisitResponseActions
           key={`${visit.id}:${visit.date}:${visit.time}:${visit.endTime}:${visit.clientResponse}`}

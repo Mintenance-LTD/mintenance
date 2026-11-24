@@ -1,502 +1,395 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
-import { Icon } from '@/components/ui/Icon';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
-import { theme } from '@/lib/theme';
-import { clientErrorMessage } from '@/lib/errors/client-message';
+import { useEffect, useRef, useState } from 'react';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { clientErrorMessage } from '@/lib/errors/client-message';
 import {
+  formatUKSchedule,
   ukDateTimeInput,
   ukDateTimeToISO,
-  formatUKSchedule,
 } from '@/lib/scheduling/uk-date-time';
+
+interface WorkWindow {
+  scheduled_start_date: string | null;
+  scheduled_end_date: string | null;
+  scheduled_duration_hours: number | null;
+}
+
+type Decision = 'accepted' | 'declined' | 'withdrawn';
+
+interface Proposal {
+  id: string;
+  state: 'pending' | 'expired' | Decision;
+  startsAt: string;
+  endsAt: string | null;
+  durationHours: number | null;
+  yourProposal: boolean;
+  canRespond: boolean;
+  awaitingRole: 'homeowner' | 'contractor';
+}
+
+interface Schedule extends WorkWindow {
+  active: boolean;
+  proposal: Proposal | null;
+}
 
 interface JobSchedulingProps {
   initialEditing?: boolean;
   jobId: string;
   userRole: 'homeowner' | 'contractor';
   userId: string;
-  currentSchedule?: {
-    scheduled_start_date: string | null;
-    scheduled_end_date: string | null;
-    scheduled_duration_hours: number | null;
-  };
+  currentSchedule?: WorkWindow;
   contractStatus?: 'none' | 'pending' | 'accepted';
+}
+
+function WindowDates({
+  start,
+  end,
+  duration,
+}: {
+  start?: string | null;
+  end?: string | null;
+  duration?: number | null;
+}) {
+  if (!start) return <p>No work window agreed yet.</p>;
+  return (
+    <dl className='grid gap-2 sm:grid-cols-3'>
+      <div>
+        <dt className='font-semibold'>Start (UK)</dt>
+        <dd>{formatUKSchedule(start)}</dd>
+      </div>
+      {end && (
+        <div>
+          <dt className='font-semibold'>End (UK)</dt>
+          <dd>{formatUKSchedule(end)}</dd>
+        </div>
+      )}
+      {duration && (
+        <div>
+          <dt className='font-semibold'>Estimated duration</dt>
+          <dd>
+            {duration} {duration === 1 ? 'hour' : 'hours'}
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
 }
 
 export function JobScheduling({
   jobId,
-  userRole,
   currentSchedule,
   contractStatus = 'none',
   initialEditing = false,
 }: JobSchedulingProps) {
-  const [isEditing, setIsEditing] = useState(initialEditing);
-  const saveInFlight = useRef(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  const [startDate, setStartDate] = useState(
+  const url = '/api/jobs/' + encodeURIComponent(jobId) + '/schedule';
+  const [schedule, setSchedule] = useState<Schedule>();
+  const [editing, setEditing] = useState(initialEditing);
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [reading, setReading] = useState(true);
+  const [refresh, setRefresh] = useState(0);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const busy = useRef(false);
+  const [start, setStart] = useState(
     ukDateTimeInput(currentSchedule?.scheduled_start_date)
   );
-  const [endDate, setEndDate] = useState(
+  const [end, setEnd] = useState(
     ukDateTimeInput(currentSchedule?.scheduled_end_date)
   );
-  const [durationHours, setDurationHours] = useState(
-    currentSchedule?.scheduled_duration_hours?.toString() || ''
+  const [duration, setDuration] = useState(
+    currentSchedule?.scheduled_duration_hours?.toString() ?? ''
   );
 
-  const handleSave = async () => {
-    if (saveInFlight.current) return;
-    if (!startDate) {
-      setError('Start date is required');
-      return;
-    }
+  useEffect(() => {
+    if (contractStatus !== 'accepted') return;
+    const controller = new AbortController();
+    setReading(true);
+    setLoadError(false);
+    fetch(url, { signal: controller.signal, cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Work window unavailable');
+        const data: Schedule = await response.json();
+        if (!controller.signal.aborted) setSchedule(data);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setLoadError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setReading(false);
+      });
+    return () => controller.abort();
+  }, [contractStatus, refresh, url]);
 
-    saveInFlight.current = true;
-    setIsSaving(true);
-    setError(null);
+  const current = schedule ?? currentSchedule;
+  const proposal = schedule?.proposal;
+  const pending = proposal?.state === 'pending' ? proposal : null;
 
+  async function write(
+    method: 'POST' | 'PATCH',
+    body: object,
+    message: string
+  ) {
+    if (busy.current || !schedule?.active || loadError || reading) return;
+    busy.current = true;
+    setSaving(true);
+    setNotice('');
+    setError('');
     try {
-      interface JobScheduleData {
-        scheduled_start_date: string;
-        scheduled_end_date?: string | null;
-        scheduled_duration_hours?: number;
-      }
-
-      const scheduleData: JobScheduleData = {
-        scheduled_start_date: ukDateTimeToISO(startDate),
-        scheduled_end_date: endDate ? ukDateTimeToISO(endDate) : null,
-      };
-
-      if (durationHours) {
-        scheduleData.scheduled_duration_hours = parseInt(durationHours, 10);
-      }
-
-      const csrfHeaders = await getCsrfHeaders();
-      const response = await fetch(`/api/jobs/${jobId}/schedule`, {
-        method: 'POST',
+      const result = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
-          ...csrfHeaders,
+          ...(await getCsrfHeaders()),
         },
-        body: JSON.stringify(scheduleData),
+        body: JSON.stringify(body),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
+      if (!result.ok)
         throw new Error(
           clientErrorMessage(
-            data,
-            'Failed to schedule job. Your changes are still here; please retry.'
+            await result.json().catch(() => null),
+            'Unable to save. Your current work window is unchanged.'
           )
         );
-      }
-
-      setIsEditing(false);
-      setSuccessMessage('Job schedule saved. Check the updated dates below.');
-      setError(null);
-
-      // Refresh the page to show updated schedule after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to schedule job');
-      setSuccessMessage(null);
+      setNotice(message);
+      setEditing(false);
+      setReading(true);
+      setRefresh((count) => count + 1);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Unable to save. Please retry.'
+      );
+      setReading(true);
+      setRefresh((count) => count + 1);
     } finally {
-      saveInFlight.current = false;
-      setIsSaving(false);
+      busy.current = false;
+      setSaving(false);
     }
-  };
+  }
 
-  const formatDate = formatUKSchedule;
+  function propose() {
+    try {
+      const startsAt = ukDateTimeToISO(start);
+      const endsAt = end ? ukDateTimeToISO(end) : null;
+      if (endsAt && endsAt <= startsAt)
+        throw new Error('End time must be after start time.');
+      void write(
+        'POST',
+        {
+          scheduled_start_date: startsAt,
+          scheduled_end_date: endsAt,
+          ...(duration ? { scheduled_duration_hours: Number(duration) } : {}),
+        },
+        'Proposal sent. The current work window stays in place until the other party accepts.'
+      );
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Choose valid UK dates.'
+      );
+    }
+  }
 
-  const hasSchedule = currentSchedule?.scheduled_start_date;
+  function respond(decision: Decision) {
+    if (!pending) return;
+    const message =
+      decision === 'accepted'
+        ? 'Work window accepted. The agreed dates are now in the job calendar.'
+        : 'Proposal ' + decision + '. The current work window stays in place.';
+    void write('PATCH', { proposalId: pending.id, decision }, message);
+  }
 
-  // Block scheduling if contract is not fully signed
-  if (contractStatus !== 'accepted') {
-    return (
-      <div
-        style={{
-          backgroundColor: theme.colors.surface,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.borderRadius.lg,
-          padding: theme.spacing[6],
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: theme.spacing[4],
-          }}
-        >
-          <Icon name='lock' size={48} color={theme.colors.textTertiary} />
-          <div>
-            <h3
-              style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                marginBottom: theme.spacing[2],
-              }}
-            >
-              Scheduling Locked
-            </h3>
-            <p
-              style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.base,
-                color: theme.colors.textSecondary,
-                marginBottom: contractStatus === 'none' ? theme.spacing[1] : 0,
-              }}
-            >
-              Contract must be signed by both parties before scheduling
-            </p>
-            {contractStatus === 'none' && (
-              <p
-                style={{
-                  margin: theme.spacing[2],
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textTertiary,
-                }}
-              >
-                Please create a contract first
-              </p>
-            )}
-            {contractStatus === 'pending' && (
-              <p
-                style={{
-                  margin: theme.spacing[2],
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textTertiary,
-                }}
-              >
-                Waiting for signatures...
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  function openForm() {
+    setStart(ukDateTimeInput(current?.scheduled_start_date));
+    setEnd(ukDateTimeInput(current?.scheduled_end_date));
+    setDuration(current?.scheduled_duration_hours?.toString() ?? '');
+    setNotice('');
+    setError('');
+    setEditing(true);
   }
 
   return (
-    <div
-      style={{
-        backgroundColor: theme.colors.surface,
-        border: `1px solid ${theme.colors.border}`,
-        borderRadius: theme.borderRadius.lg,
-        padding: theme.spacing[6],
-      }}
+    <section
+      id='job-schedule'
+      aria-label='Current work window'
+      className='card card-pad space-y-4 scroll-mt-24'
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: theme.spacing[4],
-        }}
-      >
-        <h3
-          style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            color: theme.colors.textPrimary,
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[2],
-          }}
-        >
-          <Icon name='calendar' size={24} color={theme.colors.primary} />
-          Schedule
-        </h3>
-        {!isEditing && hasSchedule && (
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => setIsEditing(true)}
-          >
-            <Icon name='edit' size={16} color={theme.colors.primary} />
-            Edit
-          </Button>
-        )}
-      </div>
-
-      <p className='text-sm text-gray-600 mb-4'>
-        Times are shown in UK time (GMT/BST). Agree changes with the other
-        party. This updates the job start and end window. Individual visits are
-        managed separately in Scheduling. The dates and obligations in your
-        signed agreement remain unchanged.
-      </p>
-      {error && (
-        <Alert variant='destructive' className='mb-4'>
-          <AlertCircle className='h-4 w-4' />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {successMessage && (
-        <Alert className='mb-4 border-green-200 bg-green-50'>
-          <CheckCircle2 className='h-4 w-4 text-green-600' />
-          <AlertDescription className='text-green-700'>
-            {successMessage}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {!isEditing ? (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[4],
-          }}
-        >
-          {hasSchedule ? (
-            <>
-              <div>
-                <div
-                  style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.textSecondary,
-                    marginBottom: theme.spacing[1],
-                  }}
-                >
-                  Start Date & Time
-                </div>
-                <div
-                  style={{
-                    fontSize: theme.typography.fontSize.base,
-                    color: theme.colors.textPrimary,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[2],
-                  }}
-                >
-                  <Icon
-                    name='clock'
-                    size={16}
-                    color={theme.colors.textSecondary}
-                  />
-                  {formatDate(currentSchedule?.scheduled_start_date || null)}
-                </div>
-              </div>
-
-              {currentSchedule?.scheduled_end_date && (
-                <div>
-                  <div
-                    style={{
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      color: theme.colors.textSecondary,
-                      marginBottom: theme.spacing[1],
-                    }}
-                  >
-                    End Date & Time
-                  </div>
-                  <div
-                    style={{
-                      fontSize: theme.typography.fontSize.base,
-                      color: theme.colors.textPrimary,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[2],
-                    }}
-                  >
-                    <Icon
-                      name='clock'
-                      size={16}
-                      color={theme.colors.textSecondary}
-                    />
-                    {formatDate(currentSchedule.scheduled_end_date)}
-                  </div>
-                </div>
-              )}
-
-              {currentSchedule?.scheduled_duration_hours && (
-                <div>
-                  <div
-                    style={{
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      color: theme.colors.textSecondary,
-                      marginBottom: theme.spacing[1],
-                    }}
-                  >
-                    Estimated Duration
-                  </div>
-                  <div
-                    style={{
-                      fontSize: theme.typography.fontSize.base,
-                      color: theme.colors.textPrimary,
-                    }}
-                  >
-                    {currentSchedule.scheduled_duration_hours}{' '}
-                    {currentSchedule.scheduled_duration_hours === 1
-                      ? 'hour'
-                      : 'hours'}
-                  </div>
-                </div>
-              )}
-
-              <div
-                style={{
-                  padding: theme.spacing[3],
-                  backgroundColor: theme.colors.info + '20',
-                  borderRadius: theme.borderRadius.md,
-                  color: theme.colors.info,
-                  fontSize: theme.typography.fontSize.sm,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                }}
-              >
-                <Icon name='info' size={20} color={theme.colors.info} />
-                This schedule appears on both your and the{' '}
-                {userRole === 'contractor'
-                  ? "homeowner's"
-                  : "contractor's"}{' '}
-                calendar.
-              </div>
-            </>
-          ) : (
-            <div style={{ textAlign: 'center', padding: theme.spacing[4] }}>
-              <Icon
-                name='calendar'
-                size={48}
-                color={theme.colors.textTertiary}
-              />
-              <p
-                style={{
-                  marginTop: theme.spacing[4],
-                  marginBottom: theme.spacing[4],
-                  color: theme.colors.textSecondary,
-                  fontSize: theme.typography.fontSize.base,
-                }}
-              >
-                No schedule set yet. Set a start date to coordinate with the{' '}
-                {userRole === 'contractor' ? 'homeowner' : 'contractor'}.
-              </p>
-              <Button onClick={() => setIsEditing(true)} variant='primary'>
-                <Icon name='calendar' size={20} color='white' />
-                Set Schedule
-              </Button>
-            </div>
-          )}
-        </div>
+      <h2 className='t-h3'>Current work window</h2>
+      <WindowDates
+        start={current?.scheduled_start_date}
+        end={current?.scheduled_end_date}
+        duration={current?.scheduled_duration_hours}
+      />
+      {contractStatus !== 'accepted' ? (
+        <p>Both parties must sign the agreement before proposing work dates.</p>
       ) : (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[4],
-          }}
-        >
-          <div className='space-y-2'>
-            <Label htmlFor='start-date'>Start Date & Time *</Label>
-            <Input
-              id='start-date'
-              type='datetime-local'
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              min={new Date().toISOString().slice(0, 16)}
-            />
-          </div>
-
-          <div className='space-y-2'>
-            <Label htmlFor='end-date'>End Date & Time (Optional)</Label>
-            <Input
-              id='end-date'
-              type='datetime-local'
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              min={startDate || new Date().toISOString().slice(0, 16)}
-            />
-          </div>
-
-          <div className='space-y-2'>
-            <Label htmlFor='duration-hours'>
-              Estimated Duration (hours, Optional)
-            </Label>
-            <Input
-              id='duration-hours'
-              type='number'
-              value={durationHours}
-              onChange={(e) => setDurationHours(e.target.value)}
-              placeholder='e.g., 8'
-              min='1'
-            />
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              gap: theme.spacing[3],
-            }}
-          >
-            <Button
-              onClick={handleSave}
-              disabled={isSaving || !startDate}
-              variant='primary'
-              className='flex-1'
-            >
-              {isSaving ? (
-                <>
-                  <Icon name='loader' size={20} color='white' />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Icon name='check' size={20} color='white' />
-                  Save Schedule
-                </>
-              )}
-            </Button>
-            <Button
+        <>
+          <p className='t-meta'>
+            Accepted dates update the job calendar. Signed agreement dates and
+            individual visits stay as they are.
+          </p>
+          {schedule && (
+            <button
+              type='button'
+              disabled={reading || saving}
+              className='t-meta underline'
               onClick={() => {
-                setIsEditing(false);
-                setError(null);
-                setSuccessMessage(null);
-                // Reset form
-                setStartDate(
-                  currentSchedule?.scheduled_start_date
-                    ? new Date(currentSchedule.scheduled_start_date)
-                        .toISOString()
-                        .slice(0, 16)
-                    : ''
-                );
-                setEndDate(
-                  currentSchedule?.scheduled_end_date
-                    ? new Date(currentSchedule.scheduled_end_date)
-                        .toISOString()
-                        .slice(0, 16)
-                    : ''
-                );
-                setDurationHours(
-                  currentSchedule?.scheduled_duration_hours?.toString() || ''
-                );
+                setReading(true);
+                setRefresh((x) => x + 1);
               }}
-              disabled={isSaving}
-              variant='outline'
             >
-              Cancel
-            </Button>
-          </div>
-        </div>
+              Refresh dates
+            </button>
+          )}
+          {!schedule && !loadError && (
+            <p role='status'>Loading work-window proposals…</p>
+          )}
+          {loadError && (
+            <p role='alert'>
+              Could not load work-window proposals.{' '}
+              <button
+                className='underline'
+                type='button'
+                onClick={() => setRefresh((x) => x + 1)}
+              >
+                Retry
+              </button>
+            </p>
+          )}
+          {notice && <p role='status'>{notice}</p>}
+          {error && <p role='alert'>{error}</p>}
+          {pending ? (
+            <div className='space-y-3 rounded-lg border p-4'>
+              <h3 className='font-semibold'>Proposed work window</h3>
+              <WindowDates
+                start={pending.startsAt}
+                end={pending.endsAt}
+                duration={pending.durationHours}
+              />
+              <p>
+                {pending.canRespond
+                  ? 'Waiting for your response.'
+                  : 'Waiting for the ' + pending.awaitingRole + ' to respond.'}
+              </p>
+              {schedule?.active && !loadError && (
+                <div className='flex flex-wrap gap-2'>
+                  {pending.canRespond && (
+                    <>
+                      <button
+                        type='button'
+                        className='btn btn-primary'
+                        disabled={saving || reading}
+                        onClick={() => respond('accepted')}
+                      >
+                        Accept proposed dates
+                      </button>
+                      <button
+                        type='button'
+                        className='btn btn-secondary'
+                        disabled={saving || reading}
+                        onClick={() => respond('declined')}
+                      >
+                        Decline proposed dates
+                      </button>
+                    </>
+                  )}
+                  {pending.yourProposal && (
+                    <button
+                      type='button'
+                      className='btn btn-secondary'
+                      disabled={saving || reading}
+                      onClick={() => respond('withdrawn')}
+                    >
+                      Withdraw proposal
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              {proposal && (
+                <p className='t-meta'>Latest proposal: {proposal.state}.</p>
+              )}
+              {editing && schedule?.active && !loadError ? (
+                <form
+                  className='space-y-3'
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    propose();
+                  }}
+                >
+                  <p>
+                    The current window stays in place while the other party
+                    reviews your proposal.
+                  </p>
+                  <label className='block'>
+                    Start date and time (UK)
+                    <input
+                      className='block rounded-lg border p-2'
+                      type='datetime-local'
+                      required
+                      value={start}
+                      onChange={(event) => setStart(event.target.value)}
+                    />
+                  </label>
+                  <label className='block'>
+                    End date and time (UK)
+                    <input
+                      className='block rounded-lg border p-2'
+                      type='datetime-local'
+                      value={end}
+                      onChange={(event) => setEnd(event.target.value)}
+                    />
+                  </label>
+                  <label className='block'>
+                    Estimated duration (hours)
+                    <input
+                      className='block rounded-lg border p-2'
+                      type='number'
+                      min={1}
+                      step={1}
+                      value={duration}
+                      onChange={(event) => setDuration(event.target.value)}
+                    />
+                  </label>
+                  <div className='flex gap-2'>
+                    <button
+                      type='submit'
+                      className='btn btn-primary'
+                      disabled={saving || reading}
+                    >
+                      {saving ? 'Sending…' : 'Send proposal'}
+                    </button>
+                    <button
+                      type='button'
+                      className='btn btn-secondary'
+                      disabled={saving}
+                      onClick={() => {
+                        setEditing(false);
+                        setError('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                schedule?.active &&
+                !loadError && (
+                  <button
+                    type='button'
+                    className='btn btn-secondary'
+                    onClick={openForm}
+                  >
+                    Propose new dates
+                  </button>
+                )
+              )}
+            </>
+          )}
+        </>
       )}
-    </div>
+    </section>
   );
 }

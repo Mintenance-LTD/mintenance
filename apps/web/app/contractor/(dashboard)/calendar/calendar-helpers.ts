@@ -105,7 +105,11 @@ async function fetchAppointmentEvents(): Promise<CalendarEvent[]> {
         '';
       return {
         id: a.id as string,
-        title: (a.title as string) || 'Appointment',
+        title:
+          ((a.title as string) || 'Appointment') +
+          (a.status === 'rescheduled' && a.clientResponse !== 'confirmed'
+            ? ' · Not confirmed'
+            : ''),
         type: 'appointment' as const,
         date:
           (a.date as string) ||

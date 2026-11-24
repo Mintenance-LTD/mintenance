@@ -52,10 +52,10 @@ it('keeps a failed reschedule open and retries the exact original version', asyn
   fireEvent.change(screen.getByLabelText('Visit date'), {
     target: { value: '2099-12-02' },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Save new visit time' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Propose visit time' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('overlaps');
   expect(saved).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Save new visit time' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Propose visit time' }));
   await waitFor(() => expect(saved).toHaveBeenCalledOnce());
   expect(JSON.parse(mock.fetch.mock.calls[1][1].body)).toMatchObject({
     startTime: '09:00',
@@ -66,14 +66,14 @@ it('keeps a failed reschedule open and retries the exact original version', asyn
 it('does not expose time editing after a visit has ended', () => {
   render(
     <EditAppointmentDialog
-      appointment={{ ...apt, status: 'completed' }}
+      appointment={{ ...apt, date: '2000-12-01', status: 'scheduled' }}
       onClose={vi.fn()}
       onSaved={vi.fn()}
     />
   );
   expect(screen.getByLabelText('Visit date')).toBeDisabled();
   expect(
-    screen.queryByRole('button', { name: 'Save new visit time' })
+    screen.queryByRole('button', { name: 'Propose visit time' })
   ).toBeNull();
 });
 it('requires archive confirmation and retains the file after an error', async () => {

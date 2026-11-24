@@ -126,6 +126,8 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
 
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
   const selectedDateKey = toDateKey(selectedDate);
+  const weekStart = toDateKey(weekDays[0] ?? selectedDate);
+  const weekEnd = toDateKey(weekDays.at(-1) ?? selectedDate);
 
   const {
     data: schedule,
@@ -133,7 +135,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['contractor-schedule', user?.id],
+    queryKey: ['contractor-schedule', user?.id, weekStart],
     queryFn: async () => {
       if (!user?.id) return [];
       // 2026-05-23 audit-21 P1: was hitting /api/contractor/appointments
@@ -161,7 +163,12 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           jobTitle?: string;
           location?: string;
         }[];
-      }>('/api/appointments?daysAhead=180&limit=500');
+      }>(
+        '/api/appointments?view=calendar&limit=500&startDate=' +
+          weekStart +
+          '&endDate=' +
+          weekEnd
+      );
 
       return (res.appointments || []).map(
         (a): ScheduleItem => ({
@@ -362,25 +369,21 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                   <TouchableOpacity
                     style={[styles.eventCard, { borderLeftColor: nodeColor }]}
                     onPress={() => {
-                      // 2026-05-25 audit-43 P2: standalone appointments
-                      // (no job link) shouldn't pretend to be jobs.
-                      // Tap is a no-op for now — there's no dedicated
-                      // AppointmentDetail screen on mobile yet, but at
-                      // least we no longer navigate to a JobDetails
-                      // with a non-job id and surface "Job not found".
-                      if (!item.job_id) return;
                       goToTab(navigation, 'JobsTab', {
-                        screen: 'JobDetails',
-                        params: { jobId: item.job_id },
+                        screen: 'VisitDetails',
+                        params: { appointmentId: item.id },
                       });
                     }}
-                    disabled={!item.job_id}
                     accessibilityRole='button'
                     accessibilityLabel={`${item.job_title} at ${item.time_start}`}
                   >
                     <Text style={styles.eventTitle} numberOfLines={1}>
                       {item.job_title}
                     </Text>
+                    {item.status === 'rescheduled' &&
+                      item.clientResponse !== 'confirmed' && (
+                        <Text>Not confirmed</Text>
+                      )}
                     {item.address ? (
                       <View style={styles.eventMetaRow}>
                         <Ionicons

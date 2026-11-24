@@ -485,8 +485,12 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         <ContractStartChoices
           key={`${contract.id}:${contract.updated_at}:${user?.id}`}
           contract={contract}
-          homeowner={userRole === 'homeowner' && user?.id === contract.homeowner_id}
-          onSaved={() => { void fetchContract(); }}
+          homeowner={
+            userRole === 'homeowner' && user?.id === contract.homeowner_id
+          }
+          onSaved={() => {
+            void fetchContract();
+          }}
         />
         {userRole === 'homeowner' && contract.status !== 'draft' && (
           <CustomerCancellation contractId={contract.id} />
@@ -544,6 +548,9 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           description={contract.description}
           start_date={contract.start_date}
           end_date={contract.end_date}
+          signed={
+            !!(contract.homeowner_signed_at && contract.contractor_signed_at)
+          }
           terms={contract.terms}
           formatDate={formatContractDate}
         />

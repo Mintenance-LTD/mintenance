@@ -1,5 +1,6 @@
 import { appointmentLocalTime } from '@/lib/utils/appointment-local-time';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
@@ -35,6 +36,16 @@ export const GET = withApiHandler(
     const view = searchParams.get('view');
     if (view && !['homeowner', 'contractor'].includes(user.role)) {
       throw new ForbiddenError('Visit unavailable');
+    }
+    if (view === 'visit') {
+      const id = searchParams.get('id');
+      if (!id || !isValidUUID(id))
+        throw new BadRequestError('Invalid visit ID');
+      const [visit] = await readVisitRecords(user, { id });
+      return NextResponse.json(
+        { visit: visit ?? null },
+        { headers: { 'Cache-Control': 'private, no-store' } }
+      );
     }
     if (view === 'job') {
       const jobId = searchParams.get('jobId');
@@ -89,6 +100,21 @@ export const GET = withApiHandler(
         'completed',
         'no_show',
       ]);
+      const start = searchParams.get('startDate');
+      const end = searchParams.get('endDate');
+      if (start || end) {
+        if (
+          !start ||
+          !end ||
+          !z.iso.date().safeParse(start).success ||
+          !z.iso.date().safeParse(end).success ||
+          start > end
+        )
+          throw new BadRequestError('Invalid calendar date range');
+        query = query
+          .gte('appointment_date', start)
+          .lte('appointment_date', end);
+      }
     } else {
       query = query
         .gte('appointment_date', today)

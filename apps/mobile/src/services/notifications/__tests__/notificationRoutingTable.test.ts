@@ -682,3 +682,26 @@ it('opens exact contractor payments and disputes from notification links', () =>
     },
   });
 });
+it('opens the exact changed visit and work-window proposal on mobile', () => {
+  const appointmentId = '00000000-0000-4000-8000-000000000001';
+  const jobId = '00000000-0000-4000-8000-000000000002';
+  expect(
+    routeForNotification('appointment_update', { appointmentId, jobId })
+  ).toMatchObject({
+    params: {
+      screen: 'JobsTab',
+      params: { screen: 'VisitDetails', params: { appointmentId } },
+    },
+  });
+  expect(
+    routeForNotification('job_scheduled', {
+      jobId,
+      workWindowProposalId: appointmentId,
+    })
+  ).toMatchObject({
+    params: {
+      screen: 'JobsTab',
+      params: { screen: 'JobWorkWindow', params: { jobId } },
+    },
+  });
+});

@@ -63,6 +63,7 @@ interface ContractTermsViewProps {
   description: string | null;
   start_date: string | null;
   end_date: string | null;
+  signed?: boolean;
   terms: Record<string, unknown>;
   formatDate: (dateStr: string) => string;
 }
@@ -72,6 +73,7 @@ export const ContractTermsView: React.FC<ContractTermsViewProps> = ({
   description,
   start_date,
   end_date,
+  signed = false,
   terms,
   formatDate,
 }) => {
@@ -102,20 +104,27 @@ export const ContractTermsView: React.FC<ContractTermsViewProps> = ({
       )}
 
       {(start_date || end_date) && (
-        <View style={styles.datesRow}>
-          {start_date && (
-            <View style={styles.dateItem}>
-              <Text style={styles.sectionLabel}>Start Date</Text>
-              <Text style={styles.sectionValue}>{formatDate(start_date)}</Text>
-            </View>
-          )}
-          {end_date && (
-            <View style={styles.dateItem}>
-              <Text style={styles.sectionLabel}>End Date</Text>
-              <Text style={styles.sectionValue}>{formatDate(end_date)}</Text>
-            </View>
-          )}
-        </View>
+        <>
+          <Text style={styles.sectionLabel}>
+            {signed ? 'Signed agreement dates' : 'Agreement dates'}
+          </Text>
+          <View style={styles.datesRow}>
+            {start_date && (
+              <View style={styles.dateItem}>
+                <Text style={styles.sectionLabel}>Start Date</Text>
+                <Text style={styles.sectionValue}>
+                  {formatDate(start_date)}
+                </Text>
+              </View>
+            )}
+            {end_date && (
+              <View style={styles.dateItem}>
+                <Text style={styles.sectionLabel}>End Date</Text>
+                <Text style={styles.sectionValue}>{formatDate(end_date)}</Text>
+              </View>
+            )}
+          </View>
+        </>
       )}
 
       {/* Property Rooms Slice 3 — frozen room scope from

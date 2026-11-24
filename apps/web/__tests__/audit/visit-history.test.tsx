@@ -90,6 +90,34 @@ afterEach(() => {
   mock.search = 'view=past';
 });
 
+it('opens an elapsed scheduled visit read-only with its last response and a separate new-visit action', () => {
+  render(
+    <VisitDetail
+      visit={{
+        ...visit,
+        status: 'scheduled',
+        date: '2000-11-17',
+        history: [],
+      }}
+      role='contractor'
+    />
+  );
+  expect(
+    screen.getByText(/Last homeowner response: Confirmed by Sam Taylor/)
+  ).toBeVisible();
+  expect(screen.getByRole('link', { name: 'View job' })).toHaveAttribute(
+    'href',
+    '/contractor/jobs/' + jobId
+  );
+  expect(
+    screen.getByRole('link', { name: 'Create a new visit' })
+  ).toHaveAttribute('href', expect.stringContaining('newVisit=true'));
+  expect(
+    screen.queryByRole('button', { name: 'Propose a new visit time' })
+  ).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Confirm visit' })).toBeNull();
+});
+
 it.each(['homeowner', 'contractor'] as const)(
   'shows the same previous slot, replacement and confirming client for the %s',
   async (role) => {
@@ -104,11 +132,11 @@ it.each(['homeowner', 'contractor'] as const)(
       </>
     );
     const detail = screen.getByRole('region', { name: 'Visit history' });
-    expect(within(detail).getByText('Previous slot')).toBeVisible();
+    expect(within(detail).getByText('Previous time')).toBeVisible();
     expect(
       within(detail).getByText('17 November 2026 · 09:00–17:00 UK time')
     ).toBeVisible();
-    expect(within(detail).getByText('Replacement slot')).toBeVisible();
+    expect(within(detail).getByText('Proposed time')).toBeVisible();
     expect(
       within(detail).getAllByText('19 November 2026 · 10:00–15:00 UK time')
         .length

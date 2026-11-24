@@ -119,7 +119,7 @@ eq(
 eq(
   (await db.query('SELECT action_url FROM notification_queue')).rows[0]
     .action_url,
-  '/appointments/response'
+  '/appointments/' + id(1)
 );
 await update();
 eq((await readHistory()).length, 1);
@@ -176,6 +176,18 @@ await db
 await db.query(
   `INSERT INTO appointments(id,contractor_id,client_id,title,appointment_date,start_time,end_time,status) VALUES($1,$2,$3,'Earlier visit','2020-11-17','09:00','17:00','scheduled')`,
   [id(10), id(2), id(3)]
+);
+await rejects(
+  db.query('SELECT * FROM update_contractor_appointment($1,$2,$3)', [
+    id(2),
+    id(10),
+    JSON.stringify({
+      ...change,
+      appointmentDate: '2099-02-01',
+      expected: { date: '2020-11-17', start: '09:00', end: '17:00' },
+    }),
+  ]),
+  /create a new visit/
 );
 await rejects(
   db.query('SELECT respond_to_visit($1,$2,$3,$4,$5,$6)', [

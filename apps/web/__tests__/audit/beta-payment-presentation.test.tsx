@@ -38,13 +38,16 @@ vi.mock(
   })
 );
 
-function renderJob({
-  status,
-  jobStatus = 'assigned',
-  adminHold,
-  homeownerApproved,
-  unavailable,
-}: Parameters<typeof contractorPaymentPresentation>[0]) {
+function renderJob(
+  {
+    status,
+    jobStatus = 'assigned',
+    adminHold,
+    homeownerApproved,
+    unavailable,
+  }: Parameters<typeof contractorPaymentPresentation>[0],
+  historicalBrief = false
+) {
   const payment = contractorPaymentPresentation({
     status,
     jobStatus,
@@ -95,7 +98,11 @@ function renderJob({
         processing: 0.22,
       }}
       jobPhotoUrls={[]}
-      buildingAssessment={null}
+      buildingAssessment={
+        historicalBrief
+          ? { assessment_data: { evidenceSufficient: false } }
+          : null
+      }
       userId='contractor'
       messageHref='/contractor/messages?jobId=job'
       platformFeeRate={0.05}
@@ -117,6 +124,17 @@ it('distinguishes a pending £1 payment, contractor estimate, processing fee and
   expect(
     screen.getByRole('link', { name: 'Check transfer and bank payout status' })
   ).toHaveAttribute('href', '/contractor/payments/escrow-id');
+});
+
+it('keeps the original assessment caveat in the completed job brief', () => {
+  renderJob({ status: 'released', jobStatus: 'completed' }, true);
+  expect(
+    screen.getByText('Original job photos couldn’t be assessed')
+  ).toBeVisible();
+  expect(screen.queryByText('New photos needed')).toBeNull();
+  expect(
+    screen.getByRole('heading', { name: 'Payment released' })
+  ).toBeVisible();
 });
 
 it.each(['released', 'completed'])(

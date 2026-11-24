@@ -24,6 +24,7 @@ interface NormalizedPayload {
   jobId?: string;
   escrowId?: string;
   contractorPaymentId?: string;
+  workWindowProposalId?: string;
   phoneCallId?: string;
   conversationId?: string;
   meetingId?: string;
@@ -163,6 +164,7 @@ export function normalizePayload(data: unknown): NormalizedPayload {
     jobId: pick('jobId', 'job_id') ?? fromUrl.jobId,
     escrowId: fromUrl.escrowId ?? pick('escrowId', 'escrow_id'),
     contractorPaymentId: fromUrl.contractorPaymentId,
+    workWindowProposalId: pick('workWindowProposalId'),
     conversationId:
       pick('conversationId', 'conversation_id') ?? fromUrl.conversationId,
     meetingId: pick('meetingId', 'meeting_id'),
@@ -442,8 +444,31 @@ export function routeForNotification(
     // isn't tied to a job). Job-linked → JobDetails; otherwise drop the
     // user on Calendar where they can see the new slot in context.
     // Previously both fell through to the inbox.
+    case 'appointment_update':
+      return p.appointmentId
+        ? {
+            screen: 'Main',
+            params: {
+              screen: 'JobsTab',
+              params: {
+                screen: 'VisitDetails',
+                params: { appointmentId: p.appointmentId },
+              },
+            },
+          }
+        : p.jobId
+          ? jobDetailsRoute(p.jobId)
+          : NOTIFICATIONS_FALLBACK;
     case 'appointment_scheduled':
     case 'job_scheduled':
+      if (p.jobId && p.workWindowProposalId)
+        return {
+          screen: 'Main',
+          params: {
+            screen: 'JobsTab',
+            params: { screen: 'JobWorkWindow', params: { jobId: p.jobId } },
+          },
+        };
       if (p.jobId) return jobDetailsRoute(p.jobId);
       return {
         screen: 'Main',

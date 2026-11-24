@@ -108,6 +108,8 @@ export type JobsStackParamList = {
   RetainedDisputes: undefined;
   DisputeDetails: import('../services/DisputeReader').DisputeTarget;
   ContractorPaymentDetails: { escrowId: string };
+  VisitDetails: { appointmentId: string };
+  JobWorkWindow: { jobId: string };
   BidReview: { jobId: string };
   PhotoReview: { jobId: string };
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };

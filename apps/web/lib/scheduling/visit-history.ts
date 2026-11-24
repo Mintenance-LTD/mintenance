@@ -73,6 +73,26 @@ export function canRespondToVisit(visit: VisitRecord) {
   );
 }
 
+export function canRescheduleVisit(
+  visit: Pick<VisitRecord, 'status' | 'date' | 'time'>,
+  now = new Date()
+) {
+  const local = appointmentLocalTime(now);
+  return (
+    ['scheduled', 'confirmed', 'rescheduled'].includes(visit.status) &&
+    (visit.date > local.date ||
+      (visit.date === local.date &&
+        visit.time.slice(0, 5) > local.time.slice(0, 5)))
+  );
+}
+
+export function visitIsUnconfirmed(
+  status: string,
+  response: string | null | undefined
+) {
+  return status === 'rescheduled' && response !== 'confirmed';
+}
+
 export function currentVisitSlot(visit: VisitRecord): VisitSlot {
   return {
     date: visit.date,
@@ -114,7 +134,9 @@ export function visitStatusLabel(slot: VisitSlot) {
     case 'in_progress':
       return 'Visit in progress';
     case 'rescheduled':
-      return 'Visit rescheduled';
+      return visitIsUnconfirmed(slot.status, slot.response)
+        ? 'Not confirmed'
+        : 'Visit confirmed';
     case 'confirmed':
       return 'Visit marked confirmed';
     default:

@@ -422,6 +422,21 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           locationStr={locationStr}
           daysAgo={daysAgo}
         />
+        {!!user?.id &&
+          (canManageJob || job.contractor_id === user.id) &&
+          viewModel.contractStatus === 'accepted' &&
+          ['assigned', 'in_progress'].includes(job.status) && (
+            <View style={styles.sectionPadded}>
+              <TouchableOpacity
+                accessibilityRole='button'
+                onPress={() =>
+                  navigation.navigate('JobWorkWindow', { jobId: job.id })
+                }
+              >
+                <Text style={styles.sectionLabel}>Current work window</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         {!!user?.id && job.contractor_id === user.id && (
           <View style={styles.sectionPadded}>
             {job.status === 'assigned' &&

@@ -97,6 +97,18 @@ export function SchedulingClient(_props: SchedulingClientProps) {
     const jobId = searchParams.get('jobId');
     const clientName = searchParams.get('clientName');
     const prefill = searchParams.get('prefill');
+    if (searchParams.get('newVisit') === 'true') {
+      const title = searchParams.get('jobTitle');
+      setNewAppt((prev) => ({
+        ...prev,
+        title: title ? 'Visit for ' + title : '',
+        clientName: clientName ?? '',
+        jobId: jobId || undefined,
+        appointmentDate: appointmentLocalTime(new Date()).date,
+      }));
+      setShowNewAppointmentModal(true);
+      return;
+    }
 
     if (prefill === 'true' && clientName) {
       setNewAppt((prev) => ({
@@ -130,6 +142,7 @@ export function SchedulingClient(_props: SchedulingClientProps) {
         location: apt.location,
         type: apt.type || 'onsite',
         status: apt.status || 'scheduled',
+        clientResponse: apt.clientResponse,
         jobTitle: apt.jobTitle,
       }));
 

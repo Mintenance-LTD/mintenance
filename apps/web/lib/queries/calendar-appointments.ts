@@ -18,7 +18,7 @@ export async function fetchCalendarAppointments(
   let query = serverSupabase
     .from('appointments')
     .select(
-      'id,title,job_id,appointment_date,start_time,end_time,status,job:jobs!job_id(status)'
+      'id,title,job_id,appointment_date,start_time,end_time,status,client_response,job:jobs!job_id(status)'
     )
     .in('status', [...activeVisitStatuses, 'completed', 'no_show']);
   if (role === 'contractor') {

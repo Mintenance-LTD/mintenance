@@ -155,6 +155,7 @@ export function transformAppointmentsToEvents(
     start_time: string;
     end_time: string;
     status: string;
+    client_response?: string | null;
   }>,
   role: 'homeowner' | 'contractor'
 ): CalendarEvent[] {
@@ -172,7 +173,7 @@ export function transformAppointmentsToEvents(
       return [
         {
           id: `visit-${appointment.id}`,
-          title: `${appointment.title} (Visit ${appointment.start_time.slice(0, 5)}–${appointment.end_time.slice(0, 5)} UK)`,
+          title: `${appointment.title} (Visit ${appointment.start_time.slice(0, 5)}–${appointment.end_time.slice(0, 5)} UK)${appointment.status === 'rescheduled' && appointment.client_response !== 'confirmed' ? ' · Not confirmed' : ''}`,
           date,
           type: 'inspection' as const,
           status: appointment.status,

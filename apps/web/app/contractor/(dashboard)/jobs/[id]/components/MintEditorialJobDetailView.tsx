@@ -227,6 +227,11 @@ export function MintEditorialJobDetailView({
   // property" section header with empty rows when the homeowner has
   // started + abandoned a contact row.
   const contactList = (propertyContacts ?? []).filter((c) => !!c && !!c.name);
+  const assessment =
+    ((buildingAssessment as Record<string, unknown> | null)
+      ?.assessment_data as Parameters<
+      typeof BuildingAssessmentDisplay
+    >[0]['assessment']) ?? null;
   const budgetNum =
     paymentAmounts?.gross ??
     (typeof job.budget === 'number'
@@ -513,10 +518,19 @@ export function MintEditorialJobDetailView({
           ) : null}
 
           {/* Customer brief */}
-          {(job.description || jobPhotoUrls.length > 0) && (
+          {(job.description ||
+            jobPhotoUrls.length > 0 ||
+            (job.status === 'completed' && !!assessment)) && (
             <div className='card card-pad'>
               <div className='col' style={{ gap: 12 }}>
                 <h2 className='t-h3'>Customer brief</h2>
+                {job.status === 'completed' && assessment && (
+                  <BuildingAssessmentDisplay
+                    historical
+                    assessment={assessment}
+                    photoUrls={jobPhotoUrls}
+                  />
+                )}
                 {job.description ? (
                   <p
                     className='t-body'
@@ -567,18 +581,14 @@ export function MintEditorialJobDetailView({
           <PreArrivalChecklist jobId={job.id} />
 
           {/* AI Building Assessment */}
-          {(buildingAssessment || jobPhotoUrls.length > 0) && (
-            <BuildingAssessmentDisplay
-              assessment={
-                ((buildingAssessment as Record<string, unknown> | null)
-                  ?.assessment_data as Parameters<
-                  typeof BuildingAssessmentDisplay
-                >[0]['assessment']) ?? null
-              }
-              jobId={job.id}
-              photoUrls={jobPhotoUrls}
-            />
-          )}
+          {job.status !== 'completed' &&
+            (assessment || jobPhotoUrls.length > 0) && (
+              <BuildingAssessmentDisplay
+                assessment={assessment}
+                jobId={job.id}
+                photoUrls={jobPhotoUrls}
+              />
+            )}
 
           {/* Contract summary (when signed) */}
           {currentStage !== 'contract_pending' &&
@@ -607,7 +617,7 @@ export function MintEditorialJobDetailView({
           {(currentStage === 'waiting_to_start' ||
             currentStage === 'ready_to_start' ||
             currentStage === 'in_progress') && (
-            <div id='job-schedule' className='scroll-mt-24'>
+            <div>
               <JobScheduling
                 jobId={job.id}
                 userRole='contractor'

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveInboxActions } from '@/lib/notifications/inbox-actions';
+import { resolveVisitAlert } from '@/lib/notifications/visit-actions';
 import {
   serverSupabase,
   resolveRequestDbClient,
@@ -78,12 +79,14 @@ export const GET = withApiHandler(
         ? requestedOffset
         : 0;
 
-    const mappedNotifications = await fetchNotificationFeed(userId, {
-      db: userDb,
-      limit: feedLimit,
-      offset: feedOffset,
-      includeHistory,
-    });
+    const mappedNotifications = (
+      await fetchNotificationFeed(userId, {
+        db: userDb,
+        limit: feedLimit,
+        offset: feedOffset,
+        includeHistory,
+      })
+    ).map((row) => resolveVisitAlert(row, user.role));
 
     // History mode: skip the realtime-enrichment block (quote views,
     // unread messages, project reminders). Those are recency-sensitive

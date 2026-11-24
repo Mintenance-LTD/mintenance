@@ -729,16 +729,14 @@ export default async function ContractorJobDetailPage({
             currentStage === 'waiting_to_start' ||
             currentStage === 'ready_to_start' ||
             currentStage === 'in_progress') && (
-            <div id='job-schedule' className='scroll-mt-24'>
+            <div>
               <JobScheduling
                 jobId={resolvedParams.id}
                 userRole='contractor'
                 userId={user.id}
                 currentSchedule={{
-                  scheduled_start_date:
-                    job.scheduled_start_date || contract?.start_date || null,
-                  scheduled_end_date:
-                    job.scheduled_end_date || contract?.end_date || null,
+                  scheduled_start_date: job.scheduled_start_date ?? null,
+                  scheduled_end_date: job.scheduled_end_date ?? null,
                   scheduled_duration_hours:
                     job.scheduled_duration_hours || null,
                 }}
@@ -778,6 +776,7 @@ export default async function ContractorJobDetailPage({
           {/* AI Building Assessment — visible to contractor too */}
           {(buildingAssessment || jobPhotoUrls.length > 0) && (
             <BuildingAssessmentDisplay
+              historical={job.status === 'completed'}
               assessment={
                 ((buildingAssessment as Record<string, unknown> | null)
                   ?.assessment_data as Parameters<

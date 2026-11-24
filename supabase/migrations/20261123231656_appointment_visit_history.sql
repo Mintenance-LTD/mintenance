@@ -23,6 +23,9 @@ BEGIN
     event_kind := 'scheduled';
   ELSIF (NEW.appointment_date, NEW.start_time, NEW.end_time)
       IS DISTINCT FROM (OLD.appointment_date, OLD.start_time, OLD.end_time) THEN
+    IF ((OLD.appointment_date + OLD.start_time) AT TIME ZONE 'Europe/London') <= now() THEN
+      RAISE EXCEPTION 'This visit has started or ended; create a new visit' USING ERRCODE = '40001';
+    END IF;
     event_kind := 'rescheduled';
     old_slot := jsonb_build_object(
       'date', OLD.appointment_date, 'start', OLD.start_time, 'end', OLD.end_time,
@@ -56,3 +59,23 @@ REVOKE ALL ON FUNCTION public.record_appointment_visit_history() FROM PUBLIC, an
 CREATE TRIGGER record_appointment_visit_history
   AFTER INSERT OR UPDATE ON public.appointments
   FOR EACH ROW EXECUTE FUNCTION public.record_appointment_visit_history();
+
+-- Link each queued response or reschedule to the visit it describes.
+CREATE FUNCTION public.link_visit_notification_to_record() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
+BEGIN
+  IF NEW.metadata->>'appointmentId' ~ '^[0-9a-fA-F-]{36}$' THEN
+    NEW.action_url := CASE NEW.action_url
+      WHEN '/appointments/response' THEN '/appointments/' || (NEW.metadata->>'appointmentId')
+      WHEN '/contractor/scheduling' THEN '/contractor/appointments/' || (NEW.metadata->>'appointmentId')
+      ELSE NEW.action_url END;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.link_visit_notification_to_record() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER link_visit_notification_to_record
+  BEFORE INSERT ON public.notification_queue
+  FOR EACH ROW WHEN (NEW.notification_type = 'appointment_update')
+  EXECUTE FUNCTION public.link_visit_notification_to_record();

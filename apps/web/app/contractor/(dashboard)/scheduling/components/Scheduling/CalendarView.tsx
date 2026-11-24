@@ -1,6 +1,10 @@
 'use client';
 import { appointmentTime } from '@/lib/scheduling/appointment-display';
-import { visitHref, visitIsPast } from '@/lib/scheduling/visit-history';
+import {
+  canRescheduleVisit,
+  visitHref,
+  visitIsUnconfirmed,
+} from '@/lib/scheduling/visit-history';
 import Link from 'next/link';
 
 import React from 'react';
@@ -150,19 +154,19 @@ export function CalendarView({
                         className='block truncate rounded-lg px-2 py-1 font-medium hover:underline'
                       >
                         {appointmentTime(apt.time, apt.endTime)} · {apt.title}
+                        {visitIsUnconfirmed(apt.status, apt.clientResponse) &&
+                          ' · Not confirmed'}
                       </Link>
-                      {onEdit &&
-                        !visitIsPast(apt) &&
-                        apt.status !== 'in_progress' && (
-                          <button
-                            type='button'
-                            aria-label={`Edit visit: ${apt.title}`}
-                            onClick={() => onEdit(apt)}
-                            className='px-2 pb-1 underline'
-                          >
-                            Edit
-                          </button>
-                        )}
+                      {onEdit && canRescheduleVisit(apt) && (
+                        <button
+                          type='button'
+                          aria-label={`Edit visit: ${apt.title}`}
+                          onClick={() => onEdit(apt)}
+                          className='px-2 pb-1 underline'
+                        >
+                          Edit
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
