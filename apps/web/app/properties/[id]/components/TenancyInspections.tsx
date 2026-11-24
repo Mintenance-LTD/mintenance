@@ -20,6 +20,8 @@ import {
   type DatedRoomPhoto,
   type InspectionKind,
   type TenancyOverlap,
+  readTenancyDateReview,
+  type TenancyDateReview,
 } from '@mintenance/shared';
 import {
   InspectionRequestError,
@@ -29,6 +31,8 @@ import {
 import { uploadRoomPhotos } from '@/lib/room-photo-client';
 import {
   clearSavedInspectionDraft,
+  clearInspectionSaveRequest,
+  inspectionSaveRequestId,
   inspectionDraftKey,
   readInspectionDraft,
   writeInspectionDraft,
@@ -117,7 +121,10 @@ function TenancyWorkspace({
     };
   }, []);
   const [error, setError] = useState('');
-  const [dateWarning, setDateWarning] = useState('');
+  const [dateWarning, setDateWarning] = useState<{
+    message: string;
+    review: TenancyDateReview | null;
+  } | null>(null);
   const [confirmedDates, setConfirmedDates] = useState(false);
   const [overlap, setOverlap] = useState<TenancyOverlap | null>(null);
   const [confirmedOverlap, setConfirmedOverlap] = useState(false);
@@ -201,7 +208,7 @@ function TenancyWorkspace({
         editing ? 'Tenancy folder changes saved.' : 'Tenancy folder created.'
       );
       setEditing(null);
-      setDateWarning('');
+      setDateWarning(null);
       setConfirmedDates(false);
       setOverlap(null);
       setConfirmedOverlap(false);
@@ -214,7 +221,10 @@ function TenancyWorkspace({
         e instanceof InspectionRequestError &&
         e.code === 'TENANCY_DATE_CHANGE_EXCLUDES_INSPECTIONS'
       ) {
-        setDateWarning(e.message);
+        setDateWarning({
+          message: e.message,
+          review: readTenancyDateReview(e.details),
+        });
         setConfirmedDates(false);
       } else if (conflict) {
         setOverlap(conflict);
@@ -229,7 +239,7 @@ function TenancyWorkspace({
   }
   function toggleFolderForm() {
     setError('');
-    setDateWarning('');
+    setDateWarning(null);
     setConfirmedDates(false);
     setOverlap(null);
     setConfirmedOverlap(false);
@@ -240,7 +250,7 @@ function TenancyWorkspace({
   }
 
   function updateFolderDate(field: 'starts_on' | 'ends_on', value: string) {
-    setDateWarning('');
+    setDateWarning(null);
     setConfirmedDates(false);
     setOverlap(null);
     setConfirmedOverlap(false);
@@ -372,9 +382,28 @@ function TenancyWorkspace({
             {dateWarning && (
               <div className='rounded border border-amber-400 bg-amber-50 p-3 text-sm'>
                 <p role='alert'>
-                  {dateWarning} Saved reports keep their original inspection
-                  dates.
+                  {dateWarning.message} Saved reports keep their original
+                  inspection dates.
                 </p>
+                {dateWarning.review && (
+                  <ul className='my-2 list-disc pl-5'>
+                    {dateWarning.review.reports.map((report) => (
+                      <li key={report.id}>
+                        {report.title} ·{' '}
+                        {formatTenancyDate(report.inspected_on)}
+                      </li>
+                    ))}
+                    {dateWarning.review.count >
+                      dateWarning.review.reports.length && (
+                      <li>
+                        And{' '}
+                        {dateWarning.review.count -
+                          dateWarning.review.reports.length}{' '}
+                        more.
+                      </li>
+                    )}
+                  </ul>
+                )}
                 <label className='mt-2 flex items-center gap-2'>
                   <input
                     type='checkbox'
@@ -496,7 +525,7 @@ function TenancyWorkspace({
               disabled={busy || reportSaving}
               onClick={() => {
                 setError('');
-                setDateWarning('');
+                setDateWarning(null);
                 setConfirmedDates(false);
                 setOverlap(null);
                 setConfirmedOverlap(false);
@@ -669,6 +698,7 @@ function FolderReports({
     )
       return;
     if (writeInspectionDraft(draftKey, null)) {
+      clearInspectionSaveRequest(draftKey);
       setDraft(null);
       setKind('check_in');
     }
@@ -920,6 +950,7 @@ function ReportForm({
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const saving = useRef(false);
+  const requestId = useRef<string | null>(null);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -928,6 +959,7 @@ function ReportForm({
     };
   }, []);
   const [error, setError] = useState('');
+  const [recordedReportId, setRecordedReportId] = useState<string | null>(null);
   const initialPhotos =
     correction?.photos.flatMap((photo) =>
       photo.source_photo_id && photo.available ? [photo.source_photo_id] : []
@@ -1052,6 +1084,7 @@ function ReportForm({
     onSavingChange(true);
     setError('');
     try {
+      requestId.current = inspectionSaveRequestId(draftKey, requestId.current);
       const result = await inspectionRequest<{ id: string }>(
         '/api/properties/' + propertyId + '/inspections',
         {
@@ -1061,6 +1094,7 @@ function ReportForm({
           inspected_on: inspectedOn,
           notes,
           photo_ids: selected,
+          request_id: requestId.current,
           ...(outcome ? { outcome } : {}),
           ...(correction ? { corrects_report_id: correction.report.id } : {}),
           ...(exception ? { date_exception_reason: reason.trim() } : {}),
@@ -1068,9 +1102,10 @@ function ReportForm({
       );
       if (!result?.id)
         throw new Error(
-          'The report save was not confirmed. Check saved reports before retrying.'
+          'The report save was not confirmed. Retry this draft to recover the result.'
         );
       if (draftKey && draftText) clearSavedInspectionDraft(draftKey, draftText);
+      if (draftKey) clearInspectionSaveRequest(draftKey, requestId.current);
       if (!mounted.current) return;
       saved(result.id);
     } catch (e) {
@@ -1080,6 +1115,13 @@ function ReportForm({
         e.code === 'INSPECTION_OUTSIDE_TENANCY'
       )
         setServerDateWarning(true);
+      if (
+        e instanceof InspectionRequestError &&
+        e.code === 'INSPECTION_SAVE_ALREADY_RECORDED'
+      ) {
+        const id = (e.details as { reportId?: string } | null)?.reportId;
+        if (typeof id === 'string') setRecordedReportId(id);
+      }
       setError(e instanceof Error ? e.message : 'Unable to save report.');
     } finally {
       saving.current = false;
@@ -1348,6 +1390,14 @@ function ReportForm({
           <p role='alert' className='text-sm text-red-800'>
             {error}
           </p>
+        )}
+        {recordedReportId && (
+          <Link
+            className='underline'
+            href={inspectionReportPath(propertyId, recordedReportId)}
+          >
+            Open saved report
+          </Link>
         )}
         <p className='text-xs text-gray-600'>
           Saving shares this report with existing property members. Saved

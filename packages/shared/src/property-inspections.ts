@@ -81,6 +81,34 @@ export interface InspectionDetail {
     'id' | 'title' | 'inspected_on' | 'notes'
   > | null;
 }
+export interface TenancyDateReview {
+  count: number;
+  reports: Pick<InspectionReport, 'id' | 'title' | 'inspected_on'>[];
+}
+export function readTenancyDateReview(
+  value: unknown
+): TenancyDateReview | null {
+  if (!value || typeof value !== 'object') return null;
+  const { count, reports } = value as Partial<TenancyDateReview>;
+  if (
+    typeof count !== 'number' ||
+    !Number.isSafeInteger(count) ||
+    !Array.isArray(reports) ||
+    reports.length < 1 ||
+    reports.length > 5 ||
+    count < reports.length ||
+    !reports.every(
+      (report) =>
+        report &&
+        typeof report.id === 'string' &&
+        typeof report.title === 'string' &&
+        typeof report.inspected_on === 'string' &&
+        isInspectionDate(report.inspected_on)
+    )
+  )
+    return null;
+  return { count, reports };
+}
 export function isOutsideTenancy(
   inspectedOn: string,
   startsOn: string,

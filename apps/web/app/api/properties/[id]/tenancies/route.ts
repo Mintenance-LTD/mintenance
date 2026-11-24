@@ -1,6 +1,6 @@
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase as db } from '@/lib/api/supabaseServer';
-import type { TenancyFolder } from '@mintenance/shared';
+import { readTenancyDateReview, type TenancyFolder } from '@mintenance/shared';
 import {
   APIError,
   BadRequestError,
@@ -120,12 +120,20 @@ async function saveTenancy(
       p_overlap_token: value.overlap_token ?? null,
     }
   );
-  if (error?.code === 'PT422')
+  if (error?.code === 'PT422') {
+    let review = null;
+    try {
+      review = readTenancyDateReview(JSON.parse(error.details));
+    } catch {
+      // The warning also works with a database that returns no report details.
+    }
     throw new APIError(
       'TENANCY_DATE_CHANGE_EXCLUDES_INSPECTIONS',
       'These dates put at least one saved inspection outside the tenancy period.',
-      422
+      422,
+      review ?? undefined
     );
+  }
   databaseError(error);
   if (data?.overlap)
     throw new APIError(

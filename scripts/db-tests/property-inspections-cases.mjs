@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const uid = (n) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
-export async function testInspections(db) {
+export async function testInspections(db, connectPeer) {
   const exec = (sql) => (db.exec ? db.exec(sql) : db.query(sql));
   await exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role BYPASSRLS;
  CREATE TABLE profiles(id uuid PRIMARY KEY);
  CREATE TABLE properties(id uuid PRIMARY KEY, owner_id uuid);
  CREATE TABLE property_team_members(property_id uuid,user_id uuid,role text,status text);
- CREATE TABLE property_room_photos(id uuid PRIMARY KEY,property_id uuid,room_type text,file_name text,created_at timestamptz);
+ CREATE TABLE property_room_photos(id uuid PRIMARY KEY,property_id uuid,room_type text,file_name text,created_at timestamptz,storage_path text);
  GRANT ALL ON properties,property_team_members,property_room_photos TO service_role;
  GRANT SELECT ON profiles TO service_role;`);
   await exec(
@@ -37,7 +37,7 @@ export async function testInspections(db) {
     [uid(10), uid(2), uid(3), uid(4)]
   );
   await db.query(
-    "INSERT INTO property_room_photos VALUES($1,$2,'kitchen','Kitchen.jpg','2026-10-01'),($3,$4,'bedroom','Other.jpg','2026-10-02')",
+    "INSERT INTO property_room_photos(id,property_id,room_type,file_name,created_at) VALUES($1,$2,'kitchen','Kitchen.jpg','2026-10-01'),($3,$4,'bedroom','Other.jpg','2026-10-02')",
     [uid(20), uid(10), uid(21), uid(11)]
   );
   await exec('SET ROLE service_role');
@@ -181,5 +181,96 @@ export async function testInspections(db) {
   );
   console.log(
     'PASS inspection roles, membership revocation, folder/photo isolation, bounds, dates, atomic rollback, immutable reports, deleted-photo history, RLS and client denial'
+  );
+  for (const migration of [
+    '20261124201142_tenancy_inspection_context',
+    '20261124213555_tenancy_turnover_review',
+    '20261124223631_tenancy_inspection_save_retries',
+  ]) {
+    await exec(
+      readFileSync(
+        new URL(
+          '../../supabase/migrations/' + migration + '.sql',
+          import.meta.url
+        ),
+        'utf8'
+      )
+    );
+  }
+  await db.query(
+    "INSERT INTO property_room_photos(id,property_id,room_type,file_name,created_at,storage_path) VALUES($1,$2,'kitchen','Retry.jpg',now(),'test-only/retry.jpg')",
+    [uid(22), uid(10)]
+  );
+  const submit = (connection, title = 'Retry fixture', actor = uid(1)) =>
+    connection
+      .query(
+        "SELECT save_property_inspection_report($1,$2,$3,$4,'2026-10-01','check_out','Observed',$5,NULL,NULL,NULL,$6) id",
+        [actor, uid(10), ownerFolder, title, [uid(22)], uid(6)]
+      )
+      .then(({ rows }) => rows[0].id);
+  await exec('SET ROLE service_role');
+  const peer = await connectPeer();
+  try {
+    await peer.query('SET ROLE service_role');
+    const [first, simultaneous] = await Promise.all([submit(db), submit(peer)]);
+    assert.equal(first, simultaneous);
+    assert.equal(await submit(db), first);
+    await assert.rejects(submit(peer, 'Edited after lost response'), {
+      code: 'PT409',
+      detail: first,
+    });
+    await assert.rejects(submit(db, 'Retry fixture', uid(3)), {
+      code: '42501',
+    });
+    assert.equal(
+      (
+        await db.query(
+          "SELECT count(*)::int n FROM property_inspection_reports WHERE title='Retry fixture'"
+        )
+      ).rows[0].n,
+      1
+    );
+    assert.equal(
+      (
+        await db.query(
+          'SELECT count(*)::int n FROM property_inspection_photos WHERE report_id = $1',
+          [first]
+        )
+      ).rows[0].n,
+      1
+    );
+    await assert.rejects(
+      db.query('SELECT begin_property_room_photo_delete($1,$2)', [
+        uid(10),
+        uid(22),
+      ]),
+      { code: 'PT409' }
+    );
+    await assert.rejects(
+      db.query(
+        "SELECT update_property_tenancy_folder_with_confirmation($1,$2,$3,1,'Edited','2026-10-02',NULL,false)",
+        [uid(1), uid(10), ownerFolder]
+      ),
+      (error) =>
+        error.code === 'PT422' &&
+        JSON.parse(error.detail).reports.some(
+          (report) => report.id === first && report.title === 'Retry fixture'
+        )
+    );
+  } finally {
+    await peer.end();
+    await exec('RESET ROLE');
+  }
+  for (const role of ['anon', 'authenticated']) {
+    await exec('SET ROLE ' + role);
+    await assert.rejects(submit(db), { code: '42501' });
+    await assert.rejects(
+      db.query('SELECT * FROM property_inspection_save_receipts'),
+      { code: '42501' }
+    );
+    await exec('RESET ROLE');
+  }
+  console.log(
+    'PASS concurrent inspection retries, protected evidence, named date warnings and receipt authorization'
   );
 }

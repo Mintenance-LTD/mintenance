@@ -1,4 +1,5 @@
 import React from 'react';
+import { randomUUID } from 'node:crypto';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import TenancyInspections from '@/app/properties/[id]/components/TenancyInspections';
@@ -316,21 +317,21 @@ it('saves inspection with selected photo identifiers only', async () => {
   });
   fireEvent.click(await screen.findByRole('checkbox', { name: /Kitchen.jpg/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Save shared report' }));
-  await waitFor(() =>
-    expect(request).toHaveBeenCalledWith(
-      '/api/properties/property/inspections',
-      expect.objectContaining({
-        body: JSON.stringify({
-          folder_id: 'folder',
-          title: 'Move-in',
-          kind: 'check_in',
-          inspected_on: '2026-10-30',
-          notes: '',
-          photo_ids: ['photo'],
-        }),
-      })
-    )
-  );
+  await waitFor(() => {
+    const call = request.mock.calls.find(
+      ([, options]) => options?.method === 'POST'
+    );
+    expect(call?.[0]).toBe('/api/properties/property/inspections');
+    expect(JSON.parse(call?.[1].body)).toEqual({
+      folder_id: 'folder',
+      title: 'Move-in',
+      kind: 'check_in',
+      inspected_on: '2026-10-30',
+      notes: '',
+      photo_ids: ['photo'],
+      request_id: expect.any(String),
+    });
+  });
 });
 it('preserves deleted-photo history and escapes report notes', async () => {
   request.mockImplementation(() =>
@@ -367,6 +368,67 @@ it('preserves deleted-photo history and escapes report notes', async () => {
   expect(
     screen.getByRole('button', { name: 'Copy member-only link' })
   ).toBeDefined();
+});
+
+it('reuses the save request after a lost response and a page reload', async () => {
+  const requestIds = vi
+    .spyOn(window.crypto, 'randomUUID')
+    .mockImplementation(randomUUID);
+  const submissions: string[] = [];
+  request.mockImplementation((url: string, options?: RequestInit) => {
+    if (options?.method === 'POST') {
+      submissions.push(JSON.parse(String(options.body)).request_id);
+      return submissions.length === 1
+        ? Promise.reject(new Error('Response was lost'))
+        : ok({ id: 'saved-report' });
+    }
+    return ok(
+      url.includes('room-photos')
+        ? { photos: [] }
+        : {
+            items: url.includes('/tenancies?') ? [folder] : [],
+            canCreate: true,
+            hasMore: false,
+            draftScope: 'retry-test',
+          }
+    );
+  });
+  const show = () =>
+    render(
+      <TenancyInspections propertyId='property' initialFolderId='folder' />
+    );
+  const first = show();
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'New inspection' })
+  );
+  fireEvent.change(screen.getByLabelText('Report title'), {
+    target: { value: 'Move-in' },
+  });
+  fireEvent.change(screen.getByLabelText('Inspection date'), {
+    target: { value: '2026-10-30' },
+  });
+  fireEvent.change(screen.getByLabelText('Observations'), {
+    target: { value: 'Kitchen checked' },
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Save shared report' })
+    ).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Save shared report' }));
+  await screen.findByText('Response was lost');
+  first.unmount();
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Resume draft' }));
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Save shared report' })
+    ).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Save shared report' }));
+  await screen.findByRole('button', { name: 'New inspection' });
+  requestIds.mockRestore();
+  expect(submissions).toEqual([expect.any(String), submissions[0]]);
 });
 
 it('warns before leaving a changed report and records an outside-tenancy reason', async () => {

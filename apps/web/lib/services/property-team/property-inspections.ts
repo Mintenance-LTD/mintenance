@@ -52,6 +52,7 @@ export const reportInput = z
     corrects_report_id: z.string().uuid().optional(),
     date_exception_reason: z.string().trim().min(1).max(1000).optional(),
     outcome: z.enum(['no_issues_found', 'evidence_free']).optional(),
+    request_id: z.string().uuid().optional(),
   })
   .strict()
   .refine(

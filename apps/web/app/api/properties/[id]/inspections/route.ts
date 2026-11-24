@@ -71,27 +71,32 @@ export const POST = withApiHandler({}, async (request, { user, params }) => {
       'Add observations or photos, select No issues found, or confirm saving without evidence.',
       422
     );
-  const { data, error } = await db.rpc(
-    'create_property_inspection_report_with_outcome',
-    {
-      p_actor: user.id,
-      p_property: params.id,
-      p_folder: v.folder_id,
-      p_title: v.title,
-      p_inspected: v.inspected_on,
-      p_kind: v.kind,
-      p_notes: v.notes,
-      p_photos: v.photo_ids,
-      p_corrects: v.corrects_report_id ?? null,
-      p_exception: v.date_exception_reason ?? null,
-      p_outcome: v.outcome ?? null,
-    }
-  );
+  const { data, error } = await db.rpc('save_property_inspection_report', {
+    p_actor: user.id,
+    p_property: params.id,
+    p_folder: v.folder_id,
+    p_title: v.title,
+    p_inspected: v.inspected_on,
+    p_kind: v.kind,
+    p_notes: v.notes,
+    p_photos: v.photo_ids,
+    p_corrects: v.corrects_report_id ?? null,
+    p_exception: v.date_exception_reason ?? null,
+    p_outcome: v.outcome ?? null,
+    p_request_id: v.request_id ?? null,
+  });
   if (error?.code === 'PT422')
     throw new APIError(
       'INSPECTION_OUTSIDE_TENANCY',
       'Explain why the inspection falls outside the current tenancy dates.',
       422
+    );
+  if (v.request_id && error?.code === 'PT409')
+    throw new APIError(
+      'INSPECTION_SAVE_ALREADY_RECORDED',
+      'This save already recorded a report before the details changed. Open the saved version to review it.',
+      409,
+      error.details ? { reportId: uuid(error.details) } : undefined
     );
   if (v.corrects_report_id && error?.code === '23505')
     throw new ConflictError(

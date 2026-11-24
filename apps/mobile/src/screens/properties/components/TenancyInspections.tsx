@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { randomUUID } from 'expo-crypto';
 import { me } from '../../../design-system/mint-editorial';
 import { PropertySheet, workspaceStyles as ws } from './PropertyWorkspaceUI';
 import React, {
@@ -30,6 +31,7 @@ import {
   tenancyPeriodLabel,
   tenancyStatus,
   readTenancyOverlap,
+  readTenancyDateReview,
   createConversationDraftStore,
   type InspectionPage,
   type TenancyFolder,
@@ -97,6 +99,7 @@ function TenancyWorkspace({
     accountId && folder
       ? JSON.stringify([accountId, propertyId, folder])
       : null;
+  const requestKey = draftKey && draftKey + ':save-request';
   const readDraft = useCallback(
     () => inspectionDrafts.read(draftKey),
     [draftKey]
@@ -261,20 +264,30 @@ function TenancyWorkspace({
         }
       } else {
         const submittedDraft = readDraft();
-        await mobileApiClient.post(base + '/inspections', {
-          folder_id: folder,
-          title: label.trim(),
-          inspected_on: starts,
-          kind,
-          notes,
-          photo_ids: selected,
-          ...(exception ? { date_exception_reason: dateReason.trim() } : {}),
-          ...(noIssues
-            ? { outcome: 'no_issues_found' }
-            : evidenceReview
-              ? { outcome: 'evidence_free' }
-              : {}),
-        });
+        const requestId = inspectionDrafts.read(requestKey) || randomUUID();
+        inspectionDrafts.write(requestKey, requestId);
+        const saved = await mobileApiClient.post<{ id: string }>(
+          base + '/inspections',
+          {
+            folder_id: folder,
+            title: label.trim(),
+            inspected_on: starts,
+            kind,
+            notes,
+            photo_ids: selected,
+            request_id: requestId,
+            ...(exception ? { date_exception_reason: dateReason.trim() } : {}),
+            ...(noIssues
+              ? { outcome: 'no_issues_found' }
+              : evidenceReview
+                ? { outcome: 'evidence_free' }
+                : {}),
+          }
+        );
+        if (!saved?.id) throw new Error('The report save was not confirmed.');
+        inspectionDrafts.write(requestKey, (current) =>
+          current === requestId ? '' : current
+        );
         inspectionDrafts.write(draftKey, (current) =>
           current === submittedDraft ? '' : current
         );
@@ -298,8 +311,28 @@ function TenancyWorkspace({
         }
         if (e.code === 'TENANCY_DATE_CHANGE_EXCLUDES_INSPECTIONS') {
           setConfirmFolderDates(true);
+          const review = readTenancyDateReview(
+            (e as Error & { details?: { error?: { details?: unknown } } })
+              .details?.error?.details
+          );
           setError(
-            'These dates put a saved inspection outside the tenancy period. Confirm the change to continue.'
+            [
+              'These dates put saved inspections outside the tenancy period.',
+              ...(review?.reports.map(
+                (report) =>
+                  report.title + ' · ' + formatTenancyDate(report.inspected_on)
+              ) ?? []),
+              ...(review && review.count > review.reports.length
+                ? ['And ' + (review.count - review.reports.length) + ' more.']
+                : []),
+              'Confirm the change to continue.',
+            ].join('\n')
+          );
+          return;
+        }
+        if (e.code === 'INSPECTION_SAVE_ALREADY_RECORDED') {
+          setError(
+            'This save already recorded a report. Open the saved version in the tenancy to review it.'
           );
           return;
         }
@@ -434,7 +467,10 @@ function TenancyWorkspace({
                     {
                       text: 'Discard draft',
                       style: 'destructive',
-                      onPress: () => inspectionDrafts.write(draftKey, ''),
+                      onPress: () => {
+                        inspectionDrafts.write(draftKey, '');
+                        inspectionDrafts.write(requestKey, '');
+                      },
                     },
                   ]
                 )
