@@ -5,10 +5,13 @@ import '../../components/property-workspace.css';
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; folderId: string }>;
+  searchParams: Promise<{ corrects?: string }>;
 }) {
   const { id, folderId } = await params;
+  const { corrects } = await searchParams;
   return (
     <HomeownerPageWrapper>
       <div className='property-workspace'>
@@ -18,7 +21,11 @@ export default async function Page({
         >
           Back to property records
         </Link>
-        <TenancyInspections propertyId={id} initialFolderId={folderId} />
+        <TenancyInspections
+          propertyId={id}
+          initialFolderId={folderId}
+          correctsReportId={typeof corrects === 'string' ? corrects : undefined}
+        />
       </div>
     </HomeownerPageWrapper>
   );

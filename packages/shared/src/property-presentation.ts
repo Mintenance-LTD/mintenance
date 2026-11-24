@@ -49,6 +49,8 @@ export interface DatedRoomPhoto {
   photo_url: string;
   file_name: string;
   created_at: string | null;
+  attached_to_inspection?: boolean;
+  deletion_pending?: boolean;
 }
 
 // UTC is explicit on both platforms: changing device timezone must not move a

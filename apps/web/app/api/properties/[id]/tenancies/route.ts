@@ -1,6 +1,10 @@
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase as db } from '@/lib/api/supabaseServer';
-import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  APIError,
+  BadRequestError,
+  NotFoundError,
+} from '@/lib/errors/api-error';
 import {
   inspectionBody,
   access,
@@ -70,15 +74,25 @@ export const PATCH = withApiHandler({}, async (request, { user, params }) => {
   if (!parsed.success)
     throw new BadRequestError('Check the folder name and tenancy dates.');
   const v = parsed.data;
-  const { data, error } = await db.rpc('update_property_tenancy_folder', {
-    p_actor: user.id,
-    p_property: params.id,
-    p_folder: v.id,
-    p_revision: v.revision,
-    p_label: v.label,
-    p_starts: v.starts_on,
-    p_ends: v.ends_on,
-  });
+  const { data, error } = await db.rpc(
+    'update_property_tenancy_folder_with_confirmation',
+    {
+      p_actor: user.id,
+      p_property: params.id,
+      p_folder: v.id,
+      p_revision: v.revision,
+      p_label: v.label,
+      p_starts: v.starts_on,
+      p_ends: v.ends_on,
+      p_confirm: v.confirm_inspection_date_change ?? false,
+    }
+  );
+  if (error?.code === 'PT422')
+    throw new APIError(
+      'TENANCY_DATE_CHANGE_EXCLUDES_INSPECTIONS',
+      'These dates put at least one saved inspection outside the tenancy period.',
+      422
+    );
   databaseError(error);
   return reply({ id: data });
 });

@@ -58,7 +58,29 @@ export const GET = withApiHandler(
     if (error || !Array.isArray(data))
       throw new Error('Unable to load complete property history');
 
-    const events = data.slice(0, pageSize);
+    const page = data.slice(0, pageSize);
+    const inspectionIds = page
+      .filter(
+        (event) =>
+          event.kind === 'inspection' && event.id.startsWith('inspection-')
+      )
+      .map((event) => event.id.slice('inspection-'.length));
+    const dates = new Map<string, string>();
+    if (inspectionIds.length) {
+      const inspections = await serverSupabase
+        .from('property_inspection_reports')
+        .select('id,inspected_on')
+        .eq('property_id', params.id)
+        .in('id', inspectionIds);
+      if (inspections.error) throw new Error('Unable to load inspection dates');
+      for (const report of inspections.data ?? [])
+        dates.set('inspection-' + report.id, report.inspected_on);
+    }
+    const events = page.map((event) =>
+      dates.has(event.id)
+        ? { ...event, inspected_on: dates.get(event.id) }
+        : event
+    );
     const last = events.at(-1);
     const nextCursor =
       data.length > pageSize && last

@@ -18,6 +18,7 @@ interface Event {
   date: string;
   href: string;
   kind: string;
+  inspected_on?: string;
 }
 const eventTypes = {
   job: { label: 'Job', Icon: Briefcase },
@@ -131,17 +132,34 @@ export function PropertyActivityFeed({ propertyId }: { propertyId: string }) {
                               <span className={styles.title}>
                                 {event.title}
                               </span>
-                              <time
-                                dateTime={event.date}
-                                className={styles.date}
-                              >
-                                {new Date(event.date).toLocaleString('en-GB', {
-                                  timeZone: 'Europe/London',
-                                  dateStyle: 'medium',
-                                  timeStyle: 'short',
-                                })}{' '}
-                                UK
-                              </time>
+                              <span className={styles.date}>
+                                {event.inspected_on && (
+                                  <>
+                                    Inspection:{' '}
+                                    <time dateTime={event.inspected_on}>
+                                      {new Date(
+                                        event.inspected_on + 'T00:00:00Z'
+                                      ).toLocaleDateString('en-GB', {
+                                        timeZone: 'UTC',
+                                        dateStyle: 'medium',
+                                      })}
+                                    </time>{' '}
+                                    ·{' '}
+                                  </>
+                                )}
+                                {event.kind === 'inspection' && 'Recorded: '}
+                                <time dateTime={event.date}>
+                                  {new Date(event.date).toLocaleString(
+                                    'en-GB',
+                                    {
+                                      timeZone: 'Europe/London',
+                                      dateStyle: 'medium',
+                                      timeStyle: 'short',
+                                    }
+                                  )}{' '}
+                                  UK
+                                </time>
+                              </span>
                               {event.kind === 'dispute' && (
                                 <span className='underline'>View dispute</span>
                               )}

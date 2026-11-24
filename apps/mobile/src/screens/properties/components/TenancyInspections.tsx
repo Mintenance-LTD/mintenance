@@ -16,6 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   INSPECTION_KINDS,
   isInspectionDate,
+  isOutsideTenancy,
   inspectionReportPath,
   uploadedPhotoLabel,
   type InspectionPage,
@@ -41,6 +42,9 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
   const [ends, setEnds] = useState('');
   const [kind, setKind] = useState('check_in');
   const [notes, setNotes] = useState('');
+  const [dateReason, setDateReason] = useState('');
+  const [dateWarning, setDateWarning] = useState(false);
+  const [confirmFolderDates, setConfirmFolderDates] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -62,6 +66,13 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
         base + '/inspections?folder=' + folder + '&offset=' + reportPage
       ),
   });
+  const tenancy = folders.data?.items.find((item) => item.id === folder);
+  const exception =
+    mode === 'report' &&
+    (dateWarning ||
+      (!!tenancy &&
+        isInspectionDate(starts) &&
+        isOutsideTenancy(starts, tenancy.starts_on, tenancy.ends_on)));
   const detail = useQuery({
     queryKey: [...key, 'detail', report],
     enabled: !!user && !!report,
@@ -81,11 +92,18 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
     setStarts('');
     setEnds('');
     setNotes('');
+    setDateReason('');
+    setDateWarning(false);
+    setConfirmFolderDates(false);
     setSelected([]);
     setError('');
   }
   async function save() {
     if (busy) return;
+    if (exception && !dateReason.trim()) {
+      setError('Explain why the inspection falls outside the tenancy dates.');
+      return;
+    }
     if (
       !label.trim() ||
       !isInspectionDate(starts) ||
@@ -108,6 +126,9 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
             ...value,
             id: editing.id,
             revision: editing.revision,
+            ...(confirmFolderDates
+              ? { confirm_inspection_date_change: true }
+              : {}),
           });
         else {
           const saved = await mobileApiClient.post<{ id: string }>(
@@ -125,13 +146,30 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
           kind,
           notes,
           photo_ids: selected,
+          ...(exception ? { date_exception_reason: dateReason.trim() } : {}),
         });
       setMode(null);
       setFolderPage(0);
       setReportPage(0);
       await client.invalidateQueries({ queryKey: key });
-    } catch {
+    } catch (e) {
       await client.invalidateQueries({ queryKey: key });
+      if (e instanceof Error && 'code' in e) {
+        if (e.code === 'TENANCY_DATE_CHANGE_EXCLUDES_INSPECTIONS') {
+          setConfirmFolderDates(true);
+          setError(
+            'These dates put a saved inspection outside the tenancy period. Confirm the change to continue.'
+          );
+          return;
+        }
+        if (e.code === 'INSPECTION_OUTSIDE_TENANCY') {
+          setDateWarning(true);
+          setError(
+            'Explain why the inspection falls outside the current tenancy dates.'
+          );
+          return;
+        }
+      }
       setError(
         'Unable to save. Check your property access, the owner’s plan and your connection, then retry.'
       );
@@ -222,6 +260,7 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
               setStarts(current.starts_on);
               setEnds(current.ends_on ?? '');
               setError('');
+              setConfirmFolderDates(false);
             }
           }}
         />
@@ -307,7 +346,12 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
             reports.data?.items.map((r) => (
               <Action
                 key={r.id}
-                title={r.title + ' · ' + r.inspected_on}
+                title={
+                  r.title +
+                  ' · ' +
+                  r.inspected_on +
+                  (r.corrected_by_report_id ? ' · Corrected' : '')
+                }
                 onPress={() => {
                   setReport(r.id);
                   setMode(null);
@@ -357,7 +401,11 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                   : 'Inspection date (YYYY-MM-DD)'
               }
               value={starts}
-              change={setStarts}
+              change={(value) => {
+                setStarts(value);
+                setDateWarning(false);
+                setConfirmFolderDates(false);
+              }}
               maxLength={10}
             />
             {mode === 'folder' ? (
@@ -365,7 +413,10 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                 <Field
                   label='Tenancy ends (optional, YYYY-MM-DD)'
                   value={ends}
-                  change={setEnds}
+                  change={(value) => {
+                    setEnds(value);
+                    setConfirmFolderDates(false);
+                  }}
                   maxLength={10}
                 />
                 <Text style={s.text}>
@@ -374,6 +425,26 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
               </>
             ) : (
               <>
+                {tenancy && (
+                  <Text style={s.text}>
+                    Current tenancy dates · {tenancy.starts_on} to{' '}
+                    {tenancy.ends_on ?? 'no end date set'}
+                  </Text>
+                )}
+                {exception && (
+                  <>
+                    <Text style={s.error}>
+                      This inspection date is outside the tenancy period.
+                    </Text>
+                    <Field
+                      label='Reason for the date exception'
+                      value={dateReason}
+                      change={setDateReason}
+                      maxLength={1000}
+                      multiline
+                    />
+                  </>
+                )}
                 <PropertyChoice
                   label='Inspection type'
                   value={kind}
@@ -398,40 +469,42 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                     onPress={() => void photos.refetch()}
                   />
                 )}
-                {photos.data?.photos.map((photo) => (
-                  <TouchableOpacity
-                    key={photo.id}
-                    accessibilityRole='checkbox'
-                    accessibilityLabel={
-                      photo.room_type.replace(/_/g, ' ') + ' ' + photo.file_name
-                    }
-                    accessibilityState={{
-                      checked: selected.includes(photo.id),
-                    }}
-                    style={s.action}
-                    onPress={() =>
-                      setSelected((ids) =>
-                        ids.includes(photo.id)
-                          ? ids.filter((id) => id !== photo.id)
-                          : ids.length < 50
-                            ? [...ids, photo.id]
-                            : ids
-                      )
-                    }
-                  >
-                    <Text>
-                      {selected.includes(photo.id) ? '☑' : '☐'}{' '}
-                      {photo.room_type.replace(/_/g, ' ')} · {photo.file_name}
-                    </Text>
-                    <Text style={s.text}>
-                      {uploadedPhotoLabel(photo.created_at)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                {photos.data?.photos
+                  .filter((photo) => !photo.deletion_pending)
+                  .map((photo) => (
+                    <TouchableOpacity
+                      key={photo.id}
+                      accessibilityRole='checkbox'
+                      accessibilityLabel={
+                        photo.room_type.replace(/_/g, ' ') +
+                        ' ' +
+                        photo.file_name
+                      }
+                      accessibilityState={{
+                        checked: selected.includes(photo.id),
+                      }}
+                      style={s.action}
+                      onPress={() =>
+                        setSelected((ids) =>
+                          ids.includes(photo.id)
+                            ? ids.filter((id) => id !== photo.id)
+                            : ids.length < 50
+                              ? [...ids, photo.id]
+                              : ids
+                        )
+                      }
+                    >
+                      <Text>
+                        {selected.includes(photo.id) ? '☑' : '☐'}{' '}
+                        {photo.room_type.replace(/_/g, ' ')} · {photo.file_name}
+                      </Text>
+                      <Text style={s.text}>
+                        {uploadedPhotoLabel(photo.created_at)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 <Text style={s.text}>
-                  Saved reports cannot be rewritten. Record corrections in a new
-                  report. Photos remain linked to the originals and may become
-                  unavailable if deleted.
+                  Attached photos are protected from deletion in Room Photos.
                 </Text>
               </>
             )}
@@ -447,12 +520,15 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
                   ? 'Saving…'
                   : mode === 'folder'
                     ? editing
-                      ? 'Save folder changes'
+                      ? confirmFolderDates
+                        ? 'Confirm date change'
+                        : 'Save folder changes'
                       : 'Create folder'
                     : 'Save shared report'
               }
               disabled={
                 busy ||
+                (exception && !dateReason.trim()) ||
                 (mode === 'report' && (photos.isLoading || photos.isError))
               }
               onPress={() => void save()}
@@ -483,6 +559,7 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
               propertyId={propertyId}
               detail={detail.data}
               accountId={user?.id ?? ''}
+              openReport={setReport}
             />
           )}
         </View>
@@ -494,10 +571,12 @@ function NativeReport({
   propertyId,
   detail,
   accountId,
+  openReport,
 }: {
   propertyId: string;
   detail: InspectionDetail;
   accountId: string;
+  openReport: (id: string) => void;
 }) {
   const [photo, setPhoto] = useState('');
   const image = useQuery({
@@ -522,12 +601,48 @@ function NativeReport({
           '?format=base64'
       ),
   });
+  const { report, checkIn } = detail;
+  const { corrected_by_report_id: correctedBy, corrects_report_id: corrects } =
+    report;
   return (
     <View style={s.form}>
       <Text style={s.title}>{detail.report.title}</Text>
       <Text>
         {detail.folder.label} · Inspection date {detail.report.inspected_on}
       </Text>
+      {report.tenancy_starts_on && (
+        <Text style={s.text}>
+          Tenancy dates when saved · {report.tenancy_starts_on} to{' '}
+          {report.tenancy_ends_on ?? 'no end date set'}
+        </Text>
+      )}
+      <Text style={s.text}>
+        Current tenancy dates · {detail.folder.starts_on} to{' '}
+        {detail.folder.ends_on ?? 'no end date set'}
+      </Text>
+      {report.date_exception_reason && (
+        <Text style={s.text}>
+          Date exception · {report.date_exception_reason}
+        </Text>
+      )}
+      {correctedBy && (
+        <Action
+          title='Corrected · View correction'
+          onPress={() => openReport(correctedBy)}
+        />
+      )}
+      {corrects && (
+        <Action
+          title='View previous version'
+          onPress={() => openReport(corrects)}
+        />
+      )}
+      {checkIn && (
+        <Action
+          title='Compare with check-in'
+          onPress={() => openReport(checkIn.id)}
+        />
+      )}
       <Text style={s.text}>
         Inspection date entered by the author. Photo dates below are upload
         dates (UTC).

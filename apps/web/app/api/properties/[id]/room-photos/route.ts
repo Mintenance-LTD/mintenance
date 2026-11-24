@@ -86,8 +86,9 @@ export const GET = withApiHandler(
 
     const { data, error } = await supabase
       .from('property_room_photos')
-      .select('*')
+      .select('*,inspection_refs:property_inspection_photos(id)')
       .eq('property_id', propertyId)
+      .limit(1, { referencedTable: 'inspection_refs' })
       .order('room_type')
       .order('created_at', { ascending: false });
 
@@ -106,8 +107,9 @@ export const GET = withApiHandler(
     // signed URL. Room-photo rows retain `storage_path`, so this remains
     // reliable after the original URL expires or the bucket is private.
     const freshPhotos = await Promise.all(
-      (data || []).map(async (photo) => ({
+      (data || []).map(async ({ inspection_refs, ...photo }) => ({
         ...photo,
+        attached_to_inspection: !!inspection_refs?.length,
         photo_url: (
           await resignJobStorageUrls([photo.storage_path], user.id)
         )[0],
@@ -294,31 +296,43 @@ export const DELETE = withApiHandler(
       );
     }
 
-    // Fetch photo to get storage path
-    const { data: photo, error: fetchError } = await supabase
-      .from('property_room_photos')
-      .select('id, storage_path')
-      .eq('id', photoId)
-      .eq('property_id', propertyId)
-      .single();
-
+    // Reserve the row before touching storage. Inspection creation locks it
+    // too, so it cannot be attached while the object is being removed.
+    const { data: path, error: claimError } = await supabase.rpc(
+      'begin_property_room_photo_delete',
+      { p_property: propertyId, p_photo: photoId }
+    );
+    if (claimError?.code === 'PT409') {
+      return NextResponse.json(
+        {
+          error:
+            'This photo is evidence in a saved inspection and cannot be deleted.',
+        },
+        { status: 409 }
+      );
+    }
     if (
-      fetchError ||
-      !photo ||
-      !isPropertyRoomPhotoPath(photo.storage_path, propertyId)
+      claimError?.code === '22P02' ||
+      (!claimError && !isPropertyRoomPhotoPath(path, propertyId))
     ) {
       return NextResponse.json({ error: 'Photo not found' }, { status: 404 });
+    }
+    if (claimError) {
+      return NextResponse.json(
+        { error: 'Could not start photo deletion. Try again.' },
+        { status: 503 }
+      );
     }
 
     // Delete from storage
     const { error: storageError } = await supabase.storage
       .from('Job-storage')
-      .remove([photo.storage_path]);
+      .remove([path]);
 
     if (storageError) {
       logger.error('Failed to delete room photo from storage', storageError, {
         service: 'room_photos',
-        path: photo.storage_path,
+        path,
       });
       return NextResponse.json(
         { error: 'Failed to delete photo from storage. Please try again.' },
@@ -330,7 +344,8 @@ export const DELETE = withApiHandler(
     const { error: deleteError } = await supabase
       .from('property_room_photos')
       .delete()
-      .eq('id', photoId);
+      .eq('id', photoId)
+      .eq('property_id', propertyId);
 
     if (deleteError) {
       logger.error('Failed to delete room photo record', deleteError, {
