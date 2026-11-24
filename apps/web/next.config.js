@@ -465,6 +465,16 @@ const nextConfig = {
    */
   async redirects() {
     return [
+      {
+        source: '/help/homeowner-guide',
+        destination: '/for-homeowners',
+        permanent: true,
+      },
+      {
+        source: '/help/payments',
+        destination: '/help/payments/how-payments-work',
+        permanent: true,
+      },
       // Auth aliases — pre-2025 layout used /auth/*. Keep as 307 (non-permanent)
       // so deep-linking from email templates doesn't get cached as 308 forever.
       { source: '/auth/login', destination: '/login', permanent: false },

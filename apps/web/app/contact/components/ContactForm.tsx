@@ -19,6 +19,7 @@ type Category =
   | 'general'
   | 'technical'
   | 'billing'
+  | 'agency-demo'
   | 'partnerships'
   | 'press'
   | 'feedback';
@@ -29,6 +30,7 @@ interface FormData {
   phone: string;
   subject: string;
   category: Category;
+  propertyCount: string;
   message: string;
   consent: boolean;
 }
@@ -39,6 +41,7 @@ const INITIAL_FORM_DATA: FormData = {
   phone: '',
   subject: '',
   category: 'general',
+  propertyCount: '',
   message: '',
   consent: false,
 };
@@ -108,10 +111,12 @@ export default function ContactForm() {
 
   useEffect(() => {
     const subjectParam = searchParams.get('subject');
-    if (subjectParam) {
+    const agencyDemo = searchParams.get('category') === 'agency-demo';
+    if (subjectParam || agencyDemo) {
       setFormData((prev) => ({
         ...prev,
-        subject: decodeURIComponent(subjectParam.replace(/\+/g, ' ')),
+        subject: subjectParam || 'Agency demo request',
+        category: agencyDemo ? 'agency-demo' : prev.category,
       }));
     }
   }, [searchParams]);
@@ -176,6 +181,11 @@ export default function ContactForm() {
       const error = validateField(field, formData[field as keyof FormData]);
       if (error) newErrors[field] = error;
     });
+    if (
+      formData.category === 'agency-demo' &&
+      !/^[1-9]\d{0,6}$/.test(formData.propertyCount)
+    )
+      newErrors.propertyCount = 'Enter how many properties you manage.';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -199,6 +209,9 @@ export default function ContactForm() {
           email: formData.email,
           subject: formData.subject || 'Contact Form Submission',
           category: formData.category,
+          ...(formData.category === 'agency-demo'
+            ? { propertyCount: Number(formData.propertyCount) }
+            : {}),
           message: formData.message,
           consent: formData.consent,
         }),
@@ -211,7 +224,15 @@ export default function ContactForm() {
           result.message ||
             "Message sent successfully! We'll get back to you soon."
         );
-        setFormData(INITIAL_FORM_DATA);
+        setFormData(
+          searchParams.get('category') === 'agency-demo'
+            ? {
+                ...INITIAL_FORM_DATA,
+                category: 'agency-demo',
+                subject: 'Agency demo request',
+              }
+            : INITIAL_FORM_DATA
+        );
         setErrors({});
         setTouchedFields({});
       } else {
@@ -271,10 +292,14 @@ export default function ContactForm() {
               color: 'var(--me-ink)',
             }}
           >
-            Send us a Message
+            {formData.category === 'agency-demo'
+              ? 'Request an agency demo'
+              : 'Send us a message'}
           </h2>
           <p style={{ color: 'var(--me-ink-2)' }}>
-            We'll get back to you within 24 hours
+            {formData.category === 'agency-demo'
+              ? 'Tell us about your portfolio so we can tailor the demo.'
+              : 'Tell us how we can help. We’ll reply by email.'}
           </p>
         </div>
         <form onSubmit={handleSubmit} className='space-y-6'>
@@ -394,11 +419,37 @@ export default function ContactForm() {
                 <option value='general'>General Enquiry</option>
                 <option value='technical'>Technical Support</option>
                 <option value='billing'>Billing & Payments</option>
+                <option value='agency-demo'>Agency demo</option>
                 <option value='partnerships'>Partnership Opportunities</option>
                 <option value='press'>Press & Media</option>
                 <option value='feedback'>Feedback & Suggestions</option>
               </ValidatedSelect>
             </FormField>
+            {formData.category === 'agency-demo' && (
+              <FormField
+                label='How many properties do you manage?'
+                htmlFor='contact-property-count'
+                required
+                error={errors.propertyCount}
+              >
+                <ValidatedInput
+                  id='contact-property-count'
+                  type='number'
+                  min={1}
+                  max={9999999}
+                  step={1}
+                  required
+                  value={formData.propertyCount}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    handleFieldChange('propertyCount', e.target.value);
+                    setErrors((previous) => ({
+                      ...previous,
+                      propertyCount: '',
+                    }));
+                  }}
+                />
+              </FormField>
+            )}
           </div>
 
           <FormField
@@ -500,7 +551,9 @@ export default function ContactForm() {
             ) : (
               <>
                 <Send className='w-5 h-5' />
-                Send Message
+                {formData.category === 'agency-demo'
+                  ? 'Send demo request'
+                  : 'Send message'}
               </>
             )}
           </MotionButton>

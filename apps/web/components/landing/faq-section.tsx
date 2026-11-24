@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { CONTRACTOR_PLAN_FEES, PAYMENT_RELEASE_TIMING } from '@/lib/marketing/public-journey';
 
 /**
  * FAQ — Direction A · Mint Editorial.
@@ -13,7 +14,7 @@ import Link from 'next/link';
 const FAQ_ITEMS = [
   {
     q: 'How does the protected payment system work?',
-    a: "When you accept a contractor's bid, your payment is held securely by Mintenance. The contractor completes the work, you approve it, and then funds are released. If there's any issue, our mediation team steps in to resolve it fairly: protecting both homeowners and contractors.",
+    a: `After you both sign the agreement, fund the job before work starts. Review the completed work and its evidence before approving. ${PAYMENT_RELEASE_TIMING}`,
   },
   {
     q: 'How are contractors checked before they can bid?',
@@ -21,7 +22,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'What fees does Mintenance charge?',
-    a: 'Review the Pricing page for current plans and fees. Any confirmed early-access award has its own terms; signing up alone does not guarantee an award. Check the charges shown for your account before committing to work.',
+    a: `Posting a job is free. Contractors can start free on Basic, with optional paid plans and no per-lead fees. ${CONTRACTOR_PLAN_FEES}`,
   },
   {
     q: 'How long does it take to get quotes?',

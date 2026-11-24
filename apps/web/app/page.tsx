@@ -12,6 +12,7 @@ import { ContractorCTA } from '@/components/landing/contractor-cta';
 import { FinalCTA } from '@/components/landing/final-cta';
 import { ProductDemos } from '@/components/marketing/ProductDemos';
 import { GettingStartedLinks } from '@/components/marketing/GettingStartedLinks';
+import { publicShareCard } from '@/lib/marketing/public-journey';
 
 // 2026-05-13 Mint Editorial rebuild: AppPreviewSection was dropped —
 // the new hero already shows the browser + phone "both platforms"
@@ -25,6 +26,10 @@ import { GettingStartedLinks } from '@/components/marketing/GettingStartedLinks'
  * Child components are "use client" for interactivity.
  */
 
+const shareImage = publicShareCard(
+  'home',
+  'Home, taken care of. A Mintenance job from quote to payment.'
+);
 export const metadata: Metadata = {
   title: 'Mintenance: Hire Local Tradespeople With Escrow-Protected Payments',
   description:
@@ -39,14 +44,7 @@ export const metadata: Metadata = {
     title: 'Mintenance: Hire Local Tradespeople With Escrow-Protected Payments',
     description:
       'Post home maintenance jobs, compare local tradespeople on the platform, and keep payment protected in escrow until the work is approved.',
-    images: [
-      {
-        url: 'https://www.mintenance.co.uk/opengraph-image',
-        width: 1200,
-        height: 630,
-        alt: 'Mintenance: modern home maintenance platform',
-      },
-    ],
+    images: [shareImage],
   },
   twitter: {
     card: 'summary_large_image',
@@ -54,6 +52,7 @@ export const metadata: Metadata = {
     title: 'Mintenance: Hire Local Tradespeople',
     description:
       'Post jobs, compare local tradespeople, and protect payment in escrow until sign-off.',
+    images: [shareImage],
   },
   alternates: {
     canonical: 'https://www.mintenance.co.uk',

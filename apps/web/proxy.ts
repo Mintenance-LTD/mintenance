@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { shouldSkipCors, addCorsHeaders } from '@/lib/cors';
 import { securityMonitor } from '@/lib/security-monitor';
-import { isPublicRoute } from './middleware/public-routes';
+import {
+  isPublicRoute,
+  isRetiredContractorDirectoryPath,
+} from './middleware/public-routes';
 import { validateRequestBody } from './middleware/body-validation';
 import {
   buildPublicCSP,
@@ -84,6 +87,12 @@ export async function proxy(request: NextRequest) {
   const clientIP = getClientIP(request);
   if (securityMonitor.isIPBlocked(clientIP)) {
     return new NextResponse('Forbidden', { status: 403 });
+  }
+
+  // The profile segment only supports UUIDs. Reject legacy category paths
+  // before the page can stream a loading shell and turn its 404 into a 200.
+  if (isRetiredContractorDirectoryPath(pathname)) {
+    return new NextResponse('Contractor page not found', { status: 404 });
   }
 
   // Public route check MUST happen before ConfigManager so that login,

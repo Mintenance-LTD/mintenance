@@ -20,6 +20,7 @@ const PUBLIC_PAGE_ROUTES = [
   '/about',
   '/for-homeowners',
   '/for-contractors',
+  '/for-letting-agents',
   '/resources',
   '/verification',
   '/contact',
@@ -82,7 +83,11 @@ const PUBLIC_API_ROUTES_PREFIXED = ['/api/auth/'];
  * (sitemap.ts selects only `profiles.id`/`updated_at` for role='contractor').
  * Exact-match only — no prefix matching, so nothing else is exposed.
  */
-const CRAWLER_FILES = new Set(['/robots.txt', '/sitemap.xml']);
+const CRAWLER_FILES = new Set([
+  '/robots.txt',
+  '/sitemap.xml',
+  '/opengraph-image',
+]);
 
 /** Admin auth pages (pre-login), exact-match. */
 const ADMIN_AUTH_ROUTES = [
@@ -96,7 +101,14 @@ const ADMIN_AUTH_ROUTES = [
  * `/contractor/settings` or `/contractor/dashboard-enhanced`.
  */
 const UUID_CONTRACTOR_PROFILE_RE =
-  /^\/contractor\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  /^\/contractors?\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isRetiredContractorDirectoryPath(pathname: string): boolean {
+  return (
+    /^\/contractors\/[^/]+$/.test(pathname) &&
+    !UUID_CONTRACTOR_PROFILE_RE.test(pathname)
+  );
+}
 
 // Only the three privacy-filtered, rate-limited public profile GET endpoints.
 const UUID_PUBLIC_CONTRACTOR_API_RE =

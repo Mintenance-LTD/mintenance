@@ -51,7 +51,7 @@ const FEATURES = [
   {
     title: 'Protected payments',
     description:
-      'Funds are held securely and released after the work is complete and approved.',
+      'Review the completed work, then follow the payment’s release checks and status in the job record.',
     icon: ShieldCheck,
     href: '/safety',
     linkLabel: 'Read about payment safeguards',

@@ -1,7 +1,8 @@
 import { MetadataRoute } from 'next';
+import { MINTENANCE_PUBLIC_ORIGIN } from '@/lib/marketing/public-journey';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+  const baseUrl = MINTENANCE_PUBLIC_ORIGIN;
 
   return {
     rules: [

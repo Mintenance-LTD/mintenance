@@ -1,5 +1,6 @@
 import { Star, Building2, Users, Zap, Crown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { CONTRACTOR_FEE_LABELS, CONTRACTOR_PLAN_FEES } from '@/lib/marketing/public-journey';
 
 export interface PricingPlan {
   id: string;
@@ -120,7 +121,7 @@ export function getContractorPlans(isAnnual: boolean): PricingPlan[] {
         'Create business profile',
         'Bid on 10 jobs per month',
         'Work on up to 3 jobs at a time',
-        '12% platform fee',
+        `${CONTRACTOR_FEE_LABELS.basic} platform fee`,
         'Basic messaging',
         'Review collection',
         'Payment processing',
@@ -144,7 +145,7 @@ export function getContractorPlans(isAnnual: boolean): PricingPlan[] {
         'Everything in Basic',
         'Unlimited job bids',
         'Unlimited active jobs',
-        '8% platform fee (33% savings)',
+        `${CONTRACTOR_FEE_LABELS.professional} platform fee`,
         'Featured in search results',
         'Advanced analytics dashboard',
         'Priority support (24h response)',
@@ -163,7 +164,7 @@ export function getContractorPlans(isAnnual: boolean): PricingPlan[] {
       description: 'For established businesses and teams',
       features: [
         'Everything in Professional',
-        '5% platform fee (58% savings vs Basic)',
+        `${CONTRACTOR_FEE_LABELS.business} platform fee`,
         'Top placement in search',
         'Team member accounts (up to 10)',
         'API access',
@@ -195,7 +196,7 @@ export const PRICING_FAQS = [
   {
     question: 'Are there any hidden fees?',
     answer:
-      'No hidden fees. The prices shown are all you pay. Contractors pay a percentage platform fee only when they win a job.',
+      `There are no per-lead fees. Paid subscriptions are optional. ${CONTRACTOR_PLAN_FEES}`,
   },
   {
     question: "What if I need more than what's included?",

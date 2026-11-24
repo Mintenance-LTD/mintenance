@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { isValidUUID } from '@/lib/validation/uuid';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getAppUrl } from '@/lib/env';
 import ContractorProfileClient from './ContractorProfileClient';
@@ -20,6 +22,7 @@ type Params = { params: Promise<{ id: string }> };
  */
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
+  if (!isValidUUID(id)) notFound();
   try {
     const { data: c } = await serverSupabase
       .from('profile_directory')
@@ -83,7 +86,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   }
 }
 
-export default function ContractorProfilePage() {
+export default async function ContractorProfilePage({ params }: Params) {
+  const { id } = await params;
+  if (!isValidUUID(id)) notFound();
   // All interactivity + client-side data fetching lives in the client
   // component; this server shell exists to own generateMetadata above.
   return <ContractorProfileClient />;

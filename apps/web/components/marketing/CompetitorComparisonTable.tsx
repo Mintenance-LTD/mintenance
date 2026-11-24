@@ -29,7 +29,7 @@ interface Row {
 const ROWS: Row[] = [
   {
     metric: 'Annual membership fee',
-    mintenance: { label: '£0', tone: 'good' },
+    mintenance: { label: 'Free Basic, optional paid plans', tone: 'good' },
     checkatrade: { label: 'Up to £2,160/yr', tone: 'bad' },
     mybuilder: { label: '£0', tone: 'good' },
     ratedPeople: { label: 'Tiered subscription', tone: 'neutral' },
@@ -51,8 +51,8 @@ const ROWS: Row[] = [
     ratedPeople: { label: 'No payment platform', tone: 'bad' },
   },
   {
-    metric: 'You pay only when you earn',
-    mintenance: { label: 'Yes — commission on release', tone: 'good' },
+    metric: 'How platform costs are charged',
+    mintenance: { label: 'Platform fee on completed work', tone: 'good' },
     checkatrade: { label: 'No — fixed annual fee', tone: 'bad' },
     mybuilder: { label: 'No — per-shortlist regardless of win', tone: 'bad' },
     ratedPeople: { label: 'No — credits burn on lead view', tone: 'bad' },

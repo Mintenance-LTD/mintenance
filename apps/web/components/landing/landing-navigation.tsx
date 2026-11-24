@@ -21,6 +21,7 @@ const NAV_LINKS = [
     href: '/for-contractors',
     label: 'For tradespeople',
   },
+  { href: '/for-letting-agents', label: 'For letting agents' },
   { href: '/how-it-works#watch-demo', label: 'Watch demos' },
 ];
 

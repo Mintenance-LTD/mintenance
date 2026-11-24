@@ -9,35 +9,46 @@ import { sanitizeText, sanitizeMessage, sanitizeEmail } from '@/lib/sanitizer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
 
-const contactFormSchema = z.object({
-  name: z
-    .string()
-    .min(2, 'Name must be at least 2 characters')
-    .transform((val) => sanitizeText(val, 100)),
-  email: z
-    .string()
-    .email('Invalid email address')
-    .transform((val) => sanitizeEmail(val)),
-  subject: z
-    .string()
-    .min(5, 'Subject must be at least 5 characters')
-    .transform((val) => sanitizeText(val, 200)),
-  category: z.enum([
-    'general',
-    'technical',
-    'billing',
-    'partnerships',
-    'press',
-    'feedback',
-  ]),
-  message: z
-    .string()
-    .min(10, 'Message must be at least 10 characters')
-    .transform((val) => sanitizeMessage(val)),
-  consent: z.boolean().refine((val) => val === true, {
-    message: 'You must agree to the Privacy Policy',
-  }),
-});
+const contactFormSchema = z
+  .object({
+    name: z
+      .string()
+      .min(2, 'Name must be at least 2 characters')
+      .transform((val) => sanitizeText(val, 100)),
+    email: z
+      .string()
+      .email('Invalid email address')
+      .transform((val) => sanitizeEmail(val)),
+    subject: z
+      .string()
+      .min(5, 'Subject must be at least 5 characters')
+      .transform((val) => sanitizeText(val, 200)),
+    category: z.enum([
+      'general',
+      'technical',
+      'billing',
+      'agency-demo',
+      'partnerships',
+      'press',
+      'feedback',
+    ]),
+    propertyCount: z.number().int().min(1).max(9999999).optional(),
+    message: z
+      .string()
+      .min(10, 'Message must be at least 10 characters')
+      .transform((val) => sanitizeMessage(val)),
+    consent: z.boolean().refine((val) => val === true, {
+      message: 'You must agree to the Privacy Policy',
+    }),
+  })
+  .refine(
+    (value) =>
+      value.category !== 'agency-demo' || value.propertyCount !== undefined,
+    {
+      path: ['propertyCount'],
+      message: 'Enter how many properties you manage.',
+    }
+  );
 
 /**
  * POST /api/contact
@@ -69,23 +80,27 @@ export const POST = withApiHandler(
     }
 
     const formData = parsed.data;
+    const agencyDemo = formData.category === 'agency-demo';
 
     // Get admin email from platform settings or use default
-    const { data: setting } = await serverSupabase
-      .from('platform_settings')
-      .select('setting_value')
-      .eq('setting_key', 'admin_email')
-      .single();
-
-    const adminEmail =
-      setting?.setting_value ||
-      process.env.ADMIN_EMAIL ||
-      'admin@mintenance.co.uk';
+    const supportEmail = agencyDemo
+      ? null
+      : await serverSupabase
+          .from('platform_settings')
+          .select('setting_value')
+          .eq('setting_key', 'admin_email')
+          .single();
+    const recipient = agencyDemo
+      ? 'Liam@mintenance.co.uk'
+      : supportEmail?.data?.setting_value ||
+        process.env.ADMIN_EMAIL ||
+        'admin@mintenance.co.uk';
 
     const categoryLabels: Record<string, string> = {
       general: 'General Enquiry',
       technical: 'Technical Support',
       billing: 'Billing & Payments',
+      'agency-demo': 'Agency demo',
       partnerships: 'Partnership Opportunities',
       press: 'Press & Media',
       feedback: 'Feedback & Suggestions',
@@ -117,6 +132,7 @@ export const POST = withApiHandler(
             <div class="header"><h1>New Contact Form Submission</h1></div>
             <div class="content">
               <div class="field"><div class="field-label">Category:</div><div class="field-value">${categoryLabel}</div></div>
+              ${agencyDemo ? `<div class="field"><div class="field-label">Sales owner:</div><div class="field-value">Liam Clayton</div></div><div class="field"><div class="field-label">Properties managed:</div><div class="field-value">${formData.propertyCount}</div></div>` : ''}
               <div class="field"><div class="field-label">Name:</div><div class="field-value">${formData.name}</div></div>
               <div class="field"><div class="field-label">Email:</div><div class="field-value"><a href="mailto:${formData.email}">${formData.email}</a></div></div>
               <div class="field"><div class="field-label">Subject:</div><div class="field-value">${formData.subject}</div></div>
@@ -136,6 +152,7 @@ export const POST = withApiHandler(
 New Contact Form Submission
 
 Category: ${categoryLabel}
+${agencyDemo ? `Sales owner: Liam Clayton\nProperties managed: ${formData.propertyCount}` : ''}
 Name: ${formData.name}
 Email: ${formData.email}
 Subject: ${formData.subject}
@@ -149,7 +166,7 @@ You can reply directly to: ${formData.email}
     `;
 
     const emailSent = await EmailService.sendEmail({
-      to: adminEmail,
+      to: recipient,
       subject,
       html,
       text,
@@ -158,7 +175,6 @@ You can reply directly to: ${formData.email}
     if (!emailSent) {
       logger.error('Failed to send contact form email', {
         service: 'contact',
-        adminEmail,
         formData: {
           name: formData.name,
           email: formData.email,
@@ -179,8 +195,9 @@ You can reply directly to: ${formData.email}
     return NextResponse.json(
       {
         success: true,
-        message:
-          "Your message has been sent successfully. We'll get back to you within 24 hours.",
+        message: agencyDemo
+          ? 'Your agency demo request has been sent.'
+          : 'Your message has been sent.',
       },
       { status: 200 }
     );

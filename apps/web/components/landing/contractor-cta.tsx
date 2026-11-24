@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Check } from 'lucide-react';
+import { PAYMENT_RELEASE_TIMING } from '@/lib/marketing/public-journey';
 
 /**
  * "For tradespeople" CTA — Direction A · Mint Editorial.
@@ -16,12 +17,12 @@ const BENEFITS = [
   {
     title: 'Real jobs, not leads',
     description:
-      'See real posted jobs with budgets and details: no credits, no guessing.',
+      'See the scope and photos before preparing your quote. There are no per-lead fees.',
   },
   {
     title: 'Escrow-protected payment',
     description:
-      "The homeowner's funds are held in escrow before you pick up a tool. Complete the job and on approval the payout is released to your Stripe account.",
+      PAYMENT_RELEASE_TIMING,
   },
   {
     title: 'Your work speaks for itself',

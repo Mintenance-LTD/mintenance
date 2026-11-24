@@ -9,6 +9,7 @@
  */
 
 import { Check, X } from 'lucide-react';
+import { CONTRACTOR_PLAN_FEES, PAYMENT_RELEASE_TIMING } from '@/lib/marketing/public-journey';
 
 export function NoLeadFeesSection() {
   return (
@@ -16,16 +17,13 @@ export function NoLeadFeesSection() {
       <div className='max-w-5xl mx-auto px-6'>
         <div className='inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full mb-5'>
           <Check className='w-3.5 h-3.5' />
-          No Lead Fees, Ever
+          No per-lead fees
         </div>
         <h2 className='text-3xl sm:text-4xl font-bold text-gray-900 mb-4 max-w-3xl'>
-          You only pay when you earn.
+          Start free on Basic.
         </h2>
         <p className='text-lg text-gray-600 max-w-2xl mb-10'>
-          Other platforms sell your details to five strangers, charge £100+ per
-          shortlist, and raise prices every year. We take a small commission on
-          completed work — nothing to view jobs, nothing to bid, nothing per
-          lead.
+          Paid plans are optional. A platform fee applies to completed work.
         </p>
 
         <div className='grid sm:grid-cols-3 gap-5'>
@@ -37,8 +35,7 @@ export function NoLeadFeesSection() {
               </span>
             </div>
             <p className='text-sm text-emerald-900/80'>
-              A single, transparent commission on each completed job. No
-              membership, no seat fee, no per-lead charge.
+              {CONTRACTOR_PLAN_FEES}
             </p>
           </div>
           <div className='rounded-2xl border border-gray-200 bg-white p-6'>
@@ -49,9 +46,7 @@ export function NoLeadFeesSection() {
               </span>
             </div>
             <p className='text-sm text-gray-600'>
-              No annual membership. No per-lead fees. No &ldquo;premium&rdquo;
-              tier to appear in results. No charges for bids you don&rsquo;t
-              win.
+              View jobs and submit bids without a per-lead or shortlist charge.
             </p>
           </div>
           <div className='rounded-2xl border border-gray-200 bg-white p-6'>
@@ -62,9 +57,7 @@ export function NoLeadFeesSection() {
               </span>
             </div>
             <p className='text-sm text-gray-600'>
-              Homeowner funds are held from the moment the contract is signed.
-              Complete the work, upload after-photos — payment releases to your
-              Stripe account.
+              {PAYMENT_RELEASE_TIMING}
             </p>
           </div>
         </div>

@@ -68,7 +68,7 @@ export default function AboutPageClient() {
       icon: Shield,
       title: 'Trust & Safety',
       description:
-        'Every contractor submission is reviewed by our team before they can bid. We hold every payment in escrow until you approve the work.',
+        'Our team reviews contractor submissions before they can bid. The job record explains payment release and gives you a clear process if something goes wrong.',
     },
     {
       icon: Zap,
@@ -359,10 +359,9 @@ export default function AboutPageClient() {
               </p>
               <p>
                 So we built a platform where every contractor submission is
-                reviewed by our team, every payment is held in escrow until the
-                work is done, and AI helps match the right professional to the
-                right job. Clear expectations and quality work, paid
-                fairly.
+                reviewed by our team, work is agreed in writing, and payment
+                follows the job&rsquo;s release checks. There&rsquo;s a clear
+                process if something goes wrong.
               </p>
               <p className='font-medium' style={{ color: 'var(--me-ink)' }}>
                 We are a small, focused team based in Greater Manchester, and we
