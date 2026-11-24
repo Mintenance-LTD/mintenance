@@ -18,6 +18,7 @@
  */
 import React, { useState, useMemo } from 'react';
 import {
+  Alert,
   View,
   Text,
   FlatList,
@@ -27,6 +28,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,6 +52,7 @@ interface ScheduleItem {
   status: string;
   address?: string;
   clientResponse?: string;
+  clientName?: string;
   canRespond?: boolean;
   past?: boolean;
 }
@@ -145,6 +148,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           endTime?: string;
           status?: string;
           clientResponse?: string;
+          client?: { name?: string };
           canRespond?: boolean;
           past?: boolean;
           locationAddress?: string;
@@ -167,6 +171,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           status: a.status || 'scheduled',
           address: a.locationAddress || a.location,
           clientResponse: a.clientResponse,
+          clientName: a.client?.name,
           canRespond: a.canRespond,
           past: a.past,
         })
@@ -197,6 +202,27 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       next.setDate(next.getDate() + 7 * direction);
       return next;
     });
+  }
+
+  async function proposeNewVisit(visit: ScheduleItem) {
+    const base =
+      process.env.EXPO_PUBLIC_WEB_URL ||
+      process.env.EXPO_PUBLIC_API_URL ||
+      'https://www.mintenance.co.uk';
+    try {
+      const url = new URL('/contractor/scheduling', base);
+      url.searchParams.set('prefill', 'true');
+      url.searchParams.set('title', visit.job_title);
+      if (visit.clientName)
+        url.searchParams.set('clientName', visit.clientName);
+      if (visit.job_id) url.searchParams.set('jobId', visit.job_id);
+      await WebBrowser.openBrowserAsync(url.toString());
+    } catch {
+      Alert.alert(
+        'Could not open scheduling',
+        'Try again from the Mintenance website.'
+      );
+    }
   }
 
   const filteredSchedule = useMemo(() => {
@@ -476,6 +502,18 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.browseButtonText}>View job</Text>
             </TouchableOpacity>
           )}
+          {user?.role === 'contractor' &&
+            (openVisit.past || openVisit.status === 'cancelled') && (
+              <TouchableOpacity
+                style={styles.browseButton}
+                accessibilityRole='link'
+                onPress={() => void proposeNewVisit(openVisit)}
+              >
+                <Text style={styles.browseButtonText}>
+                  Propose a new visit on web
+                </Text>
+              </TouchableOpacity>
+            )}
         </PropertySheet>
       )}
     </View>
