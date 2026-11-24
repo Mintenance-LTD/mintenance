@@ -190,6 +190,34 @@ it('uses the returned latest page for subsequent older-page navigation', async (
     expect.anything()
   );
 });
+it('shows the assigned manager their next step without exposing the owner editor', async () => {
+  fetcher.mockResolvedValue(
+    response({
+      ...historyData(),
+      status: 'new',
+      staffFollowup: {
+        propertyId: 'property',
+        assigneeName: 'You',
+        canManage: false,
+        needsReassignment: false,
+      },
+    })
+  );
+  render(<ReportConversation reportId='first' queueSearch='scope=mine' />);
+  expect(
+    await screen.findByRole('region', { name: 'Property team follow-up' })
+  ).toHaveTextContent('You');
+  expect(screen.getByRole('region', { name: 'Next step' })).toHaveTextContent(
+    'Review the original report and share an update'
+  );
+  expect(screen.queryByText('Manage follow-up')).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: 'Back to action queue' })
+  ).toHaveAttribute(
+    'href',
+    '/properties/work-queue?scope=mine#queue-report-first'
+  );
+});
 it('clears the draft and ignores late history from a previous report', async () => {
   const view = render(<ReportConversation reportId='first' />);
   fireEvent.change(await screen.findByLabelText('Message'), {

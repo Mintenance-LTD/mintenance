@@ -72,7 +72,7 @@ function CaseConversation({
     !receipt && data?.role === 'manager' ? data.staffFollowup : undefined;
   const nextStep =
     data?.status === 'new' && staffFollowup?.assigneeName === 'You'
-      ? 'Review the original report and record what happens next.'
+      ? 'Review the original report and share an update when you know the next step.'
       : data?.status === 'new' &&
           staffFollowup?.canManage &&
           !staffFollowup.assigneeName

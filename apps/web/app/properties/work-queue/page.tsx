@@ -432,8 +432,9 @@ export default function PropertyWorkQueuePage() {
                       </button>
                     ) : (
                       <span className='text-sm text-slate-600'>
-                        View only — ask the property owner or manager to update
-                        the follow-up.
+                        {item.kind === 'report'
+                          ? 'The property owner manages this follow-up.'
+                          : 'Ask the property owner or manager to update the follow-up.'}
                       </span>
                     )}
                   </div>
