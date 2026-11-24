@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MintEditorialJobDetailView } from '@/app/contractor/(dashboard)/jobs/[id]/components/MintEditorialJobDetailView';
+import { StartChecklist } from '@/app/contractor/(dashboard)/jobs/[id]/components/StartChecklist';
 import { contractorPaymentPresentation } from '@/app/contractor/(dashboard)/jobs/[id]/payment-presentation';
 import {
   buildContractorProgressSteps,
@@ -37,13 +38,16 @@ vi.mock(
   })
 );
 
-function renderJob({
-  status,
-  jobStatus = 'assigned',
-  adminHold,
-  homeownerApproved,
-  unavailable,
-}: Parameters<typeof contractorPaymentPresentation>[0]) {
+function renderJob(
+  {
+    status,
+    jobStatus = 'assigned',
+    adminHold,
+    homeownerApproved,
+    unavailable,
+  }: Parameters<typeof contractorPaymentPresentation>[0],
+  historicalBrief = false
+) {
   const payment = contractorPaymentPresentation({
     status,
     jobStatus,
@@ -85,7 +89,8 @@ function renderJob({
             : 'pending',
       }))}
       payment={payment}
-      escrowId={null}
+      escrowId='escrow-id'
+      paymentHref='/contractor/payments/escrow-id'
       paymentAmounts={{
         gross: 1,
         fee: payment.kind === 'released' ? 0.5 : null,
@@ -93,7 +98,11 @@ function renderJob({
         processing: 0.22,
       }}
       jobPhotoUrls={[]}
-      buildingAssessment={null}
+      buildingAssessment={
+        historicalBrief
+          ? { assessment_data: { evidenceSufficient: false } }
+          : null
+      }
       userId='contractor'
       messageHref='/contractor/messages?jobId=job'
       platformFeeRate={0.05}
@@ -114,7 +123,18 @@ it('distinguishes a pending £1 payment, contractor estimate, processing fee and
   );
   expect(
     screen.getByRole('link', { name: 'Check transfer and bank payout status' })
-  ).toHaveAttribute('href', '/contractor/payouts');
+  ).toHaveAttribute('href', '/contractor/payments/escrow-id');
+});
+
+it('keeps the original assessment caveat in the completed job brief', () => {
+  renderJob({ status: 'released', jobStatus: 'completed' }, true);
+  expect(
+    screen.getByText('Original job photos couldn’t be assessed')
+  ).toBeVisible();
+  expect(screen.queryByText('New photos needed')).toBeNull();
+  expect(
+    screen.getByRole('heading', { name: 'Payment released' })
+  ).toBeVisible();
 });
 
 it.each(['released', 'completed'])(
@@ -128,10 +148,9 @@ it.each(['released', 'completed'])(
       screen.getByRole('heading', { name: 'Released earnings' })
     ).toBeVisible();
     expect(screen.getByText('Recorded contractor entitlement')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'View Payouts' })).toHaveAttribute(
-      'href',
-      '/contractor/payouts'
-    );
+    expect(
+      screen.getByRole('link', { name: 'View payment record' })
+    ).toHaveAttribute('href', '/contractor/payments/escrow-id');
     expect(
       screen.queryByText(/held in escrow|awaiting homeowner review/i)
     ).toBeNull();
@@ -187,3 +206,15 @@ it.each([
     ).toBeNull();
   }
 );
+it('shows before-photo instructions separately from a passed work window', () => {
+  render(<StartChecklist funded beforePhotoCount={0} windowPassed />);
+  expect(screen.getByText('Customer payment secured')).toBeVisible();
+  expect(
+    screen.getByText('Upload at least one before photo on site')
+  ).toBeVisible();
+  expect(screen.getByText(/agree a new date with the homeowner/)).toBeVisible();
+  expect(screen.getByRole('link', { name: 'View schedule' })).toHaveAttribute(
+    'href',
+    '#job-schedule'
+  );
+});

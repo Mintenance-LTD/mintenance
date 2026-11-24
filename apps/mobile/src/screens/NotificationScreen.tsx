@@ -18,6 +18,8 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
+  Text,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -41,6 +43,8 @@ import {
   FilterTab,
 } from './notifications';
 
+const PAGE_SIZE = 50;
+
 export const NotificationScreen: React.FC = () => {
   const { user } = useAuth();
   return <NotificationInbox key={user?.id || 'signed-out'} userId={user?.id} />;
@@ -56,6 +60,12 @@ const NotificationInbox: React.FC<{ userId?: string }> = ({ userId }) => {
   const [error, setError] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const nextOffset = useRef(0);
+  const paging = useRef(false);
+  const markingRead = useRef(new Set<string>());
+  const [hasOlder, setHasOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [olderError, setOlderError] = useState(false);
 
   const filteredNotifications = useMemo(
     () => filterNotifications(notifications, activeTab),
@@ -77,6 +87,9 @@ const NotificationInbox: React.FC<{ userId?: string }> = ({ userId }) => {
       if (request !== requests.current.id) return;
       setNotifications(notificationsData);
       setUnreadCount(count);
+      nextOffset.current = notificationsData.length;
+      setHasOlder(notificationsData.length === PAGE_SIZE);
+      setOlderError(false);
       setError(null);
     } catch (err) {
       if (request !== requests.current.id) return;
@@ -90,6 +103,33 @@ const NotificationInbox: React.FC<{ userId?: string }> = ({ userId }) => {
     }
   }, [userId]);
 
+  async function loadOlder() {
+    if (!userId || !hasOlder || paging.current || refreshing) return;
+    paging.current = true;
+    setLoadingOlder(true);
+    setOlderError(false);
+    const request = requests.current.id;
+    try {
+      const older = await NotificationService.getUserNotifications(
+        userId,
+        PAGE_SIZE,
+        nextOffset.current
+      );
+      if (request !== requests.current.id) return;
+      nextOffset.current += older.length;
+      setHasOlder(older.length === PAGE_SIZE);
+      setNotifications((current) => {
+        const ids = new Set(current.map((item) => item.id));
+        return [...current, ...older.filter((item) => !ids.has(item.id))];
+      });
+    } catch {
+      if (request === requests.current.id) setOlderError(true);
+    } finally {
+      paging.current = false;
+      setLoadingOlder(false);
+    }
+  }
+
   const handleRefresh = () => {
     setRefreshing(true);
     loadNotifications();
@@ -97,21 +137,28 @@ const NotificationInbox: React.FC<{ userId?: string }> = ({ userId }) => {
 
   const handleNotificationPress = async (notification: NotificationData) => {
     if (!notification.read) {
-      await NotificationService.markAsRead(notification.id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      await handleMarkRead(notification);
     }
     navigateForNotification(navigation, notification);
   };
 
-  const handleMarkRead = (notification: NotificationData) => {
-    NotificationService.markAsRead(notification.id);
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
-    );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
+  const handleMarkRead = async (notification: NotificationData) => {
+    if (markingRead.current.has(notification.id)) return;
+    markingRead.current.add(notification.id);
+    try {
+      await NotificationService.markAsRead(notification.id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
+      );
+      setUnreadCount((count) => Math.max(0, count - 1));
+    } catch {
+      Alert.alert(
+        'Could not update notification',
+        'Please try marking it as read again.'
+      );
+    } finally {
+      markingRead.current.delete(notification.id);
+    }
   };
 
   const handleMarkAllAsRead = () => {
@@ -240,8 +287,29 @@ const NotificationInbox: React.FC<{ userId?: string }> = ({ userId }) => {
         unreadCount={unreadCount}
         onTabChange={setActiveTab}
       />
+      {hasOlder && (
+        <View style={styles.older}>
+          {olderError && (
+            <Text accessibilityRole='alert'>
+              Could not load older notifications.
+            </Text>
+          )}
+          <TouchableOpacity
+            accessibilityRole='button'
+            accessibilityLabel='Load older notifications'
+            disabled={loadingOlder || refreshing}
+            onPress={() => void loadOlder()}
+          >
+            <Text style={styles.olderButton}>
+              {loadingOlder
+                ? 'Loading older notifications…'
+                : 'Load older notifications'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {filteredNotifications.length === 0 ? (
-        <NotificationEmpty activeTab={activeTab} />
+        <NotificationEmpty activeTab={activeTab} hasOlder={hasOlder} />
       ) : (
         <FlatList
           data={filteredNotifications}
@@ -279,4 +347,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
   },
+  older: { paddingHorizontal: 16, alignItems: 'center', gap: 8 },
+  olderButton: { color: me.brand, fontWeight: '600', padding: 8 },
 });

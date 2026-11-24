@@ -1,7 +1,10 @@
 import { annotatePaymentAlerts } from './payment-alerts';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@mintenance/shared';
-import { isSocialNotificationType } from '@mintenance/types';
+import {
+  isSocialNotificationType,
+  SOCIAL_NOTIFICATION_TYPES,
+} from '@mintenance/types';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
 export interface FeedNotification {
@@ -86,7 +89,11 @@ export async function fetchNotificationFeed(
         'id, type, title, message, read, created_at, action_url, user_id, metadata'
       )
       .eq('user_id', userId)
+      .or(
+        'type.is.null,type.not.in.(' + SOCIAL_NOTIFICATION_TYPES.join(',') + ')'
+      )
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .range(safeOffset, safeOffset + safeLimit - 1);
 
     if (error) {

@@ -84,7 +84,9 @@ async function fetchJobEvents(): Promise<CalendarEvent[]> {
 
 async function fetchAppointmentEvents(): Promise<CalendarEvent[]> {
   try {
-    const res = await fetch('/api/appointments', { credentials: 'include' });
+    const res = await fetch('/api/appointments?view=calendar&limit=500', {
+      credentials: 'include',
+    });
     if (!res.ok) return [];
     const data = await res.json();
     const items = data.appointments || [];
@@ -103,7 +105,11 @@ async function fetchAppointmentEvents(): Promise<CalendarEvent[]> {
         '';
       return {
         id: a.id as string,
-        title: (a.title as string) || 'Appointment',
+        title:
+          ((a.title as string) || 'Appointment') +
+          (a.status === 'rescheduled' && a.clientResponse !== 'confirmed'
+            ? ' · Not confirmed'
+            : ''),
         type: 'appointment' as const,
         date:
           (a.date as string) ||

@@ -156,6 +156,7 @@ export const GET = withApiHandler(
         type: apt.location_type === 'video' ? 'remote' : apt.location_type,
         videoCallUrl: apt.video_call_url,
         status: apt.status,
+        clientResponse: apt.client_response,
         jobTitle: apt.job?.title,
         jobId: apt.job?.id,
         notes: apt.notes,

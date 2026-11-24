@@ -1,5 +1,11 @@
 'use client';
 import { appointmentTime } from '@/lib/scheduling/appointment-display';
+import {
+  canRescheduleVisit,
+  visitHref,
+  visitIsUnconfirmed,
+} from '@/lib/scheduling/visit-history';
+import Link from 'next/link';
 
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -138,19 +144,30 @@ export function CalendarView({
               {dayAppointments.length > 0 && (
                 <div className='space-y-1'>
                   {dayAppointments.map((apt) => (
-                    <button
-                      type='button'
-                      onClick={() => onEdit?.(apt)}
-                      aria-label={'View or reschedule ' + apt.title}
+                    <div
                       key={apt.id}
-                      className='px-2 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs truncate font-medium border border-teal-100'
+                      className='rounded-lg border border-teal-100 bg-teal-50 text-xs text-teal-800'
                     >
-                      <span
-                        title={`${appointmentTime(apt.time, apt.endTime)} · ${apt.title}`}
+                      <Link
+                        href={visitHref(apt.id, 'contractor')}
+                        aria-label={`View visit: ${apt.title}`}
+                        className='block truncate rounded-lg px-2 py-1 font-medium hover:underline'
                       >
                         {appointmentTime(apt.time, apt.endTime)} · {apt.title}
-                      </span>
-                    </button>
+                        {visitIsUnconfirmed(apt.status, apt.clientResponse) &&
+                          ' · Not confirmed'}
+                      </Link>
+                      {onEdit && canRescheduleVisit(apt) && (
+                        <button
+                          type='button'
+                          aria-label={`Edit visit: ${apt.title}`}
+                          onClick={() => onEdit(apt)}
+                          className='px-2 pb-1 underline'
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}

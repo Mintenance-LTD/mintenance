@@ -59,6 +59,7 @@ export function normalizeNotificationType(
   if (
     t.startsWith('payment_') ||
     t.startsWith('escrow_') ||
+    t.startsWith('dispute_') ||
     t.startsWith('refund_') ||
     t.startsWith('payout_') ||
     t.startsWith('invoice_')

@@ -657,3 +657,51 @@ it('routes a scheduled phone call reminder to its conversation', () => {
     routeForNotification('message_received', payload)
   );
 });
+it('opens exact contractor payments and disputes from notification links', () => {
+  const escrowId = '00000000-0000-4000-8000-000000000001';
+  expect(
+    routeForNotification('payment_released', {
+      actionUrl: '/contractor/payments/' + escrowId,
+    })
+  ).toMatchObject({
+    screen: 'Main',
+    params: {
+      screen: 'JobsTab',
+      params: { screen: 'ContractorPaymentDetails', params: { escrowId } },
+    },
+  });
+  expect(
+    routeForNotification('dispute_opened', {
+      actionUrl: '/disputes/' + escrowId,
+    })
+  ).toMatchObject({
+    screen: 'Main',
+    params: {
+      screen: 'JobsTab',
+      params: { screen: 'DisputeDetails', params: { escrowId } },
+    },
+  });
+});
+it('opens the exact changed visit and work-window proposal on mobile', () => {
+  const appointmentId = '00000000-0000-4000-8000-000000000001';
+  const jobId = '00000000-0000-4000-8000-000000000002';
+  expect(
+    routeForNotification('appointment_update', { appointmentId, jobId })
+  ).toMatchObject({
+    params: {
+      screen: 'JobsTab',
+      params: { screen: 'VisitDetails', params: { appointmentId } },
+    },
+  });
+  expect(
+    routeForNotification('job_scheduled', {
+      jobId,
+      workWindowProposalId: appointmentId,
+    })
+  ).toMatchObject({
+    params: {
+      screen: 'JobsTab',
+      params: { screen: 'JobWorkWindow', params: { jobId } },
+    },
+  });
+});

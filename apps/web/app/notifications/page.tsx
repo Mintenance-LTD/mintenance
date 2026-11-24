@@ -15,45 +15,11 @@ import {
 } from '@/components/notifications/NotificationsInboxView';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { fetchWithCsrf } from '@/lib/csrf-client';
+import { fetchInboxPage, type Cursor } from '@/lib/notifications/fetch-inbox';
 import { safeActionUrl } from '@/lib/notifications/safe-action-url';
 import { LegacyNotificationsView } from './LegacyNotificationsView';
 import type { FilterType } from './MintEditorialNotifications';
 import { useNotificationsRealtime } from './useNotificationsRealtime';
-
-type Cursor = { before: string; beforeId: string };
-type InboxPage = {
-  notifications: InboxNotification[];
-  unreadCount: number;
-  nextCursor: Cursor | null;
-};
-
-async function fetchInboxPage(
-  cursor: Cursor | null,
-  signal: AbortSignal
-): Promise<InboxPage> {
-  const params = new URLSearchParams({ inbox: '1', ...cursor });
-  const response = await fetch('/api/notifications?' + params, {
-    cache: 'no-store',
-    signal,
-  });
-  if (!response.ok) throw new Error('Could not load notifications.');
-  const data = await response.json();
-  if (
-    !Array.isArray(data?.notifications) ||
-    typeof data.unreadCount !== 'number'
-  ) {
-    throw new Error('Could not load notifications.');
-  }
-  return {
-    ...data,
-    notifications: data.notifications.map(
-      (row: Omit<InboxNotification, 'is_read'> & { read: boolean }) => ({
-        ...row,
-        is_read: row.read,
-      })
-    ),
-  };
-}
 
 export default function NotificationsPage() {
   const router = useRouter();

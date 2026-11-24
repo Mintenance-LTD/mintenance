@@ -12,10 +12,12 @@ import { FilterTab } from './notificationConfig';
 
 interface NotificationEmptyProps {
   activeTab: FilterTab;
+  hasOlder?: boolean;
 }
 
 export const NotificationEmpty: React.FC<NotificationEmptyProps> = ({
   activeTab,
+  hasOlder = false,
 }) => {
   return (
     <View style={styles.emptyContainer}>
@@ -28,12 +30,18 @@ export const NotificationEmpty: React.FC<NotificationEmptyProps> = ({
         />
       </View>
       <Text style={styles.emptyTitle}>
-        {activeTab === 'unread' ? 'All caught up!' : 'No notifications'}
+        {hasOlder
+          ? 'No matches in loaded notifications'
+          : activeTab === 'unread'
+            ? 'All caught up!'
+            : 'No notifications'}
       </Text>
       <Text style={styles.emptySubtitle}>
-        {activeTab === 'unread'
-          ? 'You have no unread notifications.'
-          : 'New notifications will appear here.'}
+        {hasOlder
+          ? 'Load older notifications to see more.'
+          : activeTab === 'unread'
+            ? 'You have no unread notifications.'
+            : 'New notifications will appear here.'}
       </Text>
     </View>
   );

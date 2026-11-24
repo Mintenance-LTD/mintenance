@@ -75,11 +75,16 @@ export function NotificationBell({ href }: NotificationBellProps) {
     // Also reconciles missed events and incomplete RLS old-row payloads.
     const interval = window.setInterval(requestRefresh, 30_000);
     window.addEventListener('online', requestRefresh);
+    window.addEventListener('mintenance:notifications-updated', requestRefresh);
     return () => {
       disposed = true;
       controller?.abort();
       window.clearInterval(interval);
       window.removeEventListener('online', requestRefresh);
+      window.removeEventListener(
+        'mintenance:notifications-updated',
+        requestRefresh
+      );
       refreshRef.current = () => {};
     };
   }, [userId]);

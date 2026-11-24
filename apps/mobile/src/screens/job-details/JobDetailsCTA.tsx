@@ -36,6 +36,7 @@ export interface CTAContext {
   // true = homeowner signed and the contractor must now counter-sign.
   contractHomeownerSigned: boolean;
   escrowStatus: string | null;
+  contractorStartRestriction?: string | null;
   hasReviewed: boolean;
   // 2026-05-25 audit-P0-3: count of before-photos already uploaded for
   // this job. When > 0 in the ready_to_start branch, the CTA shows
@@ -69,6 +70,7 @@ export function getPriorityCTA({
   contractStatus,
   contractHomeownerSigned,
   escrowStatus,
+  contractorStartRestriction,
   hasReviewed,
   beforePhotoCount,
   bidsArray,
@@ -282,6 +284,15 @@ export function getPriorityCTA({
     contractStatus === 'accepted' &&
     isEscrowHeldOnly(escrowStatus)
   ) {
+    if (contractorStartRestriction) {
+      return (
+        <StickyBottomCTA
+          buttonText='Review start conditions'
+          onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
+          secondaryText={contractorStartRestriction}
+        />
+      );
+    }
     if (beforePhotoCount > 0) {
       return (
         <ReadyToStartCTA

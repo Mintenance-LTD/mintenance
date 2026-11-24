@@ -24,6 +24,8 @@ interface JobDetailsAggregate {
   contractStatus: string | null;
   contractHomeownerSigned?: boolean;
   escrowStatus: string | null;
+  contractorEscrowId?: string | null;
+  contractorStartRestriction?: string | null;
   hasReviewed: boolean;
   buildingAssessment: {
     id: string;
@@ -52,6 +54,8 @@ interface JobDetailsState {
   contractStatus: string | null;
   contractHomeownerSigned: boolean;
   escrowStatus: string | null;
+  contractorEscrowId: string | null;
+  contractorStartRestriction: string | null;
   hasReviewed: boolean;
   beforePhotoCount: number;
   afterPhotoCount: number;
@@ -77,6 +81,12 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
   const [contractStatus, setContractStatus] = useState<string | null>(null);
   const [contractHomeownerSigned, setContractHomeownerSigned] = useState(false);
   const [escrowStatus, setEscrowStatus] = useState<string | null>(null);
+  const [contractorEscrowId, setContractorEscrowId] = useState<string | null>(
+    null
+  );
+  const [contractorStartRestriction, setContractorStartRestriction] = useState<
+    string | null
+  >(null);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [beforePhotoCount, setBeforePhotoCount] = useState(0);
   const [afterPhotoCount, setAfterPhotoCount] = useState(0);
@@ -145,6 +155,10 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
         setContractStatus(aggregate.contractStatus ?? null);
         setContractHomeownerSigned(!!aggregate.contractHomeownerSigned);
         setEscrowStatus(aggregate.escrowStatus ?? null);
+        setContractorEscrowId(aggregate.contractorEscrowId ?? null);
+        setContractorStartRestriction(
+          aggregate.contractorStartRestriction ?? null
+        );
         setHasReviewed(!!aggregate.hasReviewed);
         setBeforePhotoCount(aggregate.beforePhotoCount ?? 0);
         setAfterPhotoCount(aggregate.afterPhotoCount ?? 0);
@@ -236,6 +250,8 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     contractStatus,
     contractHomeownerSigned,
     escrowStatus,
+    contractorEscrowId,
+    contractorStartRestriction,
     hasReviewed,
     beforePhotoCount,
     afterPhotoCount,

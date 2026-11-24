@@ -58,6 +58,7 @@ import { BidCard } from './BidCard';
 import { ImageLightbox } from './ImageLightbox';
 import { OpenJobDispute } from '../review/OpenJobDispute';
 import { JobLifecycleTimeline, NextActionCard } from './JobLifecycleTimeline';
+import { JobVisitHistory } from '@/components/scheduling/JobVisitHistory';
 
 // Re-export types used by external consumers (e.g., page.tsx)
 /* ==========================================
@@ -387,6 +388,8 @@ export function JobDetailsProfessional({
           {/* RIGHT COLUMN - Sticky Sidebar (4 columns) */}
           <div className='col-span-12 lg:col-span-4'>
             <div className='sticky top-6 space-y-6'>
+              {isOwner && <JobVisitHistory jobId={job.id} role='homeowner' />}
+
               {/* Job Lifecycle Timeline */}
               {isOwner && lifecycleData && (
                 <JobLifecycleTimeline

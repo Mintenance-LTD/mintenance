@@ -2,6 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { disputeHref } from '@/lib/disputes/presentation';
 import { isValidUUID } from '@/lib/validation/uuid';
 import type { FeedNotification } from './feed';
+import { resolveVisitAlert } from './visit-actions';
+import {
+  contractorAlertTarget,
+  presentContractorAlert,
+} from './contractor-actions';
 
 export interface InboxRow extends FeedNotification {
   approval_key: string | null;
@@ -125,10 +130,35 @@ export async function resolveInboxActions(
   actor: Actor,
   rows: InboxRow[]
 ) {
-  const [payments, disputeDestinations] = await Promise.all([
-    readReviewPayments(db, rows),
-    readDisputeDestinations(db, actor, rows),
-  ]);
+  const contractorTargets = new Map(
+    actor.role === 'contractor'
+      ? rows.map((row) => [row.id, contractorAlertTarget(row)] as const)
+      : []
+  );
+  const jobIds = [
+    ...new Set(
+      [...contractorTargets.values()].flatMap((target) =>
+        target && target.kind !== 'funding' && !target.escrowId && target.jobId
+          ? [target.jobId]
+          : []
+      )
+    ),
+  ];
+  const [payments, disputeDestinations, contractorPayments] = await Promise.all(
+    [
+      readReviewPayments(db, rows),
+      readDisputeDestinations(db, actor, rows),
+      jobIds.length
+        ? db
+            .from('escrow_transactions')
+            .select('id,job_id,status,released_at')
+            .eq('payee_id', actor.id)
+            .in('job_id', jobIds)
+            .or('released_at.not.is.null,status.eq.disputed')
+        : null,
+    ]
+  );
+  if (contractorPayments?.error) throw contractorPayments.error;
   const authorisedPayments = payments.filter((payment) =>
     canReviewPayment(payment, actor)
   );
@@ -138,8 +168,29 @@ export async function resolveInboxActions(
       typeof disputeId === 'string'
         ? disputeDestinations.get(disputeId)
         : undefined;
+    const target = contractorTargets.get(row.id);
+    if (target) {
+      const jobPayments =
+        contractorPayments?.data?.filter(
+          (payment) =>
+            payment.job_id === target.jobId &&
+            (target.kind === 'release'
+              ? payment.released_at
+              : payment.status === 'disputed')
+        ) ?? [];
+      const exactId = jobPayments.length === 1 ? jobPayments[0].id : undefined;
+      return presentContractorAlert(
+        row,
+        target,
+        caseHref ??
+          (target.kind === 'dispute' && !target.escrowId && exactId
+            ? disputeHref(exactId)
+            : undefined),
+        target.kind === 'release' ? (target.escrowId ?? exactId) : undefined
+      );
+    }
     if (caseHref) return { ...row, action_url: caseHref, link: caseHref };
-    if (!approval_key) return row;
+    if (!approval_key) return resolveVisitAlert(row, actor.role);
 
     const related = authorisedPayments.filter(
       (payment) =>

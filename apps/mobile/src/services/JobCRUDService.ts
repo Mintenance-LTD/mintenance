@@ -469,6 +469,7 @@ export class JobCRUDService {
       // auto-release countdown banner (web parity, audit-P2-4).
       'completed_at',
       'scheduledStartDate',
+      'scheduledEndDate',
       'requirements',
       'start_date',
       'end_date',
