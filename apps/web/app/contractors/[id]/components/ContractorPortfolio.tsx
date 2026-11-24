@@ -12,7 +12,13 @@ export function ContractorPortfolio({ portfolio }: { portfolio: PortfolioItem[] 
   return <section className="border-b border-gray-200 pb-8">
     <h2 className="text-2xl font-semibold text-gray-900 mb-6">Portfolio</h2>
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {portfolio.map(item => <article key={item.id} className="rounded-2xl overflow-hidden border border-gray-200 bg-white">
+      {portfolio.map(item => <PortfolioProjectCard key={item.id} item={item} />)}
+    </div>
+  </section>;
+}
+
+export function PortfolioProjectCard({ item }: { item: Pick<PortfolioItem, 'title' | 'description' | 'images'> }) {
+  return <article className="rounded-2xl overflow-hidden border border-gray-200 bg-white">
         {item.images[0] && <div className="relative aspect-[4/3] bg-gray-100"><Image src={item.images[0]} alt={item.title} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-cover" /></div>}
         <div className="p-4"><h3 className="font-semibold text-lg">{item.title}</h3>
           {item.description && <p className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">{item.description}</p>}
@@ -20,7 +26,5 @@ export function ContractorPortfolio({ portfolio }: { portfolio: PortfolioItem[] 
             <div className="grid grid-cols-2 gap-2 mt-3">{item.images.slice(1).map((url, index) => <div key={url} className="relative aspect-square"><Image src={url} alt={`${item.title}, photo ${index + 2}`} fill sizes="25vw" className="object-cover rounded-lg" /></div>)}</div>
           </details>}
         </div>
-      </article>)}
-    </div>
-  </section>;
+      </article>;
 }

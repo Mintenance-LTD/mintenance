@@ -12,6 +12,7 @@ interface QuoteCardProps {
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onViewJob?: (jobId: string) => void;
   busy?: boolean;
 }
 const statusStyles: Record<
@@ -31,6 +32,7 @@ export const QuoteCard = ({
   onEdit,
   onDuplicate,
   onDelete,
+  onViewJob,
   busy = false,
 }: QuoteCardProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -39,6 +41,7 @@ export const QuoteCard = ({
   const status = statusStyles[quote.status] ?? statusStyles.draft;
   const reference = quote.quote_number || quote.id.slice(0, 8).toUpperCase();
   const date = new Date(quote.created_at);
+  const linkedJob = quote.status === 'accepted' ? quote.linkedJob : null;
   return (
     <View style={styles.card}>
       <TouchableOpacity
@@ -63,6 +66,11 @@ export const QuoteCard = ({
         <Text style={styles.meta} numberOfLines={1}>
           {quote.client_name?.trim() || 'Client not added'}
         </Text>
+        {linkedJob && (
+          <Text style={styles.meta}>
+            Job #{linkedJob.id.slice(0, 8).toUpperCase()} · {linkedJob.nextStep}
+          </Text>
+        )}
         <View style={styles.bottom}>
           <Text style={styles.meta}>
             {Number.isNaN(date.getTime())
@@ -94,6 +102,15 @@ export const QuoteCard = ({
           </Text>
           <Ionicons name='arrow-forward' size={17} color={me.brand2} />
         </TouchableOpacity>
+        {linkedJob && onViewJob && (
+          <TouchableOpacity
+            accessibilityRole='button'
+            onPress={() => onViewJob(linkedJob.id)}
+            style={styles.open}
+          >
+            <Text style={styles.link}>View job</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           accessibilityRole='button'
           accessibilityLabel={`More actions for quote ${reference}`}

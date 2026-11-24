@@ -3,9 +3,11 @@
 import { useCallback, useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
+import type { QuoteLinkedJob } from '@/lib/quotes/effective-quotes';
 
 export interface Quote {
   id: string;
+  linkedJob?: QuoteLinkedJob;
   jobTitle: string;
   customerName: string;
   customerEmail?: string;

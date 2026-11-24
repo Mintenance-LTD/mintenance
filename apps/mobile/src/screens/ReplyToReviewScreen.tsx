@@ -182,7 +182,7 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
             <ActivityIndicator color={me.surface} />
           ) : (
             <Text style={{ color: me.surface, fontWeight: '700' }}>
-              Submit reply
+              Post public reply
             </Text>
           )}
         </TouchableOpacity>

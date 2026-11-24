@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { Star, Search, Briefcase, Reply, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
@@ -357,6 +358,7 @@ export default function ContractorReviewsPage() {
                 <span className='inline-flex items-center gap-1.5 px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-sm font-medium'>
                   <Briefcase className='w-3.5 h-3.5' />
                   {review.jobTitle}
+                  {review.jobId && <Link className='ml-2 underline' href={`/contractor/jobs/${review.jobId}`}>View job</Link>}
                 </span>
               </div>
 
@@ -449,7 +451,7 @@ export default function ContractorReviewsPage() {
                       {submittingResponse && (
                         <Loader2 className='w-4 h-4 animate-spin' />
                       )}
-                      Post reply
+                      Post public reply
                     </MotionButton>
                     <MotionButton
                       whileHover={{ scale: 1.02 }}

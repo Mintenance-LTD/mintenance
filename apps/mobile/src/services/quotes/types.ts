@@ -30,6 +30,7 @@ export interface QuoteLineItemTemplate {
 
 export interface ContractorQuote {
   pricing_edit_version?: number;
+  linkedJob?: { id: string; nextStep: string };
   line_items?: {
     description?: string;
     item_name?: string;

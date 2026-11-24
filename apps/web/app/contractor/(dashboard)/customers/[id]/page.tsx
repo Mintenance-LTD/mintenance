@@ -5,7 +5,9 @@ import Image from 'next/image';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { collectRows } from '@/lib/db/collect-rows';
-import { getReleasedCustomerPayments } from '@/lib/contractor/customer-payments';
+import { getCustomerPayments } from '@/lib/contractor/customer-payments';
+import { withEffectiveQuoteStatuses } from '@/lib/quotes/effective-quotes';
+import { formatMoney } from '@/lib/utils/currency';
 import { ArrowLeft, Briefcase, Mail, Phone, MapPin } from 'lucide-react';
 
 export const metadata = {
@@ -46,10 +48,61 @@ export default async function CustomerDetailPage({
     .single();
   if (customerError) throw new Error('Customer profile unavailable');
   if (!customer) notFound();
-  const releasedByJob = await getReleasedCustomerPayments(
-    user.id,
-    jobs.map((job) => job.id)
-  );
+  const contractorId = user.id;
+  const customerEmail = customer.email;
+  const jobIds = jobs.map((job) => job.id);
+  type CustomerQuote = {
+    id: string;
+    title: string;
+    status: string;
+    total_amount: number;
+    valid_until?: string | null;
+    created_at: string;
+  };
+  async function loadQuotes() {
+    const rows = new Map<string, CustomerQuote>();
+    for (let offset = 0; offset < jobIds.length; offset += 100) {
+      const linked = await collectRows<{
+        quote: CustomerQuote | CustomerQuote[] | null;
+      }>((from, to) =>
+        serverSupabase
+          .from('bids')
+          .select(
+            'quote:contractor_quotes!quote_id(id,title,status,total_amount,valid_until,created_at)'
+          )
+          .eq('contractor_id', contractorId)
+          .eq('quote.contractor_id', contractorId)
+          .in('job_id', jobIds.slice(offset, offset + 100))
+          .not('quote_id', 'is', null)
+          .order('id')
+          .range(from, to)
+      );
+      for (const row of linked) {
+        const quote = Array.isArray(row.quote) ? row.quote[0] : row.quote;
+        if (quote) rows.set(quote.id, quote);
+      }
+    }
+    if (customerEmail) {
+      const emailQuotes = await collectRows<CustomerQuote>((from, to) =>
+        serverSupabase
+          .from('current_contractor_quotes')
+          .select('id,title,status,total_amount,valid_until,created_at')
+          .eq('contractor_id', contractorId)
+          .ilike('client_email', customerEmail.replace(/[\\%_]/g, '\\$&'))
+          .order('id')
+          .range(from, to)
+      );
+      for (const quote of emailQuotes) rows.set(quote.id, quote);
+    }
+    return withEffectiveQuoteStatuses(
+      [...rows.values()].sort((a, b) =>
+        b.created_at.localeCompare(a.created_at)
+      ),
+      contractorId
+    );
+  }
+  const [{ released: releasedByJob, open: openPayments }, quotes] =
+    await Promise.all([getCustomerPayments(user.id, jobIds), loadQuotes()]);
 
   // Fetch messages
   const { data: recentMessages } = await serverSupabase
@@ -252,7 +305,10 @@ export default async function CustomerDetailPage({
               <div className='label'>Released payments</div>
               <div className='num' style={{ color: 'var(--me-brand)' }}>
                 {'\u00A3'}
-                {totalRevenue.toLocaleString('en-GB')}
+                {totalRevenue.toLocaleString('en-GB', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </div>
             </div>
             <div className='kpi' style={{ padding: 0, border: 'none' }}>
@@ -279,7 +335,10 @@ export default async function CustomerDetailPage({
             <div>
               <div className='text-2xl font-bold text-teal-600'>
                 {'\u00A3'}
-                {totalRevenue.toLocaleString('en-GB')}
+                {totalRevenue.toLocaleString('en-GB', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </div>
               <div className='text-sm text-gray-500'>Released payments</div>
             </div>
@@ -319,7 +378,21 @@ export default async function CustomerDetailPage({
                 const cat = (job.category as string) || 'general';
                 const status = (job.status as string) || 'posted';
                 const date = job.created_at as string;
-                const price = releasedByJob.get(id) ?? 0;
+                const price = releasedByJob.get(id);
+                const payment = openPayments.get(id);
+                const paymentLabel =
+                  payment === 'disputed'
+                    ? 'Release paused · Dispute under review'
+                    : payment === 'release_pending'
+                      ? 'Payment release pending'
+                      : payment === 'pending_review'
+                        ? 'Payment in review'
+                        : payment === 'held' ||
+                            payment === 'awaiting_homeowner_approval'
+                          ? 'Held in escrow'
+                          : payment === 'pending'
+                            ? 'Payment pending'
+                            : null;
                 return (
                   <Link
                     key={id}
@@ -340,21 +413,32 @@ export default async function CustomerDetailPage({
                         </p>
                       </div>
                       <div className='flex items-center gap-3'>
-                        <span className='text-lg font-semibold text-gray-900'>
-                          {'\u00A3'}
-                          {price.toLocaleString('en-GB', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}{' '}
-                          released
-                        </span>
-                        <span
-                          className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-600'}`}
-                        >
-                          {status
-                            .replace('_', ' ')
-                            .replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                        </span>
+                        <div className='text-right'>
+                          {paymentLabel && (
+                            <p className='font-semibold text-gray-900'>
+                              {paymentLabel}
+                            </p>
+                          )}
+                          {price != null && (
+                            <p className='text-sm text-gray-600'>
+                              {formatMoney(price, 'GBP')} released
+                            </p>
+                          )}
+                          {price == null && !paymentLabel && (
+                            <p className='text-sm text-gray-600'>
+                              No released payment
+                            </p>
+                          )}
+                        </div>
+                        {payment !== 'disputed' && (
+                          <span
+                            className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-600'}`}
+                          >
+                            {status
+                              .replace('_', ' ')
+                              .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </Link>
@@ -366,6 +450,34 @@ export default async function CustomerDetailPage({
 
         {/* Sidebar: recent messages + reviews */}
         <div className='space-y-6'>
+          <section className='space-y-2'>
+            <h2 className='text-lg font-semibold'>Quote history</h2>
+            {quotes.length ? (
+              <ul className='space-y-2'>
+                {quotes.map((quote) => (
+                  <li
+                    key={quote.id}
+                    className='rounded-lg border border-slate-200 p-3'
+                  >
+                    <Link
+                      href={`/contractor/quotes/${quote.id}`}
+                      className='font-medium underline'
+                    >
+                      {quote.title}
+                    </Link>
+                    <p className='text-sm text-slate-600 capitalize'>
+                      {quote.status} ·{' '}
+                      {formatMoney(Number(quote.total_amount), 'GBP')}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className='text-sm text-slate-600'>
+                No quotes for this customer.
+              </p>
+            )}
+          </section>
           {/* Recent messages */}
           <div>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>

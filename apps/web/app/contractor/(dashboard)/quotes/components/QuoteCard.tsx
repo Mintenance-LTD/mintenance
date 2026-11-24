@@ -20,6 +20,7 @@ import {
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import type { Quote } from './useQuotesData';
+import { QuoteJobLink } from './QuoteJobLink';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -250,12 +251,12 @@ export function QuoteCard({
           </p>
         </div>
         <div className='space-y-2 text-sm'>
-          <div className='flex items-center justify-between'>
-            <span className='text-slate-600'>Items</span>
-            <span className='font-semibold text-slate-900'>
-              {quote.items || 0}
-            </span>
-          </div>
+          {quote.items || quote.status === 'draft' ? (
+            <div className='flex items-center justify-between'>
+              <span className='text-slate-600'>Items</span>
+              <span className='font-semibold text-slate-900'>{quote.items ?? 0}</span>
+            </div>
+          ) : <p className='font-medium'>Fixed-price quote</p>}
           <div className='flex items-center justify-between'>
             <span className='text-slate-600'>Created</span>
             <span className='font-medium text-slate-900'>
@@ -291,6 +292,7 @@ export function QuoteCard({
 
       {/* Footer */}
       <div className='mt-auto px-8 pb-8'>
+        {quote.status === 'accepted' && quote.linkedJob && <div className='mb-3'><QuoteJobLink job={quote.linkedJob} /></div>}
         {quote.status === 'draft' ? (
           <div className='grid grid-cols-2 gap-2'>
             <button

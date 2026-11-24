@@ -59,7 +59,8 @@ const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value || 0);
 
 const formatRelative = (iso: string | null): string => {

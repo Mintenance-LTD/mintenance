@@ -159,7 +159,7 @@ export function ReportingDashboard2025Client({
               }
             />
             <KPICard
-              title='Average Job Value'
+              title='Average per paid job'
               value={formatMoney(analytics.averageJobValue, 'GBP')}
               change={Math.round(analytics.avgValueChange * 10) / 10}
               changeLabel='vs last period'
@@ -174,17 +174,9 @@ export function ReportingDashboard2025Client({
             />
             <KPICard
               title='Customer Satisfaction'
-              value={`${analytics.customerSatisfaction.toFixed(1)}/5.0`}
-              change={Math.round(analytics.satisfactionChange * 10) / 10}
-              changeLabel='rating average'
+              value={analytics.reviewCount > 0 ? `${analytics.customerSatisfaction.toFixed(1)}/5.0` : '—'}
+              changeLabel={analytics.reviewCount > 0 ? `${analytics.reviewCount} ${analytics.reviewCount === 1 ? 'review' : 'reviews'} in this period` : 'No reviews in this period'}
               icon={<Star className='w-5 h-5' />}
-              trend={
-                analytics.satisfactionChange > 0
-                  ? 'up'
-                  : analytics.satisfactionChange < 0
-                    ? 'down'
-                    : 'neutral'
-              }
             />
           </div>
 
