@@ -237,10 +237,23 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
             <Text style={styles.projectTitle}>{quote.project_title}</Text>
             {linkedJob && (
               <View>
-                <Text style={styles.detailText}>{contractorJobReference(linkedJob.id)} · {linkedJob.nextStep}</Text>
-                <TouchableOpacity accessibilityRole='link' onPress={() => navigation.dispatch(CommonActions.navigate('Main', {
-                  screen: 'JobsTab', params: { screen: 'JobDetails', params: { jobId: linkedJob.id } },
-                }))}>
+                <Text style={styles.detailText}>
+                  {contractorJobReference(linkedJob.id)} · {linkedJob.nextStep}
+                </Text>
+                <TouchableOpacity
+                  accessibilityRole='link'
+                  onPress={() =>
+                    navigation.dispatch(
+                      CommonActions.navigate('Main', {
+                        screen: 'JobsTab',
+                        params: {
+                          screen: 'JobDetails',
+                          params: { jobId: linkedJob.id },
+                        },
+                      })
+                    )
+                  }
+                >
                   <Text style={styles.backLink}>View job</Text>
                 </TouchableOpacity>
               </View>
@@ -315,7 +328,9 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
               ))
             ) : (
               <Text style={styles.detailText}>
-                {quote.status === 'draft' ? 'No line-item breakdown recorded.' : 'Fixed-price quote'}
+                {quote.status === 'accepted'
+                  ? 'Fixed-price quote'
+                  : 'No line-item breakdown recorded.'}
               </Text>
             )}
           </View>

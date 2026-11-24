@@ -143,6 +143,10 @@ vi.mock('@/lib/api/supabaseServer', () => ({
           entry.filters[k] = v;
           return q;
         },
+        ilike: (k: string, v: string) => {
+          entry.filters[k] = v;
+          return q;
+        },
         in: (k: string, v: unknown) => {
           entry.filters[k] = v;
           return q;
@@ -204,11 +208,29 @@ it('shows only assigned work and released gross payments, never budgets or anoth
     screen.queryByText('Other contractor private job')
   ).not.toBeInTheDocument();
   expect(screen.getByText(/12.50 released/)).toBeInTheDocument();
+  expect(screen.getByText('Held in escrow')).toBeInTheDocument();
+  expect(screen.queryByText(/700\.00|900\.00/)).toBeNull();
   const financial = s.queries.find((q) => q.table === 'escrow_transactions');
   expect(financial?.filters).toEqual({
     payee_id: 'contractor-a',
     job_id: ['job-a'],
-    status: ['released', 'completed'],
+    status: [
+      'released',
+      'completed',
+      'disputed',
+      'pending_review',
+      'release_pending',
+      'awaiting_homeowner_approval',
+      'held',
+      'pending',
+    ],
+  });
+  expect(
+    s.queries.find((query) => query.table === 'current_contractor_quotes')
+      ?.filters
+  ).toEqual({
+    contractor_id: 'contractor-a',
+    client_email: 'private@example.invalid',
   });
   expect(s.queries[0].table).toBe('jobs');
   expect(s.queries[1].table).toBe('profiles');

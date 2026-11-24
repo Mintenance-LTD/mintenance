@@ -228,7 +228,11 @@ export function MintEditorialQuoteDetailView({
             <h2 className='t-h3' style={{ margin: 0, marginBottom: 8 }}>
               {quote.title}
             </h2>
-            {quote.status === 'accepted' && quote.linkedJob && <div className='no-print mb-3'><QuoteJobLink job={quote.linkedJob} /></div>}
+            {quote.status === 'accepted' && quote.linkedJob && (
+              <div className='no-print mb-3'>
+                <QuoteJobLink job={quote.linkedJob} />
+              </div>
+            )}
             {quote.description ? (
               <p
                 className='t-body'
@@ -401,7 +405,9 @@ export function MintEditorialQuoteDetailView({
                   className='t-body'
                   style={{ margin: 0, color: 'var(--me-ink-3)' }}
                 >
-                  {quote.status === 'draft' ? 'No line items on this quote yet.' : 'Fixed-price quote'}
+                  {quote.status === 'accepted'
+                    ? 'Fixed-price quote'
+                    : 'No line-item breakdown recorded.'}
                 </p>
               </div>
             )}

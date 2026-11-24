@@ -97,7 +97,9 @@ export function QuoteDetailsClient({ quote }: QuoteDetailsClientProps) {
                   gap: theme.spacing[3],
                 }}
               >
-                {quote.status === 'accepted' && quote.linkedJob && <QuoteJobLink job={quote.linkedJob} />}
+                {quote.status === 'accepted' && quote.linkedJob && (
+                  <QuoteJobLink job={quote.linkedJob} />
+                )}
                 <Button variant='primary' fullWidth onClick={handlePrint}>
                   <Printer
                     size={16}
@@ -252,7 +254,11 @@ export function QuoteDetailsClient({ quote }: QuoteDetailsClientProps) {
               <tbody>
                 {!quote.line_items?.length && (
                   <tr>
-                    <td colSpan={4}>{quote.status === 'draft' ? 'No line-item breakdown recorded.' : 'Fixed-price quote'}</td>
+                    <td colSpan={4}>
+                      {quote.status === 'accepted'
+                        ? 'Fixed-price quote'
+                        : 'No line-item breakdown recorded.'}
+                    </td>
                   </tr>
                 )}
                 {(quote.line_items ?? []).map((item, i) => (

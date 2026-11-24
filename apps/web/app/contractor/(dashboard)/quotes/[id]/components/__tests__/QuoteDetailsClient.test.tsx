@@ -97,6 +97,14 @@ describe('QuoteDetailsClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+  it('labels an accepted quote with no line items as fixed-price', () => {
+    render(
+      <QuoteDetailsClient
+        quote={{ ...mockQuote, status: 'accepted', line_items: null }}
+      />
+    );
+    expect(screen.getByText('Fixed-price quote')).toBeDefined();
+  });
 
   it('should render without crashing', () => {
     const { container } = render(<QuoteDetailsClient quote={mockQuote} />);
