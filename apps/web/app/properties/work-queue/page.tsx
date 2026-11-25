@@ -52,6 +52,7 @@ export default function PropertyWorkQueuePage() {
   const [attempt, setAttempt] = useState(0);
   const [data, setData] = useState<Queue | null>(null);
   const [error, setError] = useState('');
+  const [handoffNotice, setHandoffNotice] = useState('');
   const [scope, setScope] = useState('team');
   const [ready, setReady] = useState(false);
   const restoredFocus = useRef(false);
@@ -177,6 +178,7 @@ export default function PropertyWorkQueuePage() {
           renewals cover the next 30 days.
         </p>
       </details>
+      {handoffNotice && <p role='status'>{handoffNotice}</p>}
       <section
         className={styles.queueFilters}
         aria-label='Filter maintenance actions'
@@ -436,7 +438,7 @@ export default function PropertyWorkQueuePage() {
                     ) : (
                       <span className='text-sm text-slate-600'>
                         {item.kind === 'report'
-                          ? 'The property owner manages this follow-up.'
+                          ? 'Ask the property owner or assigned manager to update the follow-up.'
                           : 'Ask the property owner or manager to update the follow-up.'}
                       </span>
                     )}
@@ -448,7 +450,13 @@ export default function PropertyWorkQueuePage() {
                           propertyId={item.property_id}
                           kind={item.kind}
                           sourceId={item.id}
-                          onSaved={() => setAttempt((value) => value + 1)}
+                          onSaved={(message, handedOff) => {
+                            if (handedOff) {
+                              setHandoffNotice(message);
+                              setEditing(null);
+                            }
+                            setAttempt((value) => value + 1);
+                          }}
                         />
                       </div>
                     )}

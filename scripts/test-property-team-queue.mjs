@@ -173,6 +173,9 @@ try {
   await db.exec(
     `BEGIN; ${sql('20261124160045_assigned_tenant_report_handoffs.sql')} COMMIT;`
   );
+  await db.exec(
+    `BEGIN; ${sql('20261125003100_delegate_assigned_report_handoffs.sql')} COMMIT;`
+  );
   await db.exec('SET ROLE service_role');
   await test('team scope respects membership and owner-only tenant reports', async () => {
     const manager = await queue();
@@ -213,7 +216,7 @@ try {
     ).queue;
     const report = mine.items.find((row) => row.id === id(21));
     assert.equal(report.assignee_name, 'Person 2 Test');
-    assert.equal(report.can_manage_followup, false);
+    assert.equal(report.can_manage_followup, true);
     for (const actor of [3, 5, 6, 7, 8]) {
       const result = await filteredQueue(actor, 10);
       assert.equal(
@@ -259,6 +262,68 @@ try {
     await rejects(
       () => one('SELECT report_conversation($1,$2,NULL)', [openedId, id(2)]),
       '42501'
+    );
+  });
+  await test('only the current assignee can hand a report to an eligible teammate', async () => {
+    const item = { kind: 'report', source: 21 };
+    await save({ ...item, actor: 1, assignee: 2, revision: 0 });
+    const before = await snapshot();
+    await rejects(() => save({ ...item, actor: 6, assignee: 6 }), '42501');
+    await rejects(() => save({ ...item, actor: 3, assignee: 6 }), '42501');
+    await rejects(() => save({ ...item, actor: 2, assignee: null }), '42501');
+    await rejects(() => save({ ...item, actor: 2, assignee: 7 }), '22023');
+    await rejects(
+      () => save({ ...item, actor: 2, assignee: 6, revision: 0 }),
+      'PT409'
+    );
+    assert.deepEqual(await snapshot(), before);
+
+    const handoff = await save({ ...item, actor: 2, assignee: 6 });
+    assert.equal(handoff.assigned_to, id(6));
+    assert.equal(handoff.revision, 2);
+    await rejects(
+      () => save({ ...item, actor: 2, assignee: 2, revision: 2 }),
+      '42501'
+    );
+    const formerAssignee = await one(
+      'SELECT report_conversation($1,$2,NULL) AS history',
+      [id(21), id(2)]
+    );
+    assert.equal(formerAssignee.history.role, 'manager');
+    assert.equal(Object.hasOwn(formerAssignee.history, 'staffFollowup'), false);
+    assert.equal(
+      (await filteredQueue(2, 10)).items.some((row) => row.id === id(21)),
+      false
+    );
+
+    const mine = (
+      await one(
+        "SELECT portfolio_filtered_action_queue($1,0,25,'mine') AS queue",
+        [id(6)]
+      )
+    ).queue;
+    assert.equal(
+      mine.items.find((row) => row.id === id(21))?.can_manage_followup,
+      true
+    );
+    const alert = await one(
+      'SELECT action_url FROM notification_queue WHERE user_id=$1 AND notification_type=$2',
+      [id(6), 'property_followup']
+    );
+    assert.equal(
+      alert.action_url,
+      `/maintenance/reports/${id(21)}?from=action-queue&scope=mine`
+    );
+    const recipient = await one(
+      'SELECT report_conversation($1,$2,NULL) AS history',
+      [id(21), id(6)]
+    );
+    assert.equal(recipient.history.role, 'manager');
+    assert.equal(Object.hasOwn(recipient.history, 'staffFollowup'), false);
+    assert.equal(
+      (await filteredQueue(1, 10)).items.find((row) => row.id === id(21))
+        .assigned_to,
+      id(6)
     );
   });
   await test('ageing unassigned reports are prioritised before filtering and pagination', async () => {

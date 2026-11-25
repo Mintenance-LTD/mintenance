@@ -1,9 +1,23 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
+const navigation = vi.hoisted(() => ({
+  push: vi.fn(),
+  refresh: vi.fn(),
+  searchParams: new URLSearchParams(),
+}));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: navigation.push, refresh: navigation.refresh }),
+  useSearchParams: () => navigation.searchParams,
+}));
 vi.mock('@/lib/hooks/useCSRF', () => ({ useCSRF: () => ({ csrfToken: 'test-token', loading: false }) }));
 import { useLoginSubmit } from '@/app/login/useLoginSubmit';
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+  navigation.push.mockClear();
+  navigation.refresh.mockClear();
+  navigation.searchParams.delete('redirect');
+});
 describe('login API error feedback', () => {
   it.each([
     [400, { error: { code: 'BAD_REQUEST', message: 'Invalid request format' } }, 'Invalid request format'],
@@ -19,5 +33,26 @@ describe('login API error feedback', () => {
     await act(async () => result.current.onSubmit({ email: 'test@example.com', password: 'example' }));
     expect(result.current.errorMessage).toBe(expected);
     expect(result.current.submitStatus).toBe('error');
+  });
+});
+
+describe('homeowner sign-in return', () => {
+  const property = '00000000-0000-4000-8000-000000000010';
+  const folder = '00000000-0000-4000-8000-000000000020';
+  const report = '00000000-0000-4000-8000-000000000030';
+
+  it.each([
+    `/properties/${property}/inspections/${report}`,
+    `/properties/${property}/tenancies/${folder}?corrects=${report}`,
+  ])('navigates to the exact requested location %s after sign-in', async (destination) => {
+    vi.useFakeTimers();
+    navigation.searchParams.set('redirect', destination);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ user: { role: 'homeowner' } })));
+    const { result } = renderHook(() => useLoginSubmit());
+
+    await act(async () => result.current.onSubmit({ email: 'test@example.com', password: 'example' }));
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+
+    expect(navigation.push).toHaveBeenCalledExactlyOnceWith(destination);
   });
 });

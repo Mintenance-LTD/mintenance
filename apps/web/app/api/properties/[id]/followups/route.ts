@@ -32,8 +32,22 @@ async function authorize(
     propertyId,
     'manage_maintenance'
   );
-  if (!access.authorized || (kind === 'report' && access.role !== 'owner'))
+  if (!access.authorized)
     throw new ForbiddenError('You cannot manage this follow-up');
+  const isOwner = access.role === 'owner';
+  if (kind === 'report' && !isOwner) {
+    const { data: assignment, error: assignmentError } = await serverSupabase
+      .from('property_action_followups')
+      .select('assigned_to')
+      .eq('kind', 'report')
+      .eq('source_id', id)
+      .eq('property_id', propertyId)
+      .eq('assigned_to', userId)
+      .maybeSingle();
+    if (assignmentError) throw assignmentError;
+    if (!assignment)
+      throw new ForbiddenError('You cannot manage this follow-up');
+  }
   const { data, error } = await serverSupabase
     .from(tables[kind])
     .select('id')
@@ -43,6 +57,7 @@ async function authorize(
   if (error) throw error;
   if (!data)
     throw new BadRequestError('Source does not belong to this property');
+  return isOwner;
 }
 export const GET = withApiHandler({}, async (request, { user, params }) => {
   const parsed = source.safeParse(
@@ -50,7 +65,7 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
   );
   if (!parsed.success) throw new BadRequestError('Invalid source');
   const { kind, sourceId } = parsed.data;
-  await authorize(user.id, params.id, kind, sourceId);
+  const isOwner = await authorize(user.id, params.id, kind, sourceId);
   const { data: followup, error: followupError } = await serverSupabase
     .from('property_action_followups')
     .select('*')
@@ -58,6 +73,12 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
     .eq('source_id', sourceId)
     .maybeSingle();
   if (followupError) throw followupError;
+  if (
+    kind === 'report' &&
+    !isOwner &&
+    (followup?.assigned_to !== user.id || followup?.property_id !== params.id)
+  )
+    throw new ForbiddenError('You cannot manage this follow-up');
   // Source ownership can change; never disclose the former property's notes.
   if (followup && followup.property_id !== params.id)
     return NextResponse.json(
@@ -105,6 +126,7 @@ export const GET = withApiHandler({}, async (request, { user, params }) => {
         (person) => person.id !== owner.owner_id
       ),
       currentUserId: user.id,
+      canUnassign: kind !== 'report' || isOwner,
     },
     { headers: { 'Cache-Control': 'private, no-store' } }
   );

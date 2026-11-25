@@ -249,8 +249,9 @@ function CaseConversation({
             <StaffFollowup
               followup={staffFollowup}
               reportId={reportId}
-              onSaved={() => {
-                setNotice('Follow-up saved.');
+              onSaved={(message, handedOff) => {
+                setNotice(message);
+                if (handedOff) setData(null);
                 setAttempt((value) => value + 1);
               }}
             />

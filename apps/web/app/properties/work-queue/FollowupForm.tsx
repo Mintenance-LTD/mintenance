@@ -16,6 +16,7 @@ interface Data {
   people: { id: string; first_name: string; last_name: string }[];
   hasEligibleManager?: boolean;
   currentUserId?: string;
+  canUnassign?: boolean;
   updates: {
     id: string;
     body: string;
@@ -27,7 +28,7 @@ type Props = {
   propertyId: string;
   kind: string;
   sourceId: string;
-  onSaved: () => void;
+  onSaved: (message: string, handedOff: boolean) => void;
 };
 export function FollowupForm(props: Props) {
   return (
@@ -157,10 +158,22 @@ function FollowupEditor({ propertyId, kind, sourceId, onSaved }: Props) {
         throw new Error(
           'Save could not be confirmed. Reload and check recorded updates before saving again.'
         );
+      const handedOff =
+        data.canUnassign === false && assigned !== data.currentUserId;
+      const recipient = data.people.find((person) => person.id === assigned);
+      const recipientName = [recipient?.first_name, recipient?.last_name]
+        .filter(Boolean)
+        .join(' ');
+      const confirmation = handedOff
+        ? `Report handed over to ${recipientName || 'the selected teammate'}. They can open it from Mine.`
+        : 'Follow-up saved.';
       setNote('');
-      setMessage('Follow-up saved.');
-      onSaved();
-      setReload((value) => value + 1);
+      setMessage(confirmation);
+      onSaved(confirmation, handedOff);
+      if (handedOff) {
+        setBlocked(true);
+        setData(null);
+      } else setReload((value) => value + 1);
     } catch {
       if (!mounted.current) return;
       setBlocked(true);
@@ -199,11 +212,13 @@ function FollowupEditor({ propertyId, kind, sourceId, onSaved }: Props) {
         </p>
       )}
       {!data ? (
-        <p role='status'>
-          {error
-            ? 'Follow-up unavailable. Reload to try again.'
-            : 'Loading follow-up…'}
-        </p>
+        !message && (
+          <p role='status'>
+            {error
+              ? 'Follow-up unavailable. Reload to try again.'
+              : 'Loading follow-up…'}
+          </p>
+        )
       ) : (
         <>
           {kind === 'report' && data.hasEligibleManager === false && (
@@ -230,7 +245,9 @@ function FollowupEditor({ propertyId, kind, sourceId, onSaved }: Props) {
                 value={assigned}
                 onChange={(event) => setAssigned(event.target.value)}
               >
-                <option value=''>Unassigned</option>
+                {data.canUnassign !== false && (
+                  <option value=''>Unassigned</option>
+                )}
                 {data.people.map((person) => (
                   <option key={person.id} value={person.id}>
                     {person.id === data.currentUserId
