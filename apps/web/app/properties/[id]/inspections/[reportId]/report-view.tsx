@@ -10,6 +10,7 @@ import {
   Link2,
   LockKeyhole,
   FileText,
+  Download,
   ImageOff,
   ArrowUpRight,
 } from 'lucide-react';
@@ -20,7 +21,10 @@ import {
   inspectionReportPath,
   type InspectionDetail,
 } from '@mintenance/shared';
-import { inspectionRequest } from '@/lib/inspection-client';
+import {
+  inspectionLoginHref,
+  inspectionRequest,
+} from '@/lib/inspection-client';
 export default function InspectionReportView({
   propertyId,
   reportId,
@@ -33,6 +37,9 @@ export default function InspectionReportView({
   const [revision, setRevision] = useState(0);
   const [copied, setCopied] = useState('');
   const [printing, setPrinting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
+  const [downloadAuthRequired, setDownloadAuthRequired] = useState(false);
   const page = useRef<HTMLElement>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -70,6 +77,10 @@ export default function InspectionReportView({
     (item) => item.value === data?.report.kind
   )?.label;
   const propertyPath = '/properties/' + encodeURIComponent(propertyId);
+  const reportApi = '/api' + inspectionReportPath(propertyId, reportId);
+  const signIn = inspectionLoginHref(
+    inspectionReportPath(propertyId, reportId)
+  );
   const folderId = data?.report.folder_id || data?.folder.id;
   const folderPath = folderId
     ? propertyPath + '/tenancies/' + encodeURIComponent(folderId)
@@ -95,6 +106,40 @@ export default function InspectionReportView({
       window.print();
     } finally {
       setPrinting(false);
+    }
+  }
+
+  async function downloadPdf() {
+    if (downloading) return;
+    setDownloading(true);
+    setDownloadError('');
+    setDownloadAuthRequired(false);
+    try {
+      const response = await fetch(reportApi + '/pdf', { cache: 'no-store' });
+      if (response.status === 401) {
+        setDownloadAuthRequired(true);
+        setDownloadError(
+          'Your session ended. Sign in to download this report.'
+        );
+        return;
+      }
+      if (
+        !response.ok ||
+        response.headers.get('content-type') !== 'application/pdf'
+      )
+        throw new Error('PDF download unavailable');
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `inspection-${data?.report.inspected_on ?? 'report'}-${reportId}.pdf`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    } catch {
+      setDownloadError('The PDF could not be downloaded. Try again.');
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -124,13 +169,7 @@ export default function InspectionReportView({
               >
                 Retry
               </button>
-              <Link
-                className={styles.back}
-                href={
-                  '/login?redirect=' +
-                  encodeURIComponent(inspectionReportPath(propertyId, reportId))
-                }
-              >
+              <Link className={styles.back} href={signIn}>
                 Sign in
               </Link>
             </div>
@@ -147,6 +186,15 @@ export default function InspectionReportView({
                 <p className={styles.subtitle}>{data.folder.label}</p>
               </div>
               <div className={`${styles.actions} ${styles.noPrint}`}>
+                <button
+                  type='button'
+                  onClick={() => void downloadPdf()}
+                  disabled={downloading}
+                  className={styles.actionLink}
+                >
+                  <Download size={18} aria-hidden='true' />{' '}
+                  {downloading ? 'Preparing PDF…' : 'Download PDF'}
+                </button>
                 {data.checkIn && (
                   <a href='#compare-check-in' className={styles.actionLink}>
                     Compare with check-in
@@ -185,6 +233,17 @@ export default function InspectionReportView({
                 className={`${styles.feedback} ${styles.noPrint}`}
               >
                 {copied}
+              </p>
+            )}
+            {downloadError && (
+              <p
+                role='alert'
+                className={`${styles.feedback} ${styles.noPrint}`}
+              >
+                {downloadError}{' '}
+                {downloadAuthRequired && (
+                  <a href={signIn}>Sign in to continue</a>
+                )}
               </p>
             )}
             {correctedBy && (

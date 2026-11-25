@@ -11,6 +11,14 @@ export class InspectionRequestError extends Error {
     super(message);
   }
 }
+export function inspectionAuthRequired(error: unknown) {
+  return (
+    error instanceof InspectionRequestError && error.code === 'AUTH_REQUIRED'
+  );
+}
+export function inspectionLoginHref(returnTo: string) {
+  return '/login?redirect=' + encodeURIComponent(returnTo);
+}
 export function inspectionOverlap(error: unknown) {
   if (
     !(error instanceof InspectionRequestError) ||
@@ -54,7 +62,10 @@ export async function inspectionRequest<T>(
         );
     }
     if (response.status === 401)
-      throw new Error('Sign in to view this property’s inspection records.');
+      throw new InspectionRequestError(
+        'Your session ended. Sign in to continue.',
+        'AUTH_REQUIRED'
+      );
     if (response.status === 402)
       throw new Error(
         'The property owner needs a Landlord or Agency plan to create records.'

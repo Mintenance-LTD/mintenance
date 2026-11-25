@@ -22,6 +22,76 @@ beforeEach(() => {
 });
 const ok = (body: unknown) =>
   Promise.resolve({ ok: true, json: async () => body });
+
+it.each(['photos', 'save'] as const)(
+  'shows sign-in beside Save after expiry during %s and restores the draft',
+  async (step) => {
+    let expired = true;
+    request.mockImplementation((url: string, options?: RequestInit) => {
+      if (options?.method === 'POST')
+        return Promise.resolve({ ok: false, status: 401 });
+      if (url.includes('room-photos'))
+        return expired && step === 'photos'
+          ? Promise.resolve({ ok: false, status: 401 })
+          : ok({ photos: [] });
+      return ok({
+        items: url.includes('/tenancies?') ? [folder] : [],
+        canCreate: true,
+        hasMore: false,
+        draftScope: 'reauth-test-' + step,
+      });
+    });
+    const show = () =>
+      render(
+        <TenancyInspections propertyId='property' initialFolderId='folder' />
+      );
+    const view = show();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'New inspection' })
+    );
+    fireEvent.change(screen.getByLabelText('Report title'), {
+      target: { value: 'Draft before expiry' },
+    });
+    fireEvent.change(screen.getByLabelText('Inspection date'), {
+      target: { value: '2026-10-30' },
+    });
+    fireEvent.change(screen.getByLabelText('Observations'), {
+      target: { value: 'Draft notes' },
+    });
+    const save = screen.getByRole('button', { name: 'Save shared report' });
+    if (step === 'save') {
+      await waitFor(() => expect(save).toBeEnabled());
+      fireEvent.click(save);
+    }
+    const signIn = await screen.findByRole('link', {
+      name: 'Sign in to continue',
+    });
+    expect(signIn).toHaveAttribute(
+      'href',
+      '/login?redirect=%2Fproperties%2Fproperty%2Ftenancies%2Ffolder'
+    );
+    expect(save).toBeDisabled();
+    expect(save.closest('fieldset')).toContainElement(signIn);
+    view.unmount();
+    expired = false;
+    show();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Resume draft' })
+    );
+    expect(screen.getByLabelText('Report title')).toHaveValue(
+      'Draft before expiry'
+    );
+    expect(screen.getByLabelText('Inspection date')).toHaveValue('2026-10-30');
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Save shared report' })
+      ).toBeEnabled()
+    );
+    window.sessionStorage.removeItem(
+      inspectionDraftKey('reauth-test-' + step, 'property', folder.id)!
+    );
+  }
+);
 it('restores the exact tenancy and its report list on a direct folder visit', async () => {
   request.mockImplementation((url: string) =>
     ok({
@@ -614,6 +684,40 @@ it('compares observations and links corrections while retaining the saved tenanc
   expect(
     screen.getByText('Current tenancy dates').parentElement
   ).toHaveTextContent('2 Jan 2026');
+});
+
+it('offers PDF download on the exact read-only report and recovers an expired session', async () => {
+  request.mockImplementation((url: string) =>
+    url.endsWith('/pdf')
+      ? Promise.resolve({ ok: false, status: 401 })
+      : ok({
+          folder,
+          report: {
+            id: 'report',
+            title: 'Saved check-in',
+            kind: 'check_in',
+            inspected_on: '2026-11-01',
+            created_at: '2026-11-25T08:00:00Z',
+          },
+          canCreate: false,
+          photos: [],
+        })
+  );
+  render(<InspectionReportView propertyId='property' reportId='report' />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Download PDF' }));
+  expect(request).toHaveBeenCalledWith(
+    '/api/properties/property/inspections/report/pdf',
+    { cache: 'no-store' }
+  );
+  expect(
+    screen.queryByRole('link', { name: 'Correct this report' })
+  ).toBeNull();
+  expect(
+    await screen.findByRole('link', { name: 'Sign in to continue' })
+  ).toHaveAttribute(
+    'href',
+    '/login?redirect=%2Fproperties%2Fproperty%2Finspections%2Freport'
+  );
 });
 
 it('edits a folder using its current revision', async () => {

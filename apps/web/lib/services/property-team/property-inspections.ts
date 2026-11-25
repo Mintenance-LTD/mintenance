@@ -172,6 +172,46 @@ export async function getReport(
   if (!data) throw new NotFoundError('Inspection report not found');
   return { report: data, role };
 }
+
+export async function getInspectionRecord(
+  actor: string,
+  propertyId: string,
+  reportId: string
+) {
+  const { report, role } = await getReport(actor, propertyId, reportId);
+  const [folder, photos, corrections] = await Promise.all([
+    db
+      .from('property_tenancy_folders')
+      .select(folderColumns)
+      .eq('property_id', propertyId)
+      .eq('id', report.folder_id)
+      .single(),
+    db
+      .from('property_inspection_photos')
+      .select('id,room_type,file_name,uploaded_at,source_photo_id')
+      .eq('property_id', propertyId)
+      .eq('report_id', reportId)
+      .order('room_type')
+      .order('id')
+      .limit(50),
+    reportCorrections(propertyId, [reportId]),
+  ]);
+  databaseError(folder.error);
+  databaseError(photos.error);
+  if (!folder.data) throw new NotFoundError('Tenancy folder not found');
+  return {
+    role,
+    report: {
+      ...report,
+      corrected_by_report_id: corrections.get(reportId) ?? null,
+    },
+    folder: folder.data,
+    photos: (photos.data ?? []).map((photo) => ({
+      ...photo,
+      available: !!photo.source_photo_id,
+    })),
+  };
+}
 export async function inspectionBody(request: Request): Promise<unknown> {
   const reader = request.body?.getReader();
   if (!reader) throw new BadRequestError('Missing request body');

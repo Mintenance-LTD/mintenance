@@ -5,6 +5,20 @@ import { isAllowedRedirect, safeRedirect } from '../safe-redirect';
 const ORIGIN = 'http://localhost:3000';
 
 describe('isAllowedRedirect', () => {
+  it('returns to an exact inspection or tenancy after sign-in', () => {
+    const property = '00000000-0000-4000-8000-000000000010';
+    const folder = '00000000-0000-4000-8000-000000000020';
+    const report = '00000000-0000-4000-8000-000000000030';
+    const exact = `/properties/${property}/inspections/${report}`;
+    expect(isAllowedRedirect(exact)).toBe(true);
+    expect(
+      isAllowedRedirect(
+        `/properties/${property}/tenancies/${folder}?corrects=${report}`
+      )
+    ).toBe(true);
+    expect(isAllowedRedirect(`https://evil.example${exact}`)).toBe(false);
+    expect(isAllowedRedirect(exact + '/photos')).toBe(false);
+  });
   it('preserves onboarding and invitation destinations without accepting lookalikes', () => {
     for (const destination of [
       '/getting-started?persona=tenant',

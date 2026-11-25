@@ -1,10 +1,14 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import sharp from 'sharp';
 const property = '00000000-0000-4000-8000-000000000010',
   folder = '00000000-0000-4000-8000-000000000020',
   report = '00000000-0000-4000-8000-000000000030';
+const correction = '00000000-0000-4000-8000-000000000040';
+const latestCorrection = '00000000-0000-4000-8000-000000000050';
 const m = vi.hoisted(() => ({
   role: 'owner' as string | null,
+  membershipStatus: 'accepted',
   entitled: true,
   error: null as { code: string } | null,
   rpcError: null as { code: string; details?: string } | null,
@@ -13,9 +17,10 @@ const m = vi.hoisted(() => ({
   rpc: vi.fn(),
   download: vi.fn(),
   tier: vi.fn(),
-  authorize: vi.fn(),
   photo: true,
   photoPath: '',
+  pdfFixture: false,
+  reportKind: 'check_in',
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler:
@@ -25,18 +30,6 @@ vi.mock('@/lib/api/with-api-handler', () => ({
         user: { id: 'actor', role: 'admin' },
         params: { id: property, reportId: report, photoId: folder },
       }),
-}));
-vi.mock('@/lib/services/property-team/PropertyTeamService', () => ({
-  PropertyTeamService: {
-    authorize: async (...args: unknown[]) => {
-      m.authorize(...args);
-      return {
-        authorized: !!m.role && (args[2] === 'view' || m.role !== 'viewer'),
-        role: m.role,
-      };
-    },
-    canPerform: (role: string) => ['owner', 'admin', 'manager'].includes(role),
-  },
 }));
 vi.mock('@/lib/subscription/early-access', () => ({
   getEffectiveHomeownerTier: (id: string) => {
@@ -61,41 +54,120 @@ vi.mock('@/lib/api/supabaseServer', () => ({
     },
     storage: { from: () => ({ download: m.download }) },
     from: (table: string) => {
+      let earlierVersionId: unknown;
       const q = {
         select: () => q,
         eq: (key: string, value: unknown) => {
           m.filters(table, key, value);
+          if (key === 'corrects_report_id') earlierVersionId = value;
           return q;
         },
         order: () => q,
         in: (key: string, values: unknown[]) => {
           m.filters(table, key, values);
-          return Promise.resolve({ data: [], error: m.error });
+          return Promise.resolve({
+            data:
+              m.pdfFixture && table === 'property_inspection_reports'
+                ? [
+                    {
+                      id: correction,
+                      title: 'Corrected draft',
+                      inspected_on: '2026-11-01',
+                      created_at: '2026-11-25T10:00:00Z',
+                      corrects_report_id: report,
+                    },
+                  ]
+                : [],
+            error: m.error,
+          });
         },
         range: () =>
           Promise.resolve({
             data: [{ id: folder, label: 'Tenancy' }],
             error: m.error,
           }),
-        limit: () => Promise.resolve({ data: [], error: m.error }),
-        single: () => q.maybeSingle(),
-        maybeSingle: () =>
+        limit: () =>
           Promise.resolve({
             data:
-              table === 'properties'
-                ? { owner_id: 'property-owner' }
-                : table === 'property_inspection_reports'
-                  ? { id: report, folder_id: folder }
-                  : table === 'property_inspection_photos'
-                    ? { source_photo_id: m.photo ? folder : null }
-                    : table === 'property_room_photos'
-                      ? {
-                          storage_path: m.photoPath,
-                          mime_type: 'image/jpeg',
-                        }
-                      : { id: folder },
+              m.pdfFixture && table === 'property_inspection_photos'
+                ? [
+                    {
+                      id: folder,
+                      source_photo_id: folder,
+                      file_name: 'Sample kitchen.jpg',
+                      room_type: 'kitchen',
+                      uploaded_at: '2026-11-24T10:00:00Z',
+                    },
+                  ]
+                : [],
             error: m.error,
           }),
+        single: () => q.maybeSingle(),
+        maybeSingle: () => {
+          if (table === 'property_inspection_reports' && earlierVersionId) {
+            const id =
+              earlierVersionId === report
+                ? correction
+                : earlierVersionId === correction
+                  ? latestCorrection
+                  : null;
+            return Promise.resolve({
+              data: id
+                ? {
+                    id,
+                    title: 'Corrected version',
+                    inspected_on: '2026-11-01',
+                    created_at: '2026-11-25T10:00:00Z',
+                    corrects_report_id: earlierVersionId,
+                  }
+                : null,
+              error: m.error,
+            });
+          }
+          return Promise.resolve({
+            data:
+              table === 'properties'
+                ? {
+                    owner_id: m.role === 'owner' ? 'actor' : 'property-owner',
+                    property_name: 'TEST ONLY - Pilot',
+                    address: 'Synthetic property',
+                  }
+                : table === 'property_team_members'
+                  ? m.role && m.membershipStatus === 'accepted'
+                    ? { role: m.role }
+                    : null
+                  : table === 'property_inspection_reports'
+                    ? {
+                        id: report,
+                        folder_id: folder,
+                        kind: m.reportKind,
+                        title: 'Pilot inspection',
+                        inspected_on: '2026-11-24',
+                        created_at: '2026-11-25T09:00:00Z',
+                        notes: 'Test observations',
+                        tenancy_starts_on: '2026-11-01',
+                        tenancy_ends_on: '2026-11-24',
+                        corrects_report_id: null,
+                      }
+                    : table === 'property_inspection_photos'
+                      ? { source_photo_id: m.photo ? folder : null }
+                      : table === 'property_room_photos'
+                        ? {
+                            storage_path: m.photoPath,
+                            mime_type: 'image/jpeg',
+                          }
+                        : {
+                            id: folder,
+                            label: 'November tenancy',
+                            starts_on: '2026-11-01',
+                            ends_on: '2026-11-24',
+                          },
+            error:
+              table === 'properties' || table === 'property_team_members'
+                ? null
+                : m.error,
+          });
+        },
       };
       return q;
     },
@@ -112,6 +184,7 @@ import {
 } from '@/app/api/properties/[id]/inspections/route';
 import { GET as detail } from '@/app/api/properties/[id]/inspections/[reportId]/route';
 import { GET as photo } from '@/app/api/properties/[id]/inspections/[reportId]/photos/[photoId]/route';
+import { GET as pdf } from '@/app/api/properties/[id]/inspections/[reportId]/pdf/route';
 import {
   folderInput,
   reportInput,
@@ -132,11 +205,14 @@ const request = (method = 'GET', body?: unknown, query = '') =>
 beforeEach(() => {
   vi.clearAllMocks();
   m.role = 'owner';
+  m.membershipStatus = 'accepted';
   m.entitled = true;
   m.error = null;
   m.rpcError = null;
   m.folderResult = null;
   m.photo = true;
+  m.pdfFixture = false;
+  m.reportKind = 'check_in';
   m.photoPath = `property-room-photos/uploader/${property}/kitchen/photo.jpg`;
   m.download.mockResolvedValue({
     data: new Blob(['image'], { type: 'image/jpeg' }),
@@ -163,9 +239,76 @@ it('rejects removed members before reading reports or photos', async () => {
   m.role = null;
   await expect(detail(request())).rejects.toMatchObject({ statusCode: 404 });
   await expect(photo(request())).rejects.toMatchObject({ statusCode: 404 });
-  expect(m.filters).not.toHaveBeenCalled();
+  await expect(pdf(request())).rejects.toMatchObject({ statusCode: 404 });
+  expect(
+    m.filters.mock.calls.every(([table]) =>
+      ['properties', 'property_team_members'].includes(table)
+    )
+  ).toBe(true);
   expect(m.download).not.toHaveBeenCalled();
 });
+
+it('requires an accepted team invitation to read a copied report link', async () => {
+  m.role = 'viewer';
+  m.membershipStatus = 'pending';
+  await expect(detail(request())).rejects.toMatchObject({ statusCode: 404 });
+  await expect(pdf(request())).rejects.toMatchObject({ statusCode: 404 });
+  m.membershipStatus = 'accepted';
+  expect((await detail(request())).status).toBe(200);
+  expect((await photo(request())).status).toBe(200);
+  expect(m.filters).toHaveBeenCalledWith(
+    'property_team_members',
+    'status',
+    'accepted'
+  );
+  await expect(createReport(request('POST', {}))).rejects.toMatchObject({
+    statusCode: 404,
+  });
+});
+it.each([
+  ['owner', 'check_in'],
+  ['viewer', 'check_out'],
+])(
+  'downloads a photo-bearing A4 %s %s PDF with private headers',
+  async (role, kind) => {
+    m.role = role;
+    m.reportKind = kind;
+    m.pdfFixture = true;
+    const sample = await sharp({
+      create: { width: 320, height: 200, channels: 3, background: '#738a79' },
+    })
+      .jpeg()
+      .toBuffer();
+    m.download.mockResolvedValue({
+      data: new Blob([new Uint8Array(sample)]),
+      error: null,
+    });
+    const response = await pdf(request());
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('application/pdf');
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('content-disposition')).toContain(
+      'attachment; filename="inspection-2026-11-24-'
+    );
+    const bytes = Buffer.from(await response.arrayBuffer()).toString('latin1');
+    expect(bytes).toMatch(/^%PDF-/);
+    const mediaBox = bytes.match(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/);
+    expect(Number(mediaBox?.[1])).toBeCloseTo(595.28, 2);
+    expect(Number(mediaBox?.[2])).toBeCloseTo(841.89, 2);
+    expect(bytes).toContain('/Subtype /Image');
+    expect(m.filters).toHaveBeenCalledWith(
+      'property_inspection_reports',
+      'id',
+      report
+    );
+    expect(m.filters).toHaveBeenCalledWith(
+      'property_inspection_reports',
+      'corrects_report_id',
+      latestCorrection
+    );
+    expect(m.download).toHaveBeenCalledExactlyOnceWith(m.photoPath);
+  }
+);
 it('keeps viewer reads available without creation', async () => {
   m.role = 'viewer';
   const res = await folders(request());
@@ -188,7 +331,11 @@ it.each(['owner', 'admin', 'manager', 'viewer'])(
       canCreate: role !== 'viewer',
     });
     expect((await photo(request())).status).toBe(200);
-    expect(m.authorize).toHaveBeenCalledWith('actor', property, 'view');
+    expect(m.filters).toHaveBeenCalledWith(
+      'property_inspection_reports',
+      'id',
+      report
+    );
   }
 );
 it('uses the property owner plan and denies creation after downgrade', async () => {
