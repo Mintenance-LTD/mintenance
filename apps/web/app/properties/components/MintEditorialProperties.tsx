@@ -1,7 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Plus, MapPin, ArrowRight, Building2, Star } from 'lucide-react';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
+import { PendingPropertyInvites } from './PendingPropertyInvites';
 
 interface PropertyStats {
   id: string;
@@ -20,6 +22,7 @@ interface PropertyStats {
 interface Props {
   properties: PropertyStats[];
   propertyLimit: number | 'unlimited';
+  sharedProperties?: ReactNode;
 }
 
 const formatGBP = (n: number) =>
@@ -125,7 +128,11 @@ function PropertyCard({ p }: { p: PropertyStats }) {
   );
 }
 
-export function MintEditorialProperties({ properties, propertyLimit }: Props) {
+export function MintEditorialProperties({
+  properties,
+  propertyLimit,
+  sharedProperties,
+}: Props) {
   const atLimit =
     propertyLimit !== 'unlimited' && properties.length >= propertyLimit;
   const limitLabel =
@@ -143,7 +150,8 @@ export function MintEditorialProperties({ properties, propertyLimit }: Props) {
             you manage.
           </p>
         </div>
-        <div className='row' style={{ gap: 8 }}>
+        <div className='row flex-wrap' style={{ gap: 8 }}>
+          <PendingPropertyInvites compact />
           {limitLabel ? <span className='t-meta'>{limitLabel}</span> : null}
           <Link
             href='/properties/add'
@@ -159,14 +167,16 @@ export function MintEditorialProperties({ properties, propertyLimit }: Props) {
         </div>
       </div>
 
+      {sharedProperties}
+
       {properties.length === 0 ? (
         <div
           className='card'
           style={{ padding: '56px 24px', textAlign: 'center' }}
         >
           <p className='t-body' style={{ marginBottom: 12 }}>
-            No properties yet. Add your first one — that's how every job and
-            maintenance record stays tied to the right address.
+            No properties of your own yet. Add one so every job and maintenance
+            record stays tied to the right address.
           </p>
           <Link href='/properties/add' className='btn btn-primary'>
             <Plus size={14} strokeWidth={2} /> Add your first property

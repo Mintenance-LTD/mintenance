@@ -71,8 +71,9 @@ export async function inspectionRequest<T>(
         'The property owner needs a Landlord or Agency plan to create records.'
       );
     if (response.status === 404 || response.status === 403)
-      throw new Error(
-        'These records are unavailable or you no longer have property access.'
+      throw new InspectionRequestError(
+        'These records are unavailable or you no longer have property access.',
+        'RECORD_UNAVAILABLE'
       );
     if (response.status === 409)
       throw new Error('This folder changed. Reload the folders before saving.');

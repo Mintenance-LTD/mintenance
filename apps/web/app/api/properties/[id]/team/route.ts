@@ -104,7 +104,7 @@ export const POST = withApiHandler(
           status: 'recorded',
           activated: false,
           message:
-            'Invitation saved. Ask the invitee to sign in with this email address and accept it from Properties. No email has been sent.',
+            'Invitation saved. The invitee will see it in Notifications and Properties after signing in with their verified homeowner email.',
         },
       },
       { status: 201 }

@@ -3,10 +3,12 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { fetchWebUnreadCount } from '@/lib/notifications/inbox';
+import { syncPropertyInvitationNotifications } from '@/lib/notifications/property-invitations';
 
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 60 }, csrf: false },
   async (_request, { user }) => {
+    await syncPropertyInvitationNotifications(user);
     const { count, error } =
       user.role === 'homeowner' || user.role === 'contractor'
         ? { count: await fetchWebUnreadCount(user.id), error: null }

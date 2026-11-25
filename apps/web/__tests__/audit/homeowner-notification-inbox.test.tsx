@@ -111,6 +111,46 @@ it.each(['mint-editorial', 'default'])(
 );
 
 it.each(['mint-editorial', 'default'])(
+  'shows an unread invitation and opens its property review (%s)',
+  async (theme) => {
+    const invitationHref =
+      '/properties/invitations?property=00000000-0000-4000-8000-000000000016';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        response({
+          notifications: [
+            {
+              ...paymentReminder,
+              id: 'property-invitation',
+              title: 'Property invitation',
+              type: 'property_invitation',
+              action_status: undefined,
+              action_url: invitationHref,
+            },
+          ],
+          unreadCount: 1,
+          nextCursor: null,
+        })
+      )
+    );
+    mocks.write.mockResolvedValue(response({ success: true }));
+    renderInbox(theme);
+
+    fireEvent.click(
+      await screen.findByText('Review invitation', { exact: true })
+    );
+    expect(mocks.push).toHaveBeenCalledWith(invitationHref);
+    await waitFor(() =>
+      expect(mocks.write).toHaveBeenCalledWith(
+        '/api/notifications/property-invitation/read?inbox=1',
+        { method: 'POST' }
+      )
+    );
+  }
+);
+
+it.each(['mint-editorial', 'default'])(
   'shows the stale reminder and loads the next page with the same cursor (%s)',
   async (theme) => {
     const fetcher = vi

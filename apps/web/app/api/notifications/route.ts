@@ -11,6 +11,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { notificationEngagementSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { fetchNotificationFeed } from '@/lib/notifications/feed';
+import { syncPropertyInvitationNotifications } from '@/lib/notifications/property-invitations';
 import {
   fetchWebNotificationInbox,
   updateWebNotificationGroups,
@@ -78,6 +79,8 @@ export const GET = withApiHandler(
       includeHistory && Number.isFinite(requestedOffset) && requestedOffset > 0
         ? requestedOffset
         : 0;
+
+    if (!feedOffset) await syncPropertyInvitationNotifications(user);
 
     const mappedNotifications = (
       await fetchNotificationFeed(userId, {

@@ -12,7 +12,6 @@ import { unstable_cache } from 'next/cache';
 import { getCachedUser } from '@/lib/cache';
 import { PropertiesClient2025 } from './components/PropertiesClient2025';
 import { MintEditorialProperties } from './components/MintEditorialProperties';
-import { PendingPropertyInvites } from './components/PendingPropertyInvites';
 import { SharedPropertyLinks } from './components/SharedPropertyLinks';
 import { getFeatureLimit } from '@/lib/feature-access-config';
 import {
@@ -174,39 +173,34 @@ export default async function PropertiesPage2025() {
   const cookieStore = await cookies();
   const isMintEditorial =
     cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+  const sharedProperties = <SharedPropertyLinks userId={user.id} />;
 
   if (isMintEditorial) {
     return (
-      <>
-        <PendingPropertyInvites />
-        <SharedPropertyLinks userId={user.id} />
-        <MintEditorialProperties
-          properties={propertiesWithStats}
-          propertyLimit={propertyLimit}
-        />
-      </>
+      <MintEditorialProperties
+        properties={propertiesWithStats}
+        propertyLimit={propertyLimit}
+        sharedProperties={sharedProperties}
+      />
     );
   }
 
   return (
-    <>
-      <PendingPropertyInvites />
-      <SharedPropertyLinks userId={user.id} />
-      <PropertiesClient2025
-        properties={propertiesWithStats}
-        propertyLimit={propertyLimit}
-        tier={tier}
-        isEarlyAccess={isEarlyAccess}
-        userInfo={{
-          name: userDisplayName,
-          email: userProfile?.email || user.email,
-          avatar:
-            (userProfile as typeof userProfile & { profile_image_url?: string })
-              ?.profile_image_url ??
-            (userProfile as typeof userProfile & { avatar_url?: string })
-              ?.avatar_url,
-        }}
-      />
-    </>
+    <PropertiesClient2025
+      properties={propertiesWithStats}
+      propertyLimit={propertyLimit}
+      tier={tier}
+      isEarlyAccess={isEarlyAccess}
+      sharedProperties={sharedProperties}
+      userInfo={{
+        name: userDisplayName,
+        email: userProfile?.email || user.email,
+        avatar:
+          (userProfile as typeof userProfile & { profile_image_url?: string })
+            ?.profile_image_url ??
+          (userProfile as typeof userProfile & { avatar_url?: string })
+            ?.avatar_url,
+      }}
+    />
   );
 }

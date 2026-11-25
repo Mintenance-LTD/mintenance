@@ -55,6 +55,7 @@ export function isAllowedRedirect(url: string | null | undefined): boolean {
     if (
       [
         '/register/invitation',
+        '/properties/invitations',
         '/accept-invite',
         '/getting-started',
         '/onboarding/homeowner',

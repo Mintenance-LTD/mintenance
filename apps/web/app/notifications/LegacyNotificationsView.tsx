@@ -318,9 +318,15 @@ export function LegacyNotificationsView({
                                     '/disputes/'
                                   )
                                     ? 'View dispute'
-                                    : isVisitRecordLink(notification.action_url)
-                                      ? 'View visit'
-                                      : 'View'}
+                                    : notification.action_url.startsWith(
+                                          '/properties/invitations?'
+                                        )
+                                      ? 'Review invitation'
+                                      : isVisitRecordLink(
+                                            notification.action_url
+                                          )
+                                        ? 'View visit'
+                                        : 'View'}
                                 </button>
                               )}
                               <button

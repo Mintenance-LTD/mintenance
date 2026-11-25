@@ -686,6 +686,19 @@ it('compares observations and links corrections while retaining the saved tenanc
   ).toHaveTextContent('2 Jan 2026');
 });
 
+it('guides a signed-in user to review the property invitation when the report is unavailable', async () => {
+  request.mockResolvedValueOnce({ ok: false, status: 404 });
+  render(<InspectionReportView propertyId='property' reportId='report' />);
+  expect(
+    await screen.findByRole('link', { name: 'Review property invitation' })
+  ).toHaveAttribute(
+    'href',
+    '/properties/invitations?property=property&report=report'
+  );
+  expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Download PDF' })).toBeNull();
+});
+
 it('offers PDF download on the exact read-only report and recovers an expired session', async () => {
   request.mockImplementation((url: string) =>
     url.endsWith('/pdf')

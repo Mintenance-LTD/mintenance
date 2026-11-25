@@ -22,6 +22,7 @@ import {
   type InspectionDetail,
 } from '@mintenance/shared';
 import {
+  InspectionRequestError,
   inspectionLoginHref,
   inspectionRequest,
 } from '@/lib/inspection-client';
@@ -33,7 +34,7 @@ export default function InspectionReportView({
   reportId: string;
 }) {
   const [data, setData] = useState<InspectionDetail | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<Error | null>(null);
   const [revision, setRevision] = useState(0);
   const [copied, setCopied] = useState('');
   const [printing, setPrinting] = useState(false);
@@ -44,7 +45,7 @@ export default function InspectionReportView({
   useEffect(() => {
     const controller = new AbortController();
     setData(null);
-    setError('');
+    setError(null);
     void inspectionRequest<InspectionDetail>(
       '/api/properties/' + propertyId + '/inspections/' + reportId,
       undefined,
@@ -57,7 +58,7 @@ export default function InspectionReportView({
         if (!controller.signal.aborted) setData(value);
       })
       .catch((e: Error) => {
-        if (!controller.signal.aborted) setError(e.message);
+        if (!controller.signal.aborted) setError(e);
       });
     return () => controller.abort();
   }, [propertyId, reportId, revision]);
@@ -81,6 +82,11 @@ export default function InspectionReportView({
   const signIn = inspectionLoginHref(
     inspectionReportPath(propertyId, reportId)
   );
+  const failureCode =
+    error instanceof InspectionRequestError ? error.code : undefined;
+  const inviteHref =
+    '/properties/invitations?' +
+    new URLSearchParams({ property: propertyId, report: reportId });
   const folderId = data?.report.folder_id || data?.folder.id;
   const folderPath = folderId
     ? propertyPath + '/tenancies/' + encodeURIComponent(folderId)
@@ -161,17 +167,30 @@ export default function InspectionReportView({
         {error && (
           <div className={styles.card} role='alert'>
             <h1 className={styles.errorTitle}>Unable to open report</h1>
-            <p>{error}</p>
+            <p>{error.message}</p>
+            {failureCode === 'RECORD_UNAVAILABLE' && (
+              <p>
+                If you have a property invitation, accept it before opening this
+                report.
+              </p>
+            )}
             <div className={styles.actions}>
+              {failureCode === 'RECORD_UNAVAILABLE' && (
+                <Link className={styles.primary} href={inviteHref}>
+                  Review property invitation
+                </Link>
+              )}
+              {failureCode === 'AUTH_REQUIRED' && (
+                <Link className={styles.primary} href={signIn}>
+                  Sign in
+                </Link>
+              )}
               <button
-                className={styles.primary}
+                className={styles.actionLink}
                 onClick={() => setRevision((value) => value + 1)}
               >
                 Retry
               </button>
-              <Link className={styles.back} href={signIn}>
-                Sign in
-              </Link>
             </div>
           </div>
         )}

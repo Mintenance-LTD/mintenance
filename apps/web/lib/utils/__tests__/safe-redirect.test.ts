@@ -23,6 +23,7 @@ describe('isAllowedRedirect', () => {
     for (const destination of [
       '/getting-started?persona=tenant',
       '/accept-invite?token=example',
+      '/properties/invitations?property=example',
       '/onboarding/homeowner',
     ]) {
       expect(isAllowedRedirect(destination)).toBe(true);
