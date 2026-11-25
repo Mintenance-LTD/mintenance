@@ -95,7 +95,8 @@ export function SortableHeader({
   );
 }
 
-export function JobRow({ job }: { job: Job }) {
+export function JobRow({ job, returnFilters }: { job: Job; returnFilters?: string }) {
+  const jobHref = '/admin/jobs/' + job.id + (returnFilters ? '?' + returnFilters : '');
   const statusStyle = STATUS_COLORS[job.status] || {
     bg: '#F3F4F6',
     text: '#374151',
@@ -116,7 +117,7 @@ export function JobRow({ job }: { job: Job }) {
     >
       <td style={{ padding: `${theme.spacing[3]} ${theme.spacing[4]}` }}>
         <Link
-          href={`/admin/jobs/${job.id}`}
+          href={jobHref}
           style={{
             fontSize: theme.typography.fontSize.sm,
             fontWeight: 600,
@@ -221,6 +222,9 @@ export function JobRow({ job }: { job: Job }) {
         >
           {job.status.replace('_', ' ')}
         </span>
+        {!!job.disputePayments?.length && (
+          <p className='mt-1 text-xs font-semibold text-red-800'>Open dispute · payment held</p>
+        )}
       </td>
       <td
         style={{
@@ -263,7 +267,7 @@ export function JobRow({ job }: { job: Job }) {
           textAlign: 'center',
         }}
       >
-        <ActionsDropdown jobId={job.id} jobStatus={job.status} />
+        <ActionsDropdown jobId={job.id} jobStatus={job.status} jobHref={jobHref} />
       </td>
     </tr>
   );

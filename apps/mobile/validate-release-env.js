@@ -1,8 +1,12 @@
 // Run after EAS resolves public settings and before Expo bundles the app.
 function validateReleaseEnvironment(env = process.env) {
+  const staging =
+    env.EAS_BUILD_PROFILE === 'staging' ||
+    env.EXPO_PUBLIC_ENVIRONMENT === 'staging';
   const release =
     env.NODE_ENV === 'production' ||
-    ['staging', 'production'].includes(env.EXPO_PUBLIC_ENVIRONMENT) ||
+    staging ||
+    env.EXPO_PUBLIC_ENVIRONMENT === 'production' ||
     (env.EAS_BUILD_PROFILE && env.EAS_BUILD_PROFILE !== 'development');
   if (!release) return;
 
@@ -26,6 +30,7 @@ function validateReleaseEnvironment(env = process.env) {
     'EXPO_PUBLIC_SUPABASE_URL',
     'EXPO_PUBLIC_API_BASE_URL',
     'EXPO_PUBLIC_API_URL',
+    'EXPO_PUBLIC_MOBILE_API_GATEWAY_URL',
   ]) {
     if (!env[name]) continue;
     try {
@@ -37,6 +42,16 @@ function validateReleaseEnvironment(env = process.env) {
         ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
       )
         throw new Error();
+      if (
+        staging &&
+        [
+          'mintenance.co.uk',
+          'www.mintenance.co.uk',
+          'ukrjudtlvapiajkjbcrd.supabase.co',
+        ].includes(url.hostname.replace(/\.$/, ''))
+      ) {
+        errors.push(`${name} points to production. Use the staging backend.`);
+      }
     } catch {
       errors.push(`${name} must be a public HTTPS URL`);
     }
@@ -52,11 +67,7 @@ function validateReleaseEnvironment(env = process.env) {
   const key = env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
   if (key && !/^pk_(test|live)_[A-Za-z0-9]+$/.test(key))
     errors.push('Stripe publishable key is malformed');
-  if (
-    env.EXPO_PUBLIC_ENVIRONMENT === 'staging' &&
-    key &&
-    !key.startsWith('pk_test_')
-  ) {
+  if (staging && key && !key.startsWith('pk_test_')) {
     errors.push('Staging builds require Stripe sandbox keys');
   }
   if (env.EXPO_PUBLIC_USE_MOCK === 'true')

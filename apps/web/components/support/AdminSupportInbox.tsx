@@ -1,9 +1,7 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { MfaStepUpDialog } from '@/components/auth/MfaStepUpDialog';
-import { CommunicationComposer } from './CommunicationComposer';
-import { SupportTeam } from './SupportTeam';
 type Ticket = {
   id: string;
   subject: string;
@@ -33,23 +31,12 @@ type Reply = {
   author_id: string | null;
   author_label: string;
 };
-type Delivery = {
-  id: string;
-  channel: string;
-  status: string;
-  last_error: string | null;
-  subject: string;
-  recipient_email: string | null;
-  provider_id: string | null;
-  attempts: number;
-};
 type Inbox = {
   tickets: Ticket[];
   operators: Operator[];
-  deliveries: Delivery[];
   currentAdminId: string;
 };
-export function AdminSupportInbox() {
+export function AdminSupportInbox({ initialCaseId }: { initialCaseId?: string } = {}) {
   const { csrfToken } = useCSRF();
   const [data, setData] = useState<Inbox | null>(null);
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -94,7 +81,7 @@ export function AdminSupportInbox() {
   useEffect(() => {
     void load().catch((e) => setNotice(e.message));
   }, [load]);
-  async function open(id: string, resetDrafts = true) {
+  const open = useCallback(async (id: string, resetDrafts = true) => {
     const d = await api<{ ticket: Ticket; messages: Reply[] }>(
       `/api/admin/support/${id}`
     );
@@ -105,7 +92,13 @@ export function AdminSupportInbox() {
       setReason('');
       setRequestId(crypto.randomUUID());
     }
-  }
+  }, [api]);
+  const openedInitialCase = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialCaseId || openedInitialCase.current === initialCaseId) return;
+    openedInitialCase.current = initialCaseId;
+    void open(initialCaseId).catch((error: Error) => setNotice(error.message));
+  }, [initialCaseId, open]);
   async function act(work: () => Promise<void>) {
     if (busy) return;
     setBusy(true);
@@ -125,7 +118,7 @@ export function AdminSupportInbox() {
   return (
     <main className='mx-auto max-w-7xl p-6 space-y-6 [&_button]:min-h-11 [&_button]:rounded-lg [&_button]:px-3 [&_button]:py-2 [&_button]:border [&_button]:border-gray-200 [&_button]:disabled:opacity-50'>
       <header>
-        <h1 className='text-3xl font-semibold'>Customer service</h1>
+        <h1 className='text-3xl font-semibold'>Support inbox</h1>
         <p>
           One owner per case. Customer replies and private team notes stay
           separate.
@@ -366,77 +359,6 @@ export function AdminSupportInbox() {
           )}
         </section>
       </div>
-      {current?.can_broadcast && (
-        <CommunicationComposer api={api} onResult={setNotice} />
-      )}
-      {current?.can_manage_team && data && (
-        <SupportTeam
-          key={JSON.stringify(data.operators)}
-          operators={data.operators}
-          api={api}
-          onResult={setNotice}
-          onSaved={load}
-        />
-      )}
-      <section className='rounded-xl border bg-white p-5'>
-        <h2 className='text-xl font-semibold'>Recent delivery activity</h2>
-        <p className='text-sm'>
-          Accepted means handed to a provider or notification queue. It does not
-          prove inbox or device delivery. Review uncertain sends before
-          retrying.
-        </p>
-        <table className='w-full text-left text-sm'>
-          <thead>
-            <tr>
-              <th>Message</th>
-              <th>Channel</th>
-              <th>Status</th>
-              <th>Detail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data?.deliveries.slice(0, 30).map((d) => (
-              <tr key={d.id}>
-                <td>
-                  {d.subject}
-                  <small className='block'>
-                    {d.recipient_email || 'App recipient'} · {d.attempts}{' '}
-                    attempts
-                  </small>
-                </td>
-                <td>{d.channel}</td>
-                <td>{d.status}</td>
-                <td>
-                  {d.last_error || '—'}
-                  {d.provider_id && (
-                    <small className='block break-all'>
-                      Provider reference: {d.provider_id}
-                    </small>
-                  )}
-                  {current?.can_broadcast &&
-                    d.status === 'failed' &&
-                    !d.provider_id && (
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          void act(async () => {
-                            await api(
-                              `/api/admin/support/deliveries/${d.id}/retry`,
-                              'POST'
-                            );
-                            setNotice('Delivery queued for retry.');
-                          })
-                        }
-                      >
-                        Retry rejected send
-                      </button>
-                    )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
       {mfa && (
         <MfaStepUpDialog
           onCancel={() => setMfa(false)}

@@ -61,7 +61,7 @@ export const GET = withApiHandler(
       .select(
         `
         id, job_id, payer_id, payee_id, amount, status,
-        admin_hold_status, admin_hold_reason, admin_hold_at,
+        admin_hold_status, admin_hold_reason, admin_hold_at, admin_hold_by,
         description, metadata, created_at, updated_at,
         homeowner_approval, photo_verification_status,
         photo_verification_score, geolocation_verified,
@@ -145,8 +145,25 @@ export const GET = withApiHandler(
       }
     }
 
+    const [assignment, savedResolution] = await Promise.all([
+      disputeRecord
+        ? serverSupabase.from('admin_dispute_tasks')
+            .select('status, created_at, assignee:profiles!admin_dispute_tasks_admin_id_fkey(first_name,last_name)')
+            .eq('dispute_id', disputeRecord.id).maybeSingle()
+        : { data: null, error: null },
+      serverSupabase.from('escrow_dispute_resolutions')
+        .select('id,decision,reason,state,refund_minor,release_minor,initiated_by,created_at,completed_at')
+        .eq('escrow_id', escrow.id).maybeSingle(),
+    ]);
+    if (assignment.error || savedResolution.error)
+      throw new InternalServerError('Unable to verify assignment or settlement details. Please retry.');
+    const assigneeRaw = assignment.data?.assignee;
+    const assignee = Array.isArray(assigneeRaw) ? assigneeRaw[0] : assigneeRaw;
+
     // ── Parties (homeowner = payer, contractor = payee) ──────────────
-    const partyIds = [escrow.payer_id, escrow.payee_id].filter(
+    const partyIds = [...new Set([
+      escrow.payer_id, escrow.payee_id, escrow.admin_hold_by, savedResolution.data?.initiated_by,
+    ])].filter(
       (v): v is string => Boolean(v)
     );
     let profilesById: Record<string, ProfileRow> = {};
@@ -321,7 +338,7 @@ export const GET = withApiHandler(
     const rework = jobId
       ? await serverSupabase
           .from('job_rework_requests')
-          .select('id,comments,created_at,completion_version,submitted_at')
+          .select('id,actor_id,comments,created_at,completion_version,submitted_at')
           .eq('job_id', jobId)
           .order('created_at', { ascending: true })
       : { data: [], error: null };
@@ -331,6 +348,14 @@ export const GET = withApiHandler(
       );
     return NextResponse.json({
       caseEvidence,
+      assignedAdmin: assignment.data?.status === 'open' && assignee
+        ? ([assignee.first_name, assignee.last_name].filter(Boolean).join(' ') || 'Administrator')
+        : null,
+      assignedAt: assignee ? assignment.data?.created_at : null,
+      decisionActor: savedResolution.data?.initiated_by
+        ? displayName(profilesById[savedResolution.data.initiated_by] ?? null)
+        : null,
+      savedResolution: savedResolution.data,
       agreements: agreements.data ?? [],
       rework: rework.data ?? [],
       id: escrow.id,
@@ -341,6 +366,7 @@ export const GET = withApiHandler(
         adminHoldStatus: escrow.admin_hold_status,
         adminHoldReason: escrow.admin_hold_reason,
         adminHoldAt: escrow.admin_hold_at,
+        holdActor: escrow.admin_hold_by ? displayName(profilesById[escrow.admin_hold_by] ?? null) : null,
         description: escrow.description,
         createdAt: escrow.created_at,
         updatedAt: escrow.updated_at,

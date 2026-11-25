@@ -10,9 +10,12 @@ import {
   NotFoundError,
 } from '@/lib/errors/api-error';
 
+const reviewKinds = z.enum(['contract', 'dispute']);
+const reviewFilters = z.enum(['all', 'overdue', 'soon', 'held']);
 const cursorSchema = z
   .object({
-    archivedAt: z.string().datetime({ offset: true }),
+    due: z.string().datetime({ offset: true }),
+    kind: reviewKinds,
     id: z.string().uuid(),
   })
   .strict();
@@ -20,7 +23,8 @@ const cursorSchema = z
 function readCursor(value: string | null) {
   if (!value) return null;
   try {
-    if (value.length > 512) throw new Error('Cursor too long');
+    if (value.length > 512 || !/^[A-Za-z0-9_-]+$/.test(value))
+      throw new Error('Bad cursor');
     return cursorSchema.parse(
       JSON.parse(Buffer.from(value, 'base64url').toString('utf8'))
     );
@@ -33,96 +37,70 @@ export const GET = withApiHandler(
   { roles: ['admin'], csrf: false },
   async (request, { user }) => {
     await requireAdminFromDatabase(user.id);
-    const params = new URL(request.url).searchParams;
-    const contractCursor = readCursor(params.get('contractAfter'));
-    const disputeCursor = readCursor(params.get('disputeAfter'));
-    function archiveQuery(
-      table: string,
-      idColumn: 'contract_id' | 'dispute_id',
-      cursor: ReturnType<typeof readCursor>
-    ) {
-      let query = serverSupabase
-        .from(table)
+    const params = request.nextUrl.searchParams;
+    const kind = params.get('kind');
+    const id = params.get('id');
+    if (kind || id) {
+      if (
+        !reviewKinds.safeParse(kind).success ||
+        !z.string().uuid().safeParse(id).success
+      )
+        throw new BadRequestError('Choose a valid evidence review.');
+      const { data, error } = await serverSupabase
+        .from('admin_evidence_review_queue')
         .select(
-          idColumn === 'contract_id'
-            ? 'id:contract_id,archived_at,review_due_at'
-            : 'id:dispute_id,archived_at,review_due_at'
+          'kind,id,title,archived_at,review_due_at,revision,legal_hold,reason'
         )
-        .order('archived_at')
-        .order(idColumn)
-        .limit(51);
-      if (cursor) {
-        // Both values are strictly validated before entering PostgREST filter syntax.
-        query = query.or(
-          `archived_at.gt.${cursor.archivedAt},and(archived_at.eq.${cursor.archivedAt},${idColumn}.gt.${cursor.id})`
-        );
-      }
-      return query;
+        .eq('kind', kind!)
+        .eq('id', id!)
+        .maybeSingle();
+      if (error) throw new InternalServerError('Unable to load this review.');
+      if (!data)
+        throw new NotFoundError('This retained record is unavailable.');
+      return NextResponse.json({ review: data });
     }
-    const results = await Promise.all([
-      archiveQuery('retained_contract_records', 'contract_id', contractCursor),
-      archiveQuery('retained_dispute_records', 'dispute_id', disputeCursor),
-    ]);
-    if (results.some((result) => result.error))
-      throw new InternalServerError('Unable to load retention reviews.');
-    const records = [
-      ...(results[0].data ?? []).slice(0, 50).map((row) => ({
-        kind: 'contract',
-        id: row.id,
-        archived_at: row.archived_at,
-        review_due_at: row.review_due_at,
-      })),
-      ...(results[1].data ?? []).slice(0, 50).map((row) => ({
-        kind: 'dispute',
-        id: row.id,
-        archived_at: row.archived_at,
-        review_due_at: row.review_due_at,
-      })),
-    ];
-    // Keep each stream's last position even when the other stream has more pages.
-    const nextParams = new URLSearchParams();
-    for (const [kind, previous] of [
-      ['contract', contractCursor],
-      ['dispute', disputeCursor],
-    ] as const) {
-      const last = records.filter((row) => row.kind === kind).at(-1);
-      const cursor = last
-        ? { archivedAt: last.archived_at, id: last.id }
-        : previous;
-      if (cursor)
-        nextParams.set(
-          `${kind}After`,
-          Buffer.from(JSON.stringify(cursor)).toString('base64url')
-        );
-    }
-    const next = results.some((result) => (result.data?.length ?? 0) > 50)
-      ? nextParams.toString()
-      : null;
-    if (!records.length) return NextResponse.json({ records: [], next: null });
-    const { data: reviews, error } = await serverSupabase
-      .from('evidence_retention_reviews')
-      .select('record_kind,record_id,revision,legal_hold,reason,review_due_at')
-      .in(
-        'record_id',
-        records.map((row) => row.id)
+
+    const filter = reviewFilters.safeParse(params.get('filter') ?? 'all');
+    if (!filter.success) throw new BadRequestError('Invalid review filter.');
+    const cursor = readCursor(params.get('after'));
+    const now = new Date();
+    const soon = new Date(now.valueOf() + 30 * 86400_000);
+    let query = serverSupabase
+      .from('admin_evidence_review_queue')
+      .select('kind,id,title,archived_at,review_due_at,revision,legal_hold')
+      .order('review_due_at')
+      .order('kind')
+      .order('id')
+      .limit(51);
+    if (filter.data === 'overdue')
+      query = query.lt('review_due_at', now.toISOString());
+    if (filter.data === 'soon')
+      query = query
+        .gte('review_due_at', now.toISOString())
+        .lte('review_due_at', soon.toISOString());
+    if (filter.data === 'held') query = query.eq('legal_hold', true);
+    if (cursor) {
+      // Cursor shape is validated before interpolation into PostgREST filters.
+      query = query.or(
+        `review_due_at.gt.${cursor.due},and(review_due_at.eq.${cursor.due},kind.gt.${cursor.kind}),and(review_due_at.eq.${cursor.due},kind.eq.${cursor.kind},id.gt.${cursor.id})`
       );
+    }
+    const { data, error } = await query;
     if (error)
-      throw new InternalServerError('Unable to load retention decisions.');
-    return NextResponse.json({
-      next,
-      records: records.map((row) => {
-        const review = reviews?.find(
-          (value) =>
-            value.record_kind === row.kind && value.record_id === row.id
-        );
-        return {
-          ...row,
-          revision: review?.revision ?? 0,
-          legal_hold: review?.legal_hold ?? false,
-          reason: review?.reason ?? '',
-        };
-      }),
-    });
+      throw new InternalServerError('Unable to load retention reviews.');
+    const records = (data ?? []).slice(0, 50);
+    const last = records.at(-1);
+    const next =
+      data && data.length > 50 && last
+        ? Buffer.from(
+            JSON.stringify({
+              due: last.review_due_at,
+              kind: last.kind,
+              id: last.id,
+            })
+          ).toString('base64url')
+        : null;
+    return NextResponse.json({ records, next });
   }
 );
 

@@ -14,7 +14,7 @@ beforeEach(() => {
   mocks.auth.mockResolvedValue({ id: 'admin', role: 'admin' });
   mocks.from.mockImplementation((table: string) => {
     const result = table === 'jobs'
-      ? { data: { id, title: 'Painting', status: 'posted', budget: 100, created_at: '2026-10-10', homeowner_id: 'owner' }, error: null }
+      ? { data: { id, title: 'Painting', status: 'posted', budget: 100, created_at: '2026-10-10', homeowner_id: 'owner', disputePayments: [{ id: 'escrow-a', amount: 1.2 }] }, error: null }
       : { data: [{ id: 'bid', contractor_id: 'bidder', amount: 80, status: 'pending', description: 'Proposal' }], error: null };
     const chain: Record<string, unknown> = {};
     for (const method of ['select', 'eq', 'is']) chain[method] = vi.fn(() => chain);
@@ -35,9 +35,15 @@ describe('admin job review boundary', () => {
     expect(screen.getByText('Painting')).toBeTruthy();
     expect(screen.getByText('£80.00')).toBeTruthy();
     expect(screen.getByText('Admin review · Read only')).toBeTruthy();
+    expect(screen.getByText('Held for dispute · release blocked', { exact: false })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View dispute' })).toHaveAttribute('href', '/admin/disputes/escrow-a');
     expect(screen.queryByRole('button')).toBeNull();
     for (const link of screen.getAllByRole('link')) expect(link.getAttribute('href')).toMatch(/^(\/admin\/|#)/);
     expect(document.getElementById('bids')).toBeTruthy();
+  });
+  it('returns to jobs with the same search and dispute filter', async () => {
+    render(await Page({ ...props, searchParams: Promise.resolve({ search: id, status: 'in_progress', disputed: 'true' }) }));
+    expect(screen.getByRole('link', { name: 'Back to job management' })).toHaveAttribute('href', '/admin/jobs?status=in_progress&search=' + id + '&disputed=true');
   });
   it('rejects malformed IDs before querying', async () => {
     await expect(Page({ params: Promise.resolve({ id: 'invalid' }) })).rejects.toThrow('not-found');

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { readAdminAttentionCounts } from '@/lib/admin/attention-counts';
 
 /**
  * GET /api/admin/dashboard/metrics
@@ -14,7 +15,7 @@ export const GET = withApiHandler(
       totalContractorsResponse,
       totalJobsResponse,
       activeSubscriptionsResponse,
-      pendingVerificationsResponse,
+      attention,
     ] = await Promise.all([
       serverSupabase
         .from('profiles')
@@ -30,21 +31,13 @@ export const GET = withApiHandler(
         .from('contractor_subscriptions')
         .select('id', { count: 'exact', head: true })
         .in('status', ['active', 'trial']),
-      serverSupabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('role', 'contractor')
-        .eq('admin_verified', false)
-        .not('company_name', 'is', null)
-        .not('license_number', 'is', null)
-        .is('deleted_at', null),
+      readAdminAttentionCounts(),
     ]);
 
     const totalUsers = totalUsersResponse.count || 0;
     const totalContractors = totalContractorsResponse.count || 0;
     const totalJobs = totalJobsResponse.count || 0;
     const activeSubscriptions = activeSubscriptionsResponse.count || 0;
-    const pendingVerifications = pendingVerificationsResponse.count || 0;
 
     const { data: mrrData } = await serverSupabase.rpc('calculate_mrr');
     const mrr =
@@ -129,7 +122,8 @@ export const GET = withApiHandler(
       totalJobs,
       activeSubscriptions,
       mrr,
-      pendingVerifications,
+      attention,
+      pendingVerifications: attention.readyVerifications,
       lastUpdated: new Date().toISOString(),
       charts: {
         userGrowth: userGrowthCumulative,

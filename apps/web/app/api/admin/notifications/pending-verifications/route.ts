@@ -1,26 +1,14 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { AdminNotificationService } from '@/lib/services/admin/AdminNotificationService';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { countVerificationQueue } from '@/lib/admin/verification-queue';
 
 /**
  * GET: Return count of contractors awaiting admin verification
  */
 export const GET = withApiHandler({ roles: ['admin'] }, async () => {
-  const { count, error } = await serverSupabase
-    .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .eq('role', 'contractor')
-    .eq('admin_verified', false)
-    .not('company_name', 'is', null)
-    .not('license_number', 'is', null)
-    .is('deleted_at', null);
-
-  if (error) {
-    return NextResponse.json({ count: 0 });
-  }
-
-  return NextResponse.json({ count: count || 0 });
+  const count = await countVerificationQueue('ready');
+  return NextResponse.json({ count });
 });
 
 /**

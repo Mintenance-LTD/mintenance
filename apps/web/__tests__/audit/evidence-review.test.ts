@@ -91,14 +91,16 @@ function list(query = '') {
     { params: Promise.resolve({}) }
   );
 }
-it('continues beyond 50 tied archive timestamps without exposing evidence payloads', async () => {
+it('continues beyond 50 tied review deadlines without exposing evidence payloads', async () => {
   const rows = Array.from({ length: 51 }, (_, index) => ({
     id: `11111111-1111-4111-8111-${String(index + 1).padStart(12, '0')}`,
+    kind: 'contract',
     archived_at: '2026-09-22T12:00:00+00:00',
     review_due_at: '2026-10-22T12:00:00Z',
   }));
   const filters: string[] = [];
   const selections: string[] = [];
+  const order: string[] = [];
   m.from.mockImplementation((table: string) => {
     let filter = '';
     const builder = {
@@ -106,7 +108,7 @@ it('continues beyond 50 tied archive timestamps without exposing evidence payloa
         selections.push(selection);
         return builder;
       },
-      order: () => builder,
+      order: (field: string) => { order.push(field); return builder; },
       limit: () => builder,
       or: (value: string) => {
         filter = value;
@@ -117,7 +119,7 @@ it('continues beyond 50 tied archive timestamps without exposing evidence payloa
       then: (resolve: (value: object) => unknown) =>
         resolve({
           data:
-            table === 'retained_contract_records'
+            table === 'admin_evidence_review_queue'
               ? filter
                 ? rows.slice(50)
                 : rows
@@ -129,12 +131,13 @@ it('continues beyond 50 tied archive timestamps without exposing evidence payloa
   });
   const first = await (await list()).json();
   expect(first.records).toHaveLength(50);
-  expect(first.next).toContain('contractAfter=');
-  const second = await (await list(`?${first.next}`)).json();
+  expect(order).toEqual(['review_due_at', 'kind', 'id']);
+  expect(first.next).toBeTruthy();
+  const second = await (await list(`?after=${first.next}`)).json();
   expect(second.records).toHaveLength(1);
   expect(second.records[0].id).toBe(rows[50].id);
   expect(second.next).toBeNull();
-  expect(filters[0]).toContain(`contract_id.gt.${rows[49].id}`);
+  expect(filters[0]).toContain(`id.gt.${rows[49].id}`);
   expect(selections.join(',')).not.toContain('evidence');
 });
 it.each([
@@ -145,7 +148,7 @@ it.each([
 ])(
   'rejects malformed pagination cursors before querying archives',
   async (cursor) => {
-    await expect(list(`?contractAfter=${cursor}`)).rejects.toMatchObject({
+    await expect(list(`?after=${cursor}`)).rejects.toMatchObject({
       statusCode: 400,
     });
     expect(m.from).not.toHaveBeenCalled();

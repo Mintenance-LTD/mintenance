@@ -16,6 +16,7 @@ export interface Job {
   completed_at: string | null;
   homeowner_id: string;
   contractor_id: string | null;
+  disputePayments?: { id: string }[];
   homeowner: ProfileSummary | null;
   contractor: ProfileSummary | null;
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { ACTIVE_DISPUTE_REVIEW_STATUSES, OPEN_DISPUTE_CASE_STATUSES } from '@/lib/admin/dispute-display';
 import { logger } from '@mintenance/shared';
 import { InternalServerError } from '@/lib/errors/api-error';
 
@@ -14,6 +15,7 @@ export const GET = withApiHandler(
   async (request) => {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
+    const onlyOpenCases = status === 'active' || status === 'overdue';
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = (page - 1) * limit;
@@ -31,6 +33,8 @@ export const GET = withApiHandler(
         amount,
         status,
         admin_hold_status,
+        sla_deadline,
+        active_case:dispute_escrow_links(disputes!inner(status)),
         description,
         metadata,
         created_at,
@@ -62,11 +66,15 @@ export const GET = withApiHandler(
         { count: 'exact' }
       )
       .not('admin_hold_status', 'is', null)
-      .neq('admin_hold_status', 'none')
-      .order('updated_at', { ascending: false });
+      .neq('admin_hold_status', 'none');
 
     // Filter by dispute status if provided
-    if (status === 'open') {
+    if (onlyOpenCases) {
+      query = query.in('admin_hold_status', ACTIVE_DISPUTE_REVIEW_STATUSES)
+        .in('active_case.disputes.status', OPEN_DISPUTE_CASE_STATUSES)
+        .not('active_case', 'is', null);
+      if (status === 'overdue') query = query.lt('sla_deadline', new Date().toISOString());
+    } else if (status === 'open') {
       query = query.eq('admin_hold_status', 'pending_review');
     } else if (status === 'reviewing') {
       query = query.eq('admin_hold_status', 'admin_hold');
@@ -74,7 +82,12 @@ export const GET = withApiHandler(
       query = query.eq('admin_hold_status', 'released');
     }
 
-    query = query.range(offset, offset + limit - 1);
+    if (['active', 'overdue', 'open', 'reviewing'].includes(status ?? '')) {
+      query = query.order('sla_deadline', { ascending: true, nullsFirst: false });
+    }
+    query = query.order('updated_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(offset, offset + limit - 1);
 
     const { data: disputes, error, count } = await query;
 
@@ -86,12 +99,12 @@ export const GET = withApiHandler(
     // Only load resolution decisions for this page; never make a persisted
     // decision appear editable because its lookup failed.
     const resolutionByEscrow = new Map<string, unknown>();
-    const disputeByEscrow = new Map<string, { id: string; reason: string }>();
+    const disputeByEscrow = new Map<string, { id: string; reason: string; status: string }>();
     const assigneeByDispute = new Map<string, string>();
     if (disputes?.length) {
       const canonical = await serverSupabase
         .from('disputes')
-        .select('id,reason,dispute_escrow_links!inner(escrow_id)')
+        .select('id,reason,status,dispute_escrow_links!inner(escrow_id)')
         .in(
           'dispute_escrow_links.escrow_id',
           disputes.map((d) => d.id)
@@ -229,6 +242,8 @@ export const GET = withApiHandler(
         amount: Number(d.amount) || 0,
         escrowStatus: d.status,
         adminHoldStatus: d.admin_hold_status,
+        slaDeadline: d.sla_deadline,
+        caseStatus: disputeByEscrow.get(d.id)?.status ?? null,
         holdReason:
           disputeByEscrow.get(d.id)?.reason ??
           ((d.metadata as Record<string, unknown>)?.hold_reason as

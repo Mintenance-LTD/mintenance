@@ -31,7 +31,6 @@ export const adminNavSections: readonly NavSection[] = Object.freeze([
         icon: 'users',
         label: 'Users',
         href: '/admin/users',
-        badge: 'verifications',
       },
       {
         icon: 'userCheck',
@@ -43,7 +42,7 @@ export const adminNavSections: readonly NavSection[] = Object.freeze([
         label: 'Communications',
         href: '/admin/communications',
       },
-      { icon: 'messages', label: 'Customer service', href: '/admin/support' },
+      { icon: 'messages', label: 'Support inbox', href: '/admin/support' },
     ],
   },
   {
@@ -64,7 +63,7 @@ export const adminNavSections: readonly NavSection[] = Object.freeze([
       },
       {
         icon: 'receiptText',
-        label: 'Refunds',
+        label: 'Refunds & payouts',
         href: '/admin/refunds',
       },
       {
@@ -100,6 +99,7 @@ export const adminNavSections: readonly NavSection[] = Object.freeze([
     title: 'Security & Ops',
     items: [
       { icon: 'shield', label: 'Security', href: '/admin/security' },
+      { icon: 'users', label: 'Support team & beta access', href: '/admin/settings/support' },
       { icon: 'clipboard', label: 'Audit Logs', href: '/admin/audit-logs' },
       {
         icon: 'refresh',

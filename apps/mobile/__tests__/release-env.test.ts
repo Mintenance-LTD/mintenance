@@ -47,3 +47,15 @@ it.each([
 it('permits incomplete local development configuration', () => {
   expect(() => validate({ NODE_ENV: 'development' })).not.toThrow();
 });
+
+it.each([
+  ['EXPO_PUBLIC_SUPABASE_URL', 'https://ukrjudtlvapiajkjbcrd.supabase.co'],
+  ['EXPO_PUBLIC_API_BASE_URL', 'https://www.mintenance.co.uk./api'],
+  ['EXPO_PUBLIC_MOBILE_API_GATEWAY_URL', 'https://ukrjudtlvapiajkjbcrd.supabase.co/functions/v1/mobile-api-relay'],
+])('blocks production %s in the staging build profile', (name, value) => {
+  expect(() => validate({
+    ...valid,
+    EXPO_PUBLIC_ENVIRONMENT: 'production',
+    [name]: value,
+  })).toThrow(`${name} points to production`);
+});

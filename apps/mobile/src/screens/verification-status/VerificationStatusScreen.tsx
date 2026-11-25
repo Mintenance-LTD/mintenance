@@ -129,7 +129,7 @@ const resolveSubtitle = (
         ? 'Optional — boosts trust'
         : 'Add up to 3'
       : 'Tap to add';
-  if (cred.status === 'pending') return 'Under review — usually within 48h';
+  if (cred.status === 'pending') return 'Trade credential submitted for review';
   if (cred.status === 'rejected')
     return cred.rejected_reason || 'Re-submit to retry';
   if (cred.status !== 'verified') return 'Not started';
@@ -153,16 +153,19 @@ export const VerificationStatusScreen: React.FC<Props> = ({ navigation }) => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['my-credentials'],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ credentials: CredentialRow[] }>(
+      const res = await mobileApiClient.get<{
+        credentials: CredentialRow[];
+        accountReview?: { label: string; nextSteps: string[] } | null;
+      }>(
         '/api/verification/my-credentials'
       );
-      return res.credentials ?? [];
+      return res;
     },
   });
 
   const credByKey = useMemo(() => {
     const map = new Map<string, CredentialRow>();
-    for (const c of data ?? []) {
+    for (const c of data?.credentials ?? []) {
       // Take the most recent row per `register` (the array is already
       // ordered DESC by created_at server-side).
       if (!map.has(c.register)) map.set(c.register, c);
@@ -243,6 +246,16 @@ export const VerificationStatusScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
 
+          {data?.accountReview && (
+            <View style={{ padding: 16, gap: 6 }}>
+              <Text style={{ color: me.ink, fontWeight: '600' }}>
+                {data.accountReview.label}
+              </Text>
+              {data.accountReview.nextSteps.map((step) => (
+                <Text key={step} style={{ color: me.ink }}>{step}</Text>
+              ))}
+            </View>
+          )}
           {/* Slot rows */}
           {slotStates.map(({ slot, cred }, idx) => {
             const state = resolveState(cred);

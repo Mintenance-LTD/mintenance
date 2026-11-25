@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { isValidUUID } from '@/lib/validation/uuid';
+import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 import { logger } from '@mintenance/shared';
 import { PaymentReconciliationService } from '@/lib/services/payment/PaymentReconciliationService';
 
@@ -58,12 +60,19 @@ export const GET = withApiHandler(
         );
       }
     }
+    const search = (params.get('search') ?? '').trim().slice(0, 120);
+    const byJobId = isValidUUID(search);
+    const jobTitle = !byJobId && search ? sanitizeIlikePattern(search) : '';
     let query = serverSupabase
       .from('escrow_transactions')
       .select(
-        'id, payment_intent_id, amount, status, metadata, created_at, updated_at'
+        ('id,payment_intent_id,job_id,amount,status,metadata,created_at,updated_at,' +
+          'job:jobs!escrow_transactions_job_id_fkey' + (jobTitle ? '!inner' : '') + '(title),' +
+          'dispute_escrow_links(dispute_id)') as 'id,payment_intent_id,job_id,amount,status,metadata,created_at,updated_at,job:jobs!escrow_transactions_job_id_fkey(title),dispute_escrow_links(dispute_id)'
       )
       .not('metadata->reconciliation_flag', 'is', null);
+    if (byJobId) query = query.eq('job_id', search);
+    else if (jobTitle) query = query.ilike('job.title', '%' + jobTitle + '%');
     if (filter === 'unresolved')
       query = query.neq('metadata->>reconciliation_flag', 'false');
     if (cursor) {
@@ -109,7 +118,11 @@ export const GET = withApiHandler(
       return {
         id: record.id,
         payment_intent_id: record.payment_intent_id || 'unknown',
-        amount: record.amount || 0,
+        amount: Number(record.amount) || 0,
+        job_id: record.job_id,
+        job_title: (Array.isArray(record.job) ? record.job[0] : record.job)?.title ?? null,
+        has_case: !!record.dispute_escrow_links?.length,
+        last_checked_at: typeof meta?.reconciliation_date === 'string' ? meta.reconciliation_date : null,
         local_status: record.status,
         stripe_status: (meta?.stripe_status as string) || null,
         mismatch_type: mismatch.includes('amount')

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { DB_SCHEMA_SNAPSHOT } from '../fixtures/db-schema.snapshot';
 import { GET as dashboardGET } from '@/app/api/admin/security-dashboard/route';
 import { GET as verificationsGET } from '@/app/api/admin/verifications/route';
 
@@ -43,6 +44,9 @@ const columns: Record<string, Set<string>> = {
     'resolved',
     'created_at',
   ]),
+  admin_verification_queue: new Set(
+    DB_SCHEMA_SNAPSHOT.admin_verification_queue
+  ),
   contractor_skills: new Set([
     'contractor_id',
     'skill_name',
@@ -122,7 +126,15 @@ beforeEach(() => {
       resolved: false,
     },
   ];
-  rows.profiles = [{ id: 'contractor', admin_verified: false }];
+  rows.admin_verification_queue = [
+    {
+      id: 'contractor',
+      admin_verified: false,
+      queue_status: 'ready',
+      identity_submitted: true,
+      business_submitted: true,
+    },
+  ];
   rows.contractor_skills = [
     {
       contractor_id: 'contractor',
@@ -151,6 +163,7 @@ it('preserves admin authorization and fresh MFA on the security dashboard', () =
   );
   expect(db.guards).toContainEqual({
     roles: ['admin'],
+    requireDbAdmin: true,
     rateLimit: { maxRequests: 10 },
   });
 });
@@ -230,6 +243,7 @@ it('preserves verified and unverified skills in the existing response contract',
   const response = await verifications();
   expect(response.status).toBe(200);
   const body = await response.json();
+  expect(body.data[0].verification_status).toBe('ready');
   expect(body.data[0].skills).toEqual([
     { skill_name: 'Plumbing', years_experience: 5, verified: true },
     { skill_name: 'Painting', years_experience: 2, verified: false },

@@ -3,10 +3,12 @@ import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { formatCurrency, type Stats, type StatusFilter } from './DisputesTable';
 
 const FILTER_TABS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'All Disputes' },
-  { value: 'open', label: 'Open' },
+  { value: 'active', label: 'Active' },
+  { value: 'overdue', label: 'Overdue' },
+  { value: 'open', label: 'Pending review' },
   { value: 'reviewing', label: 'In Review' },
   { value: 'resolved', label: 'Resolved' },
+  { value: 'all', label: 'All cases' },
 ];
 
 interface DisputesPageHeaderProps {
@@ -54,7 +56,7 @@ export function DisputesPageHeader({
       {/* Metrics Grid — 4 columns matching mockup */}
       <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10'>
         <AdminMetricCard
-          label='Open Disputes'
+          label='Pending review'
           value={stats.open}
           icon='alert'
           iconColor='#565e74'
@@ -81,7 +83,7 @@ export function DisputesPageHeader({
       </div>
 
       {/* Filter Tabs — pill style */}
-      <div className='bg-white rounded-[1.5rem] p-2 mb-6 inline-flex gap-1'>
+      <div className='bg-white rounded-[1.5rem] p-2 mb-6 inline-flex flex-wrap gap-1'>
         {FILTER_TABS.map((tab) => (
           <button
             key={tab.value}

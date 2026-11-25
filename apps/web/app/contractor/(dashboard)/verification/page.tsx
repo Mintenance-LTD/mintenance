@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Shield,
 } from 'lucide-react';
+import type { VerificationReview } from '@/lib/contractor/verification-review';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
@@ -50,8 +51,8 @@ const STEPS_CONFIG: Omit<VerificationStep, 'status' | 'document'>[] = [
   },
   {
     id: 'business',
-    title: 'Business registration',
-    description: 'Upload your business licence or registration',
+    title: 'Business evidence',
+    description: 'Upload your registration or other proof of trading. A trade licence number is optional for this review.',
     verificationType: 'business_licence',
     required: true,
   },
@@ -83,6 +84,7 @@ export default function ContractorVerificationPage() {
   );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [review, setReview] = useState<VerificationReview | null>(null);
   // Hydration-safe theme detection — Phase-4 contractor port pattern.
   const [isMintEditorial, setIsMintEditorial] = useState(false);
   useEffect(() => {
@@ -97,9 +99,12 @@ export default function ContractorVerificationPage() {
     setLoading(true);
     setLoadError(false);
     try {
-      const res = await fetch('/api/contractor/documents', {
-        credentials: 'include',
-      });
+      const [res, reviewResponse] = await Promise.all([
+        fetch('/api/contractor/documents', { credentials: 'include' }),
+        fetch('/api/verification/my-credentials', { credentials: 'include' }).catch(() => null),
+      ]);
+      const reviewBody = reviewResponse?.ok ? await reviewResponse.json().catch(() => null) : null;
+      setReview(reviewBody?.accountReview ?? null);
       if (!res.ok) throw new Error('Could not load verification documents');
       const data = await res.json();
       const docs: VerificationDoc[] = data.documents || [];
@@ -127,8 +132,8 @@ export default function ContractorVerificationPage() {
   }, []);
 
   useEffect(() => {
-    if (user) fetchVerificationDocs();
-  }, [user, fetchVerificationDocs]);
+    fetchVerificationDocs();
+  }, [fetchVerificationDocs]);
 
   // Upload a verification document using the existing /api/contractor/documents endpoint
   const handleFileUpload = async (
@@ -166,9 +171,7 @@ export default function ContractorVerificationPage() {
       });
 
       if (res.ok) {
-        toast.success(
-          'Document uploaded successfully! Review typically takes 1-2 business days.'
-        );
+        toast.success('Document uploaded.');
         // Refresh the list to get real status
         await fetchVerificationDocs();
       } else {
@@ -214,6 +217,12 @@ export default function ContractorVerificationPage() {
     );
   return (
     <ContractorPageWrapper>
+      {review && (
+        <section className='mb-4 rounded-xl border bg-white p-4' aria-label='Account review status'>
+          <h2 className='font-semibold'>{review.label}</h2>
+          {review.nextSteps.map((step) => <p key={step} className='mt-1 text-sm'>{step}</p>)}
+        </section>
+      )}
       <p className='mb-4 text-sm'>
         Account review:{' '}
         {user?.admin_verified ? 'Admin reviewed' : 'No admin approval recorded'}
@@ -262,7 +271,7 @@ export default function ContractorVerificationPage() {
               style={{ alignItems: 'center', marginBottom: 8 }}
             >
               <span style={{ fontSize: 14, fontWeight: 600 }}>
-                Required: identity and business registration
+                Identity and business evidence
               </span>
               <span style={{ fontSize: 14, fontWeight: 700 }}>
                 {reviewedRequired} of {totalRequired} reviewed
@@ -309,7 +318,7 @@ export default function ContractorVerificationPage() {
           <div className='bg-gray-50 rounded-2xl p-6 border border-gray-200'>
             <div className='flex items-center justify-between mb-3'>
               <span className='text-gray-900 font-semibold'>
-                Required: identity and business registration
+                Identity and business evidence
               </span>
               <span className='text-gray-900 font-bold'>
                 {reviewedRequired} of {totalRequired} reviewed

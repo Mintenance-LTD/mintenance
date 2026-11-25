@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { DISPUTED_PAYMENT_LABEL } from '@/lib/admin/dispute-display';
 import { theme } from '@/lib/admin-theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +23,7 @@ const STATUS_COLORS: Record<
   string,
   { bg: string; text: string; label: string }
 > = {
+  disputed: { bg: '#fee2e2', text: '#991b1b', label: DISPUTED_PAYMENT_LABEL },
   held: { bg: '#fef3c7', text: '#92400e', label: 'Held' },
   release_pending: { bg: '#dbeafe', text: '#1e40af', label: 'Pending Release' },
   released: { bg: '#dcfce7', text: '#166534', label: 'Released' },
@@ -273,7 +275,10 @@ export function EscrowTable({
                         flexWrap: 'wrap',
                       }}
                     >
-                      {(canRelease(escrow.status) ||
+                      {escrow.status === 'disputed' && (
+                        <Link className='font-semibold underline' href={'/admin/disputes/' + escrow.id}>View dispute</Link>
+                      )}
+                      {escrow.status !== 'disputed' && (canRelease(escrow.status) ||
                         retryableReleaseIds.includes(escrow.id)) && (
                         <Button
                           size='sm'
@@ -288,7 +293,7 @@ export function EscrowTable({
                             : 'Release'}
                         </Button>
                       )}
-                      {(canRefund(escrow.status) ||
+                      {escrow.status !== 'disputed' && (canRefund(escrow.status) ||
                         retryableIds.includes(escrow.id)) && (
                         <Button
                           size='sm'

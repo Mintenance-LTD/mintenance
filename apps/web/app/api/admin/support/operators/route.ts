@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readSupportOperators } from '@/lib/services/support/readOperators';
 import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase as db } from '@/lib/api/supabaseServer';
@@ -15,6 +16,13 @@ const schema = z
     canBroadcast: z.boolean().optional(),
   })
   .strict();
+export const GET = withApiHandler(
+  { roles: ['admin'], requireDbAdmin: true, csrf: false },
+  async (_request, { user }) => {
+    const operators = await readSupportOperators();
+    return NextResponse.json({ operators, currentAdminId: user.id });
+  }
+);
 export const PATCH = withApiHandler(
   {
     roles: ['admin'],

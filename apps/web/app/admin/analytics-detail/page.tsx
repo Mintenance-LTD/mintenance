@@ -407,10 +407,10 @@ export default function AnalyticsDetailPage() {
                         value: `\u00A3${((metrics?.mrr ?? 0) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
                       },
                       {
-                        label: 'Pending Verifications',
+                        label: 'Verifications ready for review',
                         value:
                           metrics?.pendingVerifications?.toLocaleString() ??
-                          '0',
+                          'Unavailable',
                       },
                       {
                         label: 'Platform Fees',

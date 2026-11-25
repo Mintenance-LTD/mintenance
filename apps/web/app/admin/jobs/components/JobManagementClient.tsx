@@ -15,6 +15,7 @@ async function fetchAdminJobs(params: {
   page: number;
   statusFilter: string;
   search: string;
+  disputed: boolean;
   sortColumn: string;
   sortOrder: 'asc' | 'desc';
 }): Promise<JobsResponse> {
@@ -26,6 +27,7 @@ async function fetchAdminJobs(params: {
   });
   if (params.statusFilter !== 'all')
     searchParams.append('status', params.statusFilter);
+  if (params.disputed) searchParams.set('disputed', 'true');
   if (params.search.trim()) searchParams.append('search', params.search.trim());
 
   const response = await fetch(`/api/admin/jobs?${searchParams.toString()}`, {
@@ -35,12 +37,17 @@ async function fetchAdminJobs(params: {
   return response.json();
 }
 
-export function JobManagementClient() {
+export function JobManagementClient({ initialStatus = 'all', initialSearch = '', initialDisputed = false }: {
+  initialStatus?: string;
+  initialSearch?: string;
+  initialDisputed?: boolean;
+}) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [disputed, setDisputed] = useState(initialDisputed);
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [sortColumn, setSortColumn] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -54,12 +61,12 @@ export function JobManagementClient() {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, disputed]);
 
   const queryKey = [
     'admin',
     'jobs',
-    { page, statusFilter, search: debouncedSearch, sortColumn, sortOrder },
+    { page, statusFilter, disputed, search: debouncedSearch, sortColumn, sortOrder },
   ];
 
   const { data, isFetching: loading } = useQuery<JobsResponse>({
@@ -68,6 +75,7 @@ export function JobManagementClient() {
       fetchAdminJobs({
         page,
         statusFilter,
+        disputed,
         search: debouncedSearch,
         sortColumn,
         sortOrder,
@@ -114,6 +122,11 @@ export function JobManagementClient() {
     completed: stats.completed,
     cancelled: stats.cancelled,
   };
+
+  const returnFilters = new URLSearchParams();
+  if (statusFilter !== 'all') returnFilters.set('status', statusFilter);
+  if (searchInput.trim()) returnFilters.set('search', searchInput.trim());
+  if (disputed) returnFilters.set('disputed', 'true');
 
   return (
     <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
@@ -212,6 +225,11 @@ export function JobManagementClient() {
           })}
         </div>
 
+        <label className='flex items-center gap-2 text-sm'>
+          <input type='checkbox' checked={disputed} onChange={(event) => setDisputed(event.target.checked)} />
+          Has open dispute
+        </label>
+
         {/* Search */}
         <div className='flex-1 min-w-[240px] relative'>
           <Icon
@@ -222,8 +240,8 @@ export function JobManagementClient() {
           />
           <input
             type='text'
-            placeholder='Search by job title...'
-            aria-label='Search jobs by title'
+            placeholder='Search by job title or reference'
+            aria-label='Search jobs by title or reference'
             value={searchInput}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setSearchInput(e.target.value)
@@ -237,6 +255,7 @@ export function JobManagementClient() {
       <div className='bg-white rounded-[1.5rem] overflow-hidden shadow-[0_12px_32px_-4px_rgba(42,52,57,0.04)] border border-[#a9b4b9]/10'>
         <JobManagementTable
           jobs={jobs}
+          returnFilters={returnFilters.toString()}
           total={total}
           page={page}
           loading={loading}

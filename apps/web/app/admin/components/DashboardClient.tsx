@@ -26,7 +26,7 @@ interface DashboardMetrics {
   totalJobs: number;
   activeSubscriptions: number;
   mrr: number;
-  pendingVerifications: number;
+  attention: { overdueDisputes: number | null; paymentExceptions: number | null; readyVerifications: number | null };
   charts?: {
     userGrowth: ChartDataPoint[];
     jobGrowth: ChartDataPoint[];
@@ -91,7 +91,7 @@ export function DashboardClient({
               {getGreeting()}, Admin.
             </h2>
             <p className='text-[#566166] text-base md:text-lg max-w-2xl font-light'>
-              Review platform activity and recovery jobs.
+              Review cases and payment exceptions that need action.
               {mounted && lastUpdated && (
                 <span className='text-sm ml-2 text-[#717c82]'>
                   Updated {lastUpdated.toLocaleTimeString('en-GB')}
@@ -116,9 +116,17 @@ export function DashboardClient({
           </div>
         </div>
 
-        <div className='mt-6'>
-          <RecoveryHealthCard />
-        </div>
+        <section className='mt-8' aria-labelledby='admin-attention'>
+          <h3 id='admin-attention' className='mb-3 text-xl font-semibold'>Needs attention</h3>
+          <div className='grid gap-4 sm:grid-cols-3'>
+            <StatMiniCard label='Overdue disputes' href='/admin/disputes?status=overdue'
+              value={metrics.attention.overdueDisputes?.toLocaleString() ?? 'Unavailable'} />
+            <StatMiniCard label='Payment exceptions' href='/admin/payments/reconciliation'
+              value={metrics.attention.paymentExceptions?.toLocaleString() ?? 'Unavailable'} />
+            <StatMiniCard label='Verifications ready for review' href='/admin/verifications'
+              value={metrics.attention.readyVerifications?.toLocaleString() ?? 'Unavailable'} />
+          </div>
+        </section>
         {/* ── Bento Stats Grid ─────────────────────────────────────────── */}
         <div className='grid grid-cols-1 md:grid-cols-5 gap-5 mt-8'>
           {/* Hero revenue card — 2 cols */}
@@ -180,7 +188,7 @@ export function DashboardClient({
             label='Total Jobs'
             value={metrics.totalJobs.toLocaleString()}
             href='/admin/jobs'
-            subtitle={`${metrics.pendingVerifications} pending verifications`}
+
           />
         </div>
       </section>
@@ -217,7 +225,6 @@ export function DashboardClient({
                   icon: 'users',
                   label: 'Users',
                   color: '#506076',
-                  badge: metrics.pendingVerifications,
                 },
                 {
                   href: '/admin/building-assessments',
@@ -237,11 +244,6 @@ export function DashboardClient({
                   href={action.href}
                   className='group p-4 bg-[#f7f9fb] rounded-xl border border-[#e1e9ee] hover:shadow-md hover:border-[#ccd4ee] transition-all relative'
                 >
-                  {action.badge ? (
-                    <span className='absolute top-3 right-3 px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700'>
-                      {action.badge > 9 ? '9+' : action.badge}
-                    </span>
-                  ) : null}
                   <div className='w-10 h-10 rounded-lg bg-[#e1e9ee] flex items-center justify-center mb-3 group-hover:bg-[#dae2fd] transition-colors'>
                     <Icon name={action.icon} size={20} color={action.color} />
                   </div>
@@ -277,14 +279,6 @@ export function DashboardClient({
                   </div>
                 </div>
                 <div className='flex items-center justify-between py-2 border-b border-white/5'>
-                  <span className='text-sm text-slate-300'>
-                    Pending Verifications
-                  </span>
-                  <span className='font-bold text-sm'>
-                    {metrics.pendingVerifications}
-                  </span>
-                </div>
-                <div className='flex items-center justify-between py-2 border-b border-white/5'>
                   <span className='text-sm text-slate-300'>Active Jobs</span>
                   <span className='font-bold text-sm'>
                     {metrics.totalJobs.toLocaleString()}
@@ -294,16 +288,20 @@ export function DashboardClient({
             </section>
           </Link>
 
-          {/* Model Intelligence */}
-          <ModelVersionHealthCard />
-
-          {/* YOLO Learning */}
-          <YOLOLearningStatusCard />
         </div>
       </div>
 
-      {/* Safety & Experiment Health — full width */}
-      <SafetyExperimentHealthSection />
+      <details className='mt-8 rounded-xl border bg-white p-5'>
+        <summary className='cursor-pointer text-lg font-semibold'>System health</summary>
+        <div className='mt-4 space-y-6'>
+          <RecoveryHealthCard />
+          <div className='grid gap-6 md:grid-cols-2'>
+            <ModelVersionHealthCard />
+            <YOLOLearningStatusCard />
+          </div>
+          <SafetyExperimentHealthSection />
+        </div>
+      </details>
     </div>
   );
 }

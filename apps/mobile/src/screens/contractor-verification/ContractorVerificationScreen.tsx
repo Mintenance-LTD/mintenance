@@ -171,7 +171,10 @@ export const ContractorVerificationScreen: React.FC<
       return;
     }
     if (!formData.licenseNumber.trim()) {
-      Alert.alert('Required', 'Please enter your license number');
+      Alert.alert(
+        'Trade registration needed',
+        'Enter your trade registration number. If you do not need a trade licence, you can submit proof of identity and trading in the web verification centre.'
+      );
       return;
     }
 
@@ -185,7 +188,9 @@ export const ContractorVerificationScreen: React.FC<
       // The dual-write previously happened on the client; consolidating
       // it server-side closes the window where the credential_
       // verifications insert could fail silently mid-flow.
-      await mobileApiClient.patch('/api/contractor/business-profile', {
+      const result = await mobileApiClient.patch<{
+        accountReview?: { label: string; nextSteps: string[] } | null;
+      }>('/api/contractor/business-profile', {
         companyName: sanitize.companyName(formData.companyName),
         businessAddress: sanitize.address(formData.businessAddress),
         licenseNumber: sanitize.text(formData.licenseNumber.trim(), 50),
@@ -197,7 +202,9 @@ export const ContractorVerificationScreen: React.FC<
       await refreshUser();
       Alert.alert(
         'Verification Submitted',
-        'Your verification request has been submitted and will be reviewed within 24-48 hours.',
+        result.accountReview
+          ? [result.accountReview.label, ...result.accountReview.nextSteps].join('\n\n')
+          : 'Your submission was received. Check Verification for its review status.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (err) {

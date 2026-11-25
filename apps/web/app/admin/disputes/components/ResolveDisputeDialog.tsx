@@ -4,7 +4,6 @@ import type {
   SettlementConfirmation,
   SettlementPreview,
 } from '@/lib/payments/settlement-breakdown';
-import Link from 'next/link';
 import { theme } from '@/lib/admin-theme';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -18,11 +17,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { formatCurrency, type Dispute, type Resolution } from './DisputesTable';
+import { formatCurrency, type Resolution } from './DisputesTable';
+import type { SettlementCase } from './DisputeCaseDecisions';
 
 interface ResolveDisputeDialogProps {
   open: boolean;
-  selectedDispute: Dispute | null;
+  selectedDispute: SettlementCase | null;
   resolution: Resolution | '';
   resolveNotes: string;
   actionLoading: boolean;
@@ -136,14 +136,6 @@ export function ResolveDisputeDialog({
               </>
             )}
           </AlertDialogDescription>
-          {selectedDispute && (
-            <Link
-              className='underline'
-              href={`/admin/disputes/${selectedDispute.id}`}
-            >
-              View full case, evidence and agreement before deciding
-            </Link>
-          )}
         </AlertDialogHeader>
 
         <div
@@ -296,7 +288,7 @@ export function ResolveDisputeDialog({
                   {formatCurrency(preview.data.feeMinor / 100)}
                 </p>
                 <p>
-                  Provider processing and bank arrival may take additional time.
+                  When settlement is confirmed, the case is marked resolved and both parties receive an in-app update. A full refund marks the job refunded and cancels it if the work is still open. A confirmed release marks its payment paid. Bank arrival may take additional time.
                 </p>
                 <label className='flex gap-2'>
                   <input
