@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { isValidUUID } from '@/lib/validation/uuid';
 import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
 /**
@@ -21,6 +22,7 @@ export const GET = withApiHandler(
 
     // Filters
     const status = url.searchParams.get('status') || '';
+    const hasOpenDispute = url.searchParams.get('disputed') === 'true';
     const search = url.searchParams.get('search') || '';
     const sort = url.searchParams.get('sort') || 'created_at';
     const order = url.searchParams.get('order') || 'desc';
@@ -40,6 +42,7 @@ export const GET = withApiHandler(
       completed_at,
       homeowner_id,
       contractor_id,
+      disputePayments:escrow_transactions${hasOpenDispute ? '!inner' : ''}(id),
       homeowner:profiles!jobs_homeowner_id_fkey (
         id,
         first_name,
@@ -55,7 +58,8 @@ export const GET = withApiHandler(
     `,
         { count: 'exact' }
       )
-      .is('deleted_at', null);
+      .is('deleted_at', null)
+      .eq('disputePayments.status', 'disputed');
 
     // Status filter
     if (status && status !== 'all') {
@@ -67,7 +71,9 @@ export const GET = withApiHandler(
     // string where commas/dots/parens separate clauses. Raw interpolation
     // of querystring input lets a caller inject extra filters and read
     // rows outside their intended scope. See lib/utils/sanitize-postgrest.ts.
-    if (search) {
+    if (isValidUUID(search.trim())) {
+      query = query.eq('id', search.trim());
+    } else if (search) {
       const safeSearch = sanitizeIlikePattern(search);
       if (safeSearch) {
         query = query.or(`title.ilike.%${safeSearch}%`);

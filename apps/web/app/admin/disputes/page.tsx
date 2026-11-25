@@ -8,12 +8,15 @@ export const metadata = {
     'Review and resolve payment disputes between homeowners and contractors',
 };
 
-export default async function AdminDisputesPage() {
+export default async function AdminDisputesPage({
+  searchParams,
+}: { searchParams: Promise<{ status?: string }> }) {
   const user = await getCurrentUserFromCookies();
 
   if (!user || user.role !== 'admin') {
     redirect('/admin/login');
   }
 
-  return <DisputesClient />;
+  const { status } = await searchParams;
+  return <DisputesClient initialFilter={status === 'overdue' ? 'overdue' : 'active'} />;
 }

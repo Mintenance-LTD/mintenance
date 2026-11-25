@@ -5,7 +5,6 @@ type Draft = {
   title: string;
   body: string;
   audience: string;
-  recipient_ids: string[];
   channels: string[];
 };
 export function CommunicationComposer({
@@ -17,15 +16,17 @@ export function CommunicationComposer({
 }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [audience, setAudience] = useState('all');
+  const [audience, setAudience] = useState('');
   const [email, setEmail] = useState('');
   const [channels, setChannels] = useState(['in_app']);
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [draft, setDraft] = useState<(Draft & { channelCounts: Record<string, number> }) | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
   const [busy, setBusy] = useState(false);
   async function preview() {
+    if (!audience || busy) return;
     setBusy(true);
     try {
-      const d = await api<{ campaign: Draft }>(
+      const d = await api<{ campaign: Draft; channelCounts: Record<string, number> }>(
         '/api/admin/support/campaigns',
         'POST',
         {
@@ -36,7 +37,8 @@ export function CommunicationComposer({
           ...(audience === 'individual' ? { recipientEmail: email } : {}),
         }
       );
-      setDraft(d.campaign);
+      setDraft({ ...d.campaign, channelCounts: d.channelCounts });
+      setConfirmAll(false);
     } catch (e) {
       onResult(e instanceof Error ? e.message : 'Could not prepare draft');
     } finally {
@@ -44,16 +46,19 @@ export function CommunicationComposer({
     }
   }
   async function send() {
-    if (!draft) return;
+    if (!draft || busy || (draft.audience === 'all' && !confirmAll)) return;
     setBusy(true);
     try {
       const d = await api<{ message: string }>(
         `/api/admin/support/campaigns/${draft.id}`,
-        'POST'
+        'POST',
+        { confirmAll: draft.audience === 'all' && confirmAll }
       );
       onResult(d.message);
       setDraft(null);
       setTitle('');
+      setAudience('');
+      setConfirmAll(false);
       setBody('');
     } catch (e) {
       onResult(e instanceof Error ? e.message : 'Could not send');
@@ -72,14 +77,20 @@ export function CommunicationComposer({
         <>
           <h3 className='font-semibold'>{draft.title}</h3>
           <p className='whitespace-pre-wrap'>{draft.body}</p>
-          <p>
-            Up to {draft.recipient_ids.length} current customers ·{' '}
-            {draft.channels.join(', ')}. Unverified, deleted and banned accounts
-            are excluded when sending.
-          </p>
+          <h4 className='font-medium'>Eligible recipients by channel</h4>
+          <ul className='list-disc pl-5'>
+            {Object.entries(draft.channelCounts).map(([channel, count]) => (
+              <li key={channel}>{channel === 'push' ? 'Push and inbox' : channel === 'in_app' ? 'In-app inbox' : 'Email'} · {count}</li>
+            ))}
+          </ul>
+          <p>Eligibility is checked again when you queue the message. Provider acceptance and delivery are tracked separately.</p>
+          {draft.audience === 'all' && <label className='block font-medium'>
+            <input type='checkbox' checked={confirmAll} onChange={(event) => setConfirmAll(event.target.checked)} />{' '}
+            Confirm send to all eligible customers in this preview
+          </label>}
           <button
             className='btn-primary'
-            disabled={busy}
+            disabled={busy || (draft.audience === 'all' && !confirmAll)}
             onClick={() => void send()}
           >
             Confirm and queue this notification
@@ -87,7 +98,7 @@ export function CommunicationComposer({
           <button
             className='ml-4'
             disabled={busy}
-            onClick={() => setDraft(null)}
+            onClick={() => { setDraft(null); setConfirmAll(false); }}
           >
             Return to editing
           </button>
@@ -101,9 +112,11 @@ export function CommunicationComposer({
               value={audience}
               onChange={(e) => setAudience(e.target.value)}
             >
-              {['all', 'homeowners', 'contractors', 'individual'].map((a) => (
-                <option key={a}>{a}</option>
-              ))}
+              <option value=''>Choose an audience</option>
+              <option value='homeowners'>Homeowners</option>
+              <option value='contractors'>Contractors</option>
+              <option value='individual'>One customer</option>
+              <option value='all'>All customers</option>
             </select>
           </label>
           {audience === 'individual' && (
@@ -162,7 +175,7 @@ export function CommunicationComposer({
           <button
             className='btn-primary'
             disabled={
-              busy || !title.trim() || !body.trim() || channels.length === 0
+              busy || !audience || !title.trim() || !body.trim() || channels.length === 0 || (audience === 'individual' && !email.trim())
             }
             onClick={() => void preview()}
           >

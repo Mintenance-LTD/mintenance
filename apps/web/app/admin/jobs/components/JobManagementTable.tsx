@@ -14,6 +14,7 @@ import {
 
 interface JobManagementTableProps {
   jobs: Job[];
+  returnFilters?: string;
   total: number;
   page: number;
   loading: boolean;
@@ -26,6 +27,7 @@ interface JobManagementTableProps {
 
 export function JobManagementTable({
   jobs,
+  returnFilters,
   total,
   page,
   loading,
@@ -146,7 +148,7 @@ export function JobManagementTable({
                 </td>
               </tr>
             ) : (
-              jobs.map((job) => <JobRow key={job.id} job={job} />)
+              jobs.map((job) => <JobRow key={job.id} job={job} returnFilters={returnFilters} />)
             )}
           </tbody>
         </table>

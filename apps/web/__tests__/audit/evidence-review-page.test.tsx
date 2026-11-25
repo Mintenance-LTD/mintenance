@@ -1,122 +1,142 @@
+import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-const m = vi.hoisted(() => ({ save: vi.fn() }));
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AdminVerificationProvider } from '@/components/admin/AdminVerificationProvider';
+import { EvidenceReviewQueue } from '@/app/admin/evidence-retention/EvidenceReviewQueue';
+
+vi.unmock('@tanstack/react-query');
 vi.mock('@/lib/csrf-client', () => ({
-  fetchWithCsrf: (...args: unknown[]) => m.save(...args),
+  getCsrfHeaders: async () => ({ 'x-csrf-token': 'fixture-token' }),
 }));
 vi.mock('@/components/auth/MfaStepUpDialog', () => ({
   MfaStepUpDialog: ({ onSuccess }: { onSuccess: () => void }) => (
     <button onClick={onSuccess}>Verify synthetic MFA</button>
   ),
 }));
-import Page from '@/app/admin/evidence-retention/page';
+
+const row = {
+  kind: 'dispute',
+  id: '00000000-0000-4000-8000-000000000001',
+  title: 'Boiler repair',
+  revision: 0,
+  legal_hold: false,
+  reason: '',
+  review_due_at: '2026-10-22T12:00:00Z',
+};
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
+let fetcher: ReturnType<typeof vi.fn>;
+let save: ReturnType<typeof vi.fn>;
+let loadPage: ReturnType<typeof vi.fn>;
+
 beforeEach(() => {
-  vi.clearAllMocks();
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        records: [
-          {
-            kind: 'dispute',
-            id: 'example',
-            revision: 0,
-            legal_hold: false,
-            reason: '',
-            review_due_at: '2026-10-22',
-          },
-        ],
-      }),
-    })
-  );
+  save = vi.fn().mockResolvedValue(json({ success: true, revision: 1 }));
+  loadPage = vi.fn(() => json({ records: [row], next: null }));
+  fetcher = vi.fn(async (url: string, options?: RequestInit) => {
+    if (options?.method === 'POST') return save(url, options);
+    if (url.includes('kind=dispute')) return json({ review: row });
+    return loadPage(url);
+  });
+  vi.stubGlobal('fetch', fetcher);
 });
+
+afterEach(() => vi.unstubAllGlobals());
+
+function openQueue() {
+  const query = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  render(
+    <QueryClientProvider client={query}>
+      <AdminVerificationProvider>
+        <EvidenceReviewQueue />
+      </AdminVerificationProvider>
+    </QueryClientProvider>
+  );
+}
+
 async function fill() {
-  render(<Page />);
+  openQueue();
+  const open = await screen.findByRole('button', {
+    name: 'Open review for Boiler repair',
+  });
+  expect(
+    screen.queryByRole('button', { name: 'Save review' })
+  ).not.toBeInTheDocument();
+  fireEvent.click(open);
   const reason = await screen.findByLabelText('Reason for retention or hold');
   fireEvent.change(reason, {
     target: { value: 'Synthetic case reference 123' },
   });
   fireEvent.change(screen.getByLabelText('Next review date'), {
-    target: { value: '2026-10-22' },
+    target: { value: '2026-12-22' },
   });
   fireEvent.click(screen.getByLabelText('Preserve under a hold'));
-  fireEvent.click(screen.getByRole('button', { name: 'Save review' }));
   return reason;
 }
-it('keeps the exact review decision across MFA and reports success only after confirmation', async () => {
-  m.save.mockResolvedValueOnce({
-    status: 403,
-    ok: false,
-    json: async () => ({ requiresStepUp: true }),
-  });
-  m.save.mockResolvedValueOnce({
-    status: 200,
-    ok: true,
-    json: async () => ({ success: true, revision: 1 }),
-  });
+
+it('keeps the exact review decision across MFA and waits for confirmation', async () => {
+  save.mockResolvedValueOnce(json({ requiresStepUp: true }, 403));
   await fill();
+  fireEvent.click(screen.getByRole('button', { name: 'Save review' }));
   fireEvent.click(await screen.findByText('Verify synthetic MFA'));
   await screen.findByText('Review saved. Evidence remains retained.');
-  expect(m.save).toHaveBeenCalledTimes(2);
-  expect(m.save.mock.calls[0][1].body).toBe(m.save.mock.calls[1][1].body);
+  expect(save).toHaveBeenCalledTimes(2);
+  expect(save.mock.calls[0][1].body).toBe(save.mock.calls[1][1].body);
 });
-it('preserves entered reasons after failure and does not show a success message', async () => {
-  m.save.mockRejectedValue(new Error('Connection interrupted'));
+
+it('preserves entered reasons after failure and does not show success', async () => {
+  save.mockRejectedValue(new Error('Connection interrupted'));
   const reason = await fill();
-  await waitFor(() =>
-    expect(screen.getByRole('alert').textContent).toContain(
-      'Connection interrupted'
-    )
+  fireEvent.click(screen.getByRole('button', { name: 'Save review' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Connection interrupted'
   );
-  expect((reason as HTMLTextAreaElement).value).toBe(
-    'Synthetic case reference 123'
-  );
+  expect(reason).toHaveValue('Synthetic case reference 123');
   expect(
     screen.queryByText('Review saved. Evidence remains retained.')
   ).toBeNull();
 });
 
-it('preserves drafts and retries the same next page after an interrupted request', async () => {
-  const row = {
-    kind: 'contract',
-    id: 'first',
-    revision: 0,
-    legal_hold: false,
-    reason: '',
-    review_due_at: '2026-10-22',
-  };
-  const fetchMock = vi.mocked(fetch);
-  fetchMock.mockResolvedValueOnce({
-    ok: true,
-    json: async () => ({ records: [row], next: 'contractAfter=cursor' }),
-  } as Response);
-  fetchMock.mockRejectedValueOnce(new Error('Disconnected'));
-  fetchMock.mockResolvedValueOnce({
-    ok: true,
-    json: async () => ({
-      records: [row, { ...row, id: 'second' }],
+it('keeps the selected review draft while retrying the same next page', async () => {
+  loadPage.mockImplementationOnce(() =>
+    json({ records: [row], next: 'cursor' })
+  );
+  loadPage.mockRejectedValueOnce(new Error('Disconnected'));
+  loadPage.mockImplementationOnce(() =>
+    json({
+      records: [{ ...row, id: 'second', title: 'Kitchen review' }],
       next: null,
-    }),
-  } as Response);
-  render(<Page />);
-  const reason = await screen.findByLabelText('Reason for retention or hold');
-  fireEvent.change(reason, {
-    target: { value: 'Keep this unfinished decision' },
-  });
+    })
+  );
+  const reason = await fill();
   fireEvent.click(screen.getByText('Load more reviews'));
   await screen.findByRole('alert');
-  expect((reason as HTMLTextAreaElement).value).toBe(
-    'Keep this unfinished decision'
-  );
+  expect(reason).toHaveValue('Synthetic case reference 123');
   fireEvent.click(screen.getByText('Load more reviews'));
-  await screen.findByText('Reference: second');
+  await screen.findByRole('button', { name: 'Open review for Kitchen review' });
   expect(screen.getAllByLabelText('Reason for retention or hold')).toHaveLength(
-    2
+    1
   );
-  expect((reason as HTMLTextAreaElement).value).toBe(
-    'Keep this unfinished decision'
+  expect(reason).toHaveValue('Synthetic case reference 123');
+  expect(loadPage.mock.calls[1][0]).toBe(loadPage.mock.calls[2][0]);
+});
+
+it('returns through admin sign-in with the selected filter when the session expires', async () => {
+  loadPage.mockImplementationOnce(() => json({ records: [row], next: null }));
+  loadPage.mockImplementationOnce(() => json({}, 401));
+  openQueue();
+  await screen.findByRole('button', { name: 'Open review for Boiler repair' });
+  fireEvent.click(screen.getByRole('button', { name: 'Held' }));
+  const link = await screen.findByRole('link', {
+    name: 'Sign in and return to Evidence reviews',
+  });
+  expect(link).toHaveAttribute(
+    'href',
+    '/admin/login?redirect=%2Fadmin%2Fevidence-retention%3Ffilter%3Dheld'
   );
-  expect(fetchMock.mock.calls[1][0]).toBe(fetchMock.mock.calls[2][0]);
-  expect(screen.queryByText('Load more reviews')).toBeNull();
+  await waitFor(() =>
+    expect(screen.queryByText('No reviews match this filter.')).toBeNull()
+  );
 });

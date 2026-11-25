@@ -8,7 +8,7 @@ import {
 } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 vi.unmock('@tanstack/react-query');
-import { DisputesClient } from '@/app/admin/disputes/components/DisputesClient';
+import { AdminDisputeCase } from '@/app/admin/disputes/components/AdminDisputeCase';
 import type { Dispute } from '@/app/admin/disputes/components/DisputesTable';
 
 const dispute: Dispute = {
@@ -68,11 +68,13 @@ beforeEach(() => {
           },
         });
       if (url === '/api/csrf') return json({ token: 'synthetic-csrf' });
-      if (url.startsWith('/api/admin/disputes?'))
+      if (url === '/api/admin/disputes/' + dispute.id)
         return json({
-          data: [dispute],
-          stats: { open: 1, reviewing: 0, resolved: 0, totalAmountAtRisk: 500 },
-          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+          id: dispute.id,
+          escrow: { amount: dispute.amount, status: 'disputed', adminHoldStatus: 'pending_review', createdAt: dispute.createdAt },
+          parties: { homeowner: { id: 'owner', name: dispute.homeownerName }, contractor: { id: 'contractor', name: dispute.contractorName } },
+          job: { id: dispute.jobId, title: dispute.jobTitle, createdAt: dispute.createdAt },
+          caseEvidence: [],
         });
       requests.push({
         url,
@@ -92,7 +94,7 @@ beforeEach(() => {
   });
   render(
     <QueryClientProvider client={client}>
-      <DisputesClient />
+      <AdminDisputeCase escrowId={dispute.id} />
     </QueryClientProvider>
   );
 });
@@ -105,9 +107,10 @@ afterEach(() => {
 async function startResolution() {
   fireEvent.click(
     await screen.findByRole('button', {
-      name: 'Resolve dispute for Synthetic repair',
+      name: 'Review settlement options',
     })
   );
+  expect(screen.getAllByRole('radio').every((radio) => !(radio as HTMLInputElement).checked)).toBe(true);
   fireEvent.click(screen.getByRole('radio', { name: /Split 50\/50/ }));
   fireEvent.change(screen.getByLabelText('Reason for this decision'), {
     target: { value: 'Agreed synthetic split' },
@@ -200,9 +203,10 @@ it('does not replay after failed MFA and does not report pending settlement as s
 it('also completes the hold-for-review action through MFA using the original escrow', async () => {
   fireEvent.click(
     await screen.findByRole('button', {
-      name: 'Hold dispute for Synthetic repair for review',
+      name: 'Review administrator hold',
     })
   );
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm administrator hold' }));
   await screen.findByRole('dialog', { name: 'Confirm your identity' });
   verify();
   await waitFor(() => expect(requests).toHaveLength(3));

@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
+import { countVerificationQueue } from '@/lib/admin/verification-queue';
 import { getAppUrl } from '@/lib/env';
 
 /**
@@ -12,25 +13,11 @@ export class AdminNotificationService {
    */
   static async notifyPendingVerifications(): Promise<void> {
     try {
-      // Get count of pending verifications
-      const { count, error } = await serverSupabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('role', 'contractor')
-        .eq('admin_verified', false)
-        .not('company_name', 'is', null)
-        .not('license_number', 'is', null)
-        .is('deleted_at', null);
-
-      if (error) {
-        logger.error('Failed to count pending verifications', {
-          service: 'AdminNotificationService',
-          error: error.message,
-        });
+      const pendingCount = await countVerificationQueue('ready');
+      if (pendingCount === null) {
+        logger.error('Verification queue count unavailable', { service: 'AdminNotificationService' });
         return;
       }
-
-      const pendingCount = count || 0;
 
       if (pendingCount === 0) {
         return; // No pending verifications
@@ -70,7 +57,7 @@ export class AdminNotificationService {
               <p>Hello Admin,</p>
               <p>You have <span class="count">${pendingCount}</span> contractor verification${pendingCount > 1 ? 's' : ''} pending review.</p>
               <p>Please review and verify these contractors to ensure platform quality and security.</p>
-              <a href="${baseUrl}/admin/users?verified=pending" class="button">Review Verifications</a>
+              <a href="${baseUrl}/admin/verifications" class="button">Review Verifications</a>
               <p style="margin-top: 30px;">This is an automated notification. You can manage notification preferences in the admin settings.</p>
             </div>
             <div class="footer">

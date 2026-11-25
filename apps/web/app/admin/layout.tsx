@@ -34,7 +34,8 @@ export default async function AdminLayout({
   const user = await getCurrentUserFromCookies();
 
   if (!user || user.role !== 'admin') {
-    redirect('/admin/login');
+    const destination = pathname === '/admin' || pathname.startsWith('/admin/') ? pathname : '/admin';
+    redirect('/admin/login?redirect=' + encodeURIComponent(destination));
   }
 
   // At this point we know user.role is 'admin' due to the check above

@@ -27,6 +27,13 @@ export function AdminVerificationProvider({ children }: { children: React.ReactN
   </AdminVerificationContext.Provider>;
 }
 
+export class AdminVerificationCancelledError extends Error {
+  constructor() {
+    super('Identity check cancelled. No action was performed.');
+    this.name = 'AdminVerificationCancelledError';
+  }
+}
+
 /** Retry only an explicitly rejected MFA request, once, after user verification. */
 export function useAdminFetch() {
   const verify = useContext(AdminVerificationContext);
@@ -50,7 +57,7 @@ export function useAdminFetch() {
     if (response.status !== 403 || !verify) return response;
     const data = await response.clone().json().catch(() => null);
     if (data?.requiresStepUp !== true) return response;
-    if (!(await verify())) throw new Error('Identity check cancelled. No action was performed.');
+    if (!(await verify())) throw new AdminVerificationCancelledError();
     if (!active.current) throw new Error('Action cancelled because you left the page.');
     return send();
   }, [verify]);

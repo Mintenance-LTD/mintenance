@@ -70,6 +70,7 @@ type ActionType = 'release' | 'refund' | 'hold';
 const STATUS_TABS = [
   { key: 'all', label: 'All' },
   { key: 'held', label: 'Held' },
+  { key: 'disputed', label: 'Disputed' },
   { key: 'release_pending', label: 'Pending Release' },
   { key: 'released', label: 'Completed' },
   { key: 'refunded', label: 'Refunded' },
@@ -296,10 +297,10 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
       {/* Page Header */}
       <div className='flex flex-col gap-1'>
         <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
-          Refund &amp; Payouts
+          Refunds &amp; payouts
         </h2>
         <p className='text-[#566166] text-lg max-w-2xl'>
-          Monitor and manage the flow of funds within the escrow ecosystem.
+          Review held payments, refunds and payouts.
         </p>
       </div>
 

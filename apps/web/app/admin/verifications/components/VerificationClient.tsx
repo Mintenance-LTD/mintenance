@@ -39,8 +39,9 @@ import {
 async function fetchContractors(params: {
   filterStatus: StatusFilter;
   search: string;
-}): Promise<ContractorVerification[]> {
-  const searchParams = new URLSearchParams({ status: params.filterStatus });
+  page: number;
+}): Promise<{ data: ContractorVerification[]; pagination: { totalPages: number } }> {
+  const searchParams = new URLSearchParams({ status: params.filterStatus, page: String(params.page) });
   if (params.search.trim()) searchParams.append('search', params.search.trim());
 
   const response = await fetch(
@@ -48,29 +49,13 @@ async function fetchContractors(params: {
     { credentials: 'include' }
   );
   if (!response.ok) throw new Error('Failed to fetch contractors');
-  const data = await response.json();
-  return data.data || [];
+  return response.json();
 }
 
 async function fetchVerificationStats(): Promise<Stats> {
-  const statuses: StatusFilter[] = ['pending', 'verified', 'rejected', 'all'];
-  const results = await Promise.all(
-    statuses.map(async (status) => {
-      const response = await fetch(
-        `/api/admin/verifications?status=${status}&limit=1`,
-        { credentials: 'include' }
-      );
-      if (!response.ok) return 0;
-      const data = await response.json();
-      return data.total ?? 0;
-    })
-  );
-  return {
-    pending: results[0],
-    verified: results[1],
-    rejected: results[2],
-    total: results[3],
-  };
+  const response = await fetch('/api/admin/verifications?counts=1');
+  if (!response.ok) return { ready: null, incomplete: null, verified: null, rejected: null, total: null };
+  return response.json();
 }
 
 // ── Component ──────────────────────────────────────────────────────
@@ -78,7 +63,8 @@ async function fetchVerificationStats(): Promise<Stats> {
 export function VerificationClient({ initialStats }: VerificationClientProps) {
   const adminFetch = useAdminFetch();
   const queryClient = useQueryClient();
-  const [filterStatus, setFilterStatus] = useState<StatusFilter>('pending');
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>('ready');
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -111,6 +97,7 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
       if (debounceTimer) clearTimeout(debounceTimer);
       const timer = setTimeout(() => {
         setDebouncedSearch(value);
+        setPage(1);
       }, 300);
       setDebounceTimer(timer);
     },
@@ -119,16 +106,14 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
 
   // ── Data Fetching via React Query ─────────────────────────────
 
-  const { data: contractors = [], isLoading: loading } = useQuery<
-    ContractorVerification[]
-  >({
+  const { data: list, isLoading: loading, isError: listError, refetch } = useQuery({
     queryKey: [
       'admin',
       'verifications',
       'list',
-      { filterStatus, search: debouncedSearch },
+      { filterStatus, search: debouncedSearch, page },
     ],
-    queryFn: () => fetchContractors({ filterStatus, search: debouncedSearch }),
+    queryFn: () => fetchContractors({ filterStatus, search: debouncedSearch, page }),
     refetchInterval: 30000,
     refetchIntervalInBackground: false,
     meta: {
@@ -140,7 +125,8 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
     },
   });
 
-  const { data: stats = initialStats } = useQuery<Stats>({
+  const contractors = list?.data ?? [];
+  const { data: loadedStats = initialStats, isError: statsError } = useQuery<Stats>({
     queryKey: ['admin', 'verifications', 'stats'],
     queryFn: fetchVerificationStats,
     initialData: initialStats,
@@ -154,6 +140,8 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
       },
     },
   });
+
+  const stats = statsError ? { ready: null, incomplete: null, verified: null, rejected: null, total: null } : loadedStats;
 
   const invalidateAll = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['admin', 'verifications'] });
@@ -264,7 +252,7 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
         filterStatus={filterStatus}
         search={search}
         successMessage={successMessage}
-        onFilterChange={setFilterStatus}
+        onFilterChange={(value) => { setFilterStatus(value); setPage(1); }}
         onSearchChange={handleSearchChange}
       />
 
@@ -276,7 +264,9 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
           gap: theme.spacing[4],
         }}
       >
-        {loading && contractors.length === 0 ? (
+        {listError ? (
+          <div role='alert'>Verification queue unavailable. <button className='underline' onClick={() => void refetch()}>Retry</button></div>
+        ) : loading && contractors.length === 0 ? (
           <AdminCard padding='lg'>
             <div
               style={{
@@ -330,6 +320,14 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
           ))
         )}
       </div>
+
+      {!!list && list.pagination.totalPages > 1 && (
+        <nav aria-label='Verification pages' className='flex items-center gap-4'>
+          <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
+          <span>Page {page} of {list.pagination.totalPages}</span>
+          <button disabled={page >= list.pagination.totalPages} onClick={() => setPage(page + 1)}>Next</button>
+        </nav>
+      )}
 
       {/* Reject Reason Dialog */}
       <RejectDialog

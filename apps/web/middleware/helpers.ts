@@ -83,7 +83,7 @@ export function redirectToLogin(request: NextRequest): NextResponse {
   const loginUrl = new URL(loginPath, request.url);
   loginUrl.searchParams.set(
     'redirect',
-    pathname === '/properties/invitations'
+    (pathname === '/properties/invitations' || pathname === '/admin/evidence-retention')
       ? pathname + request.nextUrl.search
       : pathname
   );

@@ -118,12 +118,18 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
         }
       );
 
-      if (verificationsData.count > 0) {
+      if (verificationsData.count === null) {
+        newNotifications.push({
+          id: 'pending-verifications', type: 'verification', title: 'Verification count unavailable',
+          message: 'Open Verifications to reload the queue.', href: '/admin/verifications',
+          createdAt: new Date().toISOString(), read: true,
+        });
+      } else if (verificationsData.count > 0) {
         newNotifications.push({
           id: 'pending-verifications',
           type: 'verification',
-          title: 'Pending Verifications',
-          message: `${verificationsData.count} contractor${verificationsData.count !== 1 ? 's' : ''} awaiting verification`,
+          title: 'Verifications ready for review',
+          message: `${verificationsData.count} contractor${verificationsData.count !== 1 ? 's' : ''} ready for verification review`,
           href: '/admin/verifications',
           createdAt: new Date().toISOString(),
           read: false,

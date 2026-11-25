@@ -1,5 +1,6 @@
 'use client';
-import { useAdminFetch } from '@/components/admin/AdminVerificationProvider';
+import Link from 'next/link';
+import { AdminVerificationCancelledError, useAdminFetch } from '@/components/admin/AdminVerificationProvider';
 
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -266,6 +267,19 @@ export default function AuditLogsPage() {
           ))}
         </div>
       </div>
+    );
+  }
+
+  if (queryError instanceof AdminVerificationCancelledError) {
+    return (
+      <section className="mx-auto mt-12 max-w-md space-y-4 rounded-xl border bg-white p-6">
+        <h2 className="text-xl font-semibold">Verification required to view audit logs</h2>
+        <p>Confirm your identity to open the protected audit log.</p>
+        <div className="flex items-center gap-4">
+          <button type="button" disabled={isFetching} onClick={() => void refetch()} className="rounded-lg bg-slate-800 px-4 py-2 text-white">Verify identity</button>
+          <Link href="/admin" className="underline">Back</Link>
+        </div>
+      </section>
     );
   }
 

@@ -21,7 +21,8 @@ const FILTER_TABS: Array<{
   label: string;
   countKey: keyof Stats;
 }> = [
-  { key: 'pending', label: 'Pending', countKey: 'pending' },
+  { key: 'ready', label: 'Ready for review', countKey: 'ready' },
+  { key: 'incomplete', label: 'Incomplete', countKey: 'incomplete' },
   { key: 'verified', label: 'Verified', countKey: 'verified' },
   { key: 'rejected', label: 'Rejected', countKey: 'rejected' },
   { key: 'all', label: 'All', countKey: 'total' },
@@ -30,7 +31,7 @@ const FILTER_TABS: Array<{
 function getFilterColor(key: StatusFilter, isActive: boolean): string {
   if (!isActive) return theme.colors.backgroundSecondary;
   switch (key) {
-    case 'pending':
+    case 'ready':
       return '#F59E0B';
     case 'verified':
       return theme.colors.success;
@@ -55,28 +56,29 @@ export function VerificationPageHeader({ stats }: { stats: Stats }) {
       </div>
 
       {/* Metrics Grid */}
-      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8'>
         <AdminMetricCard
           label='Total Contractors'
-          value={stats.total}
+          value={stats.total ?? 'Unavailable'}
           icon='users'
           iconColor='#565e74'
         />
         <AdminMetricCard
-          label='Pending Review'
-          value={stats.pending}
+          label='Ready for review'
+          value={stats.ready ?? 'Unavailable'}
           icon='clock'
           iconColor='#605c78'
         />
+        <AdminMetricCard label='Incomplete' value={stats.incomplete ?? 'Unavailable'} icon='alert' iconColor='#605c78' />
         <AdminMetricCard
           label='Verified'
-          value={stats.verified}
+          value={stats.verified ?? 'Unavailable'}
           icon='checkCircle'
           iconColor='#506076'
         />
         <AdminMetricCard
           label='Rejected'
-          value={stats.rejected}
+          value={stats.rejected ?? 'Unavailable'}
           icon='xCircle'
           iconColor='#9f403d'
         />
@@ -216,7 +218,7 @@ export function VerificationSearchAndFilters({
                       lineHeight: '20px',
                     }}
                   >
-                    {stats[tab.countKey]}
+                    {stats[tab.countKey] ?? 'Unavailable'}
                   </span>
                 </button>
               );

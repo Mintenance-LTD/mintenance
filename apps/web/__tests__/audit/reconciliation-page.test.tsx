@@ -138,3 +138,23 @@ it('ignores a delayed response from the previous filter', async () => {
   );
   expect(screen.queryByText('999')).not.toBeInTheDocument();
 });
+
+it('searches by job reference and links the exact disputed payment without scaling GBP again', async () => {
+  const id = '3b097183-f3ef-4e63-8e63-a66632e5f61e';
+  const fetcher = vi.fn().mockResolvedValueOnce(ok(dashboard)).mockResolvedValueOnce(ok({
+    ...dashboard,
+    records: [{ id: 'escrow-test', payment_intent_id: 'pi_test', job_id: id, job_title: 'Test repair',
+      amount: 1.2, local_status: 'disputed', mismatch_type: 'status', resolved: false, has_case: true,
+      last_checked_at: '2026-11-24T11:00:00Z' }],
+  }));
+  vi.stubGlobal('fetch', fetcher);
+  render(<Page />);
+  await screen.findByText('No unresolved discrepancies');
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Job title or reference' }), { target: { value: id } });
+  fireEvent.click(screen.getByRole('button', { name: 'Search payments' }));
+  expect(await screen.findByRole('link', { name: 'Test repair' })).toHaveAttribute('href', '/admin/jobs/' + id);
+  expect(screen.getByRole('link', { name: 'View dispute' })).toHaveAttribute('href', '/admin/disputes/escrow-test');
+  expect(screen.getByText('£1.20')).toBeInTheDocument();
+  expect(screen.getByText('Held for dispute · release blocked')).toBeInTheDocument();
+  expect(fetcher.mock.calls[1][0]).toContain('search=' + id);
+});

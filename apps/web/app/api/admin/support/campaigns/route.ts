@@ -46,17 +46,9 @@ export const POST = withApiHandler(
     const p = parseInput(schema, await req.json());
     if (p.audience === 'individual' && !p.recipientEmail)
       throw new BadRequestError('Enter the customer email');
-    let q = db
-      .from('profiles')
-      .select('id')
-      .is('deleted_at', null)
-      .in('role', ['homeowner', 'contractor'])
-      .limit(1001);
-    if (p.audience === 'homeowners') q = q.eq('role', 'homeowner');
-    if (p.audience === 'contractors') q = q.eq('role', 'contractor');
-    if (p.audience === 'individual')
-      q = q.eq('email', p.recipientEmail!.trim().toLowerCase());
-    const { data: users, error } = await q;
+    const { data: users, error } = await db.rpc('preview_customer_campaign_recipients', {
+      p_actor: user.id, p_audience: p.audience, p_email: p.recipientEmail ?? null,
+    }) as { data: { id: string }[] | null; error: unknown };
     if (error) throw new InternalServerError('Could not preview recipients');
     if (!users?.length || users.length > 1000)
       throw new BadRequestError('Choose an audience of 1 to 1000 customers');
@@ -73,11 +65,16 @@ export const POST = withApiHandler(
       .select('*')
       .single();
     if (saveError) throw new InternalServerError('Could not save draft');
+    const effectiveChannels = data.channels as string[];
+    const channelCounts = Object.fromEntries(effectiveChannels
+      .filter((channel) => channel !== 'in_app' || !effectiveChannels.includes('push'))
+      .map((channel) => [channel, users.length]));
     return NextResponse.json(
       {
-        campaign: data,
+        campaign: { ...data, recipient_ids: undefined },
+        channelCounts,
         recipientCount: users.length,
-        note: 'Only active accounts with verified email are included when you send.',
+        note: 'Eligibility is checked again when you send.'
       },
       { status: 201 }
     );

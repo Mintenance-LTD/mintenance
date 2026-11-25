@@ -120,10 +120,11 @@ export function ContractorVerificationCard({
                 >
                   {getDisplayName(contractor)}
                 </h3>
-                <VerificationBadge
-                  status={contractor.verification_status}
-                  size='sm'
-                />
+                {contractor.verification_status === 'ready' || contractor.verification_status === 'incomplete' ? (
+                  <span className='rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900'>
+                    {contractor.verification_status === 'ready' ? 'Ready for review' : 'Incomplete'}
+                  </span>
+                ) : <VerificationBadge status={contractor.verification_status} size='sm' />}
               </div>
               <div
                 style={{
@@ -158,7 +159,7 @@ export function ContractorVerificationCard({
           </div>
 
           {/* Right: Action Buttons */}
-          {contractor.verification_status === 'pending' && (
+          {contractor.verification_status === 'ready' && (
             <div
               style={{ display: 'flex', gap: theme.spacing[2], flexShrink: 0 }}
             >
@@ -361,6 +362,14 @@ export function ContractorVerificationCard({
           </div>
 
           {/* License Number */}
+          {!contractor.license_number && contractor.business_submitted && (
+            <p className='text-sm text-slate-600'>Licence number not required for this review. Business evidence submitted.</p>
+          )}
+          {contractor.verification_status === 'incomplete' && (
+            <p className='text-sm text-amber-900'>Required evidence missing or needs resubmission: {[
+              !contractor.identity_submitted && 'identity', !contractor.business_submitted && 'business registration',
+            ].filter(Boolean).join(' and ')}.</p>
+          )}
           {contractor.license_number && (
             <div>
               <div

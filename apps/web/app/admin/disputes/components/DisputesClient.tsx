@@ -1,23 +1,12 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/lib/admin-theme';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { MfaStepUpDialog } from '@/components/auth/MfaStepUpDialog';
-import { useDisputeActions } from './useDisputeActions';
 import { logger } from '@mintenance/shared';
 import {
   DisputesTable,
@@ -25,11 +14,8 @@ import {
   type Stats,
   type Pagination,
   type StatusFilter,
-  type Resolution,
 } from './DisputesTable';
-import { ResolveDisputeDialog } from './ResolveDisputeDialog';
 import { DisputesPageHeader } from './DisputesPageHeader';
-import type { SettlementConfirmation } from '@/lib/payments/settlement-breakdown';
 import { disputePageCsv } from './export-disputes';
 
 interface DisputesResponse {
@@ -72,19 +58,10 @@ async function fetchDisputes(params: {
   };
 }
 
-export function DisputesClient() {
-  const queryClient = useQueryClient();
+export function DisputesClient({ initialFilter = 'active' }: { initialFilter?: StatusFilter }) {
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
-  const [resolveDialog, setResolveDialog] = useState(false);
-  const [resolution, setResolution] = useState<Resolution | ''>('');
-  const [resolveNotes, setResolveNotes] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialFilter);
   const [exportMessage, setExportMessage] = useState('');
-  const [errorDialog, setErrorDialog] = useState<{
-    open: boolean;
-    message: string;
-  }>({ open: false, message: '' });
 
   const queryKey = ['admin', 'disputes', { page, statusFilter }];
 
@@ -108,10 +85,6 @@ export function DisputesClient() {
   });
 
   const disputes = data?.data ?? [];
-  const currentSelection = selectedDispute
-    ? (disputes.find((dispute) => dispute.id === selectedDispute.id) ??
-      selectedDispute)
-    : null;
   const stats: Stats = data?.stats ?? {
     open: 0,
     reviewing: 0,
@@ -125,59 +98,10 @@ export function DisputesClient() {
     totalPages: 0,
   };
 
-  const invalidateDisputes = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['admin', 'disputes'] });
-  }, [queryClient]);
-
-  // Reset page when filter changes
   const handleStatusFilterChange = useCallback((value: StatusFilter) => {
     setStatusFilter(value);
     setPage(1);
   }, []);
-
-  const actions = useDisputeActions({
-    onConfirmed: (kind) => {
-      if (kind === 'resolve') {
-        setResolveDialog(false);
-        setSelectedDispute(null);
-        setResolveNotes('');
-      }
-      invalidateDisputes();
-    },
-    onError: (message) => {
-      invalidateDisputes();
-      setErrorDialog({ open: true, message });
-    },
-  });
-  const actionLoading = actions.loading || actions.requiresVerification;
-
-  const handleResolve = (confirmation: SettlementConfirmation) => {
-    const decision = currentSelection?.resolution?.decision || resolution;
-    if (!selectedDispute || isError || !decision) return;
-    void actions.submit({
-      kind: 'resolve',
-      body: {
-        escrowId: selectedDispute.id,
-        confirmation,
-        decision,
-        reason:
-          currentSelection?.resolution?.reason ??
-          (resolveNotes.trim() ||
-            `Dispute resolved: ${resolution.replace(/_/g, ' ')}`),
-      },
-    });
-  };
-
-  const handleHoldForReview = (dispute: Dispute) => {
-    if (isError) return;
-    void actions.submit({
-      kind: 'hold',
-      body: {
-        escrowId: dispute.id,
-        reason: 'Escalated from disputes dashboard for detailed review',
-      },
-    });
-  };
 
   return (
     <div
@@ -290,17 +214,7 @@ export function DisputesClient() {
           </div>
         ) : (
           <>
-            <DisputesTable
-              disputes={disputes}
-              actionLoading={actionLoading || isError}
-              onHoldForReview={handleHoldForReview}
-              onResolve={(dispute) => {
-                setSelectedDispute(dispute);
-                setResolution(dispute.resolution?.decision ?? '');
-                setResolveNotes(dispute.resolution?.reason ?? '');
-                setResolveDialog(true);
-              }}
-            />
+            <DisputesTable disputes={disputes} />
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
@@ -348,53 +262,6 @@ export function DisputesClient() {
         )}
       </AdminCard>
 
-      {/* Resolve Dialog */}
-      <ResolveDisputeDialog
-        open={
-          resolveDialog && !actions.requiresVerification && !errorDialog.open
-        }
-        selectedDispute={currentSelection}
-        resolution={currentSelection?.resolution?.decision ?? resolution}
-        resolveNotes={currentSelection?.resolution?.reason ?? resolveNotes}
-        actionLoading={actionLoading || isError}
-        onOpenChange={(open) => {
-          setResolveDialog(open);
-          if (!open) {
-            setSelectedDispute(null);
-            setResolveNotes('');
-          }
-        }}
-        onResolutionChange={setResolution}
-        onNotesChange={setResolveNotes}
-        onResolve={handleResolve}
-      />
-
-      {actions.requiresVerification ? (
-        <MfaStepUpDialog
-          onCancel={actions.cancelVerification}
-          onSuccess={actions.resumeAfterVerification}
-        />
-      ) : null}
-
-      {/* Error Dialog */}
-      <AlertDialog
-        open={errorDialog.open}
-        onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle style={{ color: theme.colors.error }}>
-              Error
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {errorDialog.message}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

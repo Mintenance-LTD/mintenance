@@ -4,7 +4,7 @@ export interface DashboardMetrics {
   totalJobs: number;
   activeSubscriptions: number;
   mrr: number;
-  pendingVerifications: number;
+  pendingVerifications: number | null;
   charts?: {
     userGrowth: Array<{ date: string; users: number; cumulative: number }>;
     jobGrowth: Array<{ date: string; jobs: number; cumulative: number }>;

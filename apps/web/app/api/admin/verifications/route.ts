@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { VERIFICATION_QUEUE_STATES, readVerificationQueueCounts } from '@/lib/admin/verification-queue';
 import { logger } from '@mintenance/shared';
 import { sanitizeEmailIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
@@ -10,10 +11,13 @@ import { sanitizeEmailIlikePattern } from '@/lib/utils/sanitize-postgrest';
  * Filters by verification status (pending, verified, rejected, all).
  */
 export const GET = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  { roles: ['admin'], requireDbAdmin: true, rateLimit: { maxRequests: 10 } },
   async (request) => {
     const url = new URL(request.url);
-    const statusFilter = url.searchParams.get('status') || 'pending';
+    if (url.searchParams.get('counts') === '1') {
+      return NextResponse.json(await readVerificationQueueCounts());
+    }
+    const statusFilter = url.searchParams.get('status') || 'ready';
     const page = Math.max(1, Number(url.searchParams.get('page') || '1'));
     const limit = Math.min(Number(url.searchParams.get('limit') || '20'), 100);
     const search = url.searchParams.get('search') || '';
@@ -22,29 +26,20 @@ export const GET = withApiHandler(
 
     // Build query for contractor profiles
     let query = serverSupabase
-      .from('profiles')
+      .from('admin_verification_queue')
       .select(
-        'id, email, first_name, last_name, phone, role, company_name, license_number, insurance_expiry_date, business_address, admin_verified, skills, rating, total_jobs_completed, city, created_at, updated_at, background_check_status',
+        'id, email, first_name, last_name, phone, role, company_name, license_number, insurance_expiry_date, business_address, admin_verified, skills, rating, total_jobs_completed, city, created_at, updated_at, background_check_status, queue_status, identity_submitted, business_submitted',
         { count: 'exact' }
       )
-      .eq('role', 'contractor')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id');
 
-    // Apply status filter
-    if (statusFilter === 'pending') {
-      query = query.or('admin_verified.is.null,admin_verified.eq.false');
-    } else if (statusFilter === 'verified') {
-      query = query.eq('admin_verified', true);
-    } else if (statusFilter === 'rejected') {
-      // Rejected contractors have admin_verified = false and a rejection reason
-      // in the verification_history table. For simplicity we use a flag-based approach:
-      // admin_verified is explicitly false (not null) AND background_check_status = 'rejected'
-      query = query
-        .eq('admin_verified', false)
-        .eq('background_check_status', 'rejected');
+    const state = statusFilter === 'pending' ? 'ready' : statusFilter;
+    if (state !== 'all') {
+      if (!VERIFICATION_QUEUE_STATES.some((valid) => valid === state))
+        return NextResponse.json({ error: 'Invalid verification filter' }, { status: 400 });
+      query = query.eq('queue_status', state);
     }
-    // 'all' applies no additional filter
 
     // Apply search filter. The raw value is interpolated into a PostgREST
     // `.or()` filter DSL, so it MUST be sanitized — otherwise a `,` in the
@@ -192,11 +187,9 @@ export const GET = withApiHandler(
       city: c.city ?? null,
       created_at: c.created_at,
       updated_at: c.updated_at,
-      verification_status: c.admin_verified
-        ? 'verified'
-        : c.background_check_status === 'rejected'
-          ? 'rejected'
-          : 'pending',
+      verification_status: c.queue_status,
+      identity_submitted: c.identity_submitted,
+      business_submitted: c.business_submitted,
     }));
 
     // Compute totals for stats

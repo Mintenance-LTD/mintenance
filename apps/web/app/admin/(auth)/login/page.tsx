@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AdminMfaSetup } from './AdminMfaSetup';
+import { safeRedirect } from '@/lib/utils/safe-redirect';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '@/app/components/Logo';
@@ -49,6 +50,10 @@ export default function AdminLoginPage() {
     }
 
     try {
+      const requested = new URLSearchParams(window.location.search).get('redirect');
+      const safeDestination = safeRedirect(requested, '/admin');
+      const path = new URL(safeDestination, window.location.origin).pathname;
+      const destination = (path === '/admin' || path.startsWith('/admin/')) && path !== '/admin/login' ? safeDestination : '/admin';
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -84,12 +89,12 @@ export default function AdminLoginPage() {
 
       if (responseData.requiresMfa && responseData.preMfaToken) {
         router.push(
-          `/auth/mfa-verify?token=${encodeURIComponent(responseData.preMfaToken)}&redirect=%2Fadmin`
+          `/auth/mfa-verify?token=${encodeURIComponent(responseData.preMfaToken)}&redirect=${encodeURIComponent(destination)}`
         );
         return;
       }
 
-      router.push('/admin');
+      router.push(destination);
       router.refresh();
     } catch (err) {
       setError('root', {

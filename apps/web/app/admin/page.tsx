@@ -1,6 +1,7 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { readAdminAttentionCounts } from '@/lib/admin/attention-counts';
 import { DashboardClient } from './components/DashboardClient';
 
 export const metadata = {
@@ -21,7 +22,7 @@ export default async function AdminDashboardPage() {
     totalContractorsResponse,
     totalJobsResponse,
     activeSubscriptionsResponse,
-    pendingVerificationsResponse,
+    attention,
   ] = await Promise.all([
     serverSupabase.from('profiles').select('id', { count: 'exact', head: true }).is('deleted_at', null),
     serverSupabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'contractor').is('deleted_at', null),
@@ -29,22 +30,13 @@ export default async function AdminDashboardPage() {
     serverSupabase.from('contractor_subscriptions')
       .select('id', { count: 'exact', head: true })
       .in('status', ['active', 'trial']),
-    // Pending verifications = contractors with verification data but not verified
-    serverSupabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'contractor')
-      .eq('admin_verified', false)
-      .not('company_name', 'is', null)
-      .not('license_number', 'is', null)
-      .is('deleted_at', null),
+    readAdminAttentionCounts(),
   ]);
 
   const totalUsers = totalUsersResponse.count || 0;
   const totalContractors = totalContractorsResponse.count || 0;
   const totalJobs = totalJobsResponse.count || 0;
   const activeSubscriptions = activeSubscriptionsResponse.count || 0;
-  const pendingVerifications = pendingVerificationsResponse.count || 0;
 
   // Calculate MRR using database function
   const { data: mrrData } = await serverSupabase.rpc('calculate_mrr');
@@ -56,7 +48,7 @@ export default async function AdminDashboardPage() {
     totalJobs,
     activeSubscriptions,
     mrr,
-    pendingVerifications,
+    attention,
   };
 
   return <DashboardClient initialMetrics={metrics} />;

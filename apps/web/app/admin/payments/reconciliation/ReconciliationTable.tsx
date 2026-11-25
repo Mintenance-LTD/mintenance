@@ -1,13 +1,19 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { DISPUTED_PAYMENT_LABEL } from '@/lib/admin/dispute-display';
 import { CheckCircle, FileSearch } from 'lucide-react';
 import { theme } from '@/lib/admin-theme';
 import { Card } from '@/components/ui/Card.unified';
 
-interface ReconciliationRecord {
+export interface ReconciliationRecord {
   id: string;
   payment_intent_id: string;
+  job_id: string | null;
+  job_title: string | null;
+  has_case: boolean;
+  last_checked_at: string | null;
   amount: number;
   local_status: string;
   stripe_status: string | null;
@@ -20,6 +26,7 @@ interface ReconciliationTableProps {
   records: ReconciliationRecord[];
   loading: boolean;
   filter: 'all' | 'unresolved';
+  searching?: boolean;
 }
 
 function getMismatchBadge(type: string) {
@@ -49,6 +56,7 @@ export function ReconciliationTable({
   records,
   loading,
   filter,
+  searching,
 }: ReconciliationTableProps) {
   if (loading) {
     return (
@@ -88,7 +96,9 @@ export function ReconciliationTable({
             textAlign: 'center',
           }}
         >
-          {filter === 'unresolved' ? (
+          {searching ? (
+            <p role='status'>No reconciliation records match this job search.</p>
+          ) : filter === 'unresolved' ? (
             <>
               <div
                 style={{
@@ -112,7 +122,7 @@ export function ReconciliationTable({
                   marginBottom: 4,
                 }}
               >
-                All Payments Reconciled
+                No unresolved discrepancies
               </h3>
               <p
                 style={{
@@ -121,7 +131,7 @@ export function ReconciliationTable({
                   maxWidth: 384,
                 }}
               >
-                No discrepancies found between local records and Stripe.
+                There are no open discrepancies in the reconciliation results.
               </p>
             </>
           ) : (
@@ -178,12 +188,12 @@ export function ReconciliationTable({
               }}
             >
               {[
-                'Payment Intent',
+                'Job and payment',
                 'Amount',
                 'Local Status',
                 'Stripe Status',
                 'Mismatch',
-                'Flagged',
+                'Last checked',
                 'Status',
               ].map((h) => (
                 <th
@@ -218,7 +228,13 @@ export function ReconciliationTable({
                     fontFamily: 'monospace',
                   }}
                 >
-                  {record.payment_intent_id.slice(0, 20)}...
+                  {record.job_id && (
+                    <Link className='block font-sans font-semibold underline' href={'/admin/jobs/' + record.job_id}>
+                      {record.job_title ?? 'View job'}
+                    </Link>
+                  )}
+                  {record.job_id && <code className='block select-all text-xs'>{record.job_id}</code>}
+                  <code className='block select-all text-xs'>{record.payment_intent_id}</code>
                 </td>
                 <td
                   style={{
@@ -227,10 +243,13 @@ export function ReconciliationTable({
                     fontWeight: 500,
                   }}
                 >
-                  &pound;{(record.amount / 100).toFixed(2)}
+                  &pound;{record.amount.toFixed(2)}
                 </td>
                 <td style={{ padding: '12px 16px', fontSize: 13 }}>
-                  {record.local_status}
+                  {record.local_status === 'disputed' ? DISPUTED_PAYMENT_LABEL : record.local_status}
+                  {record.has_case && (
+                    <Link className='block underline' href={'/admin/disputes/' + record.id}>View dispute</Link>
+                  )}
                 </td>
                 <td style={{ padding: '12px 16px', fontSize: 13 }}>
                   {record.stripe_status || 'N/A'}
@@ -245,7 +264,7 @@ export function ReconciliationTable({
                     color: theme.colors.textSecondary,
                   }}
                 >
-                  {new Date(record.flagged_at).toLocaleDateString()}
+                  {record.last_checked_at ? new Date(record.last_checked_at).toLocaleString('en-GB', { timeZone: 'Europe/London' }) : 'Not recorded'}
                 </td>
                 <td style={{ padding: '12px 16px' }}>
                   <span
@@ -262,7 +281,7 @@ export function ReconciliationTable({
                         : theme.colors.status.warning.text,
                     }}
                   >
-                    {record.resolved ? 'Resolved' : 'Pending'}
+                    {record.resolved ? 'Resolved' : 'Unresolved'}
                   </span>
                 </td>
               </tr>

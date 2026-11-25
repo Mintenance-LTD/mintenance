@@ -1,4 +1,6 @@
-import { redirect } from 'next/navigation';
-export default function AdminCommunicationsPage() {
-  redirect('/admin/support');
+import { AdminCommunications } from '@/components/support/AdminCommunications';
+
+export const metadata = { title: 'Communications | Mintenance admin' };
+export default function Page() {
+  return <AdminCommunications />;
 }

@@ -7,18 +7,7 @@ import { theme } from '@/lib/admin-theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui';
 import { getCsrfHeaders } from '@/lib/csrf-client';
-import { ReconciliationTable } from './ReconciliationTable';
-
-interface ReconciliationRecord {
-  id: string;
-  payment_intent_id: string;
-  amount: number;
-  local_status: string;
-  stripe_status: string | null;
-  mismatch_type: 'status' | 'amount' | 'missing';
-  flagged_at: string;
-  resolved: boolean;
-}
+import { ReconciliationTable, type ReconciliationRecord } from './ReconciliationTable';
 
 interface ReconciliationStats {
   total_transactions: number;
@@ -41,6 +30,8 @@ export default function ReconciliationDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [runNotice, setRunNotice] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unresolved'>('unresolved');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
   const [cursors, setCursors] = useState<Array<string | null>>([null]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const cursor = cursors[cursors.length - 1];
@@ -51,9 +42,10 @@ export default function ReconciliationDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/admin/reconciliation?filter=${filter}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
-      );
+      const params = new URLSearchParams({ filter });
+      if (cursor) params.set('cursor', cursor);
+      if (search) params.set('search', search);
+      const res = await fetch('/api/admin/reconciliation?' + params);
       if (!res.ok)
         throw new Error(
           'Reconciliation records could not be loaded. Please retry.'
@@ -73,7 +65,7 @@ export default function ReconciliationDashboard() {
     } finally {
       if (epoch === requestEpoch.current) setLoading(false);
     }
-  }, [filter, cursor]);
+  }, [filter, cursor, search]);
 
   const invalidateRequests = useCallback(() => {
     requestEpoch.current++;
@@ -248,8 +240,12 @@ export default function ReconciliationDashboard() {
                       ? 'Started; completion not confirmed'
                       : stats.last_run_status === 'failed'
                         ? 'Run needs retry'
-                        : 'Batch completed'}{' '}
-                    ({stats.last_run_checked ?? 0} checked)
+                        : stats.last_run_checked === 0
+                          ? 'No payments checked in this run'
+                          : 'Batch completed'}
+                    {typeof stats.last_run_checked === 'number' && stats.last_run_checked > 0
+                      ? ' (' + stats.last_run_checked + ' checked)'
+                      : ''}
                   </p>
                   <div
                     style={{
@@ -308,6 +304,24 @@ export default function ReconciliationDashboard() {
           </Card>
         </div>
       )}
+
+      <form role='search' className='flex flex-wrap items-end gap-3' onSubmit={(event) => {
+        event.preventDefault();
+        setSearch(searchInput.trim());
+        setCursors([null]);
+      }}>
+        <label className='grid gap-1 text-sm font-medium'>
+          Job title or reference
+          <input className='rounded-lg border bg-white px-3 py-2' type='search'
+            value={searchInput} maxLength={120} onChange={(event) => setSearchInput(event.target.value)} />
+        </label>
+        <Button type='submit' disabled={running}>Search payments</Button>
+        {search && <Button type='button' variant='secondary' onClick={() => {
+          setSearchInput('');
+          setSearch('');
+          setCursors([null]);
+        }}>Clear search</Button>}
+      </form>
 
       {/* Filter Tabs */}
       <div
@@ -373,6 +387,7 @@ export default function ReconciliationDashboard() {
           records={records}
           loading={loading}
           filter={filter}
+          searching={!!search}
         />
       )}
     </div>

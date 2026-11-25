@@ -11,10 +11,12 @@ import { AdminJobTrackingModal } from './AdminJobTrackingModal';
 export function ActionsDropdown({
   jobId,
   jobStatus,
+  jobHref = '/admin/jobs/' + jobId,
   onJobCancelled,
 }: {
   jobId: string;
   jobStatus: string;
+  jobHref?: string;
   onJobCancelled?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -103,13 +105,13 @@ export function ActionsDropdown({
           }}
         >
           <DropdownLink
-            href={`/admin/jobs/${jobId}`}
+            href={jobHref}
             label='View Job'
             icon='eye'
             onClose={() => setOpen(false)}
           />
           <DropdownLink
-            href={`/admin/jobs/${jobId}#bids`}
+            href={jobHref + '#bids'}
             label='View Bids'
             icon='fileText'
             onClose={() => setOpen(false)}
