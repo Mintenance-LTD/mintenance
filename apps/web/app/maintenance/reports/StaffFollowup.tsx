@@ -10,7 +10,7 @@ export function StaffFollowup({
 }: {
   followup: ReportStaffFollowup;
   reportId: string;
-  onSaved: () => void;
+  onSaved: (message: string, handedOff: boolean) => void;
 }) {
   const responsible = followup.needsReassignment
     ? 'Needs reassignment'

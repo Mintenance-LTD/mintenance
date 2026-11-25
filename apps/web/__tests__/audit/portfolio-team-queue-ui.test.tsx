@@ -16,7 +16,21 @@ vi.mock('@/app/properties/work-queue/PortfolioReport', () => ({
   PortfolioReport: () => null,
 }));
 vi.mock('@/app/properties/work-queue/FollowupForm', () => ({
-  FollowupForm: () => <p>Follow-up editor</p>,
+  FollowupForm: ({
+    onSaved,
+  }: {
+    onSaved: (message: string, handedOff: boolean) => void;
+  }) => (
+    <>
+      <p>Follow-up editor</p>
+      <button
+        type='button'
+        onClick={() => onSaved('Report handed over to Alex Manager.', true)}
+      >
+        Hand over report
+      </button>
+    </>
+  ),
 }));
 const fetcher = vi.fn();
 const item = {
@@ -121,6 +135,21 @@ it('shows the age and missing assignment on a prioritised tenant report', async 
   expect(
     screen.getByRole('button', { name: 'Manage follow-up' })
   ).toBeVisible();
+});
+it('keeps the handoff confirmation after the assigned report leaves Mine', async () => {
+  window.history.replaceState(null, '', '/properties/work-queue?scope=mine');
+  fetcher.mockResolvedValue(
+    response('mine', [{ ...item, kind: 'report', can_manage_followup: true }])
+  );
+  render(<Page />);
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Manage follow-up' })
+  );
+  fetcher.mockResolvedValue(response('mine', []));
+  fireEvent.click(screen.getByRole('button', { name: 'Hand over report' }));
+  await screen.findByText(/No follow-ups are assigned to you/);
+  expect(screen.getByText('Report handed over to Alex Manager.')).toBeVisible();
+  expect(screen.queryByText('Follow-up editor')).toBeNull();
 });
 it('restores the unassigned filters, page and focus on the report', async () => {
   window.history.replaceState(

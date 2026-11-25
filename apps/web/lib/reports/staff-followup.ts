@@ -28,7 +28,7 @@ export async function readReportStaffFollowup(
   const assigneeId = result.data?.assigned_to;
   const staff: ReportStaffFollowup = {
     propertyId,
-    canManage: access.role === 'owner',
+    canManage: access.role === 'owner' || assigneeId === actor,
     assigneeName: null,
     needsReassignment: false,
   };
@@ -45,7 +45,11 @@ export async function readReportStaffFollowup(
   ]);
   if (person.error) throw person.error;
   if (!person.data || !assigneeAccess.authorized) {
-    return { ...staff, needsReassignment: true };
+    return {
+      ...staff,
+      canManage: access.role === 'owner',
+      needsReassignment: true,
+    };
   }
   return {
     ...staff,

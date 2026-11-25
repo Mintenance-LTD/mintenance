@@ -19,6 +19,14 @@ describe('isAllowedRedirect', () => {
     expect(isAllowedRedirect(`https://evil.example${exact}`)).toBe(false);
     expect(isAllowedRedirect(exact + '/photos')).toBe(false);
   });
+  it('returns a teammate to the assigned repair from the notification', () => {
+    const report = '00000000-0000-4000-8000-000000000030';
+    const path = `/maintenance/reports/${report}`;
+    const destination = `${path}?from=action-queue&scope=mine`;
+    expect(safeRedirect(destination, '/dashboard')).toBe(destination);
+    expect(isAllowedRedirect(`${path}/other`)).toBe(false);
+    expect(isAllowedRedirect(`https://evil.example${destination}`)).toBe(false);
+  });
   it('preserves onboarding and invitation destinations without accepting lookalikes', () => {
     for (const destination of [
       '/getting-started?persona=tenant',
