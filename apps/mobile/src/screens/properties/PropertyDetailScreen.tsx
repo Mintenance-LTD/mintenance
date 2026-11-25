@@ -264,8 +264,13 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const propertyRole = (property as { _role?: PropertyRoleApi } | undefined)
     ?._role;
   const caps = capsForRole(propertyRole);
+  const recordsOnly = !caps.canEdit;
+  const canOpenParticipantJob =
+    propertyRole === 'owner' || propertyRole === 'platform_admin';
 
-  const propertyJobs = jobsData || [];
+  const propertyJobs = (jobsData || []).filter(
+    (job) => canOpenParticipantJob || job.status !== 'draft'
+  );
   const visibleJobs =
     jobFilter === 'open'
       ? propertyJobs.filter((job) => isOpenPropertyJob(job.status))
@@ -620,15 +625,19 @@ export const PropertyDetailScreen: React.FC<Props> = ({
                 <TouchableOpacity
                   key={job.id}
                   style={styles.jobCard}
-                  onPress={() =>
-                    (navigation as ReturnType<typeof Object>).navigate(
-                      'JobsTab',
-                      {
-                        screen: 'JobDetails',
-                        params: { jobId: job.id },
-                      }
-                    )
-                  }
+                  onPress={() => {
+                    if (canOpenParticipantJob) {
+                      (navigation as ReturnType<typeof Object>).navigate(
+                        'JobsTab',
+                        { screen: 'JobDetails', params: { jobId: job.id } }
+                      );
+                    } else {
+                      navigation.navigate('PropertyRepair', {
+                        propertyId,
+                        jobId: job.id,
+                      });
+                    }
+                  }}
                   accessibilityRole='button'
                   accessibilityLabel={`View ${job.title}`}
                   activeOpacity={0.7}
@@ -821,29 +830,45 @@ export const PropertyDetailScreen: React.FC<Props> = ({
     const canEditKeySafeCode =
       propertyRole === 'owner' || propertyRole === 'platform_admin';
     return (
-      <PropertyAccessSection
-        propertyId={propertyId}
-        canEditKeySafeCode={canEditKeySafeCode}
-        onAccessDenied={() => setAccessDenied(true)}
-        initial={{
-          access_mode:
-            (p?.access_mode as
-              | 'key_safe'
-              | 'smart_lock'
-              | 'in_person'
-              | null
-              | undefined) ?? null,
-          key_safe_code:
-            (p?.key_safe_code as string | null | undefined) ?? null,
-          access_notes: (p?.access_notes as string | null | undefined) ?? null,
-          stopcock_location:
-            (p?.stopcock_location as string | null | undefined) ?? null,
-          gas_isolator_location:
-            (p?.gas_isolator_location as string | null | undefined) ?? null,
-          consumer_unit_location:
-            (p?.consumer_unit_location as string | null | undefined) ?? null,
-        }}
-      />
+      <>
+        {caps.canManageTeam && (
+          <TouchableOpacity
+            accessibilityRole='button'
+            style={ws.row}
+            onPress={() => {
+              setManageSection('people');
+              setActiveTab('manage');
+              scrollRef.current?.scrollTo({ y: 0, animated: false });
+            }}
+          >
+            <Text style={ws.rowText}>Manage team access</Text>
+            <Ionicons name='chevron-forward' size={18} color={me.ink2} />
+          </TouchableOpacity>
+        )}
+        <PropertyAccessSection
+          propertyId={propertyId}
+          canEditKeySafeCode={canEditKeySafeCode}
+          onAccessDenied={() => setAccessDenied(true)}
+          initial={{
+            access_mode:
+              (p?.access_mode as
+                | 'key_safe'
+                | 'smart_lock'
+                | 'in_person'
+                | null
+                | undefined) ?? null,
+            key_safe_code:
+              (p?.key_safe_code as string | null | undefined) ?? null,
+            access_notes: (p?.access_notes as string | null | undefined) ?? null,
+            stopcock_location:
+              (p?.stopcock_location as string | null | undefined) ?? null,
+            gas_isolator_location:
+              (p?.gas_isolator_location as string | null | undefined) ?? null,
+            consumer_unit_location:
+              (p?.consumer_unit_location as string | null | undefined) ?? null,
+          }}
+        />
+      </>
     );
   };
 
@@ -892,16 +917,18 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   const renderManageTab = () => (
     <>
-      <PropertySegments
-        value={manageSection}
-        onChange={setManageSection}
-        options={[
-          { value: 'people', label: 'People' },
-          { value: 'records', label: 'Records' },
-          { value: 'settings', label: 'Settings' },
-        ]}
-      />
-      <PropertyPanel active={manageSection === 'records'}>
+      {!recordsOnly && (
+        <PropertySegments
+          value={manageSection}
+          onChange={setManageSection}
+          options={[
+            { value: 'people', label: 'People' },
+            { value: 'records', label: 'Records' },
+            { value: 'settings', label: 'Settings' },
+          ]}
+        />
+      )}
+      <PropertyPanel active={recordsOnly || manageSection === 'records'}>
           <TenancyInspections
             key={`tenancies:${user?.id}:${propertyId}`}
             propertyId={propertyId}
@@ -966,7 +993,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           {showPropertyTool(view, 'rental') && caps.canManageContacts && (
             <TenantContacts propertyId={propertyId} />
           )}
-          {showPropertyTool(view, 'team') && caps.canManageTeam && (
+          {caps.canManageTeam && (
             <TeamAccess propertyId={propertyId} />
           )}
       </PropertyPanel>
@@ -1143,30 +1170,13 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         </View>
       </View>
 
-      {/* 2026-05-26 audit-57 P2: filter tabs by capability. Viewer
-          team members can't edit the Access fields (server gates
-          PATCH on PropertyAccessSection) and have nothing to do on
-          the Manage tab — hide both rather than render a noop UI. */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ flexGrow: 0 }}
         contentContainerStyle={styles.tabRow}
       >
-        {TABS.filter((t) => {
-          if (t.key === 'access') return caps.canEditAccess;
-          if (t.key === 'manage') {
-            return (
-              caps.canManageContacts ||
-              caps.canManageTeam ||
-              caps.canEdit ||
-              caps.canDelete ||
-              caps.canRunAssessment
-            );
-          }
-          if (t.key === 'maintenance') return true;
-          return true;
-        }).map((tab) => (
+        {TABS.filter((tab) => tab.key !== 'access' || caps.canEditAccess).map((tab) => (
           <TouchableOpacity
             key={tab.key}
             accessibilityRole='tab'
@@ -1189,7 +1199,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
                 activeTab === tab.key && styles.tabTextActive,
               ]}
             >
-              {tab.label}
+              {tab.key === 'manage' && recordsOnly ? 'Records' : tab.label}
             </Text>
           </TouchableOpacity>
         ))}

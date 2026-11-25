@@ -166,7 +166,7 @@ module.exports = {
       // rejected build 148c5786; 23 uploaded from chore/mobile-versioncode-23).
       // 24 carries the mobile Delete Job feature to the store.
       // Internal 50 accompanies the homeowner and contractor journey fixes.
-      versionCode: internalBuild ? 50 : betaLoginBuild ? 47 : 40,
+      versionCode: internalBuild ? 52 : betaLoginBuild ? 47 : 40,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',

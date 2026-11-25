@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { randomUUID } from 'expo-crypto';
 import { me } from '../../../design-system/mint-editorial';
 import { PropertySheet, workspaceStyles as ws } from './PropertyWorkspaceUI';
+import { savePrivatePdf } from '../../../utils/savePrivatePdf';
 import React, {
   useCallback,
   useEffect,
@@ -899,6 +900,8 @@ function NativeReport({
   openReport: (id: string) => void;
 }) {
   const [photo, setPhoto] = useState('');
+  const [savingPdf, setSavingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
   const image = useQuery({
     queryKey: [
       'inspection-image',
@@ -924,6 +927,22 @@ function NativeReport({
   const { report, checkIn } = detail;
   const { corrected_by_report_id: correctedBy, corrects_report_id: corrects } =
     report;
+  const downloadPdf = async () => {
+    setSavingPdf(true);
+    setPdfError(false);
+    try {
+      const result = await savePrivatePdf(
+        `/api/properties/${encodeURIComponent(propertyId)}/inspections/${encodeURIComponent(report.id)}/pdf`,
+        `Inspection-${report.id}`,
+        'inspection'
+      );
+      if (result === 'saved') Alert.alert('PDF saved', 'The report was saved to your selected folder.');
+    } catch {
+      setPdfError(true);
+    } finally {
+      setSavingPdf(false);
+    }
+  };
   return (
     <View style={s.form}>
       <Text style={s.title}>{detail.report.title}</Text>
@@ -986,6 +1005,12 @@ function NativeReport({
           }).catch(() => undefined)
         }
       />
+      <Action
+        title={savingPdf ? 'Preparing PDF…' : pdfError ? 'Retry PDF download' : 'Download PDF'}
+        disabled={savingPdf}
+        onPress={() => void downloadPdf()}
+      />
+      {pdfError && <Text accessibilityRole='alert'>The PDF could not be downloaded. Try again.</Text>}
       <PropertyChoice
         label='Report photo'
         value={photo}

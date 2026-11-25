@@ -69,6 +69,10 @@ it('requests shared properties and never carries another account list into a pen
     ])
   );
   expect(mockGet).toHaveBeenCalledWith('/api/properties?includeShared=view');
+  const list = view.UNSAFE_getByType(FlatList);
+  const card = render(list.props.renderItem({ item: list.props.data[0] }));
+  expect(card.getByText('Shared with you · Viewer')).toBeTruthy();
+  card.unmount();
   mockUser.id = 'second-member';
   view.rerender(content());
   expect(view.UNSAFE_queryByType(FlatList)).toBeNull();

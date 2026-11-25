@@ -2,6 +2,7 @@ import React from 'react';
 import { GettingStartedScreen } from '../../screens/onboarding/GettingStartedScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../types';
+import { PropertyRepairScreen } from '../../screens/properties/PropertyRepairScreen';
 
 // Settings screens that did not previously have nav targets. Wired in
 // here so SettingsHub can route to them; see types.ts for the param
@@ -244,6 +245,11 @@ const ProfileNavigator = () => {
       <ProfileStack.Screen
         name='PropertyDetail'
         component={SafePropertyDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='PropertyRepair'
+        component={PropertyRepairScreen}
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen

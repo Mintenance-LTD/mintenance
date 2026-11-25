@@ -17,7 +17,7 @@ export default async function Page({
       <div className='property-workspace'>
         <Link
           className='pw-back'
-          href={`/properties/${encodeURIComponent(id)}?tab=manage&manage=records`}
+          href={`/properties/${encodeURIComponent(id)}?tab=manage&manage=records#manage-records`}
         >
           Back to property records
         </Link>

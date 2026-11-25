@@ -58,6 +58,9 @@ const PropertyCard: React.FC<{
   onToggleFavorite: () => void;
 }> = ({ property, onPress, isFavorite, onToggleFavorite }) => {
   const pType = property.property_type ?? 'other';
+  const role = (property as Property & { _role?: string })._role;
+  const sharedRole = role === 'admin' ? 'Team administrator'
+    : role === 'manager' ? 'Manager' : role === 'viewer' ? 'Viewer' : null;
   return (
     <TouchableOpacity style={styles.propertyCard} onPress={onPress}>
       <View style={styles.cardHeader}>
@@ -82,6 +85,7 @@ const PropertyCard: React.FC<{
           <Text style={styles.propertyLocation} numberOfLines={2}>
             {property.address}
           </Text>
+          {sharedRole && <Text style={styles.propertyLocation}>Shared with you · {sharedRole}</Text>}
         </View>
         <TouchableOpacity
           onPress={(event) => {
@@ -404,6 +408,9 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
                 initiallyExpanded={false}
                 onOpenProperty={(propertyId) =>
                   navigation.navigate('PropertyDetail', { propertyId })
+                }
+                onOpenSharedJob={(propertyId, jobId) =>
+                  navigation.navigate('PropertyRepair', { propertyId, jobId })
                 }
                 onOpenJob={(jobId) =>
                   navigation

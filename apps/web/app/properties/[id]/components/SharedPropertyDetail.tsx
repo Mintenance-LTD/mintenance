@@ -14,6 +14,8 @@ import {
   type PropertyCertificateRecord,
 } from './MintEditorialPropertyDocuments';
 import type { PropertySchedule } from './MintEditorialPropertyMaintenancePlan';
+import TenancyInspections from './TenancyInspections';
+import { propertyRepairHref } from '@/lib/properties/repair-navigation';
 
 /** Shared members receive only this explicit read model, never owner access secrets. */
 export function SharedPropertyDetail({
@@ -49,9 +51,14 @@ export function SharedPropertyDetail({
                 : 'Viewer'}
           </p>
         </header>
+        <nav aria-label='Shared property sections' className='mb-4 flex flex-wrap gap-4'>
+          <a href='#recorded-work' className='pw-back'>Recorded work</a>
+          <a href='#manage-records' className='pw-back'>Tenancy folders & inspections</a>
+          {role === 'admin' && <a href='#manage-people' className='pw-back'>People and access</a>}
+        </nav>
         <div className='space-y-5'>
           {role !== 'viewer' && <PropertyFileHub propertyId={property.id} />}
-          <section className='card card-pad'>
+          <section id='recorded-work' className='card card-pad'>
             <h2 className='t-h2'>Recorded work</h2>
             {canCreateJob && (
               <Link
@@ -74,7 +81,9 @@ export function SharedPropertyDetail({
                     key={job.id}
                     className='flex flex-wrap justify-between gap-3 py-3'
                   >
-                    <span>{job.title}</span>
+                    <Link href={propertyRepairHref(property.id, job.id)} className='font-medium text-teal-800 underline'>
+                      {job.title}
+                    </Link>
                     <span>
                       {PROPERTY_JOB_STATUS_LABELS[job.status] || job.status}
                     </span>
@@ -83,6 +92,9 @@ export function SharedPropertyDetail({
               </ul>
             )}
           </section>
+          <div id='manage-records'>
+            <TenancyInspections propertyId={property.id} />
+          </div>
           <MintEditorialPropertyDocuments
             certificates={certificates}
             canManage={false}
@@ -107,7 +119,11 @@ export function SharedPropertyDetail({
             <>
               <RecurringMaintenance propertyId={property.id} />
               <TenantContacts propertyId={property.id} />
-              {role === 'admin' && <TeamAccess propertyId={property.id} />}
+              {role === 'admin' && (
+                <section id='manage-people' aria-label='People and access'>
+                  <TeamAccess propertyId={property.id} />
+                </section>
+              )}
               <TenantReportingCard
                 propertyId={property.id}
                 propertyName={property.name}

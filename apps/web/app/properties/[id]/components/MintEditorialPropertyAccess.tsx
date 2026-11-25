@@ -287,6 +287,9 @@ export function MintEditorialPropertyAccess({
           editing access details.
         </p>
       )}
+      <a href={`/properties/${encodeURIComponent(propertyId)}?tab=manage&manage=people#manage-people`} className='pw-back'>
+        Manage team access
+      </a>
       <div className='pw-split'>
         <div className='pw-stack'>
           <section className='pw-card'>
