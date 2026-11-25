@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { workWindowEndIsInvalid } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import {
@@ -97,6 +98,8 @@ export const POST = withApiHandler(
         cause instanceof Error ? cause.message : 'Choose valid UK dates'
       );
     }
+    if (workWindowEndIsInvalid(start, end))
+      throw new BadRequestError('End time must be after start time.');
     return updateProposal({
       p_actor: user.id,
       p_job: params.id,

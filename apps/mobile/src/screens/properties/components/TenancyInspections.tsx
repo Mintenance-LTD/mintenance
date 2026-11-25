@@ -55,12 +55,19 @@ type NativeDraft = {
   noIssues: boolean;
 };
 
-export function TenancyInspections({ propertyId }: { propertyId: string }) {
+export function TenancyInspections({
+  propertyId,
+  initialReportId,
+}: {
+  propertyId: string;
+  initialReportId?: string;
+}) {
   const { user } = useAuth();
   return (
     <TenancyWorkspace
-      key={`${user?.id ?? ''}/${propertyId}`}
+      key={`${user?.id ?? ''}/${propertyId}/${initialReportId ?? ''}`}
       propertyId={propertyId}
+      initialReportId={initialReportId}
       accountId={user?.id}
     />
   );
@@ -69,15 +76,18 @@ export function TenancyInspections({ propertyId }: { propertyId: string }) {
 function TenancyWorkspace({
   propertyId,
   accountId,
+  initialReportId,
 }: {
   propertyId: string;
   accountId?: string;
+  initialReportId?: string;
 }) {
   const client = useQueryClient();
   const [folder, setFolder] = useState('');
   const [folderPage, setFolderPage] = useState(0);
   const [reportPage, setReportPage] = useState(0);
-  const [report, setReport] = useState('');
+  const [report, setReport] = useState(initialReportId ?? '');
+  const [correction, setCorrection] = useState<InspectionDetail | null>(null);
   const [mode, setMode] = useState<'folder' | 'report' | null>(null);
   const [editing, setEditing] = useState<TenancyFolder | null>(null);
   const [label, setLabel] = useState('');
@@ -96,10 +106,15 @@ function TenancyWorkspace({
   const [error, setError] = useState('');
   const base = '/api/properties/' + propertyId;
   const key = ['tenancy-inspections', accountId, propertyId];
-  const draftKey =
-    accountId && folder
-      ? JSON.stringify([accountId, propertyId, folder])
+  const draftFolder = correction?.folder.id ?? folder;
+  const folderDraftKey =
+    accountId && draftFolder
+      ? JSON.stringify([accountId, propertyId, draftFolder])
       : null;
+  const draftKey =
+    correction && folderDraftKey
+      ? folderDraftKey + ':correction:' + correction.report.id
+      : folderDraftKey;
   const requestKey = draftKey && draftKey + ':save-request';
   const readDraft = useCallback(
     () => inspectionDrafts.read(draftKey),
@@ -150,7 +165,7 @@ function TenancyWorkspace({
   ]);
   const folders = useQuery({
     queryKey: [...key, 'folders', folderPage],
-    enabled: !!accountId,
+    enabled: !!accountId && !initialReportId,
     queryFn: () =>
       mobileApiClient.get<InspectionPage<TenancyFolder>>(
         base + '/tenancies?offset=' + folderPage
@@ -158,13 +173,15 @@ function TenancyWorkspace({
   });
   const reports = useQuery({
     queryKey: [...key, 'reports', folder, reportPage],
-    enabled: !!accountId && !!folder,
+    enabled: !!accountId && !!folder && !initialReportId,
     queryFn: () =>
       mobileApiClient.get<InspectionPage<InspectionReport>>(
         base + '/inspections?folder=' + folder + '&offset=' + reportPage
       ),
   });
-  const tenancy = folders.data?.items.find((item) => item.id === folder);
+  const tenancy =
+    correction?.folder ??
+    folders.data?.items.find((item) => item.id === folder);
   const exception =
     mode === 'report' &&
     (dateWarning ||
@@ -191,6 +208,7 @@ function TenancyWorkspace({
     : [];
   function begin(next: 'folder' | 'report') {
     setMode(next);
+    setCorrection(null);
     setEditing(null);
     setLabel('');
     setStarts('');
@@ -215,6 +233,43 @@ function TenancyWorkspace({
     setDateReason(draft.dateReason);
     setSelected(draft.selected);
     setNoIssues(draft.noIssues);
+  }
+  function beginCorrection(source: InspectionDetail) {
+    if (
+      !accountId ||
+      busy ||
+      !source.canCreate ||
+      source.report.corrected_by_report_id
+    )
+      return;
+    const key =
+      JSON.stringify([accountId, propertyId, source.folder.id]) +
+      ':correction:' +
+      source.report.id;
+    const stored = inspectionDrafts.read(key);
+    const saved = stored ? (JSON.parse(stored) as NativeDraft) : null;
+    begin('report');
+    setCorrection(source);
+    setLabel(saved?.label ?? source.report.title);
+    setStarts(saved?.starts ?? source.report.inspected_on);
+    setKind(source.report.kind);
+    setNotes(saved?.notes ?? source.report.notes);
+    setDateReason(
+      saved?.dateReason ?? source.report.date_exception_reason ?? ''
+    );
+    setNoIssues(saved?.noIssues ?? source.report.outcome === 'no_issues_found');
+    setSelected(
+      saved?.selected ??
+        source.photos.flatMap((photo) =>
+          photo.available && photo.source_photo_id
+            ? [photo.source_photo_id]
+            : []
+        )
+    );
+  }
+  function closeEditor() {
+    setMode(null);
+    setCorrection(null);
   }
   async function save() {
     if (
@@ -270,7 +325,8 @@ function TenancyWorkspace({
         const saved = await mobileApiClient.post<{ id: string }>(
           base + '/inspections',
           {
-            folder_id: folder,
+            folder_id: draftFolder,
+            ...(correction ? { corrects_report_id: correction.report.id } : {}),
             title: label.trim(),
             inspected_on: starts,
             kind,
@@ -292,11 +348,17 @@ function TenancyWorkspace({
         inspectionDrafts.write(draftKey, (current) =>
           current === submittedDraft ? '' : current
         );
+        if (correction) setReport(saved.id);
       }
-      setMode(null);
+      closeEditor();
       setFolderPage(0);
       setReportPage(0);
-      await client.invalidateQueries({ queryKey: key });
+      await Promise.all([
+        client.invalidateQueries({ queryKey: key }),
+        client.invalidateQueries({
+          queryKey: ['property-activity', accountId, propertyId],
+        }),
+      ]);
     } catch (e) {
       await client.invalidateQueries({ queryKey: key });
       if (e instanceof Error && 'code' in e) {
@@ -357,14 +419,18 @@ function TenancyWorkspace({
     setFolder(value);
     setReport('');
     setReportPage(0);
-    setMode(null);
+    closeEditor();
   };
   return (
     <View style={s.panel}>
-      <Text style={s.title}>Tenancy folders & inspections</Text>
-      <Text style={s.text}>
-        Reports are shared with current property members only.
-      </Text>
+      {!initialReportId && (
+        <>
+          <Text style={s.title}>Tenancy folders & inspections</Text>
+          <Text style={s.text}>
+            Reports are shared with current property members only.
+          </Text>
+        </>
+      )}
       {folders.isLoading && (
         <ActivityIndicator accessibilityLabel='Loading tenancy folders' />
       )}
@@ -448,100 +514,102 @@ function TenancyWorkspace({
           }}
         />
       )}
-      <View style={{ marginVertical: 4 }}>
-        {draft && mode !== 'report' && reports.data?.canCreate && (
-          <>
-            <Action
-              title='Resume draft'
-              disabled={busy}
-              onPress={resumeDraft}
-            />
-            <Action
-              title='Discard draft'
-              disabled={busy}
-              onPress={() =>
-                Alert.alert(
-                  'Discard this tenancy’s inspection draft?',
-                  undefined,
-                  [
-                    { text: 'Keep draft', style: 'cancel' },
-                    {
-                      text: 'Discard draft',
-                      style: 'destructive',
-                      onPress: () => {
-                        inspectionDrafts.write(draftKey, '');
-                        inspectionDrafts.write(requestKey, '');
-                      },
-                    },
-                  ]
-                )
-              }
-            />
-          </>
-        )}
-        <Text style={s.shortcutHint}>
-          {!folder
-            ? 'Choose or create a tenancy above to start an inspection.'
-            : reports.isLoading
-              ? 'Checking inspection access…'
-              : reports.isError
-                ? 'Retry loading reports to check inspection access.'
-                : !reports.data?.canCreate
-                  ? 'View saved reports below. Creating inspections needs editing access and an eligible owner plan.'
-                  : 'Create an inspection for this tenancy'}
-        </Text>
-        {INSPECTION_KINDS.map((option) => {
-          const disabled =
-            !folder ||
-            !reports.data?.canCreate ||
-            reports.isError ||
-            folders.isError ||
-            (!!draft && mode !== 'report') ||
-            busy;
-          return (
-            <TouchableOpacity
-              key={option.value}
-              accessibilityRole='button'
-              accessibilityLabel={
-                option.value === 'routine'
-                  ? option.label
-                  : option.label + ' inspection'
-              }
-              accessibilityState={{ disabled }}
-              accessibilityHint={
-                !folder
-                  ? 'Choose a tenancy above first.'
-                  : 'Opens the inspection form.'
-              }
-              disabled={disabled}
-              style={[ws.row, disabled && { opacity: 0.55 }]}
-              onPress={() => {
-                if (disabled) return;
-                if (mode !== 'report') begin('report');
-                setKind(option.value);
-              }}
-            >
-              <Ionicons
-                name={
-                  option.value === 'routine'
-                    ? 'calendar-outline'
-                    : 'clipboard-outline'
-                }
-                size={23}
-                color={disabled ? me.ink3 : me.brand2}
+      {!initialReportId && (
+        <View style={{ marginVertical: 4 }}>
+          {draft && mode !== 'report' && reports.data?.canCreate && (
+            <>
+              <Action
+                title='Resume draft'
+                disabled={busy}
+                onPress={resumeDraft}
               />
-              <Text style={ws.rowText}>{option.label}</Text>
-              {!disabled && (
+              <Action
+                title='Discard draft'
+                disabled={busy}
+                onPress={() =>
+                  Alert.alert(
+                    'Discard this tenancy’s inspection draft?',
+                    undefined,
+                    [
+                      { text: 'Keep draft', style: 'cancel' },
+                      {
+                        text: 'Discard draft',
+                        style: 'destructive',
+                        onPress: () => {
+                          inspectionDrafts.write(draftKey, '');
+                          inspectionDrafts.write(requestKey, '');
+                        },
+                      },
+                    ]
+                  )
+                }
+              />
+            </>
+          )}
+          <Text style={s.shortcutHint}>
+            {!folder
+              ? 'Choose or create a tenancy above to start an inspection.'
+              : reports.isLoading
+                ? 'Checking inspection access…'
+                : reports.isError
+                  ? 'Retry loading reports to check inspection access.'
+                  : !reports.data?.canCreate
+                    ? 'View saved reports below. Creating inspections needs editing access and an eligible owner plan.'
+                    : 'Create an inspection for this tenancy'}
+          </Text>
+          {INSPECTION_KINDS.map((option) => {
+            const disabled =
+              !folder ||
+              !reports.data?.canCreate ||
+              reports.isError ||
+              folders.isError ||
+              (!!draft && mode !== 'report') ||
+              busy;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                accessibilityRole='button'
+                accessibilityLabel={
+                  option.value === 'routine'
+                    ? option.label
+                    : option.label + ' inspection'
+                }
+                accessibilityState={{ disabled }}
+                accessibilityHint={
+                  !folder
+                    ? 'Choose a tenancy above first.'
+                    : 'Opens the inspection form.'
+                }
+                disabled={disabled}
+                style={[ws.row, disabled && { opacity: 0.55 }]}
+                onPress={() => {
+                  if (disabled) return;
+                  if (mode !== 'report') begin('report');
+                  setKind(option.value);
+                }}
+              >
                 <Ionicons
-                  name='add-circle-outline'
-                  size={22}
-                  color={me.brand2}
+                  name={
+                    option.value === 'routine'
+                      ? 'calendar-outline'
+                      : 'clipboard-outline'
+                  }
+                  size={23}
+                  color={disabled ? me.ink3 : me.brand2}
                 />
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+                <Text style={ws.rowText}>{option.label}</Text>
+                {!disabled && (
+                  <Ionicons
+                    name='add-circle-outline'
+                    size={22}
+                    color={me.brand2}
+                  />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
       {folder && (
         <View>
           {reports.isLoading && (
@@ -596,10 +664,12 @@ function TenancyWorkspace({
               ? editing
                 ? 'Edit tenancy folder'
                 : 'Create tenancy folder'
-              : 'Create inspection report'
+              : correction
+                ? 'Correct inspection report'
+                : 'Create inspection report'
           }
           busy={busy}
-          onClose={() => setMode(null)}
+          onClose={closeEditor}
         >
           <View style={{ gap: 12 }}>
             <Field
@@ -688,12 +758,19 @@ function TenancyWorkspace({
                     />
                   </>
                 )}
-                <PropertyChoice
-                  label='Inspection type'
-                  value={kind}
-                  options={INSPECTION_KINDS}
-                  onChange={setKind}
-                />
+                {correction ? (
+                  <Text style={s.text}>
+                    Correcting {correction.report.title}. The original report
+                    stays in the inspection history.
+                  </Text>
+                ) : (
+                  <PropertyChoice
+                    label='Inspection type'
+                    value={kind}
+                    options={INSPECTION_KINDS}
+                    onChange={setKind}
+                  />
+                )}
                 <Field
                   label='Observations'
                   value={notes}
@@ -817,7 +894,9 @@ function TenancyWorkspace({
                           ? 'Confirm date change'
                           : 'Save folder changes'
                         : 'Create folder'
-                    : 'Save shared report'
+                    : correction
+                      ? 'Save linked correction'
+                      : 'Save shared report'
               }
               disabled={
                 busy ||
@@ -831,11 +910,7 @@ function TenancyWorkspace({
               }
               onPress={() => void save()}
             />
-            <Action
-              title='Cancel'
-              disabled={busy}
-              onPress={() => setMode(null)}
-            />
+            <Action title='Cancel' disabled={busy} onPress={closeEditor} />
           </View>
         </PropertySheet>
       )}
@@ -858,6 +933,14 @@ function TenancyWorkspace({
               detail={detail.data}
               accountId={accountId ?? ''}
               openReport={setReport}
+              correctReport={
+                detail.data.canCreate &&
+                !detail.data.report.corrected_by_report_id
+                  ? () => {
+                      if (detail.data) beginCorrection(detail.data);
+                    }
+                  : undefined
+              }
             />
           )}
         </View>
@@ -893,11 +976,13 @@ function NativeReport({
   detail,
   accountId,
   openReport,
+  correctReport,
 }: {
   propertyId: string;
   detail: InspectionDetail;
   accountId: string;
   openReport: (id: string) => void;
+  correctReport?: () => void;
 }) {
   const [photo, setPhoto] = useState('');
   const [savingPdf, setSavingPdf] = useState(false);
@@ -936,7 +1021,11 @@ function NativeReport({
         `Inspection-${report.id}`,
         'inspection'
       );
-      if (result === 'saved') Alert.alert('PDF saved', 'The report was saved to your selected folder.');
+      if (result === 'saved')
+        Alert.alert(
+          'PDF saved',
+          'The report was saved to your selected folder.'
+        );
     } catch {
       setPdfError(true);
     } finally {
@@ -963,6 +1052,9 @@ function NativeReport({
         <Text style={s.text}>
           Date exception · {report.date_exception_reason}
         </Text>
+      )}
+      {correctReport && (
+        <Action title='Correct this report' onPress={correctReport} />
       )}
       {correctedBy && (
         <Action
@@ -1006,11 +1098,21 @@ function NativeReport({
         }
       />
       <Action
-        title={savingPdf ? 'Preparing PDF…' : pdfError ? 'Retry PDF download' : 'Download PDF'}
+        title={
+          savingPdf
+            ? 'Preparing PDF…'
+            : pdfError
+              ? 'Retry PDF download'
+              : 'Download PDF'
+        }
         disabled={savingPdf}
         onPress={() => void downloadPdf()}
       />
-      {pdfError && <Text accessibilityRole='alert'>The PDF could not be downloaded. Try again.</Text>}
+      {pdfError && (
+        <Text accessibilityRole='alert'>
+          The PDF could not be downloaded. Try again.
+        </Text>
+      )}
       <PropertyChoice
         label='Report photo'
         value={photo}

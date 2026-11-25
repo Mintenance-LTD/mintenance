@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { workWindowEndIsInvalid } from '@mintenance/shared';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ErrorView, LoadingSpinner, ScreenHeader } from '../components/shared';
@@ -77,6 +78,14 @@ export function JobWorkWindowScreen({
   });
   const current = user?.id ? schedule.data : undefined;
   const proposal = current?.proposal;
+  const invalidSavedWindow = workWindowEndIsInvalid(
+    current?.scheduled_start_date,
+    current?.scheduled_end_date
+  );
+  const invalidEnd =
+    ukWallTime.test(start.trim()) &&
+    ukWallTime.test(end.trim()) &&
+    end.trim() <= start.trim();
   const available =
     !!current?.active &&
     !save.isPending &&
@@ -84,7 +93,7 @@ export function JobWorkWindowScreen({
     !schedule.isError;
 
   function send() {
-    if (!available) return;
+    if (!available || invalidEnd) return;
     if (
       !ukWallTime.test(start.trim()) ||
       (end.trim() && !ukWallTime.test(end.trim())) ||
@@ -125,8 +134,15 @@ export function JobWorkWindowScreen({
               ? format(current.scheduled_start_date)
               : 'No work window agreed yet.'}
           </Text>
-          {current.scheduled_end_date && (
-            <Text>Ends {format(current.scheduled_end_date)}</Text>
+          {invalidSavedWindow ? (
+            <Text accessibilityRole='alert'>
+              The saved end time is invalid. Agree a new work window to correct
+              it.
+            </Text>
+          ) : (
+            current.scheduled_end_date && (
+              <Text>Ends {format(current.scheduled_end_date)}</Text>
+            )
           )}
           {!!current.scheduled_duration_hours && (
             <Text>
@@ -221,12 +237,18 @@ export function JobWorkWindowScreen({
                     onChangeText={setDuration}
                     keyboardType='number-pad'
                   />
+                  {invalidEnd && (
+                    <Text accessibilityRole='alert'>
+                      End time must be after start time.
+                    </Text>
+                  )}
                   {!!validation && (
                     <Text accessibilityRole='alert'>{validation}</Text>
                   )}
                   <TouchableOpacity
                     accessibilityRole='button'
-                    disabled={!available}
+                    accessibilityLabel='Send proposal'
+                    disabled={!available || invalidEnd}
                     onPress={send}
                   >
                     <Text style={styles.link}>
@@ -245,8 +267,10 @@ export function JobWorkWindowScreen({
                 current.active && (
                   <TouchableOpacity
                     accessibilityRole='button'
+                    accessibilityLabel='Propose new dates'
                     disabled={!available}
                     onPress={() => {
+                      setValidation('');
                       save.reset();
                       setEditing(true);
                     }}
