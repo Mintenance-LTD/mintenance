@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { usePropertyView } from "@/hooks/usePropertyView";
-import { propertyNavigationVisible } from "@mintenance/shared";
-import { useMemo } from "react";
+import { usePropertyView } from '@/hooks/usePropertyView';
+import { propertyNavigationVisible } from '@mintenance/shared';
+import { useMemo } from 'react';
 import {
   Home,
   HelpCircle,
@@ -30,62 +30,62 @@ import {
   FolderOpen,
   Megaphone,
   BarChart3,
-} from "lucide-react";
-import type { NavSection } from "./SidebarNavItems";
+} from 'lucide-react';
+import type { NavSection } from './SidebarNavItems';
 
 export function useNavSections(
-  userRole: "homeowner" | "contractor" | "admin",
+  userRole: 'homeowner' | 'contractor' | 'admin'
 ): NavSection[] {
   const { view } = usePropertyView();
   const homeownerSections: NavSection[] = useMemo(
     () => [
       {
-        name: "MAIN",
+        name: 'MAIN',
         items: [
           {
-            label: "Dashboard",
-            href: "/dashboard",
+            label: 'Dashboard',
+            href: '/dashboard',
             icon: Home,
-            shortcut: "g d",
+            shortcut: 'g d',
           },
         ],
       },
       {
-        name: "WORK",
+        name: 'WORK',
         items: [
           {
-            label: "Jobs",
-            href: "/jobs",
+            label: 'Jobs',
+            href: '/jobs',
             icon: Briefcase,
-            shortcut: "g j",
+            shortcut: 'g j',
             children: [
-              { label: "All Jobs", href: "/jobs", icon: Briefcase },
-              { label: "Active", href: "/jobs?status=active", icon: Briefcase },
+              { label: 'All Jobs', href: '/jobs', icon: Briefcase },
+              { label: 'Active', href: '/jobs?status=active', icon: Briefcase },
               {
-                label: "Completed",
-                href: "/jobs?status=completed",
+                label: 'Completed',
+                href: '/jobs?status=completed',
                 icon: Briefcase,
               },
             ],
           },
           {
-            label: "Messages",
-            href: "/messages",
+            label: 'Messages',
+            href: '/messages',
             icon: MessageSquare,
-            badge: "messages",
-            shortcut: "g m",
+            badge: 'messages',
+            shortcut: 'g m',
           },
-          { label: "Job paperwork", href: "/documents", icon: FolderOpen },
+          { label: 'Job paperwork', href: '/documents', icon: FolderOpen },
           {
-            label: "Visit confirmations",
-            href: "/appointments/response",
+            label: 'Visit confirmations',
+            href: '/appointments/response',
             icon: Calendar,
           },
           {
-            label: "Scheduling",
-            href: "/scheduling",
+            label: 'Scheduling',
+            href: '/scheduling',
             icon: Calendar,
-            shortcut: "g s",
+            shortcut: 'g s',
           },
           // Audit P1 (2026-04-23): Video Calls page is a dead-end placeholder.
           // Removed from primary nav so users can't randomly stumble in. The
@@ -95,136 +95,136 @@ export function useNavSections(
         ],
       },
       {
-        name: "PROPERTY",
+        name: 'PROPERTY',
         items: [
-          { label: "Properties", href: "/properties", icon: Building2 },
+          { label: 'Properties', href: '/properties', icon: Building2 },
           {
-            label: "Compliance",
-            href: "/properties/compliance",
+            label: 'Compliance',
+            href: '/properties/compliance',
             icon: ClipboardCheck,
           },
-          { label: "Financials", href: "/financials", icon: PoundSterling },
-          { label: "Payments", href: "/payments", icon: CreditCard },
+          { label: 'Financials', href: '/financials', icon: PoundSterling },
+          { label: 'Payments', href: '/payments', icon: CreditCard },
         ],
       },
       {
-        name: "LANDLORD",
+        name: 'LANDLORD',
         items: [
           {
-            label: "Tenant Reports",
-            href: "/landlord/reports",
+            label: 'Tenant Reports',
+            href: '/landlord/reports',
             icon: FileText,
           },
           {
-            label: "Reporting Links",
-            href: "/landlord/reporting-links",
+            label: 'Reporting Links',
+            href: '/landlord/reporting-links',
             icon: Link2,
           },
           {
-            label: "Action queue",
-            href: "/properties/work-queue",
+            label: 'Action queue',
+            href: '/properties/work-queue',
             icon: RefreshCw,
           },
-          { label: "Portfolio Inbox", href: "/portfolio", icon: RefreshCw },
-          { label: "Contacts", href: "/landlord/contacts", icon: Contact },
+          { label: 'Portfolio Inbox', href: '/portfolio', icon: RefreshCw },
+          { label: 'Contacts', href: '/landlord/contacts', icon: Contact },
           {
-            label: "Recurring Tasks",
-            href: "/landlord/recurring",
+            label: 'Recurring Tasks',
+            href: '/landlord/recurring',
             icon: RefreshCw,
           },
           {
-            label: "Year-over-Year",
-            href: "/landlord/analytics/year-over-year",
+            label: 'Year-over-Year',
+            href: '/landlord/analytics/year-over-year',
             icon: TrendingUp,
           },
         ],
       },
       {
-        name: "ACCOUNT",
+        name: 'ACCOUNT',
         items: [
           {
-            label: "Notifications",
-            href: "/notifications",
+            label: 'Notifications',
+            href: '/notifications',
             icon: Bell,
-            badge: "notifications",
+            badge: 'notifications',
           },
 
           {
-            label: "Subscription",
-            href: "/homeowner/subscription",
+            label: 'Subscription',
+            href: '/homeowner/subscription',
             icon: BarChart3,
           },
-          { label: "Settings", href: "/settings", icon: Settings },
-          { label: "Help", href: "/getting-started", icon: HelpCircle },
+          { label: 'Settings', href: '/settings', icon: Settings },
+          { label: 'Help', href: '/getting-started', icon: HelpCircle },
         ],
       },
     ],
-    [],
+    []
   );
 
   const contractorSections: NavSection[] = useMemo(
     () => [
       {
-        name: "MAIN",
+        name: 'MAIN',
         items: [
           {
-            label: "Dashboard",
-            href: "/contractor/dashboard-enhanced",
+            label: 'Dashboard',
+            href: '/contractor/dashboard-enhanced',
             icon: Home,
-            shortcut: "g d",
+            shortcut: 'g d',
           },
           {
-            label: "Discover",
-            href: "/contractor/discover",
+            label: 'Discover',
+            href: '/contractor/discover',
             icon: Compass,
-            shortcut: "g x",
+            shortcut: 'g x',
           },
         ],
       },
       {
-        name: "WORK",
+        name: 'WORK',
         items: [
           {
-            label: "Jobs",
-            href: "/contractor/jobs",
+            label: 'Jobs',
+            href: '/contractor/jobs',
             icon: Briefcase,
-            shortcut: "g j",
+            shortcut: 'g j',
             children: [
-              { label: "All Jobs", href: "/contractor/jobs", icon: Briefcase },
+              { label: 'All Jobs', href: '/contractor/jobs', icon: Briefcase },
               {
-                label: "Active",
-                href: "/contractor/jobs?status=in_progress",
+                label: 'Active',
+                href: '/contractor/jobs?status=in_progress',
                 icon: Briefcase,
               },
               {
-                label: "Completed",
-                href: "/contractor/jobs?status=completed",
+                label: 'Completed',
+                href: '/contractor/jobs?status=completed',
                 icon: Briefcase,
               },
               {
-                label: "Find Jobs",
-                href: "/contractor/jobs-near-you",
+                label: 'Find Jobs',
+                href: '/contractor/jobs-near-you',
                 icon: Sparkles,
               },
             ],
           },
-          { label: "Quotes", href: "/contractor/quotes", icon: FileText },
+          { label: 'Quotes', href: '/contractor/quotes', icon: FileText },
           {
-            label: "Messages",
-            href: "/contractor/messages",
+            label: 'Messages',
+            href: '/contractor/messages',
             icon: MessageSquare,
-            badge: "messages",
-            shortcut: "g m",
+            badge: 'messages',
+            shortcut: 'g m',
           },
           {
-            label: "Scheduling",
-            href: "/contractor/scheduling",
+            label: 'Scheduling',
+            href: '/contractor/scheduling',
             icon: Calendar,
-            shortcut: "g s",
+            shortcut: 'g s',
           },
           {
-            label: "Documents",
-            href: "/contractor/documents",
+            label: 'Documents',
+            href: '/contractor/documents',
             icon: FolderOpen,
           },
           // Audit P1 (2026-04-23): Video Calls page is a dead-end placeholder.
@@ -232,7 +232,7 @@ export function useNavSections(
         ],
       },
       {
-        name: "BUSINESS",
+        name: 'BUSINESS',
         items: [
           // Audit P1 (2026-04-23): Social Feed, Connections, Resources are
           // dead-end "Coming soon" pages. Removed from primary nav so the
@@ -240,173 +240,173 @@ export function useNavSections(
           // are preserved at /contractor/{social,connections,resources}
           // for direct-URL fallback. Re-add these once the underlying
           // features ship.
-          { label: "Portfolio", href: "/contractor/portfolio", icon: Pencil },
-          { label: "Reviews", href: "/contractor/reviews", icon: Star },
-          { label: "Customers", href: "/contractor/customers", icon: Users },
+          { label: 'Portfolio', href: '/contractor/portfolio', icon: Pencil },
+          { label: 'Reviews', href: '/contractor/reviews', icon: Star },
+          { label: 'Customers', href: '/contractor/customers', icon: Users },
           {
-            label: "Reporting",
-            href: "/contractor/reporting",
+            label: 'Reporting',
+            href: '/contractor/reporting',
             icon: TrendingUp,
           },
           {
-            label: "Marketing",
-            href: "/contractor/marketing",
+            label: 'Marketing',
+            href: '/contractor/marketing',
             icon: Megaphone,
           },
         ],
       },
       {
-        name: "FINANCIAL",
+        name: 'FINANCIAL',
         items: [
           {
-            label: "Finance Dashboard",
-            href: "/contractor/finance",
+            label: 'Finance Dashboard',
+            href: '/contractor/finance',
             icon: PoundSterling,
           },
-          { label: "Invoices", href: "/contractor/invoices", icon: Receipt },
-          { label: "Expenses", href: "/contractor/expenses", icon: CreditCard },
+          { label: 'Invoices', href: '/contractor/invoices', icon: Receipt },
+          { label: 'Expenses', href: '/contractor/expenses', icon: CreditCard },
           {
-            label: "Tax Info",
-            href: "/contractor/tax-info/dashboard",
+            label: 'Tax Info',
+            href: '/contractor/tax-info/dashboard',
             icon: Receipt,
           },
           {
-            label: "Subscription",
-            href: "/contractor/subscription",
+            label: 'Subscription',
+            href: '/contractor/subscription',
             icon: BarChart3,
           },
         ],
       },
       {
-        name: "ACCOUNT",
+        name: 'ACCOUNT',
         items: [
           {
-            label: "Company Profile",
-            href: "/contractor/profile",
+            label: 'Company Profile',
+            href: '/contractor/profile',
             icon: Building2,
-            shortcut: "g p",
+            shortcut: 'g p',
           },
           {
-            label: "Verification",
-            href: "/contractor/verification",
+            label: 'Verification',
+            href: '/contractor/verification',
             icon: Shield,
           },
           // Contractors have their own settings screen — bare /settings
           // is the homeowner UX. Same fix as useLayoutState.ts:206.
-          { label: "Settings", href: "/contractor/settings", icon: Settings },
-          { label: "Help", href: "/getting-started", icon: HelpCircle },
+          { label: 'Settings', href: '/contractor/settings', icon: Settings },
+          { label: 'Help', href: '/getting-started', icon: HelpCircle },
           {
-            label: "Notifications",
-            href: "/notifications",
+            label: 'Notifications',
+            href: '/notifications',
             icon: Bell,
-            badge: "notifications",
+            badge: 'notifications',
           },
         ],
       },
     ],
-    [],
+    []
   );
 
   const adminSections: NavSection[] = useMemo(
     () => [
       {
-        name: "MAIN",
+        name: 'MAIN',
         items: [
           {
-            label: "Dashboard",
-            href: "/admin/dashboard",
+            label: 'Dashboard',
+            href: '/admin/dashboard',
             icon: Home,
-            shortcut: "g d",
+            shortcut: 'g d',
           },
           {
-            label: "Analytics",
-            href: "/admin/analytics-detail",
+            label: 'Analytics',
+            href: '/admin/analytics-detail',
             icon: TrendingUp,
           },
         ],
       },
       {
-        name: "MANAGEMENT",
+        name: 'MANAGEMENT',
         items: [
-          { label: "Users", href: "/admin/users", icon: Users },
-          { label: "Revenue", href: "/admin/revenue", icon: PoundSterling },
+          { label: 'Users', href: '/admin/users', icon: Users },
+          { label: 'Revenue', href: '/admin/revenue', icon: PoundSterling },
           {
-            label: "Pricing Metrics",
-            href: "/admin/pricing-metrics",
+            label: 'Pricing Metrics',
+            href: '/admin/pricing-metrics',
             icon: BarChart3,
           },
           {
-            label: "Communications",
-            href: "/admin/communications",
+            label: 'Communications',
+            href: '/admin/communications',
             icon: Megaphone,
           },
           {
-            label: "Customer service",
-            href: "/admin/support",
+            label: 'Customer service',
+            href: '/admin/support',
             icon: MessageSquare,
           },
           {
-            label: "Building Assessments",
-            href: "/admin/building-assessments",
+            label: 'Building Assessments',
+            href: '/admin/building-assessments',
             icon: Building2,
           },
         ],
       },
       {
-        name: "FINANCIAL",
+        name: 'FINANCIAL',
         items: [
           {
-            label: "Escrow Reviews",
-            href: "/admin/escrow/reviews",
+            label: 'Escrow Reviews',
+            href: '/admin/escrow/reviews',
             icon: Shield,
           },
           {
-            label: "Fee Management",
-            href: "/admin/payments/fees",
+            label: 'Fee Management',
+            href: '/admin/payments/fees',
             icon: Receipt,
           },
           {
-            label: "Payment Setup",
-            href: "/admin/contractors/payment-setup",
+            label: 'Payment Setup',
+            href: '/admin/contractors/payment-setup',
             icon: CreditCard,
           },
         ],
       },
       {
-        name: "AI & MONITORING",
+        name: 'AI & MONITORING',
         items: [
           {
-            label: "AI Monitoring",
-            href: "/admin/ai-monitoring",
+            label: 'AI Monitoring',
+            href: '/admin/ai-monitoring',
             icon: Sparkles,
           },
-          { label: "Security", href: "/admin/security", icon: Shield },
-          { label: "Audit Logs", href: "/admin/audit-logs", icon: FileText },
+          { label: 'Security', href: '/admin/security', icon: Shield },
+          { label: 'Audit Logs', href: '/admin/audit-logs', icon: FileText },
         ],
       },
       {
-        name: "SYSTEM",
-        items: [{ label: "Settings", href: "/admin/settings", icon: Settings }],
+        name: 'SYSTEM',
+        items: [{ label: 'Settings', href: '/admin/settings', icon: Settings }],
       },
     ],
-    [],
+    []
   );
 
-  return userRole === "admin"
+  return userRole === 'admin'
     ? adminSections
-    : userRole === "contractor"
+    : userRole === 'contractor'
       ? contractorSections
       : homeownerSections
           .map((section) => ({
             ...section,
             name:
-              section.name === "LANDLORD"
-                ? view === "agency"
-                  ? "AGENCY"
-                  : "RENTALS"
+              section.name === 'LANDLORD'
+                ? view === 'agency'
+                  ? 'AGENCY'
+                  : 'RENTALS'
                 : section.name,
             items: section.items.filter((item) =>
-              propertyNavigationVisible(view, item.href),
+              propertyNavigationVisible(view, item.href)
             ),
           }))
           .filter((section) => section.items.length > 0);
