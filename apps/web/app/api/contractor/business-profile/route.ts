@@ -24,6 +24,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { readContractorVerificationReview } from '@/lib/admin/verification-queue';
 import { logger } from '@mintenance/shared';
 import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
@@ -146,8 +147,11 @@ async function loadBundle(userId: string): Promise<{
 export const GET = withApiHandler(
   { roles: ['contractor'], csrf: false },
   async (_request, { user }) => {
-    const bundle = await loadBundle(user.id);
-    return NextResponse.json(bundle);
+    const [bundle, accountReview] = await Promise.all([
+      loadBundle(user.id),
+      readContractorVerificationReview(user.id),
+    ]);
+    return NextResponse.json({ ...bundle, accountReview });
   }
 );
 
@@ -173,6 +177,11 @@ export const PATCH = withApiHandler(
     }
 
     const d = parsed.data;
+    if (d.submitVerification && (!d.licenseType || !d.licenseNumber)) {
+      throw new BadRequestError(
+        'Enter your trade registration, or use the web verification centre to submit business evidence without a trade licence.'
+      );
+    }
     let previousVerificationStatus: string | null = null;
     if (d.submitVerification) {
       const { data: currentProfile, error: currentProfileError } =
@@ -446,7 +455,10 @@ export const PATCH = withApiHandler(
       }
     }
 
-    const bundle = await loadBundle(user.id);
-    return NextResponse.json(bundle);
+    const [bundle, accountReview] = await Promise.all([
+      loadBundle(user.id),
+      readContractorVerificationReview(user.id),
+    ]);
+    return NextResponse.json({ ...bundle, accountReview });
   }
 );

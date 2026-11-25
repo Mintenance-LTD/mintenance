@@ -24,15 +24,19 @@ try {
       company_name text, license_number text, insurance_expiry_date date, business_address text,
       admin_verified boolean, skills text[], rating numeric, total_jobs_completed int,
       city text, created_at timestamptz DEFAULT now(), updated_at timestamptz,
-      background_check_status text, deleted_at timestamptz, is_available boolean
+      background_check_status text, verification_status text, deleted_at timestamptz, is_available boolean
     );
     CREATE TABLE contractor_documents (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(), contractor_id uuid, verification_type text,
       created_at timestamptz DEFAULT now(), review_status text
     );
+    CREATE TABLE credential_verifications (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, register text,
+      registration_number text, status text, created_at timestamptz DEFAULT now(), expires_at timestamptz
+    );
     CREATE TABLE admin_verification_tasks (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(), contractor_id uuid UNIQUE, admin_id uuid,
-      status text DEFAULT 'open', email_status text DEFAULT 'pending', email_claimed_at timestamptz,
+      status text DEFAULT 'open', email_status text DEFAULT 'pending',
       created_at timestamptz DEFAULT now(), completed_at timestamptz
     );
     CREATE TABLE jobs (id uuid PRIMARY KEY, title text);
@@ -83,29 +87,6 @@ try {
     ['ready', 'incomplete', 'rejected', 'verified']
   );
   const assigned = () => query('SELECT assign_admin_verifications() AS count');
-  assert.deepEqual(await assigned(), [{ count: 1 }]);
-  assert.deepEqual(await assigned(), [{ count: 0 }]);
-  assert.deepEqual(
-    await query('SELECT contractor_id FROM admin_verification_tasks'),
-    [{ contractor_id: id(2) }]
-  );
-  await query(
-    `INSERT INTO contractor_documents (contractor_id, verification_type, review_status, created_at)
-    VALUES ($1,'business_licence','rejected',now()+interval '1 minute')`,
-    [id(2)]
-  );
-  assert.deepEqual(await assigned(), [{ count: 0 }]);
-  assert.equal(
-    (await query('SELECT status FROM admin_verification_tasks'))[0].status,
-    'completed'
-  );
-  await query(
-    `INSERT INTO contractor_documents (contractor_id, verification_type, review_status, created_at)
-    VALUES ($1,'business_licence','pending',now()+interval '2 minutes')`,
-    [id(2)]
-  );
-  assert.deepEqual(await assigned(), [{ count: 1 }]);
-
   await query(
     `INSERT INTO jobs VALUES ($1, 'Boiler repair');
     `.trim(),
@@ -211,6 +192,37 @@ try {
     );
     assert.deepEqual(perm, { client: false, service: true });
   }
+  await query(`INSERT INTO profiles (id, role, verification_status, company_name, business_address) VALUES
+    ($1, 'contractor', 'pending', 'Existing mobile contractor', 'Synthetic address'),
+    ($2, 'contractor', 'pending', 'Needs evidence', NULL),
+    ($3, 'contractor', 'pending', 'Fresh Android contractor', 'Synthetic address'),
+    ($4, 'contractor', NULL, 'Sole trader', 'Synthetic address')`, [id(20),id(21),id(22),id(23)]);
+  await query(`INSERT INTO credential_verifications (user_id,register,registration_number,status) VALUES
+    ($1,'gas_safe','TEST-migrated','pending'), ($2,'other','','pending'),
+    ($3,'niceic','TEST-fresh','pending')`, [id(20),id(21),id(22)]);
+  await query('INSERT INTO admin_verification_tasks (contractor_id,admin_id) VALUES ($1,$3),($2,$3)', [id(20),id(21),id(1)]);
+  assert.equal((await query('SELECT queue_status FROM admin_verification_queue WHERE id=$1', [id(20)]))[0].queue_status, 'incomplete');
+  assert.deepEqual(await assigned(), [{ count: 1 }]);
+  assert.deepEqual(
+    await query('SELECT status, admin_id FROM admin_verification_tasks WHERE contractor_id=$1', [id(20)]),
+    [{ status: 'open', admin_id: id(1) }]
+  );
+  await db.exec(readFileSync('supabase/migrations/20261125145152_admin_verification_mobile_compat.sql', 'utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261125145830_admin_verification_assignment_schema_compat.sql', 'utf8'));
+  await query(`INSERT INTO contractor_documents (contractor_id,verification_type,review_status) VALUES
+    ($1,'identity','pending'),($1,'business_licence','pending')`, [id(23)]);
+  assert.deepEqual((await query('SELECT queue_status FROM admin_verification_queue WHERE id=ANY($1::uuid[]) ORDER BY id', [[20,21,22,23].map(id)])).map((row) => row.queue_status),
+    ['ready','incomplete','ready','ready']);
+  assert.deepEqual(await assigned(), [{ count: 2 }]);
+  assert.deepEqual(await assigned(), [{ count: 0 }]);
+  assert.deepEqual(await query('SELECT status FROM admin_verification_tasks WHERE contractor_id=ANY($1::uuid[]) ORDER BY contractor_id', [[20,21,22,23].map(id)]),
+    [{status:'open'},{status:'open'},{status:'open'},{status:'open'}]);
+  await query(`INSERT INTO credential_verifications (user_id,register,registration_number,status,created_at)
+    VALUES ($1,'gas_safe','TEST-migrated','rejected',now()+interval '1 second')`, [id(20)]);
+  assert.equal((await query('SELECT queue_status FROM admin_verification_queue WHERE id=$1', [id(20)]))[0].queue_status, 'incomplete');
+  await assigned();
+  assert.equal((await query('SELECT status FROM admin_verification_tasks WHERE contractor_id=$1', [id(20)]))[0].status, 'open');
+
   console.log(
     'Admin verification states and assignment, evidence deadlines, audience eligibility, delivery references and access grants passed.'
   );

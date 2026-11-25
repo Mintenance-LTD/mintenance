@@ -47,7 +47,7 @@ BEGIN
   SET status = 'completed', completed_at = now()
   WHERE t.status = 'open' AND NOT EXISTS (
     SELECT 1 FROM public.admin_verification_queue q
-    WHERE q.id = t.contractor_id AND q.queue_status = 'ready'
+    WHERE q.id = t.contractor_id AND q.queue_status NOT IN ('verified','rejected')
   );
 
   FOR candidate IN
@@ -68,7 +68,7 @@ BEGIN
     VALUES (candidate.id, assignee)
     ON CONFLICT (contractor_id) DO UPDATE
     SET admin_id = excluded.admin_id, status = 'open', created_at = excluded.created_at,
-        completed_at = NULL, email_status = 'pending', email_claimed_at = NULL
+        completed_at = NULL, email_status = 'pending'
     WHERE t.status = 'completed' AND t.email_status <> 'sending';
     IF FOUND THEN assigned := assigned + 1; END IF;
   END LOOP;

@@ -1,3 +1,5 @@
+import type { VerificationReview } from '@/lib/contractor/verification-review';
+
 export interface ContractorVerification {
   id: string;
   email: string;
@@ -26,6 +28,7 @@ export interface ContractorVerification {
   verification_status: 'ready' | 'incomplete' | 'verified' | 'rejected';
   identity_submitted: boolean;
   business_submitted: boolean;
+  account_review?: VerificationReview;
 }
 
 export interface Stats {

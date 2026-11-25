@@ -365,10 +365,10 @@ export function ContractorVerificationCard({
           {!contractor.license_number && contractor.business_submitted && (
             <p className='text-sm text-slate-600'>Licence number not required for this review. Business evidence submitted.</p>
           )}
-          {contractor.verification_status === 'incomplete' && (
-            <p className='text-sm text-amber-900'>Required evidence missing or needs resubmission: {[
-              !contractor.identity_submitted && 'identity', !contractor.business_submitted && 'business registration',
-            ].filter(Boolean).join(' and ')}.</p>
+          {!!contractor.account_review?.nextSteps.length && (
+            <ul className='space-y-1 text-sm text-slate-700'>
+              {contractor.account_review.nextSteps.map((step) => <li key={step}>{step}</li>)}
+            </ul>
           )}
           {contractor.license_number && (
             <div>

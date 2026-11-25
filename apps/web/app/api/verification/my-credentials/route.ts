@@ -7,18 +7,23 @@
 
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { readContractorVerificationReview } from '@/lib/admin/verification-queue';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
 export const GET = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 60 } },
   async (_req, { user }) => {
-    const { data, error } = await serverSupabase
-      .from('credential_verifications')
-      .select(
-        'id, register, registration_number, status, verified_at, expires_at, rejected_reason, created_at'
-      )
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    const [credentials, accountReview] = await Promise.all([
+      serverSupabase
+        .from('credential_verifications')
+        .select(
+          'id, register, registration_number, status, verified_at, expires_at, rejected_reason, created_at'
+        )
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false }),
+      readContractorVerificationReview(user.id),
+    ]);
+    const { data, error } = credentials;
 
     if (error) {
       return NextResponse.json(
@@ -26,6 +31,6 @@ export const GET = withApiHandler(
         { status: 500 }
       );
     }
-    return NextResponse.json({ credentials: data ?? [] });
+    return NextResponse.json({ credentials: data ?? [], accountReview });
   }
 );

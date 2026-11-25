@@ -43,7 +43,7 @@ export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
       ','
     ),
   admin_verification_queue:
-    'admin_verified,background_check_status,business_address,business_submitted,city,company_name,created_at,email,first_name,id,identity_submitted,insurance_expiry_date,last_name,latest_evidence_at,license_number,phone,queue_status,rating,role,skills,total_jobs_completed,updated_at'.split(
+    'admin_verified,background_check_status,business_address,business_details_submitted,business_submitted,city,company_name,created_at,email,first_name,id,identity_submitted,insurance_expiry_date,last_name,latest_evidence_at,license_number,mobile_credential_submitted,mobile_review_requested,phone,queue_status,rating,role,skills,total_jobs_completed,updated_at'.split(
       ','
     ),
   dispute_escrow_links: 'created_at,dispute_id,escrow_id'.split(','),

@@ -1,3 +1,4 @@
+import { describeVerificationReview, type VerificationReview } from '@/lib/contractor/verification-review';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
 export const VERIFICATION_QUEUE_STATES = [
@@ -23,4 +24,11 @@ export async function readVerificationQueueCounts() {
     countVerificationQueue(),
   ]);
   return { ready, incomplete, verified, rejected, total };
+}
+
+export async function readContractorVerificationReview(contractorId: string): Promise<VerificationReview | null> {
+  const { data, error } = await serverSupabase.from('admin_verification_queue')
+    .select('queue_status,identity_submitted,business_submitted,mobile_credential_submitted,mobile_review_requested,business_details_submitted')
+    .eq('id', contractorId).maybeSingle();
+  return error || !data ? null : describeVerificationReview(data);
 }

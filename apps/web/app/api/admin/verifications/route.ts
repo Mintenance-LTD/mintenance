@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { VERIFICATION_QUEUE_STATES, readVerificationQueueCounts } from '@/lib/admin/verification-queue';
+import { describeVerificationReview } from '@/lib/contractor/verification-review';
 import { logger } from '@mintenance/shared';
 import { sanitizeEmailIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
@@ -28,7 +29,7 @@ export const GET = withApiHandler(
     let query = serverSupabase
       .from('admin_verification_queue')
       .select(
-        'id, email, first_name, last_name, phone, role, company_name, license_number, insurance_expiry_date, business_address, admin_verified, skills, rating, total_jobs_completed, city, created_at, updated_at, background_check_status, queue_status, identity_submitted, business_submitted',
+        'id, email, first_name, last_name, phone, role, company_name, license_number, insurance_expiry_date, business_address, admin_verified, skills, rating, total_jobs_completed, city, created_at, updated_at, background_check_status, queue_status, identity_submitted, business_submitted, mobile_credential_submitted, mobile_review_requested, business_details_submitted',
         { count: 'exact' }
       )
       .order('created_at', { ascending: false })
@@ -190,6 +191,7 @@ export const GET = withApiHandler(
       verification_status: c.queue_status,
       identity_submitted: c.identity_submitted,
       business_submitted: c.business_submitted,
+      account_review: describeVerificationReview(c),
     }));
 
     // Compute totals for stats
