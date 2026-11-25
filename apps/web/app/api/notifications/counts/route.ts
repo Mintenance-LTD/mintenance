@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { fetchWebUnreadCount } from '@/lib/notifications/inbox';
+import { syncPropertyInvitationNotifications } from '@/lib/notifications/property-invitations';
 
 /**
  * API endpoint to fetch notification badge counts for the sidebar.
@@ -34,6 +35,7 @@ export const GET = withApiHandler({}, async (_request, { user }) => {
   // route already gives `connections`) until quote-requests are a real,
   // queryable concept (filter-schema audit 2026-08-02).
   const quoteRequestsResponse = { count: 0 };
+  await syncPropertyInvitationNotifications(user);
   const notificationsResponse =
     user.role === 'homeowner'
       ? { count: await fetchWebUnreadCount(user.id), error: null }

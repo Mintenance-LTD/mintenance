@@ -300,6 +300,11 @@ function NotificationRow({
             View visit
           </span>
         )}
+        {notification.action_url?.startsWith('/properties/invitations?') && (
+          <span className='w-fit text-xs font-semibold text-teal-800'>
+            Review invitation
+          </span>
+        )}
         {notification.action_url?.endsWith('#start-checklist') && (
           <span className='w-fit text-xs font-semibold text-teal-800'>
             View start checklist

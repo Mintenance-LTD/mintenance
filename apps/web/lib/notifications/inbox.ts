@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { annotatePaymentAlerts } from './payment-alerts';
 import { resolveInboxActions, type InboxRow } from './inbox-actions';
+import { syncPropertyInvitationNotifications } from './property-invitations';
 
 const pageSize = 25;
 const cursorSchema = z.object({
@@ -33,6 +34,8 @@ export async function fetchWebNotificationInbox(
       : null;
   if (cursor && !cursor.success)
     throw new BadRequestError('Invalid notification cursor');
+
+  if (!cursor) await syncPropertyInvitationNotifications(actor);
 
   const [page, unreadCount] = await Promise.all([
     serverSupabase.rpc('web_notification_inbox', {

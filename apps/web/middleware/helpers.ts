@@ -81,7 +81,12 @@ export function redirectToLogin(request: NextRequest): NextResponse {
   const isAdminRoute = pathname.startsWith('/admin');
   const loginPath = isAdminRoute ? '/admin/login' : '/login';
   const loginUrl = new URL(loginPath, request.url);
-  loginUrl.searchParams.set('redirect', pathname);
+  loginUrl.searchParams.set(
+    'redirect',
+    pathname === '/properties/invitations'
+      ? pathname + request.nextUrl.search
+      : pathname
+  );
 
   const response = NextResponse.redirect(loginUrl);
   response.cookies.delete(authCookie);

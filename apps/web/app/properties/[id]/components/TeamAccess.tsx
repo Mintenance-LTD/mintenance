@@ -98,7 +98,7 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
         setShowForm(false);
         toast.success(
           data?.invitation?.message ??
-            'Invitation saved. Ask the invitee to sign in and accept it from Properties. No email has been sent.'
+            'Invitation saved. Ask the invitee to sign in with their verified homeowner email and open Property invitations.'
         );
       } else if (res.status === 402) {
         const err = await res.json();

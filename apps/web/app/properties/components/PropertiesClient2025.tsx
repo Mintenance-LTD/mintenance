@@ -23,6 +23,7 @@ import {
   PropertyTypeFilter,
 } from './PropertiesToolbar';
 import { logger } from '@mintenance/shared';
+import { PendingPropertyInvites } from './PendingPropertyInvites';
 
 interface Property {
   id: string;
@@ -48,6 +49,7 @@ interface PropertiesClient2025Props {
   propertyLimit: number | 'unlimited';
   tier: string;
   isEarlyAccess?: boolean;
+  sharedProperties?: React.ReactNode;
   userInfo: {
     name: string;
     email: string;
@@ -66,6 +68,7 @@ export function PropertiesClient2025({
   propertyLimit,
   tier,
   isEarlyAccess,
+  sharedProperties,
 }: PropertiesClient2025Props) {
   const router = useRouter();
 
@@ -216,7 +219,7 @@ export function PropertiesClient2025({
 
       {/* Header */}
       <div className='mb-8'>
-        <div className='flex items-center gap-3 mb-2'>
+        <div className='flex flex-wrap items-center gap-3 mb-2'>
           <h1 className='text-3xl font-semibold text-gray-900'>
             My Properties
           </h1>
@@ -225,6 +228,7 @@ export function PropertiesClient2025({
               ? 'Early access'
               : `${TIER_LABELS[tier] || 'Free'} plan`}
           </span>
+          <PendingPropertyInvites compact />
         </div>
         <p className='text-gray-600'>
           {propertyLimit === 'unlimited'
@@ -233,6 +237,8 @@ export function PropertiesClient2025({
           &middot; Manage your properties and maintenance
         </p>
       </div>
+
+      {sharedProperties}
 
       {/* Toolbar */}
       {properties.length > 0 && (
