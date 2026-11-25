@@ -31,7 +31,8 @@ const nextConfig = {
   // tracing the addon alone leaves Linux functions unable to load the library.
   outputFileTracingIncludes: {
     '/api/properties/*/inspections/*/pdf': [
-      '../mobile/assets/fonts/Inter-Regular.ttf',
+      './assets/fonts/Inter-Regular.ttf',
+      './assets/fonts/Inter-LICENSE',
     ],
     '/api/**/*': [
       '../../node_modules/@img/sharp-linux-x64/**/*',

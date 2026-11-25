@@ -32,11 +32,14 @@ const fontName = 'Inter-Regular.ttf';
 let fontLoad: Promise<string> | undefined;
 
 function getFont() {
-  const fontAsset = 'mobile/assets/fonts/Inter-Regular.ttf';
-  fontLoad ??= readFile(path.join(process.cwd(), '..', fontAsset), 'base64')
+  const fontAsset = path.join('assets', 'fonts', fontName);
+  fontLoad ??= readFile(path.join(process.cwd(), fontAsset), 'base64')
     .catch((error: NodeJS.ErrnoException) => {
       if (error.code !== 'ENOENT') throw error;
-      return readFile(path.join(process.cwd(), 'apps', fontAsset), 'base64');
+      return readFile(
+        path.join(process.cwd(), 'apps', 'web', fontAsset),
+        'base64'
+      );
     })
     .catch((error) => {
       fontLoad = undefined;
