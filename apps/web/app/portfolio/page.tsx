@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { PortfolioInboxClient } from './portfolio-inbox-client';
+import { PortfolioWorkspace } from './portfolio-workspace';
 
 export const metadata: Metadata = {
   title: 'Portfolio | Mintenance',
@@ -19,10 +19,12 @@ export default async function PortfolioPage() {
     redirect('/contractor/portfolio');
   }
 
-  const displayName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.email;
+  const displayName =
+    [user.first_name, user.last_name].filter(Boolean).join(' ').trim() ||
+    user.email;
 
   return (
-    <PortfolioInboxClient
+    <PortfolioWorkspace
       user={{
         id: user.id,
         name: displayName,
