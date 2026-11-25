@@ -2,6 +2,8 @@ import { beforeEach, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
   queueResult: vi.fn(),
+  credentialInsert: vi.fn(),
+  activeCredential: vi.fn(),
   writes: [] as unknown[],
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
@@ -17,6 +19,8 @@ beforeEach(() => {
   mocks.from.mockReset();
   mocks.queueResult.mockReset();
   mocks.queueResult.mockResolvedValue({ data: null, error: null });
+  mocks.credentialInsert.mockReset().mockResolvedValue({ error: null });
+  mocks.activeCredential.mockReset().mockResolvedValue({ data: null, error: null });
   const chain = {
     update: (value: unknown) => {
       mocks.writes.push(value);
@@ -34,10 +38,26 @@ beforeEach(() => {
     then: (resolve: (value: unknown) => unknown) =>
       Promise.resolve({ data: null, error: null }).then(resolve),
   };
-  mocks.from.mockImplementation((table) => table === 'admin_verification_queue'
-    ? { ...chain, select: () => ({ eq: () => ({ maybeSingle: mocks.queueResult }) }) }
-    : chain
-  );
+  mocks.from.mockImplementation((table) => {
+    if (table === 'admin_verification_queue') {
+      return { select: () => ({ eq: () => ({ maybeSingle: mocks.queueResult }) }) };
+    }
+    if (table === 'credential_verifications') {
+      const credentials = {
+        ...chain,
+        insert: (value: unknown) => {
+          mocks.writes.push(value);
+          return mocks.credentialInsert();
+        },
+        select: () => credentials,
+        eq: () => credentials,
+        in: () => credentials,
+        maybeSingle: mocks.activeCredential,
+      };
+      return credentials;
+    }
+    return chain;
+  });
 });
 const submit = (licenseType: string) =>
   (PATCH as unknown as (r: Request, c: unknown) => Promise<Response>)(
@@ -69,6 +89,18 @@ it.each([
   expect(mocks.writes).toContainEqual(
     expect.objectContaining({ user_id: 'contractor', status: 'pending' })
   );
+});
+
+it('accepts a retry against an existing pending credential without rolling back the review', async () => {
+  mocks.credentialInsert.mockResolvedValue({ error: { code: '23505' } });
+  mocks.activeCredential.mockResolvedValue({
+    data: { id: 'existing-credential', status: 'pending', expires_at: null },
+    error: null,
+  });
+
+  expect((await submit('electrical')).status).toBe(200);
+  expect(mocks.activeCredential).toHaveBeenCalledOnce();
+  expect(mocks.writes).not.toContainEqual({ verification_status: null });
 });
 it('rejects unknown license types before database writes', async () => {
   expect((await submit('made-up-type')).status).toBe(400);

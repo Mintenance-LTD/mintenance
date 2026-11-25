@@ -132,8 +132,8 @@ export default function ContractorVerificationPage() {
   }, []);
 
   useEffect(() => {
-    if (user) fetchVerificationDocs();
-  }, [user, fetchVerificationDocs]);
+    fetchVerificationDocs();
+  }, [fetchVerificationDocs]);
 
   // Upload a verification document using the existing /api/contractor/documents endpoint
   const handleFileUpload = async (
@@ -171,9 +171,7 @@ export default function ContractorVerificationPage() {
       });
 
       if (res.ok) {
-        toast.success(
-          'Document uploaded successfully! Review typically takes 1-2 business days.'
-        );
+        toast.success('Document uploaded.');
         // Refresh the list to get real status
         await fetchVerificationDocs();
       } else {

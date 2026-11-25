@@ -398,7 +398,7 @@ export const PATCH = withApiHandler(
       }
     }
 
-    // Verification submission — fresh credential_verifications row.
+    // Verification submission — create the credential or reuse an active one.
     // 2026-05-24 audit-25 P1: mobile sends trade / electrical /
     // plumbing / hvac / roofing as licenseType, but the DB CHECK
     // (credential_verifications_register_check) only allows
@@ -419,7 +419,7 @@ export const PATCH = withApiHandler(
             : normalised === 'trustmark'
               ? 'trustmark'
               : 'other';
-      const { error: credError } = await serverSupabase
+      const { error: insertError } = await serverSupabase
         .from('credential_verifications')
         .insert({
           user_id: user.id,
@@ -428,6 +428,35 @@ export const PATCH = withApiHandler(
           status: 'pending',
           expires_at: expiresAt,
         });
+      let credError = insertError;
+      if (insertError?.code === '23505') {
+        const { data: existing, error: lookupError } = await serverSupabase
+          .from('credential_verifications')
+          .select('id, status, expires_at')
+          .eq('user_id', user.id)
+          .eq('register', register)
+          .eq('registration_number', d.licenseNumber || '')
+          .in('status', ['pending', 'verified'])
+          .maybeSingle();
+
+        if (lookupError) credError = lookupError;
+        else if (existing) {
+          credError = null;
+          if (
+            existing.status === 'pending' &&
+            d.licenseExpiry !== undefined &&
+            existing.expires_at !== expiresAt
+          ) {
+            const { error: updateError } = await serverSupabase
+              .from('credential_verifications')
+              .update({ expires_at: expiresAt })
+              .eq('id', existing.id)
+              .eq('user_id', user.id)
+              .eq('status', 'pending');
+            credError = updateError;
+          }
+        }
+      }
       if (credError) {
         logger.error(
           'business-profile credential_verifications insert failed',
