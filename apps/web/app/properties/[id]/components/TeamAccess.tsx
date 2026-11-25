@@ -19,6 +19,12 @@ const ROLE_BADGES: Record<string, string> = {
   viewer: 'bg-gray-100 text-gray-600',
 };
 
+const ROLE_DETAILS: Record<string, string> = {
+  viewer: 'Can view shared repair and inspection records.',
+  manager: 'Can coordinate repairs, post jobs and manage tenant records.',
+  admin: 'Can coordinate repairs, manage property records and manage the team.',
+};
+
 const STATUS_BADGES: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
   accepted: 'bg-green-100 text-green-700',
@@ -257,6 +263,9 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
                   {m.status}
                 </span>
               </div>
+              {ROLE_DETAILS[m.role] && (
+                <p className='mt-1 text-gray-600'>{ROLE_DETAILS[m.role]}</p>
+              )}
               {m.status === 'pending' && (
                 <div className='mt-2'>
                   <button

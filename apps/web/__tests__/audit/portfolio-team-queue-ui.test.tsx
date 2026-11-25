@@ -62,7 +62,7 @@ it('shows responsibility and view-only access without a follow-up editor', async
   expect(screen.queryByText('Manage follow-up')).toBeNull();
   expect(screen.getByRole('link', { name: 'Review job' })).toHaveAttribute(
     'href',
-    '/properties/home'
+    '/properties/home/repairs/job?from=queue'
   );
 });
 it('requests a server-filtered first page and clears the previous editor', async () => {

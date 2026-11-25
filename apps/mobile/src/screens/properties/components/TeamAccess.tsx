@@ -299,6 +299,9 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
                   </View>
                 )}
               </View>
+              {m.role === 'viewer' && <Text style={styles.emptyText}>Can view shared repair and inspection records.</Text>}
+              {m.role === 'manager' && <Text style={styles.emptyText}>Can coordinate repairs, post jobs and manage tenant records.</Text>}
+              {m.role === 'admin' && <Text style={styles.emptyText}>Can coordinate repairs, manage property records and manage the team.</Text>}
             </View>
             <TouchableOpacity onPress={() => handleRemove(m.id, m.email)}>
               <Ionicons

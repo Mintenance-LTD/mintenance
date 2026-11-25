@@ -217,7 +217,7 @@ export default async function PropertyDetailPage({
           user.role === 'homeowner' &&
           PropertyTeamService.canPerform(access.role, 'create_job')
         }
-        jobs={formattedJobs.map(({ id, title, status }) => ({
+        jobs={formattedJobs.filter((job) => job.status !== 'draft').map(({ id, title, status }) => ({
           id,
           title,
           status,

@@ -749,13 +749,24 @@ export default function PropertyDetailsClient({
                   <h2 className='text-lg font-semibold text-gray-900'>
                     Access & contacts
                   </h2>
-                  <a
-                    href='?tab=access'
-                    className='text-sm text-teal-600 hover:underline'
-                    title='Edit access details in the new theme'
-                  >
-                    Edit →
-                  </a>
+                  <div className='flex flex-wrap gap-3'>
+                    {showPropertyTool(view, 'team') && (
+                      <button
+                        type='button'
+                        onClick={() => setActiveTab('manage')}
+                        className='text-sm text-teal-700 hover:underline'
+                      >
+                        Manage team access
+                      </button>
+                    )}
+                    <a
+                      href='?tab=access'
+                      className='text-sm text-teal-600 hover:underline'
+                      title='Edit access details in the new theme'
+                    >
+                      Edit →
+                    </a>
+                  </div>
                 </div>
                 <dl className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm'>
                   {property.access_mode && (

@@ -70,7 +70,7 @@ it('shows a retry action after a failed load', async () => {
 });
 
 it.each([true, false])(
-  'opens jobs only with explicit server permission (%s)',
+  'opens the normal job only with server permission and otherwise opens the scoped repair (%s)',
   async (allowed) => {
     mockGet.mockResolvedValue({
       items: [
@@ -90,24 +90,27 @@ it.each([true, false])(
     });
     const openJob = jest.fn();
     const openProperty = jest.fn();
+    const openSharedJob = jest.fn();
     const view = render(
       <QueryClientProvider client={client}>
         <PortfolioActionQueue
           initiallyExpanded
           onOpenProperty={openProperty}
           onOpenJob={openJob}
+          onOpenSharedJob={openSharedJob}
         />
       </QueryClientProvider>
     );
     await view.findByText('Repair');
-    fireEvent.press(view.getByText(allowed ? 'Open job →' : 'Open property →'));
+    fireEvent.press(view.getByText('Open job →'));
     if (allowed) {
       expect(openJob).toHaveBeenCalledWith('job-1');
-      expect(openProperty).not.toHaveBeenCalled();
+      expect(openSharedJob).not.toHaveBeenCalled();
     } else {
-      expect(openProperty).toHaveBeenCalledWith('shared-home');
+      expect(openSharedJob).toHaveBeenCalledWith('shared-home', 'job-1');
       expect(openJob).not.toHaveBeenCalled();
     }
+    expect(openProperty).not.toHaveBeenCalled();
     view.unmount();
   }
 );

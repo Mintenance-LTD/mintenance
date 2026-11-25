@@ -29,6 +29,7 @@ interface Queue {
 type Props = {
   onOpenProperty: (id: string) => void;
   onOpenJob?: (id: string) => void;
+  onOpenSharedJob?: (propertyId: string, jobId: string) => void;
   initiallyExpanded?: boolean;
 };
 export function PortfolioActionQueue(props: Props) {
@@ -39,6 +40,7 @@ export function PortfolioActionQueue(props: Props) {
 function ActionQueue({
   onOpenProperty,
   onOpenJob,
+  onOpenSharedJob,
   initiallyExpanded = false,
   userId,
 }: Props & { userId?: string }) {
@@ -140,7 +142,9 @@ function ActionQueue({
                     onPress={() =>
                       item.kind === 'job' && item.can_open_job && onOpenJob
                         ? onOpenJob(item.id)
-                        : onOpenProperty(item.property_id)
+                        : item.kind === 'job' && onOpenSharedJob
+                          ? onOpenSharedJob(item.property_id, item.id)
+                          : onOpenProperty(item.property_id)
                     }
                   >
                     <Text>{item.property_name}</Text>
@@ -165,7 +169,7 @@ function ActionQueue({
                         </Text>
                       )}
                     <Text>
-                      {item.kind === 'job' && item.can_open_job && onOpenJob
+                      {item.kind === 'job' && ((item.can_open_job && onOpenJob) || onOpenSharedJob)
                         ? 'Open job →'
                         : 'Open property →'}
                     </Text>

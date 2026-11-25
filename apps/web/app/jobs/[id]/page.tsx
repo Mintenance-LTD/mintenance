@@ -18,6 +18,8 @@ import { MintEditorialJobDetailView } from './components/mint-editorial/MintEdit
 import { RecommendedContractors } from './components/RecommendedContractors';
 import { formatBidsForClient, type BidWithContractor } from './lib/formatBids';
 import { returnToWorkspace } from '@/lib/jobs/workspace-navigation';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
+import { propertyRepairHref } from '@/lib/properties/repair-navigation';
 
 export const metadata: Metadata = {
   title: 'Job Details | Mintenance',
@@ -74,6 +76,10 @@ export default async function JobDetailPage2025({
   // can fund escrow and approve completion, so redirecting them here would
   // break the payment-to-completion journey after successful authentication.
   if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
+    if (job.property_id && job.status !== 'draft') {
+      const access = await PropertyTeamService.authorize(user.id, job.property_id, 'view');
+      if (access.authorized) redirect(propertyRepairHref(job.property_id, job.id));
+    }
     logger.warn('JobDetailPage2025 - Unauthorized access attempt', {
       jobId: resolvedParams.id,
       userId: user.id,
