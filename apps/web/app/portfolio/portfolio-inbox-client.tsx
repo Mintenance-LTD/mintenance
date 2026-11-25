@@ -82,12 +82,12 @@ const PRIORITY_OPTIONS: TicketPriority[] = ['low', 'medium', 'high', 'urgent'];
 const toLabel = (value: string) =>
   value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
 
-export function PortfolioInboxClient({ user, workspaceId, workspaceRole }: PortfolioInboxClientProps) {
-  const canManage = ['owner', 'manager', 'maintenance_coordinator'].includes(workspaceRole);
-  return <PortfolioInbox key={user.id} user={user} />;
+export function PortfolioInboxClient(props: PortfolioInboxClientProps) {
+  return <PortfolioInbox key={`${props.user.id}:${props.workspaceId}`} {...props} />;
 }
 
-function PortfolioInbox({ user }: PortfolioInboxClientProps) {
+function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClientProps) {
+  const canManage = ['owner', 'manager', 'maintenance_coordinator'].includes(workspaceRole);
   const pendingRequests = useRef({ tickets: 0, properties: 0, detail: 0 });
   const [mobileView, setMobileView] = useState<'inbox' | 'detail' | 'create'>(
     'inbox'
