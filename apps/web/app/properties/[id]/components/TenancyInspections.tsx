@@ -25,6 +25,8 @@ import {
 } from '@mintenance/shared';
 import {
   InspectionRequestError,
+  inspectionAuthRequired,
+  inspectionLoginHref,
   inspectionOverlap,
   inspectionRequest,
 } from '@/lib/inspection-client';
@@ -50,6 +52,7 @@ function useRecords<T>(url: string | null, revision: number) {
     error: string;
     loading: boolean;
     loadedRevision: number;
+    authRequired?: boolean;
   }>({ data: null, error: '', loading: true, loadedRevision: -1 });
   useEffect(() => {
     if (!url) return;
@@ -70,6 +73,7 @@ function useRecords<T>(url: string | null, revision: number) {
           setState({
             data: null,
             error: error.message,
+            authRequired: inspectionAuthRequired(error),
             loading: false,
             loadedRevision: revision,
           });
@@ -933,6 +937,14 @@ function ReportForm({
       ? 'evidence_free'
       : null;
   const [serverDateWarning, setServerDateWarning] = useState(false);
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const requiresSignIn = sessionEnded || photos.authRequired;
+  const reauthHref = inspectionLoginHref(
+    `/properties/${encodeURIComponent(propertyId)}/tenancies/${encodeURIComponent(folder.id)}` +
+      (correction
+        ? '?corrects=' + encodeURIComponent(correction.report.id)
+        : '')
+  );
   const availablePhotos = photos.data?.photos.filter(
     (photo) => !photo.deletion_pending
   );
@@ -1055,6 +1067,7 @@ function ReportForm({
       setRevision((value) => value + 1);
     } catch (e) {
       if (mounted.current) {
+        if (inspectionAuthRequired(e)) setSessionEnded(true);
         setUploadError(
           e instanceof Error ? e.message : 'Could not upload the photo.'
         );
@@ -1072,6 +1085,7 @@ function ReportForm({
     event.preventDefault();
     if (
       saving.current ||
+      requiresSignIn ||
       uploading ||
       file ||
       unavailableSelections.length ||
@@ -1110,6 +1124,7 @@ function ReportForm({
       saved(result.id);
     } catch (e) {
       if (!mounted.current) return;
+      if (inspectionAuthRequired(e)) setSessionEnded(true);
       if (
         e instanceof InspectionRequestError &&
         e.code === 'INSPECTION_OUTSIDE_TENANCY'
@@ -1289,7 +1304,7 @@ function ReportForm({
             </p>
           )}
           {photos.loading && <p role='status'>Loading photos…</p>}
-          {photos.error && (
+          {photos.error && !photos.authRequired && (
             <p role='alert'>
               {photos.error}{' '}
               <button
@@ -1411,6 +1426,7 @@ function ReportForm({
         <button
           disabled={
             busy ||
+            requiresSignIn ||
             uploading ||
             !!file ||
             !!unavailableSelections.length ||
@@ -1423,6 +1439,19 @@ function ReportForm({
         >
           {busy ? 'Saving…' : 'Save shared report'}
         </button>
+        {requiresSignIn && (
+          <div role='status' className='text-sm text-gray-700'>
+            <a
+              className='inline-flex min-h-11 items-center font-semibold text-teal-900 underline'
+              href={reauthHref}
+            >
+              Sign in to continue
+            </a>
+            {autosaved && (
+              <p>Sign back in on this tab to resume this tenancy’s draft.</p>
+            )}
+          </div>
+        )}
         <button type='button' className='min-h-11 underline' onClick={cancel}>
           {autosaved ? 'Keep draft and close' : 'Cancel report'}
         </button>

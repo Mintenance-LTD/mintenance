@@ -1,4 +1,5 @@
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { InspectionRequestError } from '@/lib/inspection-client';
 
 export function roomPhotoSelectionError(files: File[]) {
   if (
@@ -38,6 +39,11 @@ export async function uploadRoomPhotos(
       body: form,
     }
   );
+  if (response.status === 401)
+    throw new InspectionRequestError(
+      'Your session ended. Sign in to continue.',
+      'AUTH_REQUIRED'
+    );
   const data = await response.json();
   if (!response.ok)
     throw new Error(
