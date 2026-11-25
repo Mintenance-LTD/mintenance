@@ -350,11 +350,27 @@ function collectFilterColumns(): {
           skippedUnknownTable.add(table);
           continue;
         }
+        const select = /\.select\(\s*(['"`])([\s\S]*?)\1/.exec(span)?.[2];
+        const embeddedAliases = new Set(
+          (select ? splitTopLevel(select) : []).flatMap((part) => {
+            const embed = /^([a-z_]+):([a-z_]+)(?:![a-z_]+)*\s*\(/i.exec(part);
+            return embed && embed[2] in DB_SCHEMA_SNAPSHOT ? [embed[1]] : [];
+          })
+        );
         FILTER_RE.lastIndex = 0;
         for (const f of span.matchAll(FILTER_RE)) {
           const column = f[1];
           // Embedded-resource paths and JSONB accessors are out of scope.
           if (column.includes('.') || column.includes('>')) continue;
+          // PostgREST supports an existence filter on a selected relation alias.
+          const rest = span.slice(f.index! + f[0].length);
+          if (
+            embeddedAliases.has(column) &&
+            ((f[0].startsWith('.not(') &&
+              /^\s*,\s*'is'\s*,\s*null\s*\)/.test(rest)) ||
+              (f[0].startsWith('.is(') && /^\s*,\s*null\s*\)/.test(rest)))
+          )
+            continue;
           checked.push({
             file: rel,
             table,

@@ -33,6 +33,20 @@
  */
 
 export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
+  // Generated from staging metadata after 20261125142028_admin_work_queues.
+  admin_communication_delivery_log:
+    'attempts,case_reference,channel,completed_at,created_at,dispute_reference,id,job_reference,last_checked_at,last_error,provider_id,recipient_email,recipient_id,status,subject'.split(
+      ','
+    ),
+  admin_evidence_review_queue:
+    'archived_at,id,kind,legal_hold,reason,review_due_at,revision,title'.split(
+      ','
+    ),
+  admin_verification_queue:
+    'admin_verified,background_check_status,business_address,business_submitted,city,company_name,created_at,email,first_name,id,identity_submitted,insurance_expiry_date,last_name,latest_evidence_at,license_number,phone,queue_status,rating,role,skills,total_jobs_completed,updated_at'.split(
+      ','
+    ),
+  dispute_escrow_links: 'created_at,dispute_id,escrow_id'.split(','),
   // Generated from isolated readiness migrations on 2026-10-04.
   profile_directory:
     'admin_verified,avatar_url,bio,city,company_name,country,created_at,first_name,hourly_rate,id,is_available,last_name,latitude,longitude,portfolio_images,profile_image_url,rating,role,skills,total_jobs_completed,verified,years_experience'.split(
