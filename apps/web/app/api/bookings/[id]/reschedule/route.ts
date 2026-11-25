@@ -8,12 +8,13 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, movedWorkWindowEnd } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import {
   NotFoundError,
   BadRequestError,
   ForbiddenError,
+  ConflictError,
 } from '@/lib/errors/api-error';
 
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
@@ -52,7 +53,9 @@ export const PATCH = withApiHandler(
     // Fetch job
     const { data: job, error } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, payer_user_id, contractor_id, status, title')
+      .select(
+        'id, homeowner_id, payer_user_id, contractor_id, status, title, scheduled_start_date, scheduled_end_date'
+      )
       .eq('id', jobId)
       .single();
 
@@ -76,13 +79,30 @@ export const PATCH = withApiHandler(
     }
 
     // Update schedule
-    const { error: updateError } = await serverSupabase
+    let update = serverSupabase
       .from('jobs')
       .update({
         scheduled_start_date: newDate.toISOString(),
+        scheduled_end_date: movedWorkWindowEnd(
+          newDate,
+          job.scheduled_start_date,
+          job.scheduled_end_date
+        ),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', jobId);
+      .eq('id', jobId)
+      .eq('status', job.status);
+    update =
+      job.scheduled_start_date === null
+        ? update.is('scheduled_start_date', null)
+        : update.eq('scheduled_start_date', job.scheduled_start_date);
+    update =
+      job.scheduled_end_date === null
+        ? update.is('scheduled_end_date', null)
+        : update.eq('scheduled_end_date', job.scheduled_end_date);
+    const { data: updated, error: updateError } = await update
+      .select('id')
+      .maybeSingle();
 
     if (updateError) {
       logger.error('Failed to reschedule booking', updateError, {
@@ -92,6 +112,10 @@ export const PATCH = withApiHandler(
       });
       throw new Error('Failed to reschedule');
     }
+    if (!updated)
+      throw new ConflictError(
+        'The work window changed. Reload before rescheduling.'
+      );
 
     // 2026-05-26 audit-55 P2: also re-stamp any non-cancelled
     // appointment rows linked to this job. Previously only

@@ -21,13 +21,16 @@ const folder = {
   starts_on: '2026-01-01',
   ends_on: null,
 };
-function show() {
+function show(initialReportId?: string) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   return render(
     <QueryClientProvider client={client}>
-      <TenancyInspections propertyId='property' />
+      <TenancyInspections
+        propertyId='property'
+        initialReportId={initialReportId}
+      />
     </QueryClientProvider>
   );
 }
@@ -279,4 +282,72 @@ it('keeps shortcuts disabled for a selected read-only tenancy', async () => {
   await ui.findByText(/View saved reports below/);
   fireEvent.press(ui.getByLabelText('Check-out inspection'));
   expect(ui.queryByLabelText('Report title')).toBeNull();
+});
+
+const originalReport = {
+  id: 'source-report',
+  folder_id: folder.id,
+  title: 'Original check-in',
+  inspected_on: '2026-11-25',
+  created_at: '2026-11-25T12:00:00Z',
+  kind: 'check_in',
+  notes: 'Original observations',
+};
+
+it('opens an exact report, preserves its source and reuses the request on a linked correction retry', async () => {
+  const revised = {
+    ...originalReport,
+    id: 'corrected-report',
+    title: 'Corrected check-in',
+    notes: 'Revised observations',
+    corrects_report_id: originalReport.id,
+  };
+  jest.mocked(mobileApiClient.get).mockImplementation(async (url) => {
+    if (url.endsWith('/room-photos')) return { photos: [] };
+    return {
+      folder,
+      canCreate: true,
+      photos: [],
+      report: url.endsWith(revised.id) ? revised : originalReport,
+    };
+  });
+  jest
+    .mocked(mobileApiClient.post)
+    .mockRejectedValueOnce(new Error('Lost response'))
+    .mockResolvedValueOnce({ id: revised.id });
+  const ui = show(originalReport.id);
+  fireEvent.press(await ui.findByText('Correct this report'));
+  expect(ui.getByLabelText('Observations').props.value).toBe(
+    originalReport.notes
+  );
+  fireEvent.changeText(ui.getByLabelText('Report title'), revised.title);
+  fireEvent.changeText(ui.getByLabelText('Observations'), revised.notes);
+  fireEvent.press(await ui.findByText('Save linked correction'));
+  await ui.findByText(/Unable to save/);
+  fireEvent.press(ui.getByText('Save linked correction'));
+  await ui.findByText('View previous version');
+  const attempts = jest.mocked(mobileApiClient.post).mock.calls;
+  expect(attempts).toHaveLength(2);
+  expect(attempts[1]).toEqual(attempts[0]);
+  expect(attempts[0]?.[1]).toMatchObject({
+    folder_id: folder.id,
+    corrects_report_id: originalReport.id,
+    title: revised.title,
+    notes: revised.notes,
+    kind: originalReport.kind,
+  });
+  fireEvent.press(ui.getByText('View previous version'));
+  await ui.findByText(originalReport.notes);
+});
+
+it('withholds the correction action from a report viewer', async () => {
+  jest.mocked(mobileApiClient.get).mockResolvedValue({
+    folder,
+    canCreate: false,
+    photos: [],
+    report: originalReport,
+  });
+  const ui = show(originalReport.id);
+  await ui.findByText(originalReport.title);
+  expect(ui.queryByText('Correct this report')).toBeNull();
 });

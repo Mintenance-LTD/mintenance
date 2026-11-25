@@ -71,3 +71,19 @@ it('rejects an ambiguous UK wall time before any database write', async () => {
   ).rejects.toThrow('occurs twice');
   expect(rpc).not.toHaveBeenCalled();
 });
+
+it.each([
+  { uk_start: '2099-07-11T12:00', uk_end: '2099-07-10T12:00' },
+  {
+    scheduled_start_date: '2099-07-10T12:00:00Z',
+    scheduled_end_date: '2099-07-10T12:00:00Z',
+  },
+])(
+  'rejects reversed or empty work windows before the transactional write',
+  async (dates) => {
+    await expect(
+      POST(request('POST', dates), context as never)
+    ).rejects.toThrow('End time must be after start time.');
+    expect(rpc).not.toHaveBeenCalled();
+  }
+);

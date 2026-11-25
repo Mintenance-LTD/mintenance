@@ -1,5 +1,5 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, movedWorkWindowEnd } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import { AutomationPreferencesService } from './AutomationPreferencesService';
 import { WeatherService } from '../weather/WeatherService';
@@ -117,7 +117,7 @@ export class SchedulingAgent {
       const { data: job, error } = await serverSupabase
         .from('jobs')
         .select(
-          'id, status, contractor_id, homeowner_id, scheduled_start_date, category, location'
+          'id, status, contractor_id, homeowner_id, scheduled_start_date, scheduled_end_date, category, location'
         )
         .eq('id', jobId)
         .single();
@@ -174,13 +174,27 @@ export class SchedulingAgent {
 
         if (nextGoodDay) {
           // Update job schedule
-          const { error: updateError } = await serverSupabase
+          let update = serverSupabase
             .from('jobs')
             .update({
               scheduled_start_date: nextGoodDay.toISOString(),
+              scheduled_end_date: movedWorkWindowEnd(
+                nextGoodDay,
+                job.scheduled_start_date,
+                job.scheduled_end_date
+              ),
               updated_at: new Date().toISOString(),
             })
-            .eq('id', jobId);
+            .eq('id', jobId)
+            .eq('status', job.status)
+            .eq('scheduled_start_date', job.scheduled_start_date);
+          update =
+            job.scheduled_end_date === null
+              ? update.is('scheduled_end_date', null)
+              : update.eq('scheduled_end_date', job.scheduled_end_date);
+          const { data: updated, error: updateError } = await update
+            .select('id')
+            .maybeSingle();
 
           if (updateError) {
             logger.error('Failed to reschedule job', {
@@ -190,6 +204,8 @@ export class SchedulingAgent {
             });
             return null;
           }
+
+          if (!updated) return null;
 
           // Notify both parties
           await Promise.all([

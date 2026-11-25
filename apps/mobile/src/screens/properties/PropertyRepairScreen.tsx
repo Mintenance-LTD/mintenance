@@ -11,7 +11,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
-import { PROPERTY_JOB_STATUS_LABELS } from '@mintenance/shared';
+import {
+  PROPERTY_JOB_STATUS_LABELS,
+  workWindowEndIsInvalid,
+} from '@mintenance/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { me } from '../../design-system/mint-editorial';
 import type { ProfileStackParamList } from '../../navigation/types';
@@ -76,6 +79,8 @@ export function PropertyRepairScreen({
   });
 
   const repair = !query.isError && query.data;
+  const invalidSavedWindow =
+    repair && workWindowEndIsInvalid(repair.start, repair.end);
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -151,7 +156,14 @@ export function PropertyRepairScreen({
                 Current work window
               </Text>
               {repair.start && <Text>Starts {ukTime(repair.start)}</Text>}
-              {repair.end && <Text>Ends {ukTime(repair.end)}</Text>}
+              {invalidSavedWindow ? (
+                <Text accessibilityRole='alert'>
+                  The saved end time is invalid. Ask the job participants to
+                  agree a new work window.
+                </Text>
+              ) : (
+                repair.end && <Text>Ends {ukTime(repair.end)}</Text>
+              )}
               {!repair.start && !repair.end && (
                 <Text>No work window recorded.</Text>
               )}

@@ -4,6 +4,7 @@ import {
   workspaceStyles as ws,
 } from './components/PropertyWorkspaceUI';
 import { TenancyInspections } from './components/TenancyInspections';
+import { PropertyTimeline } from './components/PropertyTimeline';
 import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSwitcher';
 import { usePropertyView } from '../../hooks/usePropertyView';
 import { showPropertyTool ,
@@ -57,7 +58,7 @@ import { PropertyFiles } from './components/PropertyFiles';
 // 2026-05-23 audit: added 'access' tab. Mobile previously had no
 // access-editing surface at all; the homeowner had to switch to web
 // to set the lock-box code / access notes / utility locations.
-type Tab = 'overview' | 'access' | 'maintenance' | 'manage';
+type Tab = 'overview' | 'access' | 'maintenance' | 'manage' | 'timeline';
 
 // 2026-05-23 audit: shape the API response into the narrower shape
 // PropertyHealthScore + SpendingAnalytics expect (both define their
@@ -120,6 +121,7 @@ const TABS: {
   { key: 'access', label: 'Access', icon: 'key-outline' },
   { key: 'maintenance', label: 'Maintenance', icon: 'construct-outline' },
   { key: 'manage', label: 'Manage', icon: 'settings-outline' },
+  { key: 'timeline', label: 'Timeline', icon: 'time-outline' },
 ];
 
 export const PropertyDetailScreen: React.FC<Props> = ({
@@ -1176,7 +1178,11 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         style={{ flexGrow: 0 }}
         contentContainerStyle={styles.tabRow}
       >
-        {TABS.filter((tab) => tab.key !== 'access' || caps.canEditAccess).map((tab) => (
+        {TABS.filter(
+          (tab) =>
+            (tab.key !== 'access' || caps.canEditAccess) &&
+            (tab.key !== 'timeline' || propertyRole === 'owner')
+        ).map((tab) => (
           <TouchableOpacity
             key={tab.key}
             accessibilityRole='tab'
@@ -1228,6 +1234,25 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           {activeTab === 'access' && renderAccessTab()}
           {activeTab === 'maintenance' && renderMaintenanceTab()}
           {activeTab === 'manage' && renderManageTab()}
+          {activeTab === 'timeline' && propertyRole === 'owner' && user?.id && (
+            <PropertyTimeline
+              key={`${user.id}/${propertyId}`}
+              accountId={user.id}
+              propertyId={propertyId}
+              openInspection={(reportId) =>
+                navigation.navigate('PropertyInspection', {
+                  propertyId,
+                  reportId,
+                })
+              }
+              openJob={(jobId) =>
+                (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
+                  screen: 'JobDetails',
+                  params: { jobId },
+                })
+              }
+            />
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
