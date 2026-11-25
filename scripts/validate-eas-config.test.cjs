@@ -224,7 +224,7 @@ test('internal APK upgrades existing test builds and always runs its embedded bu
   assert.equal(internal.android.gradleCommand, ':app:assembleRelease');
   assert.equal(internal.credentialsSource, 'remote');
   assert.equal(config.android.package, 'com.mintenance.app');
-  assert.equal(config.android.versionCode, 50);
+  assert.equal(config.android.versionCode, 52);
   assert.equal(config.name, 'Mintenance Internal');
   assert.equal(config.runtimeVersion, '1.2.4-internal50');
   assert.equal(config.updates.enabled, false);
