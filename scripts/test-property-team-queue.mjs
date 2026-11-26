@@ -59,7 +59,7 @@ const save = async (overrides = {}) => {
   };
   return (
     await one(
-      'SELECT save_property_action_followup($1,$2,$3,$4,$5,$6,NULL,$7,$8) AS result',
+      'SELECT save_property_action_followup($1,$2,$3,$4,$5,$6,$7,$8,$9) AS result',
       [
         p.actor === null ? null : id(p.actor),
         id(p.property),
@@ -67,6 +67,7 @@ const save = async (overrides = {}) => {
         id(p.source),
         p.revision,
         p.assignee === null ? null : id(p.assignee),
+        p.due ?? null,
         p.waiting,
         p.note,
       ]
@@ -183,6 +184,9 @@ try {
   );
   await db.exec(sql('20261126101500_report_staff_completion.sql'));
   await db.exec(sql('20261126104600_reset_staff_completion_on_reopen.sql'));
+  await db.exec(
+    sql('20261126110700_preserve_staff_completion_on_review_edit.sql')
+  );
   await db.exec('SET ROLE service_role');
   await test('team scope respects membership and owner-only tenant reports', async () => {
     const manager = await queue();
@@ -501,6 +505,33 @@ try {
     const updates = (await snapshot()).updates;
     for (const note of ['Washer replaced', 'Second inspection complete'])
       assert.equal(updates.filter((x) => x.body.includes(note)).length, 1);
+  });
+  await test('editing only the review date does not discard a pending completion', async () => {
+    await db.query(
+      "UPDATE anonymous_reports SET status='acknowledged' WHERE id=$1",
+      [id(21)]
+    );
+    await save({
+      actor: 1,
+      kind: 'report',
+      source: 21,
+      revision: 0,
+      assignee: 2,
+    });
+    await complete();
+    const options = { actor: 1, kind: 'report', source: 21, assignee: 2 };
+    let result = await save({
+      ...options,
+      revision: 2,
+      waiting: 'approval',
+      due: '2030-12-01T10:00:00Z',
+    });
+    assert.equal(result.completion_revision, result.revision);
+    assert.equal(result.completion_note, 'Washer replaced');
+    await rejects(() => complete(2, 3, 'Duplicate submission'), 'PT409');
+    result = await save({ ...options, revision: 3, waiting: 'manager' });
+    assert.notEqual(result.completion_revision, result.revision);
+    await complete(2, 4, 'Updated after owner review');
   });
   await db.exec('RESET ROLE');
   for (const role of ['anon', 'authenticated']) {

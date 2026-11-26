@@ -382,12 +382,21 @@ export default function PropertyAssessments({
                 View full assessment <ArrowRight size={17} />
               </Link>
               {selected.needsOnsiteInspection && (
-                <Link
-                  className='pw-btn pw-btn-primary'
-                  href={'/jobs/create?property_id=' + propertyId}
-                >
-                  Arrange inspection <ArrowRight size={17} />
-                </Link>
+                <>
+                  <Link
+                    className='pw-btn pw-btn-primary'
+                    href={
+                      '/jobs/create?property_id=' +
+                      encodeURIComponent(propertyId)
+                    }
+                  >
+                    Draft a marketplace inspection job <ArrowRight size={17} />
+                  </Link>
+                  <p className='pw-muted'>
+                    This opens a job form with the property selected. It does
+                    not book a visit or copy assessment photos or findings.
+                  </p>
+                </>
               )}
             </>
           ) : (
