@@ -243,6 +243,12 @@ it('shows the assigned manager their next step without exposing the owner editor
   ).toHaveTextContent('You');
   expect(screen.getByText('Contractor response')).toBeInTheDocument();
   expect(screen.getByText('Follow-up due')).toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: 'Open property inspections' })
+  ).toHaveAttribute(
+    'href',
+    '/properties/property?tab=manage&manage=records#manage-records'
+  );
   expect(screen.getByRole('region', { name: 'Next step' })).toHaveTextContent(
     'Review the original report and share an update'
   );

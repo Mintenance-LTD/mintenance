@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {
   reportHistoryDate,
   type ReportStaffFollowup,
@@ -54,6 +55,12 @@ export function StaffFollowup({
           </div>
         )}
       </dl>
+      <Link
+        className='mt-3 inline-block text-sm font-semibold underline'
+        href={`/properties/${encodeURIComponent(followup.propertyId)}?tab=manage&manage=records#manage-records`}
+      >
+        Open property inspections
+      </Link>
       {followup.canManage && (
         <details className='mt-2' id='manage-follow-up'>
           <summary className='cursor-pointer font-semibold underline'>
