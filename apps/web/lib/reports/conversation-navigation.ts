@@ -46,6 +46,12 @@ export function reportReturnLink(
   queueSearch?: string
 ) {
   const back = reportConversationReturn[origin];
+  if (origin === 'tenant-reports') {
+    return {
+      ...back,
+      href: back.href + '?reportId=' + encodeURIComponent(reportId),
+    };
+  }
   if (origin !== 'action-queue' || queueSearch === undefined) return back;
   const query = queueReturnParams(new URLSearchParams(queueSearch)).toString();
   return {

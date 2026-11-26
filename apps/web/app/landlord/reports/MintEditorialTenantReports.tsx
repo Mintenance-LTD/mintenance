@@ -400,6 +400,7 @@ export function MintEditorialTenantReports({
                 reportId={selected.id}
                 propertyId={selected.properties?.id}
                 jobId={selected.job_id}
+                status={selected.status}
               />
               <div className='col' style={{ gap: 8, marginTop: 6 }}>
                 {/* A recorded job keeps conversion terminal; an unlinked legacy
@@ -465,7 +466,7 @@ export function MintEditorialTenantReports({
                 <div className='row' style={{ gap: 8, flexWrap: 'wrap' }}>
                   <TenantReportCreateJobLink
                     report={selected}
-                    className='btn btn-primary btn-sm'
+                    className='btn btn-secondary btn-sm'
                   />
                   <Link
                     href='/landlord/reporting-links'

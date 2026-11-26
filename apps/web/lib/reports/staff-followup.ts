@@ -2,6 +2,18 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import type { ReportStaffFollowup } from '@mintenance/shared';
 
+function toWaitingFor(value: unknown): ReportStaffFollowup['waitingFor'] {
+  switch (value) {
+    case 'manager':
+    case 'tenant':
+    case 'contractor':
+    case 'approval':
+      return value;
+    default:
+      return null;
+  }
+}
+
 // This projection is for property staff. The shared conversation response
 // never includes the private notes from property_action_updates.
 export async function readReportStaffFollowup(
@@ -18,7 +30,7 @@ export async function readReportStaffFollowup(
 
   const result = await serverSupabase
     .from('property_action_followups')
-    .select('assigned_to')
+    .select('assigned_to,due_at,waiting_for')
     .eq('kind', 'report')
     .eq('source_id', reportId)
     .eq('property_id', propertyId)
@@ -31,6 +43,8 @@ export async function readReportStaffFollowup(
     canManage: access.role === 'owner',
     assigneeName: null,
     needsReassignment: false,
+    dueAt: result.data?.due_at ?? null,
+    waitingFor: toWaitingFor(result.data?.waiting_for),
   };
   if (!assigneeId) return staff;
 
