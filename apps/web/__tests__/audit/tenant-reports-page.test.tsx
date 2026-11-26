@@ -61,6 +61,10 @@ it.each(['', 'mint-editorial'])(
     expect(renderToStaticMarkup(page)).toContain(
       'href="/maintenance/emergencies"'
     );
+    expect(renderToStaticMarkup(page)).toContain(
+      'href="/properties/work-queue"'
+    );
+    expect(renderToStaticMarkup(page)).toContain('reports from links you own');
     expect(mock.renderClient).toHaveBeenCalledWith(
       expect.objectContaining({
         initialReportId: 'report-1',

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getCurrentUserFromCookies } from '@/lib/auth';
@@ -24,7 +25,7 @@ export default async function ReportingLinksPage() {
     redirect('/dashboard');
   }
 
-  const [{ data: properties }, { data: tokens }, coverageResult, cookieStore] =
+  const [propertyResult, tokenResult, coverageResult, cookieStore] =
     await Promise.all([
       serverSupabase
         .from('properties')
@@ -39,6 +40,22 @@ export default async function ReportingLinksPage() {
       serverSupabase.rpc('emergency_report_coverage', { p_actor: user.id }),
       cookies(),
     ]);
+  if (propertyResult.error || tokenResult.error) {
+    return (
+      <main className='mx-auto max-w-3xl space-y-3 p-6'>
+        <h1 className='text-2xl font-semibold'>Reporting links</h1>
+        <p role='alert'>Reporting links could not be loaded. Please retry.</p>
+        <a className='underline' href='/landlord/reporting-links'>
+          Retry reporting links
+        </a>
+        <Link className='block underline' href='/properties'>
+          Open properties
+        </Link>
+      </main>
+    );
+  }
+  const properties = propertyResult.data ?? [];
+  const tokens = tokenResult.data ?? [];
   const coverage: ReportingCoverage | null =
     !coverageResult.error && Array.isArray(coverageResult.data)
       ? (coverageResult.data as EmergencyCoverageRow[]).map((row) => ({
@@ -51,21 +68,29 @@ export default async function ReportingLinksPage() {
   const isMintEditorial =
     cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
 
-  if (isMintEditorial) {
-    return (
-      <MintEditorialReportingLinks
-        properties={properties || []}
-        tokens={tokens || []}
+  const ReportingLinks = isMintEditorial
+    ? MintEditorialReportingLinks
+    : ReportingLinksClient;
+  return (
+    <>
+      <aside aria-label='Reporting link scope' className='m-6 text-sm'>
+        <p>
+          This page lists your own reporting links. For a property shared with
+          you, open that property to find its reporting controls if your role
+          allows it.
+        </p>
+        <Link
+          className='mt-2 inline-block font-semibold underline'
+          href='/properties'
+        >
+          Open properties
+        </Link>
+      </aside>
+      <ReportingLinks
+        properties={properties}
+        tokens={tokens}
         coverage={coverage}
       />
-    );
-  }
-
-  return (
-    <ReportingLinksClient
-      properties={properties || []}
-      tokens={tokens || []}
-      coverage={coverage}
-    />
+    </>
   );
 }
