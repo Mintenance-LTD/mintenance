@@ -8,6 +8,7 @@ import {
   privateHeaders,
 } from '@/lib/services/property-team/property-inspections';
 import { getInspectionPhotoBytes } from '@/lib/services/property-team/inspection-photo-bytes';
+import { readDocumentBranding } from '@/lib/services/property-team/document-branding';
 import { makeInspectionPdf } from '@/lib/services/property-team/inspection-pdf';
 
 export const maxDuration = 60;
@@ -49,11 +50,17 @@ export const GET = withApiHandler(
       params.reportId
     );
     const { report } = record;
-    const [property, earlier, later] = await Promise.all([
+    const [property, brand, earlier, later] = await Promise.all([
       db
         .from('properties')
         .select('property_name,address')
         .eq('id', params.id)
+        .maybeSingle(),
+      db
+        .from('property_inspection_reports')
+        .select('document_branding')
+        .eq('property_id', params.id)
+        .eq('id', params.reportId)
         .maybeSingle(),
       readCorrectionChain(
         params.id,
@@ -71,6 +78,7 @@ export const GET = withApiHandler(
       ),
     ]);
     databaseError(property.error);
+    databaseError(brand.error);
     if (!property.data) throw new NotFoundError('Property not found');
     let pdf: ArrayBuffer;
     try {
@@ -79,7 +87,8 @@ export const GET = withApiHandler(
         property.data,
         [...earlier.reverse(), ...later],
         async (sourceId) =>
-          (await getInspectionPhotoBytes(params.id, sourceId)).data
+          (await getInspectionPhotoBytes(params.id, sourceId)).data,
+        readDocumentBranding(brand.data?.document_branding)
       );
     } catch {
       throw new ServiceUnavailableError('Inspection PDF');

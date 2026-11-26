@@ -13,6 +13,8 @@ import {
   Users,
 } from 'lucide-react';
 import { PortfolioInboxClient } from './portfolio-inbox-client';
+import { PortfolioDocumentBranding } from './portfolio-document-branding';
+import { PortfolioAgencyLandlords } from './portfolio-agency-landlords';
 
 type Workspace = { id: string; name: string; role: string };
 type Property = {
@@ -498,6 +500,9 @@ export function PortfolioWorkspace({
                 </form>
               </section>
             </div>
+            {workspace && (
+              <PortfolioDocumentBranding workspaceId={workspace.id} />
+            )}
             {actionError && (
               <p role='alert' className='mt-4 text-sm text-red-800'>
                 {actionError}
@@ -505,6 +510,15 @@ export function PortfolioWorkspace({
             )}
           </details>
         )}
+        {workspace &&
+          ['owner', 'manager', 'maintenance_coordinator'].includes(
+            workspace.role
+          ) && (
+            <PortfolioAgencyLandlords
+              key={`landlords:${workspace.id}`}
+              workspaceId={workspace.id}
+            />
+          )}
         {workspace && (
           <PortfolioInboxClient
             key={workspace.id + ':' + revision + ':' + (targetTicketId ?? '')}

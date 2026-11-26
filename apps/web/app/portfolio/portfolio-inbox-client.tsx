@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { ArrowLeft, Inbox, Plus, RotateCw } from 'lucide-react';
+import { PortfolioWorkOrder } from './portfolio-work-order';
 
 type TicketStatus =
   | 'open'
@@ -695,6 +696,13 @@ function PortfolioInbox({
                 >
                   {updatingTicket ? 'Updating...' : 'Update Ticket'}
                 </button>
+
+                {canManage && (
+                  <PortfolioWorkOrder
+                    key={selectedTicket.id}
+                    ticketId={selectedTicket.id}
+                  />
+                )}
 
                 <div>
                   <h4 className='mb-2 text-sm font-semibold text-gray-800'>

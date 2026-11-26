@@ -20,6 +20,11 @@ const m = vi.hoisted(() => ({
   photo: true,
   photoPath: '',
   pdfFixture: false,
+  documentBranding: null as {
+    displayName: string;
+    accentColour: string;
+    logoBase64: string;
+  } | null,
   reportKind: 'check_in',
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
@@ -141,6 +146,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
                         id: report,
                         folder_id: folder,
                         kind: m.reportKind,
+                        document_branding: m.documentBranding,
                         title: 'Pilot inspection',
                         inspected_on: '2026-11-24',
                         created_at: '2026-11-25T09:00:00Z',
@@ -212,6 +218,7 @@ beforeEach(() => {
   m.folderResult = null;
   m.photo = true;
   m.pdfFixture = false;
+  m.documentBranding = null;
   m.reportKind = 'check_in';
   m.photoPath = `property-room-photos/uploader/${property}/kitchen/photo.jpg`;
   m.download.mockResolvedValue({
@@ -309,6 +316,28 @@ it.each([
     expect(m.download).toHaveBeenCalledExactlyOnceWith(m.photoPath);
   }
 );
+it('exports the saved agency logo with the shared inspection PDF renderer', async () => {
+  m.role = 'viewer';
+  const logo = await sharp({
+    create: { width: 240, height: 120, channels: 3, background: '#3a67b8' },
+  })
+    .jpeg()
+    .toBuffer();
+  m.documentBranding = {
+    displayName: 'QA Agency',
+    accentColour: '#E9F2FC',
+    logoBase64: logo.toString('base64'),
+  };
+  const response = await pdf(request());
+  expect(response.status).toBe(200);
+  const bytes = Buffer.from(await response.arrayBuffer()).toString('latin1');
+  expect(bytes).toMatch(/\/Subtype \/Image\s+\/Width 240\s+\/Height 120/);
+  expect(m.filters).toHaveBeenCalledWith(
+    'property_inspection_reports',
+    'property_id',
+    property
+  );
+});
 it('keeps viewer reads available without creation', async () => {
   m.role = 'viewer';
   const res = await folders(request());

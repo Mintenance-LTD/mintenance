@@ -23,6 +23,7 @@ import {
   InboxLoading,
   inboxStyles as styles,
 } from './components/PortfolioInboxControls';
+import { PortfolioWorkOrderPanel } from './components/PortfolioWorkOrderPanel';
 import {
   canManageInbox,
   inboxError,
@@ -879,11 +880,19 @@ function TicketScreen({
               />
             )}
           {canManageInbox(workspace.role) && (
-            <TicketEditor
-              userId={userId}
-              workspace={workspace}
-              ticket={detail.data.ticket}
-            />
+            <>
+              <TicketEditor
+                userId={userId}
+                workspace={workspace}
+                ticket={detail.data.ticket}
+              />
+              <PortfolioWorkOrderPanel
+                key={ticketId}
+                userId={userId}
+                workspaceId={workspace.id}
+                ticketId={ticketId}
+              />
+            </>
           )}
           <Text accessibilityRole='header' style={styles.heading}>
             History

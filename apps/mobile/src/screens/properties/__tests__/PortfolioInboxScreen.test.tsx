@@ -6,6 +6,7 @@ import { PortfolioInboxScreen } from '../PortfolioInboxScreen';
 const mockGet = jest.fn();
 const mockPost = jest.fn();
 const mockPatch = jest.fn();
+const mockPut = jest.fn();
 const mockNavigate = jest.fn();
 const mockBack = jest.fn();
 const user = 'synthetic-user';
@@ -43,6 +44,7 @@ jest.mock('../../../utils/mobileApiClient', () => ({
     get: (...args: unknown[]) => mockGet(...args),
     post: (...args: unknown[]) => mockPost(...args),
     patch: (...args: unknown[]) => mockPatch(...args),
+    put: (...args: unknown[]) => mockPut(...args),
   },
 }));
 
@@ -66,7 +68,14 @@ function show(params?: { ticketId?: string; orgId?: string }) {
   );
 }
 
-function respond({ role = 'manager', allow = true, withTicket = true } = {}) {
+const workOrderPath = '/api/portfolio/tickets/' + ticket.id + '/work-order';
+
+function respond({
+  role = 'manager',
+  allow = true,
+  withTicket = true,
+  readWorkOrder = () => null as unknown,
+} = {}) {
   mockGet.mockImplementation(async (url: string) => {
     if (url === '/api/portfolio/access') return { allowed: allow };
     if (url === '/api/portfolio/workspace') {
@@ -78,6 +87,7 @@ function respond({ role = 'manager', allow = true, withTicket = true } = {}) {
     }
     if (url.startsWith('/api/portfolio/tickets?'))
       return { tickets: withTicket ? [ticket] : [] };
+    if (url === workOrderPath) return { workOrder: readWorkOrder() };
     if (url === '/api/portfolio/tickets/' + ticket.id)
       return { ticket, updates: [] };
     if (url.startsWith('/api/portfolio/properties?')) {
@@ -158,6 +168,10 @@ it('gives a non-manager staff member read-only access', async () => {
   fireEvent.press(await view.findByText(ticket.title));
   expect(await view.findByText(ticket.description)).toBeTruthy();
   expect(view.queryByText('Save ticket changes')).toBeNull();
+  expect(view.queryByText('Open private work order')).toBeNull();
+  expect(mockGet.mock.calls.some(([url]) => url.endsWith('/work-order'))).toBe(
+    false
+  );
   fireEvent.press(view.getByText('Back to tickets'));
   expect(view.queryByText('New internal ticket')).toBeNull();
 });
@@ -341,4 +355,155 @@ it('keeps internal ticket inputs after an unsuccessful create and avoids duplica
     )
   ).toBeTruthy();
   expect(view.getByLabelText('Ticket title').props.value).toBe('Test repair');
+});
+
+const fixtureWorkOrder = {
+  ticketId: ticket.id,
+  revision: 1,
+  arrangement: 'agency_contractor',
+  contractorName: 'Synthetic plumber',
+  quotedPence: 24050,
+  approvedPence: 24050,
+  approvalReference: 'Approved by synthetic owner',
+  invoicedPence: 20000,
+  invoiceReference: 'TEST-001',
+  paidPence: null,
+  paymentReference: null,
+  completionNote: null,
+  updatedAt: '2026-11-26T12:00:00Z',
+};
+
+it('records private work and distinguishes approved, invoiced and paid on the same ticket', async () => {
+  respond();
+  mockPut.mockResolvedValue({ workOrder: fixtureWorkOrder });
+  const view = show();
+  fireEvent.press(await view.findByText(ticket.title));
+  fireEvent.press(await view.findByText('Open private work order'));
+  fireEvent.press(await view.findByText('Record private work order'));
+  fireEvent.changeText(
+    view.getByLabelText('Contractor or company name'),
+    'Synthetic plumber'
+  );
+  fireEvent.changeText(view.getByLabelText('Quoted cost (£)'), '240.50');
+  fireEvent.changeText(view.getByLabelText('Approved cost (£)'), '240.50');
+  fireEvent.changeText(
+    view.getByLabelText('Approval reference'),
+    'Approved by synthetic owner'
+  );
+  fireEvent.changeText(view.getByLabelText('Invoiced cost (£)'), '200');
+  fireEvent.changeText(view.getByLabelText('Invoice reference'), 'TEST-001');
+  fireEvent.press(view.getByText('Save private work order'));
+
+  await waitFor(() =>
+    expect(mockPut).toHaveBeenCalledWith(workOrderPath, {
+      revision: 0,
+      arrangement: 'agency_contractor',
+      contractorName: 'Synthetic plumber',
+      quotedPence: 24050,
+      approvedPence: 24050,
+      approvalReference: 'Approved by synthetic owner',
+      invoicedPence: 20000,
+      invoiceReference: 'TEST-001',
+      paidPence: null,
+      paymentReference: null,
+      completionNote: null,
+    })
+  );
+  expect(await view.findByText('Private work order saved.')).toBeTruthy();
+  expect(view.getByText('Approved cost: £240.50')).toBeTruthy();
+  expect(view.getByText('Invoiced cost: £200.00')).toBeTruthy();
+  expect(view.getByText('Recorded as paid: Not recorded')).toBeTruthy();
+  expect(mockPost).not.toHaveBeenCalled();
+});
+
+it('blocks a stale private work order edit until staff explicitly discard and reload', async () => {
+  let order = fixtureWorkOrder;
+  respond({ readWorkOrder: () => order });
+  mockPut.mockImplementationOnce(async () => {
+    order = {
+      ...fixtureWorkOrder,
+      revision: 2,
+      contractorName: 'Replacement plumber',
+    };
+    throw Object.assign(new Error('Conflict'), { statusCode: 409 });
+  });
+  mockPut.mockImplementationOnce(async () => ({
+    workOrder: { ...order, revision: 3 },
+  }));
+  const view = show();
+  fireEvent.press(await view.findByText(ticket.title));
+  fireEvent.press(await view.findByText('Open private work order'));
+  fireEvent.press(await view.findByText('Edit private work order'));
+  fireEvent.changeText(
+    view.getByLabelText('Contractor or company name'),
+    'My unsaved edit'
+  );
+  fireEvent.press(view.getByText('Save private work order'));
+  expect(
+    await view.findByText(
+      'This work order changed. Reload the latest version before saving.'
+    )
+  ).toBeTruthy();
+  expect(view.getByLabelText('Contractor or company name').props.value).toBe(
+    'My unsaved edit'
+  );
+  fireEvent.press(view.getByText('Save private work order'));
+  expect(mockPut).toHaveBeenCalledTimes(1);
+  fireEvent.press(view.getByText('Discard changes and reload'));
+  expect(await view.findByText('Latest version loaded.')).toBeTruthy();
+  expect(view.getByLabelText('Contractor or company name').props.value).toBe(
+    'Replacement plumber'
+  );
+  fireEvent.press(view.getByText('Save private work order'));
+  await waitFor(() =>
+    expect(mockPut).toHaveBeenLastCalledWith(
+      workOrderPath,
+      expect.objectContaining({ revision: 2 })
+    )
+  );
+});
+
+it('rejects a work order returned for a different ticket', async () => {
+  respond({
+    readWorkOrder: () => ({
+      ...fixtureWorkOrder,
+      ticketId: 'different-ticket',
+    }),
+  });
+  const view = show();
+  fireEvent.press(await view.findByText(ticket.title));
+  fireEvent.press(await view.findByText('Open private work order'));
+  expect(
+    await view.findByText(
+      'You do not have permission for this workspace or ticket.'
+    )
+  ).toBeTruthy();
+  expect(view.queryByText('Synthetic plumber')).toBeNull();
+});
+
+it('requires evidence and a sufficient invoice before recording an external payment', async () => {
+  respond();
+  const view = show();
+  fireEvent.press(await view.findByText(ticket.title));
+  fireEvent.press(await view.findByText('Open private work order'));
+  fireEvent.press(await view.findByText('Record private work order'));
+  fireEvent.press(view.getByText('Already arranged outside Mintenance'));
+  fireEvent.changeText(
+    view.getByLabelText('Contractor or company name'),
+    'Synthetic plumber'
+  );
+  fireEvent.changeText(view.getByLabelText('Invoiced cost (£)'), '200');
+  fireEvent.changeText(view.getByLabelText('Invoice reference'), 'TEST-002');
+  fireEvent.changeText(view.getByLabelText('Recorded as paid (£)'), '201');
+  fireEvent.changeText(
+    view.getByLabelText('Payment reference'),
+    'Synthetic remittance'
+  );
+  fireEvent.press(view.getByText('Save private work order'));
+  expect(
+    await view.findByText(
+      'Record a payment reference and an amount no higher than the invoice.'
+    )
+  ).toBeTruthy();
+  expect(mockPut).not.toHaveBeenCalled();
 });

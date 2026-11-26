@@ -8,6 +8,10 @@ import {
   tenancyPeriodLabel,
   uploadedPhotoLabel,
 } from '@mintenance/shared';
+import {
+  brandHeaderTextColour,
+  type DocumentBranding,
+} from './document-branding';
 import type { getInspectionRecord } from './property-inspections';
 
 type InspectionRecord = Awaited<ReturnType<typeof getInspectionRecord>>;
@@ -84,7 +88,8 @@ export async function makeInspectionPdf(
   { report, folder, photos }: InspectionRecord,
   property: { property_name: string; address: string },
   corrections: LinkedReport[],
-  loadPhoto: (sourceId: string) => Promise<Blob>
+  loadPhoto: (sourceId: string) => Promise<Blob>,
+  branding: DocumentBranding | null = null
 ) {
   const doc = new jsPDF({
     format: 'a4',
@@ -103,10 +108,44 @@ export async function makeInspectionPdf(
   let y = 0;
   function pageHeader(first: boolean) {
     const height = first ? 25 : 17;
-    doc.setFillColor(green).rect(0, 0, 210, height, 'F');
-    doc.setFillColor('#a8ddba').rect(margin, height - 2, 16, 2, 'F');
-    doc.setTextColor('#ffffff').setFontSize(first ? 14 : 10);
-    doc.text('Mintenance', margin, first ? 15 : 10.5);
+    const headerColour = branding?.accentColour ?? green;
+    const headerText = brandHeaderTextColour(headerColour);
+    doc.setFillColor(headerColour).rect(0, 0, 210, height, 'F');
+    doc
+      .setFillColor(branding ? headerText : '#a8ddba')
+      .rect(margin, height - 2, 16, 2, 'F');
+    let nameX = margin;
+    if (branding?.logoBase64) {
+      const logoWidth = first ? 22 : 16;
+      try {
+        doc.addImage(
+          Buffer.from(branding.logoBase64, 'base64'),
+          'JPEG',
+          margin,
+          (height - logoWidth / 2) / 2,
+          logoWidth,
+          logoWidth / 2,
+          'agency-logo'
+        );
+        nameX += logoWidth + 3;
+      } catch {
+        // A damaged snapshot logo must not prevent downloading the inspection.
+      }
+    }
+    doc.setTextColor(headerText).setFontSize(first ? 14 : 10);
+    const label = branding?.displayName ?? 'Mintenance';
+    const labelLimit = first ? 106 : 112;
+    let fitted = label;
+    if (doc.getTextWidth(fitted) > labelLimit) {
+      const characters = Array.from(fitted);
+      while (
+        characters.length &&
+        doc.getTextWidth(characters.join('') + '…') > labelLimit
+      )
+        characters.pop();
+      fitted = characters.join('') + '…';
+    }
+    doc.text(fitted, nameX, first ? 15 : 10.5);
     doc.setFontSize(8);
     doc.text('TENANCY INSPECTION', 210 - margin, first ? 15 : 10.5, {
       align: 'right',
