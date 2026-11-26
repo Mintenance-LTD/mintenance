@@ -35,8 +35,13 @@ const ALLOWED_PATH_PREFIXES = [
 ] as const;
 const UUID_PATH_SEGMENT =
   '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-const PROPERTY_INSPECTION_PATH = new RegExp(
-  `^/properties/${UUID_PATH_SEGMENT}/(?:inspections|tenancies)/${UUID_PATH_SEGMENT}$`,
+const PROPERTY_RECORD_PATH = new RegExp(
+  `^/properties/${UUID_PATH_SEGMENT}/(?:inspections|tenancies|repairs)/${UUID_PATH_SEGMENT}$`,
+  'i'
+);
+
+const TENANT_REPORT_PATH = new RegExp(
+  `^/maintenance/reports/${UUID_PATH_SEGMENT}$`,
   'i'
 );
 
@@ -51,11 +56,21 @@ export function isAllowedRedirect(url: string | null | undefined): boolean {
   try {
     const parsed = new URL(url, window.location.origin);
     if (parsed.origin !== window.location.origin) return false;
-    if (PROPERTY_INSPECTION_PATH.test(parsed.pathname)) return true;
+    if (
+      PROPERTY_RECORD_PATH.test(parsed.pathname) ||
+      TENANT_REPORT_PATH.test(parsed.pathname)
+    )
+      return true;
     if (
       [
         '/register/invitation',
         '/properties/invitations',
+        '/properties',
+        '/properties/work-queue',
+        '/landlord/reports',
+        '/landlord/reporting-links',
+        '/maintenance/emergencies',
+        '/portfolio',
         '/accept-invite',
         '/getting-started',
         '/onboarding/homeowner',
