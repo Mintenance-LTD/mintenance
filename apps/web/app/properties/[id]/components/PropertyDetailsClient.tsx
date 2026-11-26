@@ -939,7 +939,7 @@ export default function PropertyDetailsClient({
               ref={recordsRef}
               tabIndex={-1}
               className='scroll-mt-24'
-              aria-label='Tenancy folders and inspections'
+              aria-label='Tenancy and inspections'
             >
               <TenancyInspections key={property.id} propertyId={property.id} />
             </section>

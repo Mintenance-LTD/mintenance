@@ -38,3 +38,17 @@ it('forwards warm links and unsubscribes without logging link contents', () => {
   if (typeof unsubscribe === 'function') unsubscribe();
   expect(remove).toHaveBeenCalled();
 });
+
+// The same parser NavigationContainer uses must resolve both report and
+// property URLs without breaking the existing property overview link.
+it('maps a shared inspection link to the exact native report', () => {
+  const paths = linking.config!.screens!.Main as {
+    screens: { ProfileTab: { screens: Record<string, string> } };
+  };
+  expect(paths.screens.ProfileTab.screens.PropertyInspection).toBe(
+    'properties/:propertyId/inspections/:reportId'
+  );
+  expect(paths.screens.ProfileTab.screens.PropertyDetail).toBe(
+    'properties/:propertyId'
+  );
+});

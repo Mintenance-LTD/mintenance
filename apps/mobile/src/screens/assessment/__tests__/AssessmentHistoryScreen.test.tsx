@@ -133,6 +133,7 @@ describe('AssessmentHistoryScreen', () => {
 
     expect(navigation.navigate).toHaveBeenCalledWith('AssessmentDetail', {
       assessmentId: 'a1',
+      propertyId: 'p1',
       title: 'Kitchen',
     });
   });

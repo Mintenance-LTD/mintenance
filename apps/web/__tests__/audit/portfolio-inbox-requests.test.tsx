@@ -12,6 +12,7 @@ const fetcher = vi.fn();
 const user = { id: 'user', name: 'Test User', email: 'test@example.test' };
 const ticket = (id: string, status = 'open') => ({
   id,
+  org_id: 'agency',
   title: id,
   description: `${id} detail`,
   status,
@@ -52,7 +53,13 @@ function setup(detail?: (id: string) => unknown) {
 }
 it('refetches the server list when filtering, including tickets outside the initial page', async () => {
   setup();
-  render(<PortfolioInboxClient workspaceId='agency' workspaceRole='owner' user={user} />);
+  render(
+    <PortfolioInboxClient
+      workspaceId='agency'
+      workspaceRole='owner'
+      user={user}
+    />
+  );
   await screen.findByRole('button', { name: /First job/ });
   fireEvent.change(screen.getByLabelText('Status filter'), {
     target: { value: 'closed' },
@@ -72,7 +79,13 @@ it('ignores late detail from the previously selected ticket', async () => {
         })
       : undefined
   );
-  render(<PortfolioInboxClient workspaceId='agency' workspaceRole='owner' user={user} />);
+  render(
+    <PortfolioInboxClient
+      workspaceId='agency'
+      workspaceRole='owner'
+      user={user}
+    />
+  );
   fireEvent.click(await screen.findByRole('button', { name: /Second job/ }));
   await screen.findByText('Second job detail');
   await act(async () => {
@@ -83,10 +96,22 @@ it('ignores late detail from the previously selected ticket', async () => {
 });
 it('checks access again and clears private data when the account changes', async () => {
   setup();
-  const view = render(<PortfolioInboxClient workspaceId='agency' workspaceRole='owner' user={user} />);
+  const view = render(
+    <PortfolioInboxClient
+      workspaceId='agency'
+      workspaceRole='owner'
+      user={user}
+    />
+  );
   await screen.findByText('First job detail');
   fetcher.mockResolvedValue(response({ allowed: false }));
-  view.rerender(<PortfolioInboxClient workspaceId='agency' workspaceRole='owner' user={{ ...user, id: 'other' }} />);
+  view.rerender(
+    <PortfolioInboxClient
+      workspaceId='agency'
+      workspaceRole='owner'
+      user={{ ...user, id: 'other' }}
+    />
+  );
   await screen.findByText('Portfolio Mode Locked');
   expect(screen.queryByText('First job detail')).not.toBeInTheDocument();
   await waitFor(() =>
@@ -94,4 +119,33 @@ it('checks access again and clears private data when the account changes', async
       fetcher.mock.calls.filter(([url]) => url === '/api/portfolio/access')
     ).toHaveLength(2)
   );
+});
+it('opens an exact assessment task outside the inbox page and offers its authorised source', async () => {
+  setup((id) =>
+    id === 'older-task'
+      ? Promise.resolve(
+          response({
+            ticket: ticket(id),
+            updates: [],
+            assessmentSource: {
+              id: 'source',
+              href: '/building-assessments/source',
+            },
+          })
+        )
+      : undefined
+  );
+  render(
+    <PortfolioInboxClient
+      workspaceId='agency'
+      workspaceRole='owner'
+      user={user}
+      initialTicketId='older-task'
+    />
+  );
+  await screen.findByText('older-task detail');
+  expect(
+    screen.getByRole('link', { name: 'Open source assessment' })
+  ).toHaveAttribute('href', '/building-assessments/source');
+  expect(screen.queryByText('First job detail')).not.toBeInTheDocument();
 });

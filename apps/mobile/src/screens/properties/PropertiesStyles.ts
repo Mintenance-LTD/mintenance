@@ -2,6 +2,21 @@ import { StyleSheet } from 'react-native';
 import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
+  portfolioShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: me.line,
+    backgroundColor: me.brandSoft,
+    minHeight: 52,
+  },
+  portfolioTitle: { fontSize: 15, fontWeight: '700', color: me.ink },
+  portfolioSubtitle: { fontSize: 12, marginTop: 3, color: me.ink2 },
   searchInput: {
     marginHorizontal: 20,
     marginBottom: 12,

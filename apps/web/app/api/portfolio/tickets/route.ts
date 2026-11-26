@@ -51,7 +51,7 @@ async function requireActiveMembership(
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
-    const blocked = await requirePortfolioModeSubscription(request);
+    const blocked = await requirePortfolioModeSubscription(request, user.id);
     if (blocked) {
       return blocked;
     }
@@ -138,7 +138,7 @@ export const GET = withApiHandler(
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
-    const blocked = await requirePortfolioModeSubscription(request);
+    const blocked = await requirePortfolioModeSubscription(request, user.id);
     if (blocked) {
       return blocked;
     }

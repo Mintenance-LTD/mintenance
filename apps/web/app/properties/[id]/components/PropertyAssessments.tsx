@@ -15,6 +15,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { WorkspaceStat, WorkspaceBadge } from './PropertyWorkspacePrimitives';
 
 interface PropertyAssessment {
@@ -34,6 +35,167 @@ interface PropertyAssessment {
 
 interface PropertyAssessmentsProps {
   propertyId: string;
+}
+
+function PortfolioFollowUp({
+  propertyId,
+  assessmentId,
+}: {
+  propertyId: string;
+  assessmentId: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [ticketHref, setTicketHref] = useState('');
+  const [eligibility, setEligibility] = useState<boolean>();
+  const [ineligibleReason, setIneligibleReason] = useState('');
+  const endpoint = `/api/properties/${propertyId}/assessments/${assessmentId}/portfolio-ticket`;
+
+  function linkTicket(ticket: { org_id: string; id: string }) {
+    setTicketHref(
+      '/portfolio?' +
+        new URLSearchParams({
+          orgId: ticket.org_id,
+          ticketId: ticket.id,
+        }).toString()
+    );
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch(endpoint, { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok || cancelled) return;
+        const payload = await response.json();
+        if (cancelled) return;
+        if (payload.ticket) linkTicket(payload.ticket);
+        setIneligibleReason(
+          typeof payload.reason === 'string' ? payload.reason : ''
+        );
+        setEligibility(payload.canCreate === true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [endpoint]);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    const form = new FormData(event.currentTarget);
+    setBusy(true);
+    setMessage('');
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getCsrfHeaders()),
+        },
+        body: JSON.stringify({
+          title: form.get('title'),
+          description: form.get('description'),
+          priority: form.get('priority'),
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ticket?.id || !payload.ticket?.org_id) {
+        throw new Error(
+          payload.message ||
+            (typeof payload.error === 'string'
+              ? payload.error
+              : payload.error?.message) ||
+            'Could not create a Portfolio task.'
+        );
+      }
+      linkTicket(payload.ticket);
+      setOpen(false);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Could not create a Portfolio task.'
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (ticketHref)
+    return (
+      <Link className='pw-btn pw-btn-primary' href={ticketHref}>
+        Open linked Portfolio task <ArrowRight size={17} />
+      </Link>
+    );
+  if (eligibility === false)
+    return (
+      <p className='pw-muted'>
+        {ineligibleReason ||
+          'A reviewed assessment is needed before creating an internal task.'}
+      </p>
+    );
+  if (!eligibility) return null;
+  return (
+    <>
+      <button
+        type='button'
+        className='pw-btn pw-btn-primary'
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        Create internal Portfolio task
+      </button>
+      {open && (
+        <form className='pw-stack' onSubmit={submit}>
+          <p className='pw-muted'>
+            Write the observed finding, room or area, and next action in your
+            own words. Only share what your workspace needs. This does not copy
+            the source photos, post a job or notify contractors.
+          </p>
+          <label>
+            Task title
+            <input
+              className='pw-field'
+              name='title'
+              defaultValue='Assessment follow-up'
+              required
+              minLength={3}
+              maxLength={200}
+            />
+          </label>
+          <label>
+            Team summary
+            <textarea
+              className='pw-field'
+              name='description'
+              required
+              minLength={10}
+              maxLength={5000}
+            />
+          </label>
+          <label>
+            Priority
+            <select className='pw-field' name='priority' defaultValue='medium'>
+              <option value='low'>Low</option>
+              <option value='medium'>Medium</option>
+              <option value='high'>High</option>
+              <option value='urgent'>Urgent</option>
+            </select>
+          </label>
+          <button
+            type='submit'
+            className='pw-btn pw-btn-primary'
+            disabled={busy}
+          >
+            {busy ? 'Saving…' : 'Save internal task'}
+          </button>
+          {message && <p role='alert'>{message}</p>}
+        </form>
+      )}
+    </>
+  );
 }
 
 const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
@@ -381,6 +543,11 @@ export default function PropertyAssessments({
               >
                 View full assessment <ArrowRight size={17} />
               </Link>
+              <PortfolioFollowUp
+                key={selected.id}
+                propertyId={propertyId}
+                assessmentId={selected.id}
+              />
               {selected.needsOnsiteInspection && (
                 <>
                   <Link

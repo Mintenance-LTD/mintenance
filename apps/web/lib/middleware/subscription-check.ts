@@ -279,25 +279,26 @@ export async function checkPortfolioModeAccess(
  * Middleware helper to block Portfolio Mode actions when the user lacks entitlement.
  */
 export async function requirePortfolioModeSubscription(
-  _request: NextRequest
+  _request: NextRequest,
+  authenticatedUserId: string
 ): Promise<NextResponse | null> {
-  const user = await getCurrentUserFromCookies();
-
-  if (!user) {
+  // The caller is a withApiHandler route that has already authenticated
+  // either the browser session or the native bearer token.
+  if (!authenticatedUserId) {
     return NextResponse.json(
       { error: 'Authentication required' },
       { status: 401 }
     );
   }
 
-  const access = await checkPortfolioModeAccess(user.id);
+  const access = await checkPortfolioModeAccess(authenticatedUserId);
   if (access.allowed) {
     return null;
   }
 
   logger.warn('Portfolio mode action blocked due to subscription requirement', {
     service: 'subscription-check',
-    userId: user.id,
+    userId: authenticatedUserId,
     reasonCode: access.reasonCode,
     subscriptionStatus: access.subscriptionStatus,
   });

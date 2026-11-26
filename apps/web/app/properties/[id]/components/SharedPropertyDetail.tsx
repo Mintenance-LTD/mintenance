@@ -53,7 +53,7 @@ export function SharedPropertyDetail({
         </header>
         <nav aria-label='Shared property sections' className='mb-4 flex flex-wrap gap-4'>
           <a href='#recorded-work' className='pw-back'>Recorded work</a>
-          <a href='#manage-records' className='pw-back'>Tenancy folders & inspections</a>
+          <a href='#manage-records' className='pw-back'>Tenancy & inspections</a>
           {role === 'admin' && <a href='#manage-people' className='pw-back'>People and access</a>}
         </nav>
         <div className='space-y-5'>

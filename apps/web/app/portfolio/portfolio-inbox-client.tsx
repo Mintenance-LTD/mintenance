@@ -17,6 +17,7 @@ type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 interface PortfolioInboxClientProps {
   workspaceId: string;
   workspaceRole: string;
+  initialTicketId?: string;
   user: {
     id: string;
     name: string;
@@ -69,6 +70,7 @@ interface TicketUpdate {
 interface TicketDetailResponse {
   ticket: TicketSummary;
   updates: TicketUpdate[];
+  assessmentSource?: { id: string; href: string };
 }
 
 const STATUS_OPTIONS: TicketStatus[] = [
@@ -94,13 +96,14 @@ function PortfolioInbox({
   user,
   workspaceId,
   workspaceRole,
+  initialTicketId,
 }: PortfolioInboxClientProps) {
   const canManage = ['owner', 'manager', 'maintenance_coordinator'].includes(
     workspaceRole
   );
   const pendingRequests = useRef({ tickets: 0, properties: 0, detail: 0 });
   const [mobileView, setMobileView] = useState<'inbox' | 'detail' | 'create'>(
-    'inbox'
+    initialTicketId ? 'detail' : 'inbox'
   );
   const [access, setAccess] = useState<PortfolioAccessResponse | null>(null);
   const [accessLoading, setAccessLoading] = useState(true);
@@ -114,7 +117,11 @@ function PortfolioInbox({
   const [properties, setProperties] = useState<PortfolioProperty[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(false);
 
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(
+    initialTicketId ?? null
+  );
+  const [assessmentSource, setAssessmentSource] =
+    useState<TicketDetailResponse['assessmentSource']>();
   const [selectedTicket, setSelectedTicket] = useState<TicketSummary | null>(
     null
   );
@@ -212,6 +219,7 @@ function PortfolioInbox({
       setTickets(ticketItems);
 
       setSelectedTicketId((current) =>
+        (current && current === initialTicketId) ||
         ticketItems.some((ticket) => ticket.id === current)
           ? current
           : ticketItems[0]?.id || null
@@ -224,7 +232,7 @@ function PortfolioInbox({
     } finally {
       if (request === pendingRequests.current.tickets) setTicketsLoading(false);
     }
-  }, [statusFilter, workspaceId]);
+  }, [statusFilter, workspaceId, initialTicketId]);
 
   const loadProperties = useCallback(async () => {
     const request = ++pendingRequests.current.properties;
@@ -252,45 +260,54 @@ function PortfolioInbox({
     }
   }, [workspaceId]);
 
-  const loadTicketDetail = useCallback(async (ticketId: string) => {
-    const request = ++pendingRequests.current.detail;
-    setTicketLoading(true);
-    setTicketError(null);
-    setSelectedTicket(null);
-    setTicketUpdates([]);
-
-    try {
-      const response = await fetch(`/api/portfolio/tickets/${ticketId}`, {
-        cache: 'no-store',
-      });
-      const data = (await response.json()) as TicketDetailResponse & {
-        error?: string;
-        message?: string;
-      };
-      if (request !== pendingRequests.current.detail) return;
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message || data?.error || 'Failed to load ticket detail'
-        );
-      }
-
-      setSelectedTicket(data.ticket);
-      setTicketUpdates(data.updates || []);
-      setUpdateStatus(data.ticket.status);
-      setUpdatePriority(data.ticket.priority);
-      setResolutionNote('');
-    } catch (error) {
-      if (request !== pendingRequests.current.detail) return;
-      setTicketError(
-        error instanceof Error ? error.message : 'Failed to load ticket detail'
-      );
+  const loadTicketDetail = useCallback(
+    async (ticketId: string) => {
+      const request = ++pendingRequests.current.detail;
+      setTicketLoading(true);
+      setTicketError(null);
       setSelectedTicket(null);
+      setAssessmentSource(undefined);
       setTicketUpdates([]);
-    } finally {
-      if (request === pendingRequests.current.detail) setTicketLoading(false);
-    }
-  }, []);
+
+      try {
+        const response = await fetch(`/api/portfolio/tickets/${ticketId}`, {
+          cache: 'no-store',
+        });
+        const data = (await response.json()) as TicketDetailResponse & {
+          error?: string;
+          message?: string;
+        };
+        if (request !== pendingRequests.current.detail) return;
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message || data?.error || 'Failed to load ticket detail'
+          );
+        }
+
+        if (data.ticket.org_id !== workspaceId)
+          throw new Error('Task not found in this workspace');
+        setSelectedTicket(data.ticket);
+        setAssessmentSource(data.assessmentSource);
+        setTicketUpdates(data.updates || []);
+        setUpdateStatus(data.ticket.status);
+        setUpdatePriority(data.ticket.priority);
+        setResolutionNote('');
+      } catch (error) {
+        if (request !== pendingRequests.current.detail) return;
+        setTicketError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load ticket detail'
+        );
+        setSelectedTicket(null);
+        setTicketUpdates([]);
+      } finally {
+        if (request === pendingRequests.current.detail) setTicketLoading(false);
+      }
+    },
+    [workspaceId]
+  );
 
   useEffect(() => {
     const requests = pendingRequests.current;
@@ -602,6 +619,14 @@ function PortfolioInbox({
                   <p className='mt-2 whitespace-pre-wrap break-words text-sm text-gray-700'>
                     {selectedTicket.description}
                   </p>
+                  {assessmentSource && (
+                    <Link
+                      className='mt-2 inline-block text-sm text-teal-800 underline'
+                      href={assessmentSource.href}
+                    >
+                      Open source assessment
+                    </Link>
+                  )}
                   <div className='mt-3 flex flex-wrap gap-2 text-xs text-gray-600'>
                     <span className='rounded bg-gray-100 px-2 py-1'>
                       Status: {toLabel(selectedTicket.status)}

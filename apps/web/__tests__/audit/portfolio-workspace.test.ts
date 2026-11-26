@@ -149,3 +149,14 @@ it.each([null, { org_role: 'tenant' }])(
     expect(mock.from).not.toHaveBeenCalled();
   }
 );
+
+it('uses the authenticated native identity for the subscription check without a cookie', async () => {
+  const request = new NextRequest('http://localhost/api/portfolio/workspace', {
+    headers: { authorization: 'Bearer synthetic-mobile-token' },
+  });
+  mock.blocked.mockResolvedValueOnce(new Response(null, { status: 402 }));
+  const response = await list(request, ctx);
+  expect(response.status).toBe(402);
+  expect(mock.blocked).toHaveBeenCalledWith(request, user.id);
+  expect(mock.from).not.toHaveBeenCalled();
+});

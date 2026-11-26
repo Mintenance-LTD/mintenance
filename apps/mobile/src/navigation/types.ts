@@ -206,6 +206,7 @@ export type ProfileStackParamList = {
   Properties: undefined;
   PropertyDetail: { propertyId: string };
   PropertyRepair: { propertyId: string; jobId: string };
+  PortfolioInbox: { ticketId?: string; orgId?: string } | undefined;
   PropertyInspection: { propertyId: string; reportId: string };
   EditProperty: { propertyId: string };
   PropertyAssessment:
@@ -239,7 +240,11 @@ export type ProfileStackParamList = {
     roomName?: string;
   };
   /** Re-open one saved survey. */
-  AssessmentDetail: { assessmentId: string; title?: string };
+  AssessmentDetail: {
+    assessmentId: string;
+    title?: string;
+    propertyId?: string;
+  };
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   Calendar: undefined;
   Reviews: undefined;

@@ -8,6 +8,9 @@ const mock = vi.hoisted(() => ({
   filters: vi.fn(),
   update: vi.fn(),
   role: 'tenant' as string | null,
+  source: false,
+  canReadSource: false,
+  sourceError: null as { code: string } | null,
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler: (_: unknown, handler: unknown) => handler,
@@ -18,12 +21,20 @@ vi.mock('@/lib/api/supabaseServer', () => ({
 vi.mock('@/lib/middleware/subscription-check', () => ({
   requirePortfolioModeSubscription: async () => null,
 }));
+vi.mock('@/lib/services/property-team/PropertyTeamService', () => ({
+  PropertyTeamService: {
+    getRole: async () => (mock.canReadSource ? 'manager' : null),
+  },
+}));
 import { GET, PATCH } from '@/app/api/portfolio/tickets/[id]/route';
 
 const resolvedAt = '2026-09-01T10:00:00Z';
 beforeEach(() => {
   vi.clearAllMocks();
   mock.role = 'tenant';
+  mock.source = false;
+  mock.canReadSource = false;
+  mock.sourceError = null;
   mock.rpc.mockResolvedValue({ data: { id: 'ticket' }, error: null });
   mock.from.mockImplementation((table: string) => {
     const chain = {
@@ -44,14 +55,22 @@ beforeEach(() => {
             ? mock.role
               ? { org_role: mock.role }
               : null
-            : {
-                id: 'ticket',
-                org_id: 'org',
-                reported_by: 'reporter',
-                status: 'resolved',
-                resolved_at: resolvedAt,
-              },
-        error: null,
+            : table === 'portfolio_assessment_sources'
+              ? mock.source
+                ? { assessment_id: 'source' }
+                : null
+              : table === 'building_assessments'
+                ? { id: 'source' }
+                : {
+                    id: 'ticket',
+                    org_id: 'org',
+                    property_id: 'property',
+                    reported_by: 'reporter',
+                    status: 'resolved',
+                    resolved_at: resolvedAt,
+                  },
+        error:
+          table === 'portfolio_assessment_sources' ? mock.sourceError : null,
       }),
       single: async () => ({ data: { id: 'ticket' }, error: null }),
       then: (resolve: (value: unknown) => unknown) =>
@@ -89,6 +108,23 @@ it('keeps internal history available to managers', async () => {
     'tenant_visible'
   );
 });
+it('returns a source backlink only when ticket membership and source access both apply', async () => {
+  mock.role = 'manager';
+  mock.source = true;
+  expect(await (await call(GET)).json()).not.toHaveProperty('assessmentSource');
+  mock.canReadSource = true;
+  expect((await (await call(GET)).json()).assessmentSource).toEqual({
+    id: 'source',
+    href: '/building-assessments/source',
+  });
+  expect(mock.filters).toHaveBeenCalledWith(
+    'building_assessments',
+    'user_id',
+    'reporter'
+  );
+  mock.role = 'tenant';
+  expect(await (await call(GET)).json()).not.toHaveProperty('assessmentSource');
+});
 it('delegates reopening to the atomic database transition', async () => {
   mock.role = 'manager';
   await call(PATCH, { status: 'open' });
@@ -112,4 +148,11 @@ it('rejects reporter status changes before writing', async () => {
     'Only organization managers'
   );
   expect(mock.update).not.toHaveBeenCalled();
+});
+it('preserves existing ticket reads while the preview source table is absent', async () => {
+  mock.role = 'manager';
+  mock.sourceError = { code: 'PGRST205' };
+  const response = await call(GET);
+  expect(response.ok).toBe(true);
+  expect(await response.json()).not.toHaveProperty('assessmentSource');
 });

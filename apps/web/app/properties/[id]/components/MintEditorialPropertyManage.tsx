@@ -78,8 +78,8 @@ export function MintEditorialPropertyManage({
     },
     {
       id: 'records',
-      title: 'Property records',
-      detail: 'Photos and compliance',
+      title: 'Tenancy & inspections',
+      detail: 'Check-in, check-out and property records',
       icon: FolderOpen,
     },
   ];

@@ -9,7 +9,7 @@ import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 const orgSchema = z.string().uuid();
 
 export const GET = withApiHandler({}, async (request, { user }) => {
-  const blocked = await requirePortfolioModeSubscription(request);
+  const blocked = await requirePortfolioModeSubscription(request, user.id);
   if (blocked) return blocked;
 
   const url = request.nextUrl;

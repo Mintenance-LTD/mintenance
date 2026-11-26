@@ -138,3 +138,19 @@ it('searches property names and addresses and clears an empty result', async () 
   empty.unmount();
   view.unmount();
 });
+
+
+it('opens the Portfolio Inbox even before the first property is added', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  clients.push(client);
+  mockUser.id = 'new-agency-owner';
+  mockGet.mockResolvedValue({ properties: [] });
+  const navigate = jest.fn();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <PropertiesScreen navigation={{ navigate } as never} />
+    </QueryClientProvider>
+  );
+  fireEvent.press(await view.findByText('Portfolio Inbox'));
+  expect(navigate).toHaveBeenCalledWith('PortfolioInbox');
+});

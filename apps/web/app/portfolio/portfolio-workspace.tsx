@@ -40,7 +40,15 @@ async function read<T>(response: Response): Promise<T> {
   return data as T;
 }
 
-export function PortfolioWorkspace({ user }: { user: User }) {
+export function PortfolioWorkspace({
+  user,
+  targetOrgId,
+  targetTicketId,
+}: {
+  user: User;
+  targetOrgId?: string;
+  targetTicketId?: string;
+}) {
   const [data, setData] = useState<Setup>();
   const [workspaceId, setWorkspaceId] = useState('');
   const [propertyId, setPropertyId] = useState('');
@@ -70,8 +78,10 @@ export function PortfolioWorkspace({ user }: { user: User }) {
   }
 
   useEffect(() => {
-    void refresh().catch((error: Error) => setLoadError(error.message));
-  }, []);
+    void refresh(targetOrgId).catch((error: Error) =>
+      setLoadError(error.message)
+    );
+  }, [targetOrgId]);
 
   const workspace = data?.workspaces.find((item) => item.id === workspaceId);
 
@@ -497,10 +507,13 @@ export function PortfolioWorkspace({ user }: { user: User }) {
         )}
         {workspace && (
           <PortfolioInboxClient
-            key={workspace.id + ':' + revision}
+            key={workspace.id + ':' + revision + ':' + (targetTicketId ?? '')}
             user={user}
             workspaceId={workspace.id}
             workspaceRole={workspace.role}
+            initialTicketId={
+              workspace.id === targetOrgId ? targetTicketId : undefined
+            }
           />
         )}
       </div>

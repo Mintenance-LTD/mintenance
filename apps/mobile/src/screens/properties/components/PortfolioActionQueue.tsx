@@ -9,9 +9,17 @@ import { PortfolioReport } from './PortfolioReport';
 import { IssueConversation } from './IssueConversation';
 const PAGE_SIZE = 5;
 const SCOPES = [
-  { id: 'team', label: 'Team', hint: 'Actions across properties you can access.' },
+  {
+    id: 'team',
+    label: 'Team',
+    hint: 'Actions across properties you can access.',
+  },
   { id: 'mine', label: 'Mine', hint: 'Actions assigned to you.' },
-  { id: 'unassigned', label: 'Unassigned', hint: 'Actions without an owner or needing reassignment.' },
+  {
+    id: 'unassigned',
+    label: 'Unassigned',
+    hint: 'Actions without an owner or needing reassignment.',
+  },
 ] as const;
 
 interface Item {
@@ -116,11 +124,16 @@ function ActionQueue({
                   }
                 }}
               >
-                <Text style={styles.body}>{scope === id ? '✓ ' : ''}{label}</Text>
+                <Text style={styles.body}>
+                  {scope === id ? '✓ ' : ''}
+                  {label}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.helper}>{SCOPES.find(({ id }) => scope === id)?.hint}</Text>
+          <Text style={styles.helper}>
+            {SCOPES.find(({ id }) => scope === id)?.hint}
+          </Text>
           {query.isPending ? (
             <Text accessibilityRole='text'>Loading actions…</Text>
           ) : query.isError ? (
@@ -133,7 +146,9 @@ function ActionQueue({
           ) : (
             <>
               <Text accessibilityLiveRegion='polite' style={styles.helper}>
-                {count > 0 ? `Showing ${offset + 1}–${offset + count} of ${total}` : `${total} actions`}
+                {count > 0
+                  ? `Showing ${offset + 1}–${offset + count} of ${total}`
+                  : `${total} actions`}
               </Text>
               {query.data?.items.length === 0 && (
                 <Text>
@@ -181,11 +196,18 @@ function ActionQueue({
                         </Text>
                       )}
                     <Text>
-                      {item.kind === 'job' && ((item.can_open_job && onOpenJob) || onOpenSharedJob)
+                      {item.kind === 'job' &&
+                      ((item.can_open_job && onOpenJob) || onOpenSharedJob)
                         ? 'Open job →'
                         : 'Open property →'}
                     </Text>
                   </TouchableOpacity>
+                  {item.kind === 'report' && (
+                    <IssueConversation
+                      reportId={item.id}
+                      caseTitle={item.title}
+                    />
+                  )}
                   {item.can_manage_followup === true ? (
                     <TouchableOpacity
                       accessibilityRole='button'
@@ -205,9 +227,7 @@ function ActionQueue({
                       the follow-up.
                     </Text>
                   )}
-                  {item.kind === 'report' && (
-                    <IssueConversation reportId={item.id} />
-                  )}
+
                   {item.can_manage_followup === true &&
                     editing === `${item.kind}:${item.id}` && (
                       <ActionFollowup
@@ -226,7 +246,9 @@ function ActionQueue({
                       accessibilityRole='button'
                       accessibilityLabel='Previous page'
                       style={styles.tapTarget}
-                      onPress={() => changePage(Math.max(0, offset - PAGE_SIZE))}
+                      onPress={() =>
+                        changePage(Math.max(0, offset - PAGE_SIZE))
+                      }
                     >
                       <Text style={styles.body}>Previous</Text>
                     </TouchableOpacity>

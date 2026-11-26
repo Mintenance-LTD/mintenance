@@ -267,7 +267,7 @@ function TenancyWorkspace({
     >
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <h4 id='tenancy-folders-title' className='font-semibold'>
-          Tenancy folders & inspections
+          Tenancy & inspections
         </h4>
         {folders.data?.canCreate &&
           !initialFolderId &&

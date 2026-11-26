@@ -32,7 +32,7 @@ async function canSetUpWorkspace(userId: string) {
 export const GET = withApiHandler(
   { roles: ['homeowner', 'admin'], csrf: false },
   async (request, { user }) => {
-    const blocked = await requirePortfolioModeSubscription(request);
+    const blocked = await requirePortfolioModeSubscription(request, user.id);
     if (blocked) return blocked;
 
     const { data: memberships, error } = await serverSupabase
@@ -85,7 +85,7 @@ export const GET = withApiHandler(
 export const POST = withApiHandler(
   { roles: ['homeowner'], rateLimit: { maxRequests: 10 } },
   async (request, { user }) => {
-    const blocked = await requirePortfolioModeSubscription(request);
+    const blocked = await requirePortfolioModeSubscription(request, user.id);
     if (blocked) return blocked;
     if (!(await canSetUpWorkspace(user.id))) {
       throw new ForbiddenError(

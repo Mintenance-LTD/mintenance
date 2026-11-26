@@ -178,7 +178,64 @@ it('does not label a legacy unfiltered response as Mine', async () => {
   await view.findByText('No actions in the team queue.');
   fireEvent.press(view.getByLabelText('Mine queue'));
   await view.findByText('Unable to load actions. Tap to retry.');
+  expect(view.queryByText('No follow-ups assigned to you.')).toBeNull();
+});
+
+it('opens the exact repair case from a tenant report without falling back to the property', async () => {
+  mockGet.mockImplementation((url: string) =>
+    Promise.resolve(
+      url.startsWith('/api/portfolio/queue')
+        ? {
+            items: [
+              {
+                id: 'first-report',
+                kind: 'report',
+                property_id: 'property',
+                property_name: 'Home',
+                title: 'First leak',
+                next_action: 'Review',
+              },
+              {
+                id: 'target-report',
+                kind: 'report',
+                property_id: 'property',
+                property_name: 'Home',
+                title: 'Second leak',
+                next_action: 'Review',
+              },
+            ],
+            total: 2,
+            scope: 'team',
+            hasMore: false,
+          }
+        : {
+            role: 'manager',
+            status: 'acknowledged',
+            messages: [],
+            hasMore: false,
+            pageOffset: 0,
+            summary: {
+              category: 'plumbing',
+              description: 'Exact second report',
+              created_at: '2026-11-26T10:00:00Z',
+            },
+          }
+    )
+  );
+  const onOpenProperty = jest.fn();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <PortfolioActionQueue initiallyExpanded onOpenProperty={onOpenProperty} />
+    </QueryClientProvider>
+  );
+  fireEvent.press(await view.findByLabelText('Open repair case: Second leak'));
+  await view.findByText('Exact second report');
+  expect(mockGet).toHaveBeenCalledWith(
+    expect.stringContaining('reportId=target-report&'),
+    expect.anything()
+  );
   expect(
-    view.queryByText('No follow-ups assigned to you.')
-  ).toBeNull();
+    mockGet.mock.calls.some(([url]) => url.includes('reportId=first-report'))
+  ).toBe(false);
+  expect(onOpenProperty).not.toHaveBeenCalled();
 });
