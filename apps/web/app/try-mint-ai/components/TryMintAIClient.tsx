@@ -10,6 +10,7 @@ import { FeaturesGrid } from './FeaturesGrid';
 import { CTASection } from './CTASection';
 import { logger } from '@mintenance/shared';
 import { normalizeSeverity } from '@mintenance/ai-core/types';
+import { demoConfidence, demoRepairCost } from './assessment-display-metrics';
 import toast from 'react-hot-toast';
 
 // WFE-P0-2: enforce client-side validation before base64 encoding.
@@ -58,13 +59,14 @@ export type SeverityLabel =
 
 export interface AssessmentResult {
   damageType: string;
-  severity: SeverityLabel;
+  severity: SeverityLabel | null;
   costEstimate: {
     min: number;
     max: number;
-  };
-  confidence: number;
-  assessmentId?: string; // NEW: For training feedback
+  } | null;
+  confidence: number | null;
+  criticalHazard?: boolean;
+  assessmentId?: string;
   details: {
     description: string;
     urgency: string;
@@ -154,7 +156,6 @@ export function TryMintAIClient() {
           imageUrls,
           context: {
             propertyType: 'residential',
-            ageOfProperty: 50,
             location: 'UK',
           },
         }),
@@ -195,21 +196,30 @@ export function TryMintAIClient() {
       });
 
       // Transform API response to our format
+      const safety = result.safetyHazards;
+      const criticalHazard =
+        safety?.hasCriticalHazards === true ||
+        (Array.isArray(safety?.hazards) &&
+          safety.hazards.some(
+            (hazard: { severity?: string } | null) =>
+              hazard?.severity === 'critical'
+          ));
       const assessment: AssessmentResult = {
         damageType: result.damageAssessment?.damageType || 'Unknown',
-        severity: mapSeverity(result.damageAssessment?.severity || 50),
-        costEstimate: {
-          min: result.costEstimate?.min || 100,
-          max: result.costEstimate?.max || 500,
-        },
-        confidence: result.damageAssessment?.confidence || 75,
-        assessmentId: result.assessmentId || null, // NEW: Store for training feedback
+        severity: mapSeverity(result.damageAssessment?.severity),
+        costEstimate: demoRepairCost(
+          result.costEstimate?.min,
+          result.costEstimate?.max
+        ),
+        confidence: demoConfidence(result.damageAssessment?.confidence),
+        criticalHazard,
+        assessmentId: result.assessmentId ?? undefined,
         details: {
           description:
             result.damageAssessment?.description || 'Assessment completed',
-          urgency: result.urgency?.urgency || 'monitor',
+          urgency: result.urgency?.urgency || 'Not assessed',
           safetyRisk:
-            result.safetyHazards?.overallSafetyScore > 70 ? 'Low' : 'High',
+            'Photos alone cannot establish whether the property is safe.',
           recommendations: result.recommendations || [
             'Professional inspection recommended',
             'Monitor for changes',
@@ -421,13 +431,23 @@ function fileToBase64(file: File): Promise<string> {
  * display label used by `AssessmentResults`. Delegates normalization of legacy
  * string values to the canonical helper in `@mintenance/ai-core/types`.
  */
-function mapSeverity(raw: string | number | null | undefined): SeverityLabel {
-  if (typeof raw === 'number' && Number.isFinite(raw)) {
-    if (raw < 25) return 'Early';
-    if (raw < 50) return 'Developing';
-    if (raw < 75) return 'Significant';
+function mapSeverity(raw: unknown): SeverityLabel | null {
+  const numeric = demoConfidence(raw);
+  if (numeric !== null) {
+    if (numeric < 25) return 'Early';
+    if (numeric < 50) return 'Developing';
+    if (numeric < 75) return 'Significant';
     return 'Dangerous';
   }
-  const tier = normalizeSeverity(raw);
+  if (typeof raw !== 'string') return null;
+  const label = raw.trim().toLowerCase();
+  if (
+    !/^(early|minimal|minor|low|developing|midway|moderate|medium|significant|severe|high|dangerous|full|critical|structural)$/.test(
+      label
+    )
+  ) {
+    return null;
+  }
+  const tier = normalizeSeverity(label);
   return (tier[0]!.toUpperCase() + tier.slice(1)) as SeverityLabel;
 }

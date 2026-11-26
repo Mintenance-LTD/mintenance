@@ -142,6 +142,16 @@ export function AssessmentResults({
             </h2>
 
             <div className='space-y-6'>
+              {(result.criticalHazard || result.severity === 'Dangerous') && (
+                <p
+                  className='font-semibold'
+                  role='alert'
+                  style={{ color: 'var(--me-err-fg)' }}
+                >
+                  Potential serious hazard flagged. Seek qualified advice
+                  promptly.
+                </p>
+              )}
               {/* Damage type badge */}
               <div>
                 <label
@@ -175,11 +185,11 @@ export function AssessmentResults({
                   style={{
                     borderRadius: 'var(--me-radius-input)',
                     border: '2px solid',
-                    ...getSeverityStyle(result.severity),
+                    ...getSeverityStyle(result.severity ?? ''),
                   }}
                 >
-                  {getSeverityIcon(result.severity)}
-                  {result.severity}
+                  {result.severity && getSeverityIcon(result.severity)}
+                  {result.severity ?? 'Not assessed'}
                 </div>
               </div>
 
@@ -206,39 +216,43 @@ export function AssessmentResults({
                     Estimated Repair Cost
                   </h3>
                 </div>
-                <div className='flex items-baseline gap-3'>
-                  <span
-                    className='text-4xl'
-                    style={{
-                      color: 'var(--me-brand)',
-                      fontFamily: 'var(--me-font-display)',
-                      fontWeight: 500,
-                    }}
-                  >
-                    {formatCurrency(result.costEstimate.min)}
-                  </span>
-                  <span
-                    className='text-2xl'
-                    style={{ color: 'var(--me-ink-3)' }}
-                  >
-                    -
-                  </span>
-                  <span
-                    className='text-4xl'
-                    style={{
-                      color: 'var(--me-brand)',
-                      fontFamily: 'var(--me-font-display)',
-                      fontWeight: 500,
-                    }}
-                  >
-                    {formatCurrency(result.costEstimate.max)}
-                  </span>
-                </div>
+                {result.costEstimate ? (
+                  <div className='flex items-baseline gap-3'>
+                    <span
+                      className='text-4xl'
+                      style={{
+                        color: 'var(--me-brand)',
+                        fontFamily: 'var(--me-font-display)',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {formatCurrency(result.costEstimate.min)}
+                    </span>
+                    <span
+                      className='text-2xl'
+                      style={{ color: 'var(--me-ink-3)' }}
+                    >
+                      -
+                    </span>
+                    <span
+                      className='text-4xl'
+                      style={{
+                        color: 'var(--me-brand)',
+                        fontFamily: 'var(--me-font-display)',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {formatCurrency(result.costEstimate.max)}
+                    </span>
+                  </div>
+                ) : (
+                  <p>No reliable estimate from these photos.</p>
+                )}
                 <p
                   className='text-sm mt-2'
                   style={{ color: 'var(--me-ink-2)' }}
                 >
-                  Based on typical UK property repair costs
+                  A photo-based estimate is not a quote.
                 </p>
               </div>
 
@@ -270,27 +284,31 @@ export function AssessmentResults({
                     className='text-2xl font-bold'
                     style={{ color: 'var(--me-ink)' }}
                   >
-                    {result.confidence}%
+                    {result.confidence === null
+                      ? 'Not available'
+                      : `${result.confidence}%`}
                   </span>
                 </div>
-                <div
-                  className='rounded-full h-3 overflow-hidden'
-                  style={{ background: 'var(--me-bg-3)' }}
-                >
+                {result.confidence !== null && (
                   <div
-                    className='h-full transition-all duration-500'
-                    style={{
-                      width: `${result.confidence}%`,
-                      background:
-                        'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
-                    }}
-                    role='progressbar'
-                    aria-valuenow={result.confidence}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label={`Confidence level: ${result.confidence} percent`}
-                  />
-                </div>
+                    className='rounded-full h-3 overflow-hidden'
+                    style={{ background: 'var(--me-bg-3)' }}
+                  >
+                    <div
+                      className='h-full transition-all duration-500'
+                      style={{
+                        width: `${result.confidence}%`,
+                        background:
+                          'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+                      }}
+                      role='progressbar'
+                      aria-valuenow={result.confidence}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`Confidence level: ${result.confidence} percent`}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Expandable details */}
@@ -359,7 +377,7 @@ export function AssessmentResults({
                           className='font-medium mb-2'
                           style={{ color: 'var(--me-ink)' }}
                         >
-                          Safety Risk
+                          Photo safety limitations
                         </h4>
                         <p style={{ color: 'var(--me-ink-2)' }}>
                           {result.details.safetyRisk}
