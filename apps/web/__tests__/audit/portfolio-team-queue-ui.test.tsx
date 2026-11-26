@@ -143,7 +143,7 @@ it('restores the unassigned filters, page and focus on the report', async () => 
   const review = await screen.findByRole('link', { name: 'Review report' });
   expect(screen.getByLabelText('Team queue')).toHaveValue('unassigned');
   expect(screen.getByLabelText('Priority')).toHaveValue('0');
-  expect(review).toHaveFocus();
+  await waitFor(() => expect(review).toHaveFocus());
   expect(screen.getByText('Page 2')).toBeInTheDocument();
   expect(review).toHaveAttribute(
     'href',

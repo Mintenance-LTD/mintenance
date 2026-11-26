@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { propertyRepairQueueHref } from '@/lib/properties/repair-navigation';
 import {
@@ -94,12 +94,14 @@ export default function PropertyWorkQueuePage() {
     window.history.replaceState(window.history.state, '', url);
   }, [queueQuery, ready]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!data || restoredFocus.current) return;
     const focusId = window.location.hash.slice(1);
     if (!focusId.startsWith('queue-report-')) return;
-    restoredFocus.current = true;
-    document.getElementById(focusId)?.focus();
+    const link = document.getElementById(focusId);
+    if (!link) return;
+    link.focus();
+    restoredFocus.current = document.activeElement === link;
   }, [data]);
   const updateFilter = (key: keyof typeof filters, value: string) => {
     setFilters((previous) => ({ ...previous, [key]: value }));
