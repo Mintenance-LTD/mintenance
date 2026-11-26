@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Copy, Link2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -18,9 +19,11 @@ interface ReportToken {
 export function TenantReportingCard({
   propertyId,
   propertyName,
+  showActionQueueLink = true,
 }: {
   propertyId: string;
   propertyName: string;
+  showActionQueueLink?: boolean;
 }) {
   const [reportTokens, setReportTokens] = useState<ReportToken[]>([]);
   const [isGeneratingToken, setIsGeneratingToken] = useState(false);
@@ -196,6 +199,20 @@ export function TenantReportingCard({
         Share a link with tenants so they can report maintenance without needing
         an account.
       </p>
+      {showActionQueueLink && (
+        <>
+          <Link
+            className='pw-btn pw-btn-small'
+            href={`/properties/work-queue?property=${encodeURIComponent(propertyId)}`}
+          >
+            Open this property’s action queue
+          </Link>
+          <p className='t-meta'>
+            Use the action queue to review reports and follow-ups your property
+            team can access.
+          </p>
+        </>
+      )}
       {!loading && !loadError && (
         <div className='mb-4 space-y-2'>
           <ReportingLinkCoverage

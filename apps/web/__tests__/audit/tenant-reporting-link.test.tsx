@@ -75,3 +75,19 @@ it('does not copy an invalid URL when an older API response omits the token', as
     'Reporting link unavailable. Reload and retry.'
   );
 });
+
+it('takes a teammate to the queue prefiltered to the exact property', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ tokens: [] }),
+    })
+  );
+  const id = '00000000-0000-4000-8000-000000000001';
+  render(<TenantReportingCard propertyId={id} propertyName='Synthetic' />);
+  await screen.findByText('No reporting links yet.');
+  expect(
+    screen.getByRole('link', { name: 'Open this property’s action queue' })
+  ).toHaveAttribute('href', `/properties/work-queue?property=${id}`);
+});
