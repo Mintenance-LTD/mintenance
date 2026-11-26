@@ -11,23 +11,10 @@ export const metadata: Metadata = {
 export default async function PortfolioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ orgId?: string; ticketId?: string }>;
+  searchParams: Promise<{ orgId?: string; ticketId?: string; view?: string }>;
 }) {
-  const user = await getCurrentUserFromCookies();
-
-  if (!user) {
-    redirect('/login?redirect=/portfolio');
-  }
-
-  if (user.role === 'contractor') {
-    redirect('/contractor/portfolio');
-  }
-
-  const displayName =
-    [user.first_name, user.last_name].filter(Boolean).join(' ').trim() ||
-    user.email;
-
   const target = await searchParams;
+  const crm = target.view === 'crm';
   const uuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const targetOrgId =
@@ -38,8 +25,34 @@ export default async function PortfolioPage({
     typeof target.ticketId === 'string' && uuid.test(target.ticketId)
       ? target.ticketId
       : undefined;
+  const user = await getCurrentUserFromCookies();
+
+  if (!user) {
+    redirect(
+      crm
+        ? '/login?redirect=' +
+            encodeURIComponent(
+              '/portfolio?' +
+                new URLSearchParams({
+                  view: 'crm',
+                  ...(targetOrgId ? { orgId: targetOrgId } : {}),
+                }).toString()
+            )
+        : '/login?redirect=/portfolio'
+    );
+  }
+
+  if (user.role === 'contractor') {
+    redirect('/contractor/portfolio');
+  }
+
+  const displayName =
+    [user.first_name, user.last_name].filter(Boolean).join(' ').trim() ||
+    user.email;
+
   return (
     <PortfolioWorkspace
+      crm={crm}
       targetOrgId={targetOrgId}
       targetTicketId={targetTicketId}
       user={{

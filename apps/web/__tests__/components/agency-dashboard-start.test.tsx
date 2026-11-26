@@ -21,6 +21,7 @@ describe('existing homeowner Agency view', () => {
       expect(
         screen.queryByRole('link', { name: 'Open Agency workspace' })
       ).toBeNull();
+      expect(screen.queryByRole('link', { name: 'CRM' })).toBeNull();
     }
   );
 
@@ -35,5 +36,8 @@ describe('existing homeowner Agency view', () => {
     expect(
       screen.getByRole('link', { name: 'Action queue' }).getAttribute('href')
     ).toBe('/properties/work-queue');
+    expect(screen.getByRole('link', { name: 'CRM' }).getAttribute('href')).toBe(
+      '/portfolio?view=crm'
+    );
   });
 });

@@ -46,10 +46,12 @@ export function PortfolioWorkspace({
   user,
   targetOrgId,
   targetTicketId,
+  crm = false,
 }: {
   user: User;
   targetOrgId?: string;
   targetTicketId?: string;
+  crm?: boolean;
 }) {
   const [data, setData] = useState<Setup>();
   const [workspaceId, setWorkspaceId] = useState('');
@@ -169,6 +171,12 @@ export function PortfolioWorkspace({
   const firstSetup = !!data && !workspace && data.canSetUp;
   const hasUnlinked = !!data?.unlinkedProperties.length;
   const workspaceTools = !!data?.canSetUp && workspace?.role === 'owner';
+  const canOpenDirectory =
+    !!workspace &&
+    ['owner', 'manager', 'maintenance_coordinator'].includes(workspace.role);
+  const inboxHref = workspace
+    ? '/portfolio?' + new URLSearchParams({ orgId: workspace.id }).toString()
+    : '/portfolio';
 
   function propertyField() {
     return (
@@ -196,8 +204,9 @@ export function PortfolioWorkspace({
     <main className='min-h-screen bg-slate-50 text-slate-950'>
       <div className='border-b border-slate-200 bg-white'>
         <div className='mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 px-4 py-2 sm:px-8'>
-          <Link href='/properties' className={secondary}>
-            <ArrowLeft size={16} aria-hidden='true' /> Properties
+          <Link href={crm ? inboxHref : '/properties'} className={secondary}>
+            <ArrowLeft size={16} aria-hidden='true' />{' '}
+            {crm ? 'Portfolio Inbox' : 'Properties'}
           </Link>
           <span className='hidden text-sm font-semibold text-slate-500 sm:block'>
             Mintenance · Property management
@@ -212,11 +221,12 @@ export function PortfolioWorkspace({
               <Layers3 size={17} aria-hidden='true' /> Property management
             </p>
             <h1 className='text-3xl font-bold tracking-tight sm:text-4xl'>
-              Portfolio Inbox
+              {crm ? 'Agency CRM' : 'Portfolio Inbox'}
             </h1>
             <p className='mt-2 max-w-xl text-sm leading-6 text-slate-600 sm:text-base'>
-              Track repairs across your properties and hand work over to your
-              team.
+              {crm
+                ? 'Manage landlords, assigned staff, properties and recorded works authorisation limits.'
+                : 'Track repairs across your properties and hand work over to your team.'}
             </p>
           </div>
           {workspace && (
@@ -440,7 +450,7 @@ export function PortfolioWorkspace({
             {notice}
           </p>
         )}
-        {workspaceTools && (
+        {!crm && workspaceTools && (
           <details key={workspace?.id} className={panel + ' mb-5 p-4 sm:p-5'}>
             <summary className='cursor-pointer rounded-md py-2 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-800'>
               Manage workspace
@@ -510,16 +520,20 @@ export function PortfolioWorkspace({
             )}
           </details>
         )}
-        {workspace &&
-          ['owner', 'manager', 'maintenance_coordinator'].includes(
-            workspace.role
-          ) && (
-            <PortfolioAgencyLandlords
-              key={`landlords:${workspace.id}`}
-              workspaceId={workspace.id}
-            />
-          )}
-        {workspace && (
+        {workspace && canOpenDirectory && (
+          <PortfolioAgencyLandlords
+            key={`landlords:${workspace.id}`}
+            workspaceId={workspace.id}
+            alwaysOpen={crm}
+          />
+        )}
+        {crm && workspace && !canOpenDirectory && (
+          <p role='status' className={panel + ' p-4 text-sm text-slate-600'}>
+            Your workspace role does not include access to the landlord
+            directory.
+          </p>
+        )}
+        {!crm && workspace && (
           <PortfolioInboxClient
             key={workspace.id + ':' + revision + ':' + (targetTicketId ?? '')}
             user={user}

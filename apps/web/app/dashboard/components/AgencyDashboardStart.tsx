@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, ClipboardList, FileText } from 'lucide-react';
+import { Building2, ClipboardList, FileText, Users } from 'lucide-react';
 import { usePropertyView } from '@/hooks/usePropertyView';
 import styles from './AgencyDashboardStart.module.css';
 
@@ -22,6 +22,10 @@ export function AgencyDashboardStart() {
         <Link href='/portfolio' className={styles.primary}>
           Open Agency workspace
         </Link>
+        <Link href='/portfolio?view=crm' className={styles.secondary}>
+          <Users size={15} strokeWidth={1.75} aria-hidden='true' />
+          CRM
+        </Link>
         <Link href='/properties/work-queue' className={styles.secondary}>
           Action queue
         </Link>
@@ -35,7 +39,7 @@ export function AgencyDashboardStart() {
         </Link>
       </div>
       <p className={styles.hint}>
-        Invite teammates from a property’s Manage tab under People and access.
+        Manage workspace teammates from the Portfolio Inbox.
       </p>
     </section>
   );

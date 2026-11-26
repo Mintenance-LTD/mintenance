@@ -52,11 +52,14 @@ const primary =
 
 export function PortfolioAgencyLandlords({
   workspaceId,
+  alwaysOpen = false,
 }: {
   workspaceId: string;
+  alwaysOpen?: boolean;
 }) {
   const id = useId();
-  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const open = alwaysOpen || expanded;
   return (
     <section
       aria-labelledby={id}
@@ -71,15 +74,17 @@ export function PortfolioAgencyLandlords({
             See which landlords and properties each teammate looks after.
           </p>
         </div>
-        <button
-          type='button'
-          className={secondary}
-          aria-expanded={open}
-          aria-controls={id + '-directory'}
-          onClick={() => setOpen((value) => !value)}
-        >
-          {open ? 'Hide landlord directory' : 'Open landlord directory'}
-        </button>
+        {!alwaysOpen && (
+          <button
+            type='button'
+            className={secondary}
+            aria-expanded={open}
+            aria-controls={id + '-directory'}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {open ? 'Hide landlord directory' : 'Open landlord directory'}
+          </button>
+        )}
       </div>
       <div id={id + '-directory'} hidden={!open}>
         {open && <DirectoryPanel key={workspaceId} workspaceId={workspaceId} />}

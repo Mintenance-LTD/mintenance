@@ -224,3 +224,85 @@ it('offers a retry for a transient access error without asking the user to upgra
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByText(/ask the agency owner/i)).toBeTruthy();
 });
+
+it('opens CRM directly without loading tickets and switches only between member workspaces', async () => {
+  const fetcher = vi.fn(async (url: string) => {
+    if (url === '/api/portfolio/workspace')
+      return Response.json({
+        workspaces: [
+          { id: 'first', name: 'First agency', role: 'owner' },
+          {
+            id: 'second',
+            name: 'Second agency',
+            role: 'maintenance_coordinator',
+          },
+        ],
+        unlinkedProperties: [],
+        canSetUp: true,
+      });
+    if (url === '/api/organizations/second/agency-landlords')
+      return Response.json({
+        landlords: [],
+        staff: [],
+        properties: [],
+        canEdit: false,
+      });
+    if (url === '/api/organizations/first/agency-landlords')
+      return Response.json({
+        landlords: [
+          {
+            id: 'first-landlord',
+            displayName: 'TEST ONLY First landlord',
+            propertyIds: [],
+            approvalLimitPence: 15000,
+            primaryManagerId: null,
+            backupManagerId: null,
+            revision: 1,
+          },
+        ],
+        staff: [],
+        properties: [],
+        canEdit: true,
+      });
+    throw new Error('Unexpected request ' + url);
+  });
+  vi.stubGlobal('fetch', fetcher);
+  render(<PortfolioWorkspace user={user} targetOrgId='second' crm />);
+  expect(screen.getByRole('heading', { name: 'Agency CRM' })).toBeTruthy();
+  expect(
+    await screen.findByText('No landlords have been added yet.')
+  ).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Add landlord' })).toBeNull();
+  expect(
+    screen.queryByRole('button', { name: 'Open landlord directory' })
+  ).toBeNull();
+  expect(screen.queryByText(/Inbox for/)).toBeNull();
+  expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+    '/api/portfolio/workspace',
+    '/api/organizations/second/agency-landlords',
+  ]);
+  fireEvent.change(screen.getByLabelText('Workspace'), {
+    target: { value: 'first' },
+  });
+  expect(await screen.findByText('TEST ONLY First landlord')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Add landlord' })).toBeTruthy();
+  expect(
+    screen.getByRole('link', { name: 'Portfolio Inbox' }).getAttribute('href')
+  ).toBe('/portfolio?orgId=first');
+});
+
+it('does not fetch CRM for a workspace role without directory access', async () => {
+  const fetcher = vi.fn(() =>
+    reply({
+      workspaces: [
+        { id: 'viewer-org', name: 'View only agency', role: 'viewer' },
+      ],
+      unlinkedProperties: [],
+      canSetUp: false,
+    })
+  );
+  vi.stubGlobal('fetch', fetcher);
+  render(<PortfolioWorkspace user={user} crm />);
+  expect(await screen.findByText(/role does not include access/i)).toBeTruthy();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});

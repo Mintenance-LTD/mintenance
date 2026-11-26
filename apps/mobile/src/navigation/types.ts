@@ -207,6 +207,7 @@ export type ProfileStackParamList = {
   PropertyDetail: { propertyId: string };
   PropertyRepair: { propertyId: string; jobId: string };
   PortfolioInbox: { ticketId?: string; orgId?: string } | undefined;
+  AgencyCrm: undefined;
   PropertyInspection: { propertyId: string; reportId: string };
   EditProperty: { propertyId: string };
   PropertyAssessment:
