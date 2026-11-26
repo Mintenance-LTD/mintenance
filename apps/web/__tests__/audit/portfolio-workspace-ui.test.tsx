@@ -2,6 +2,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { PortfolioWorkspace } from '@/app/portfolio/portfolio-workspace';
 
+vi.mock('@/lib/csrf-client', () => ({
+  getCsrfHeaders: vi.fn(async () => ({ 'X-CSRF-Token': 'test-csrf' })),
+}));
+
 vi.mock('@/app/portfolio/portfolio-inbox-client', () => ({
   PortfolioInboxClient: ({
     workspaceId,
@@ -136,4 +140,87 @@ it('switches between explicit memberships rather than mixing workspaces', async 
   expect(
     screen.queryByText('Inbox for first as maintenance_coordinator')
   ).toBeNull();
+});
+
+it('guides an owner through creating a workspace without confusing them with invite-only access', async () => {
+  const fetcher = vi
+    .fn()
+    .mockImplementationOnce(() =>
+      reply({
+        workspaces: [],
+        unlinkedProperties: [
+          { id: 'p1', property_name: 'Oak House', address: null },
+        ],
+        canSetUp: true,
+      })
+    )
+    .mockImplementationOnce(() => reply({ orgId: 'new-agency' }))
+    .mockImplementationOnce(() =>
+      reply({
+        workspaces: [{ id: 'new-agency', name: 'Oak Lettings', role: 'owner' }],
+        unlinkedProperties: [],
+        canSetUp: true,
+      })
+    );
+  vi.stubGlobal('fetch', fetcher);
+  render(<PortfolioWorkspace user={user} />);
+  const button = await screen.findByRole('button', {
+    name: 'Create workspace',
+  });
+  expect(button).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('New workspace name'), {
+    target: { value: '  Oak Lettings  ' },
+  });
+  expect(button).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('Property to add'), {
+    target: { value: 'p1' },
+  });
+  expect(button).toBeEnabled();
+  fireEvent.click(button);
+  await screen.findByText('Inbox for new-agency as owner');
+  expect(fetcher.mock.calls[1][1]).toMatchObject({
+    method: 'POST',
+    headers: expect.objectContaining({ 'X-CSRF-Token': 'test-csrf' }),
+    body: JSON.stringify({
+      propertyId: 'p1',
+      workspace: { action: 'create', name: 'Oak Lettings' },
+    }),
+  });
+});
+
+it('shows a next step when an eligible owner has no property to link', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+      reply({
+        workspaces: [],
+        unlinkedProperties: [],
+        canSetUp: true,
+      })
+    )
+  );
+  render(<PortfolioWorkspace user={user} />);
+  expect(
+    await screen.findByRole('link', { name: 'Add a property' })
+  ).toHaveAttribute('href', '/properties/add');
+  expect(screen.queryByRole('button', { name: 'Create workspace' })).toBeNull();
+});
+
+it('offers a retry for a transient access error without asking the user to upgrade', async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(
+      Response.json({ error: 'Temporarily unavailable' }, { status: 503 })
+    )
+    .mockImplementationOnce(() =>
+      reply({ workspaces: [], unlinkedProperties: [], canSetUp: false })
+    );
+  vi.stubGlobal('fetch', fetcher);
+  render(<PortfolioWorkspace user={user} />);
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Temporarily unavailable'
+  );
+  expect(screen.queryByRole('link', { name: 'View plans' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByText(/ask the agency owner/i)).toBeTruthy();
 });

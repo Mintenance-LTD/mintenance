@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { getCsrfHeaders } from '@/lib/csrf-client';
+import { ArrowLeft, Inbox, Plus, RotateCw } from 'lucide-react';
 
 type TicketStatus =
   | 'open'
@@ -83,11 +85,19 @@ const toLabel = (value: string) =>
   value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
 
 export function PortfolioInboxClient(props: PortfolioInboxClientProps) {
-  return <PortfolioInbox key={`${props.user.id}:${props.workspaceId}`} {...props} />;
+  return (
+    <PortfolioInbox key={`${props.user.id}:${props.workspaceId}`} {...props} />
+  );
 }
 
-function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClientProps) {
-  const canManage = ['owner', 'manager', 'maintenance_coordinator'].includes(workspaceRole);
+function PortfolioInbox({
+  user,
+  workspaceId,
+  workspaceRole,
+}: PortfolioInboxClientProps) {
+  const canManage = ['owner', 'manager', 'maintenance_coordinator'].includes(
+    workspaceRole
+  );
   const pendingRequests = useRef({ tickets: 0, properties: 0, detail: 0 });
   const [mobileView, setMobileView] = useState<'inbox' | 'detail' | 'create'>(
     'inbox'
@@ -220,9 +230,12 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
     const request = ++pendingRequests.current.properties;
     setPropertiesLoading(true);
     try {
-      const response = await fetch(`/api/portfolio/properties?orgId=${encodeURIComponent(workspaceId)}`, {
-        cache: 'no-store',
-      });
+      const response = await fetch(
+        `/api/portfolio/properties?orgId=${encodeURIComponent(workspaceId)}`,
+        {
+          cache: 'no-store',
+        }
+      );
       const data = await response.json();
       if (request !== pendingRequests.current.properties) return;
       if (!response.ok) {
@@ -333,7 +346,10 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
         `/api/portfolio/tickets/${selectedTicketId}`,
         {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(await getCsrfHeaders()),
+          },
           body: JSON.stringify(payload),
         }
       );
@@ -373,7 +389,10 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
     try {
       const response = await fetch('/api/portfolio/tickets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getCsrfHeaders()),
+        },
         body: JSON.stringify({
           orgId: workspaceId,
           propertyId: newPropertyId,
@@ -412,20 +431,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
   };
 
   return (
-    <main className='mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8'>
-      <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
-        <div>
-
-          <p className='text-sm text-gray-600'>
-            Manage maintenance tickets across your properties.
-          </p>
-        </div>
-        <div className='text-sm text-gray-500'>
-          Signed in as{' '}
-          <span className='font-medium text-gray-700'>{user.name}</span>
-        </div>
-      </div>
-
+    <section aria-label='Maintenance tickets' className='min-w-0'>
       {accessLoading && (
         <div className='rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600'>
           Checking portfolio access...
@@ -459,63 +465,43 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
       )}
 
       {!accessLoading && access?.allowed && (
-        <div className='grid grid-cols-1 gap-6 lg:grid-cols-12'>
-          <section className='rounded-xl border border-gray-200 bg-white p-3 lg:col-span-12 lg:hidden'>
-            <div className='grid grid-cols-3 gap-2'>
-              <button
-                type='button'
-                onClick={() => setMobileView('inbox')}
-                className={`rounded-md px-3 py-2 text-sm font-medium ${
-                  mobileView === 'inbox'
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                Inbox
-              </button>
-              <button
-                type='button'
-                onClick={() => setMobileView('detail')}
-                className={`rounded-md px-3 py-2 text-sm font-medium ${
-                  mobileView === 'detail'
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                Detail
-              </button>
-              <button
-                type='button'
-                onClick={() => setMobileView('create')}
-                className={`rounded-md px-3 py-2 text-sm font-medium ${
-                  mobileView === 'create'
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                Create
-              </button>
-            </div>
-          </section>
-
+        <div className='grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6'>
+          {mobileView !== 'inbox' && (
+            <button
+              type='button'
+              onClick={() => setMobileView('inbox')}
+              className='inline-flex min-h-11 w-fit items-center gap-2 rounded-lg px-2 text-sm font-semibold text-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-800 lg:hidden'
+            >
+              <ArrowLeft size={16} aria-hidden='true' /> Back to tickets
+            </button>
+          )}
           <section
-            className={`rounded-xl border border-gray-200 bg-white p-4 lg:col-span-4 ${
+            className={`min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:col-span-4 ${
               mobileView === 'inbox' ? 'block' : 'hidden lg:block'
             }`}
           >
-            <div className='mb-3 flex items-center justify-between'>
+            <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
               <h2 className='text-sm font-semibold uppercase tracking-wide text-gray-700'>
                 Tickets
               </h2>
               <button
                 type='button'
                 onClick={() => void loadTickets()}
-                className='text-xs font-medium text-teal-700 hover:text-teal-800'
+                className='inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-teal-800 hover:bg-teal-50 focus-visible:outline focus-visible:outline-teal-800'
               >
-                Refresh
+                <RotateCw size={15} aria-hidden='true' /> Refresh
               </button>
             </div>
 
+            {canManage && (
+              <button
+                type='button'
+                onClick={() => setMobileView('create')}
+                className='mb-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal-800 px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800 lg:hidden'
+              >
+                <Plus size={17} aria-hidden='true' /> New ticket
+              </button>
+            )}
             <label className='mb-3 block text-xs text-gray-600'>
               Status filter
               <select
@@ -523,7 +509,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                 onChange={(event) =>
                   setStatusFilter(event.target.value as 'all' | TicketStatus)
                 }
-                className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
               >
                 <option value='all'>All</option>
                 {STATUS_OPTIONS.map((status) => (
@@ -539,7 +525,25 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
             ) : ticketsError ? (
               <p className='text-sm text-red-700'>{ticketsError}</p>
             ) : filteredTickets.length === 0 ? (
-              <p className='text-sm text-gray-600'>No tickets found.</p>
+              <div className='rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-slate-700'>
+                <Inbox
+                  size={22}
+                  aria-hidden='true'
+                  className='mb-3 text-teal-800'
+                />
+                <p className='text-sm font-semibold text-slate-900'>
+                  {statusFilter === 'all'
+                    ? 'No maintenance tickets yet'
+                    : 'No tickets match this filter'}
+                </p>
+                <p className='mt-1 text-sm leading-5'>
+                  {statusFilter !== 'all'
+                    ? 'Choose another status or show all tickets.'
+                    : canManage
+                      ? 'Create a ticket to record a repair against a property.'
+                      : 'Tickets will appear here when your team logs a repair.'}
+                </p>
+              </div>
             ) : (
               <div className='space-y-2'>
                 {filteredTickets.map((ticket) => (
@@ -556,7 +560,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    <p className='text-sm font-medium text-gray-900'>
+                    <p className='break-words text-sm font-medium text-gray-900'>
                       {ticket.title}
                     </p>
                     <p className='mt-1 text-xs text-gray-600'>
@@ -573,7 +577,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
           </section>
 
           <section
-            className={`rounded-xl border border-gray-200 bg-white p-4 lg:col-span-8 ${
+            className={`min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:col-span-8 ${
               mobileView === 'detail' ? 'block' : 'hidden lg:block'
             }`}
           >
@@ -595,7 +599,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                   <h3 className='text-lg font-semibold text-gray-900'>
                     {selectedTicket.title}
                   </h3>
-                  <p className='mt-2 text-sm text-gray-700'>
+                  <p className='mt-2 whitespace-pre-wrap break-words text-sm text-gray-700'>
                     {selectedTicket.description}
                   </p>
                   <div className='mt-3 flex flex-wrap gap-2 text-xs text-gray-600'>
@@ -619,7 +623,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                       onChange={(event) =>
                         setUpdateStatus(event.target.value as TicketStatus)
                       }
-                      className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                      className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                     >
                       {STATUS_OPTIONS.map((status) => (
                         <option key={status} value={status}>
@@ -636,7 +640,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                       onChange={(event) =>
                         setUpdatePriority(event.target.value as TicketPriority)
                       }
-                      className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                      className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                     >
                       {PRIORITY_OPTIONS.map((priority) => (
                         <option key={priority} value={priority}>
@@ -653,7 +657,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                     value={resolutionNote}
                     onChange={(event) => setResolutionNote(event.target.value)}
                     rows={3}
-                    className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                    className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                     placeholder='Add context for this update'
                   />
                 </label>
@@ -684,7 +688,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                             {toLabel(update.update_type)} ·{' '}
                             {new Date(update.created_at).toLocaleString()}
                           </p>
-                          <p className='mt-1 text-sm text-gray-700'>
+                          <p className='mt-1 whitespace-pre-wrap break-words text-sm text-gray-700'>
                             {update.body}
                           </p>
                         </div>
@@ -697,7 +701,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
           </section>
 
           <section
-            className={`rounded-xl border border-gray-200 bg-white p-4 lg:col-span-12 ${
+            className={`min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:col-span-12 ${
               mobileView === 'create' ? 'block' : 'hidden lg:block'
             }`}
           >
@@ -720,7 +724,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                 <select
                   value={newPropertyId}
                   onChange={(event) => setNewPropertyId(event.target.value)}
-                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                   disabled={propertiesLoading}
                 >
                   <option value=''>Select property</option>
@@ -740,7 +744,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                   onChange={(event) =>
                     setNewPriority(event.target.value as TicketPriority)
                   }
-                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                 >
                   {PRIORITY_OPTIONS.map((priority) => (
                     <option key={priority} value={priority}>
@@ -755,7 +759,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                 <input
                   value={newTitle}
                   onChange={(event) => setNewTitle(event.target.value)}
-                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                   placeholder='Kitchen sink leaking'
                   required
                   minLength={3}
@@ -768,7 +772,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                 <input
                   value={newCategory}
                   onChange={(event) => setNewCategory(event.target.value)}
-                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                   placeholder='plumbing'
                   maxLength={100}
                 />
@@ -779,7 +783,7 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
                 <textarea
                   value={newDescription}
                   onChange={(event) => setNewDescription(event.target.value)}
-                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                   placeholder='Describe the issue in detail...'
                   rows={3}
                   required
@@ -812,6 +816,6 @@ function PortfolioInbox({ user, workspaceId, workspaceRole }: PortfolioInboxClie
           </section>
         </div>
       )}
-    </main>
+    </section>
   );
 }

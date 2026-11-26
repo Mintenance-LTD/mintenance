@@ -48,13 +48,18 @@ it('loads on expansion, opens the correct property and retrieves the next page',
   await waitFor(() => expect(view.getByText('Repair')).toBeTruthy());
   fireEvent.press(view.getByText('Open property →'));
   expect(open).toHaveBeenCalledWith('property');
-  fireEvent.press(view.getByText('Next'));
+  expect(view.getByText('Showing 1–1 of 6')).toBeTruthy();
+  expect(view.queryByLabelText('Previous page')).toBeNull();
+  fireEvent.press(view.getByLabelText('Next page'));
   await waitFor(() =>
     expect(mockGet).toHaveBeenCalledWith(
       '/api/portfolio/queue?offset=5&limit=5&scope=team',
       expect.objectContaining({ timeout: 15000, retries: 0 })
     )
   );
+  await view.findByText('Showing 6–6 of 6');
+  fireEvent.press(view.getByLabelText('Previous page'));
+  await view.findByText('Showing 1–1 of 6');
 });
 it('shows a retry action after a failed load', async () => {
   mockGet.mockRejectedValue(new Error('offline'));
@@ -152,7 +157,7 @@ it('filters on the server and hides management controls for a viewer', async () 
     )
   );
   fireEvent.press(view.getByLabelText('Mine queue'));
-  await view.findByText('No follow-ups assigned to you on this page.');
+  await view.findByText('No follow-ups assigned to you.');
   expect(mockGet).toHaveBeenCalledWith(
     '/api/portfolio/queue?offset=0&limit=5&scope=mine',
     expect.anything()
@@ -170,10 +175,10 @@ it('does not label a legacy unfiltered response as Mine', async () => {
       <PortfolioActionQueue initiallyExpanded onOpenProperty={jest.fn()} />
     </QueryClientProvider>
   );
-  await view.findByText('No actions in this queue on this page.');
+  await view.findByText('No actions in the team queue.');
   fireEvent.press(view.getByLabelText('Mine queue'));
   await view.findByText('Unable to load actions. Tap to retry.');
   expect(
-    view.queryByText('No follow-ups assigned to you on this page.')
+    view.queryByText('No follow-ups assigned to you.')
   ).toBeNull();
 });
