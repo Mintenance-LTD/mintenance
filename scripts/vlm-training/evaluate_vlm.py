@@ -3,7 +3,8 @@
 Evaluate fine-tuned Qwen2.5-VL on held-out validation data.
 
 Sends each sample through the model's OpenAI-compatible endpoint and
-compares against teacher (GPT-4o) ground truth, producing metrics JSON.
+compares against reference labels, producing metrics JSON. Teacher labels
+measure teacher agreement, not model accuracy against independently reviewed evidence.
 
 Usage:
     python evaluate_vlm.py \
@@ -14,36 +15,36 @@ Usage:
 Per-class release gates (v3): pass --taxonomy taxonomy_v3.json to normalise
 damage-type labels onto the v3 surveyor taxonomy and score each class against
 its release gate (minAccuracy / minSafetyRecall at minEvalSamples). Add
---enforce-gates to exit non-zero when any gated class fails — wire this into
+--enforce-gates to exit non-zero when any gated class fails â€” wire this into
 CI so a retrain can't ship on aggregate accuracy alone.
 
     python evaluate_vlm.py \
         --data validation.jsonl \
         --endpoint https://.../v1/chat/completions \
         --taxonomy apps/web/lib/services/building-surveyor/taxonomy/taxonomy_v3.json \
-        --enforce-gates
+        --reference-kind human-reviewed --enforce-gates
 
 The canonical taxonomy lives in the web app (it is injected into the live
 assessment prompt from there); this script only ever reads it by path.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import sys
 import time
-from collections import defaultdict
-
-import requests
+from collections import Counter, defaultdict
 
 
-def load_jsonl(path: str) -> list[dict]:
+def parse_jsonl(data: bytes) -> list[tuple[int, object]]:
     rows = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
+    for line_number, line in enumerate(data.decode("utf-8-sig").splitlines(), start=1):
+        if line.strip():
+            try:
+                rows.append((line_number, json.loads(line)))
+            except json.JSONDecodeError:
+                rows.append((line_number, None))
     return rows
 
 
@@ -66,7 +67,8 @@ def load_taxonomy(path: str) -> dict:
 
 def normalize_category(raw: str, taxonomy: dict | None) -> str:
     """Map a free-text damageType onto a taxonomy class id (or pass through)."""
-    label = (raw or "unknown").strip().lower()
+    label = raw.strip().lower() if isinstance(raw, str) else ""
+    label = label or "unknown"
     if not taxonomy:
         return label
     alias_map = taxonomy["_alias_map"]
@@ -79,7 +81,7 @@ def normalize_category(raw: str, taxonomy: dict | None) -> str:
 def evaluate_gates(per_category: dict, taxonomy: dict) -> dict:
     """Score each taxonomy class against its release gate.
 
-    Verdicts: PASS, FAIL, INSUFFICIENT_SAMPLES (n < minEvalSamples — never
+    Verdicts: PASS, FAIL, INSUFFICIENT_SAMPLES (n < minEvalSamples â€” never
     treated as a pass; an untested class is an unreleased class), NO_DATA.
     """
     default_gates = taxonomy.get("defaultGates", {})
@@ -93,20 +95,25 @@ def evaluate_gates(per_category: dict, taxonomy: dict) -> dict:
         )
         stats = per_category.get(class_id)
 
-        if not stats:
-            verdict = "NO_DATA"
-            detail = "no eval samples mapped to this class"
-        elif stats["total"] < gates.get("minEvalSamples", 25):
-            verdict = "INSUFFICIENT_SAMPLES"
-            detail = f"{stats['total']} < {gates.get('minEvalSamples', 25)} samples"
+        min_examples = gates.get("minEvalSamples", 25)
+        min_acc = gates.get("minAccuracy", 0.75)
+        min_safety = gates.get("minSafetyRecall", 0.95)
+        # A safety-critical class needs its own positive evidence. Clean
+        # images cannot fill that quota, even if all predictions were correct.
+        min_positive = gates.get("minHazardSamples", min_examples if cls.get("safetyCritical") else 0)
+        if not stats or not stats["total"]:
+            verdict, detail = "NO_DATA", "no reference samples mapped to this class"
+        elif stats["total"] < min_examples:
+            verdict, detail = "INSUFFICIENT_SAMPLES", f"{stats['total']} < {min_examples} samples"
+        elif stats["hazard_positive_samples"] < min_positive:
+            verdict = "INSUFFICIENT_SAFETY_SAMPLES"
+            detail = f"{stats['hazard_positive_samples']} < {min_positive} hazard-positive samples"
         else:
-            acc_ok = stats["accuracy"] >= gates.get("minAccuracy", 0.75)
-            safety_ok = stats["mean_safety_recall"] >= gates.get("minSafetyRecall", 0.95)
-            verdict = "PASS" if (acc_ok and safety_ok) else "FAIL"
-            detail = (
-                f"accuracy {stats['accuracy']:.1%} vs {gates.get('minAccuracy', 0.75):.0%}, "
-                f"safety {stats['mean_safety_recall']:.1%} vs {gates.get('minSafetyRecall', 0.95):.0%}"
-            )
+            recall = stats["mean_safety_recall"]
+            safety_ok = recall is None or recall >= min_safety
+            verdict = "PASS" if stats["accuracy"] >= min_acc and safety_ok else "FAIL"
+            safety = f"{recall:.1%} vs {min_safety:.0%}" if recall is not None else "not applicable (no positives)"
+            detail = f"accuracy {stats['accuracy']:.1%} vs {min_acc:.0%}, safety {safety}"
 
         gate_results[class_id] = {
             "verdict": verdict,
@@ -119,14 +126,16 @@ def evaluate_gates(per_category: dict, taxonomy: dict) -> dict:
     return gate_results
 
 
-def call_model(endpoint: str, messages: list[dict], api_key: str = "") -> dict | None:
+def call_model(endpoint: str, messages: list[dict], api_key: str, model: str) -> dict | None:
     """Call the VLM endpoint and return parsed JSON response."""
+    import requests
+
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
     payload = {
-        "model": "mint-ai-vlm",
+        "model": model,
         "messages": messages[:2],  # system + user only
         "max_tokens": 2000,
         "temperature": 0.1,
@@ -140,149 +149,165 @@ def call_model(endpoint: str, messages: list[dict], api_key: str = "") -> dict |
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "{}")
         return json.loads(content)
     except Exception as e:
-        print(f"  Error: {e}")
+        print(f"  Request/response error: {type(e).__name__}")
         return None
 
 
-def compare_assessments(student: dict, teacher: dict) -> dict:
-    """Compare student vs teacher assessment fields."""
-    teacher_damage = teacher.get("damageAssessment", {})
-    student_damage = student.get("damageAssessment", {})
+def label(value) -> str:
+    return value.strip().lower() if isinstance(value, str) else ""
 
-    damage_type_match = (
-        student_damage.get("damageType", "").lower() == teacher_damage.get("damageType", "").lower()
-    )
-    severity_match = student_damage.get("severity") == teacher_damage.get("severity")
 
-    teacher_urgency = teacher.get("urgency", {}).get("urgency", "")
-    student_urgency = student.get("urgency", {}).get("urgency", "")
-    urgency_match = student_urgency == teacher_urgency
+def section(record: dict, key: str) -> dict:
+    value = record.get(key)
+    return value if isinstance(value, dict) else {}
 
-    # Safety recall: fraction of teacher hazards detected by student
-    teacher_hazards = set()
-    for h in teacher.get("safetyHazards", {}).get("hazards", []):
-        if isinstance(h, dict):
-            teacher_hazards.add(h.get("type", "").lower())
-        elif isinstance(h, str):
-            teacher_hazards.add(h.lower())
 
-    student_hazards = set()
-    for h in student.get("safetyHazards", {}).get("hazards", []):
-        if isinstance(h, dict):
-            student_hazards.add(h.get("type", "").lower())
-        elif isinstance(h, str):
-            student_hazards.add(h.lower())
+def hazard_types(record: dict) -> set[str] | None:
+    """None means unlabelled/malformed, not a reviewed clean image."""
+    hazards = section(record, "safetyHazards").get("hazards")
+    if not isinstance(hazards, list):
+        return None
+    values = {label(h.get("type") if isinstance(h, dict) else h) for h in hazards}
+    return values if "" not in values else None
 
-    safety_recall = 1.0
-    if teacher_hazards:
-        caught = len(teacher_hazards & student_hazards)
-        safety_recall = caught / len(teacher_hazards)
 
+def valid_reference(messages, taxonomy):
+    if not isinstance(messages, list) or len(messages) < 3:
+        return None
+    if not all(isinstance(message, dict) for message in messages[:3]):
+        return None
+    if [message.get("role") for message in messages[:3]] != ["system", "user", "assistant"]:
+        return None
+    content = messages[2].get("content")
+    try:
+        reference = json.loads(content) if isinstance(content, str) else content
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(reference, dict):
+        return None
+    category = normalize_category(section(reference, "damageAssessment").get("damageType"), taxonomy)
+    if category in ("unknown", "none", "n/a") or hazard_types(reference) is None:
+        return None
+    return reference, category
+
+
+def aggregate(rows: list[dict]) -> dict:
+    total = len(rows)
+    hits = [r for r in rows if r["safety_recall"] is not None]
+    negative = [r for r in rows if r["hazard_negative"]]
+    valid_negative = [r for r in negative if r["success"]]
     return {
-        "damage_type_match": damage_type_match,
-        "severity_match": severity_match,
-        "urgency_match": urgency_match,
-        "safety_recall": safety_recall,
-        "teacher_damage_type": teacher_damage.get("damageType", "unknown"),
+        "total": total,
+        "successful_calls": sum(r["success"] for r in rows),
+        "failed_calls": sum(not r["success"] for r in rows),
+        "accuracy": sum(r["damage_type_match"] for r in rows) / total if total else None,
+        "severity_accuracy": field_accuracy(rows, "severity_match"),
+        "urgency_accuracy": field_accuracy(rows, "urgency_match"),
+        "hazard_positive_samples": len(hits),
+        "hazard_negative_samples": len(negative),
+        "hazard_negative_valid_predictions": len(valid_negative),
+        "mean_safety_recall": sum(r["safety_recall"] for r in hits) / len(hits) if hits else None,
+        "hazard_false_alarm_rate": (
+            sum(r["hazard_false_alarm"] for r in valid_negative) / len(valid_negative)
+            if valid_negative else None
+        ),
+        "avg_latency_ms": sum(r["latency_ms"] for r in rows) / total if total else None,
     }
+
+
+def field_accuracy(rows: list[dict], key: str) -> float | None:
+    scores = [r[key] for r in rows if r[key] is not None]
+    return sum(scores) / len(scores) if scores else None
+
+
+def open_data(path: str) -> bytes:
+    with open(path, "rb") as f:
+        return f.read()
 
 
 def evaluate(args: argparse.Namespace) -> dict:
-    """Run evaluation on all samples."""
-    rows = load_jsonl(args.data)
+    """Every valid reference is scored, including unavailable model responses."""
+    data = open_data(args.data)
+    rows = parse_jsonl(data)
     taxonomy = load_taxonomy(args.taxonomy) if args.taxonomy else None
-    if taxonomy:
-        print(f"Taxonomy: {args.taxonomy} (version {taxonomy.get('version', '?')}, "
-              f"{len(taxonomy.get('classes', []))} classes)")
-    print(f"Evaluating {len(rows)} samples against {args.endpoint}")
+    known_categories = {cls["id"] for cls in taxonomy["classes"]} if taxonomy else set()
+    print(f"Evaluating {len(rows)} samples against model {args.model}")
 
     results = []
-    category_stats = defaultdict(lambda: {
-        "total": 0, "damage_match": 0, "severity_match": 0,
-        "urgency_match": 0, "safety_recall_sum": 0.0,
-    })
-
-    for i, row in enumerate(rows):
-        messages = row.get("messages", [])
-        if len(messages) < 3:
+    invalid = []
+    unmapped = Counter()
+    predictions = Counter()
+    confusion = defaultdict(Counter)
+    failed_lines = []
+    category_rows = defaultdict(list)
+    for i, (line_number, row) in enumerate(rows, start=1):
+        messages = row.get("messages") if isinstance(row, dict) else None
+        parsed = valid_reference(messages, taxonomy)
+        if parsed is None:
+            invalid.append(line_number)
             continue
-
-        # Teacher response is the ground truth (assistant message)
-        teacher_response = json.loads(messages[2]["content"]) if isinstance(messages[2]["content"], str) else messages[2]["content"]
-
-        print(f"  [{i + 1}/{len(rows)}] ", end="", flush=True)
-        start = time.time()
-        student_response = call_model(args.endpoint, messages, args.api_key)
-        latency = time.time() - start
-
-        if student_response is None:
-            print("FAILED")
-            results.append({"index": i, "success": False, "latency_ms": round(latency * 1000)})
-            continue
-
-        comparison = compare_assessments(student_response, teacher_response)
-        category = normalize_category(
-            teacher_response.get("damageAssessment", {}).get("damageType", "unknown"),
-            taxonomy,
-        )
-
-        # Update category stats
-        cat = category_stats[category]
-        cat["total"] += 1
-        if comparison["damage_type_match"]:
-            cat["damage_match"] += 1
-        if comparison["severity_match"]:
-            cat["severity_match"] += 1
-        if comparison["urgency_match"]:
-            cat["urgency_match"] += 1
-        cat["safety_recall_sum"] += comparison["safety_recall"]
-
-        status = "OK" if comparison["damage_type_match"] and comparison["safety_recall"] >= 0.95 else "MISS"
-        print(f"{status} ({latency:.1f}s) type={comparison['damage_type_match']} sev={comparison['severity_match']} safety={comparison['safety_recall']:.2f}")
-
-        results.append({
-            "index": i,
-            "success": True,
+        reference, category = parsed
+        if taxonomy and category not in known_categories:
+            unmapped[category] += 1
+        start = time.monotonic()
+        student = call_model(args.endpoint, messages, args.api_key, args.model)
+        latency = time.monotonic() - start
+        student = student if isinstance(student, dict) else {}
+        student_damage = section(student, "damageAssessment")
+        prediction = normalize_category(student_damage.get("damageType"), taxonomy)
+        predicted_hazards = hazard_types(student)
+        success = prediction not in ("unknown", "none", "n/a") and predicted_hazards is not None
+        # Score an incomplete prediction as a failure, not a success on
+        # one matching field. Count failures on positive rows as misses.
+        reference_hazards = hazard_types(reference)
+        safety_recall = None
+        if reference_hazards:
+            safety_recall = len(reference_hazards & predicted_hazards) / len(reference_hazards) if success else 0.0
+        expected_severity = label(section(reference, "damageAssessment").get("severity"))
+        expected_urgency = label(section(reference, "urgency").get("urgency"))
+        if success:
+            predictions[prediction] += 1
+            confusion[category][prediction] += 1
+        else:
+            failed_lines.append(line_number)
+        result = {
+            "success": success,
             "latency_ms": round(latency * 1000),
-            **comparison,
-        })
-
-    # Aggregate metrics
-    successful = [r for r in results if r.get("success")]
-    total = len(successful)
-
-    overall = {
-        "total_samples": len(rows),
-        "successful_calls": total,
-        "failed_calls": len(results) - total,
-    }
-
-    if total > 0:
-        overall["accuracy"] = sum(1 for r in successful if r["damage_type_match"]) / total
-        overall["severity_accuracy"] = sum(1 for r in successful if r["severity_match"]) / total
-        overall["urgency_accuracy"] = sum(1 for r in successful if r["urgency_match"]) / total
-        overall["mean_safety_recall"] = sum(r["safety_recall"] for r in successful) / total
-        overall["avg_latency_ms"] = sum(r["latency_ms"] for r in successful) / total
-
-    # Per-category metrics
-    per_category = {}
-    for cat, stats in category_stats.items():
-        n = stats["total"]
-        if n == 0:
-            continue
-        per_category[cat] = {
-            "total": n,
-            "accuracy": stats["damage_match"] / n,
-            "severity_accuracy": stats["severity_match"] / n,
-            "urgency_accuracy": stats["urgency_match"] / n,
-            "mean_safety_recall": stats["safety_recall_sum"] / n,
+            "damage_type_match": success and category == prediction,
+            "severity_match": success and label(student_damage.get("severity")) == expected_severity if expected_severity else None,
+            "urgency_match": success and label(section(student, "urgency").get("urgency")) == expected_urgency if expected_urgency else None,
+            "safety_recall": safety_recall,
+            "hazard_negative": not reference_hazards,
+            "hazard_false_alarm": not reference_hazards and bool(predicted_hazards) and success,
         }
+        category_rows[category].append(result)
+        results.append(result)
+        status = "FAILED" if not success else "OK" if result["damage_type_match"] else "MISS"
+        print(f"  [{i}/{len(rows)}] {status} ({latency:.1f}s)")
+
+    overall = aggregate(results)
+    overall["total_samples"] = len(rows)
+    overall["invalid_reference_rows"] = len(invalid)
+    overall["prediction_coverage"] = overall["successful_calls"] / len(results) if results else None
+    per_category = {}
+    for cat in sorted(category_rows.keys() | predictions.keys()):
+        stats = aggregate(category_rows.get(cat, []))
+        predicted_count = predictions[cat]
+        stats["predicted_samples"] = predicted_count
+        stats["precision"] = sum(r["damage_type_match"] for r in category_rows.get(cat, [])) / predicted_count if predicted_count else None
+        per_category[cat] = stats
 
     output = {
         "overall": overall,
         "per_category": per_category,
-        "endpoint": args.endpoint,
-        "data_file": args.data,
+        "data_file": os.fspath(args.data),
+        "data_sha256": hashlib.sha256(data).hexdigest(),
+        "model": args.model,
+        "reference_kind": args.reference_kind,
+        "invalid_reference_record_numbers": invalid,
+        "unmapped_reference_categories": dict(unmapped),
+        "failed_prediction_record_numbers": failed_lines,
+        "confusion": confusion,
     }
 
     # Per-class release gates (taxonomy mode)
@@ -292,18 +317,22 @@ def evaluate(args: argparse.Namespace) -> dict:
         output["taxonomy_version"] = taxonomy.get("version")
 
     # Save results
-    with open(args.output, "w") as f:
+    with open(args.output, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2)
     print(f"\nResults saved to {args.output}")
 
     # Summary
     print(f"\n{'='*50}")
-    print(f"Accuracy:       {overall.get('accuracy', 0):.1%}")
-    print(f"Severity:       {overall.get('severity_accuracy', 0):.1%}")
-    print(f"Urgency:        {overall.get('urgency_accuracy', 0):.1%}")
-    print(f"Safety Recall:  {overall.get('mean_safety_recall', 0):.1%}")
-    print(f"Avg Latency:    {overall.get('avg_latency_ms', 0):.0f}ms")
-    print(f"{'='*50}")
+    for caption, key in [
+        ("Accuracy", "accuracy"),
+        ("Severity", "severity_accuracy"),
+        ("Urgency", "urgency_accuracy"),
+        ("Safety recall", "mean_safety_recall"),
+        ("Coverage", "prediction_coverage"),
+    ]:
+        value = overall[key]
+        print(f"{caption:<16}{'N/A' if value is None else format(value, '.1%')}")
+    print(f"Invalid references: {len(invalid)}; unmapped references: {sum(unmapped.values())}")
 
     if taxonomy:
         print("\nPer-class release gates:")
@@ -314,14 +343,6 @@ def evaluate(args: argparse.Namespace) -> dict:
         ):
             flag = " [SAFETY-CRITICAL]" if gate["safety_critical"] else ""
             print(f"{class_id:<28} {gate['verdict']:<22} {gate['detail']}{flag}")
-        failed = [c for c, g in output["gates"].items() if g["verdict"] == "FAIL"]
-        untested = [
-            c for c, g in output["gates"].items()
-            if g["verdict"] in ("NO_DATA", "INSUFFICIENT_SAMPLES")
-        ]
-        print(f"\nGates: {len(failed)} FAIL, {len(untested)} untested "
-              f"(untested classes are NOT releasable)")
-
     return output
 
 
@@ -330,16 +351,21 @@ def main():
     parser.add_argument("--data", required=True, help="Validation JSONL file")
     parser.add_argument("--endpoint", default="http://localhost:8000/v1/chat/completions", help="VLM endpoint URL")
     parser.add_argument("--api-key", default="", help="API key for endpoint")
+    parser.add_argument("--model", default="mint-ai-vlm", help="Model served by the endpoint")
+    parser.add_argument(
+        "--reference-kind", choices=["teacher", "human-reviewed"], default="teacher",
+        help="Declare provenance; human-reviewed requires independently checked labels.",
+    )
     parser.add_argument("--output", default="eval_results.json", help="Output metrics JSON path")
     parser.add_argument(
         "--taxonomy",
         default="",
-        help="Path to taxonomy_v3.json — enables label normalisation + per-class release gates",
+        help="Path to taxonomy_v3.json â€” enables label normalisation + per-class release gates",
     )
     parser.add_argument(
         "--enforce-gates",
         action="store_true",
-        help="Exit 1 if any per-class gate FAILs (requires --taxonomy). For CI.",
+        help="Exit 1 on non-passing gates or invalid references; requires reviewed data and taxonomy.",
     )
     args = parser.parse_args()
 
@@ -356,13 +382,30 @@ def main():
     output = evaluate(args)
 
     if args.enforce_gates:
-        failed = [
-            c for c, g in output.get("gates", {}).items() if g["verdict"] == "FAIL"
-        ]
-        if failed:
-            print(f"\nGate enforcement: FAILED ({', '.join(sorted(failed))})", file=sys.stderr)
+        blocked = gate_blockers(output)
+        if blocked:
+            print(f"\nGate enforcement: BLOCKED ({'; '.join(blocked)})", file=sys.stderr)
             sys.exit(1)
-        print("\nGate enforcement: all measured gates pass")
+        print("\nGate enforcement: all gates pass")
+
+
+def gate_blockers(output: dict) -> list[str]:
+    blockers = []
+    if output["reference_kind"] != "human-reviewed":
+        blockers.append("teacher-labelled data cannot qualify a release")
+    if output["invalid_reference_record_numbers"]:
+        blockers.append("invalid reference records")
+    if output["unmapped_reference_categories"]:
+        blockers.append("unmapped reference categories")
+    gates = output.get("gates") or {}
+    if not gates:
+        blockers.append("no configured class gates")
+    blockers.extend(
+        f"{category}: {gate['verdict']}"
+        for category, gate in sorted(gates.items())
+        if gate["verdict"] != "PASS"
+    )
+    return blockers
 
 
 if __name__ == "__main__":
