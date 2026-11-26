@@ -89,14 +89,14 @@ it('opens and scrolls to the matching tenancy records from the classic repair sh
   );
   const { rerender } = render(detail);
   expect(
-    screen.getByRole('region', { name: 'Tenancy folders and inspections' })
+    screen.getByRole('region', { name: 'Tenancy and inspections' })
   ).toHaveAttribute('id', 'manage-records');
   expect(
     screen.getByText('Inspection records for dummy-property')
   ).toBeInTheDocument();
   expect(mocks.scroll).toHaveBeenCalledWith({ block: 'start' });
   expect(
-    screen.getByRole('region', { name: 'Tenancy folders and inspections' })
+    screen.getByRole('region', { name: 'Tenancy and inspections' })
   ).toHaveFocus();
 
   fireEvent.click(screen.getByRole('button', { name: 'Overview' }));
