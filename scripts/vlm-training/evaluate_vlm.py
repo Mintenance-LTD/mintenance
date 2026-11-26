@@ -196,6 +196,7 @@ def aggregate(rows: list[dict]) -> dict:
     hits = [r for r in rows if r["safety_recall"] is not None]
     negative = [r for r in rows if r["hazard_negative"]]
     valid_negative = [r for r in negative if r["success"]]
+    hazard_predictions = [r for r in rows if r["unexpected_hazards"] is not None]
     return {
         "total": total,
         "successful_calls": sum(r["success"] for r in rows),
@@ -206,6 +207,8 @@ def aggregate(rows: list[dict]) -> dict:
         "hazard_positive_samples": len(hits),
         "hazard_negative_samples": len(negative),
         "hazard_negative_valid_predictions": len(valid_negative),
+        "hazard_predictions_with_labels": len(hazard_predictions),
+        "samples_with_unexpected_hazards": sum(bool(r["unexpected_hazards"]) for r in hazard_predictions),
         "mean_safety_recall": sum(r["safety_recall"] for r in hits) / len(hits) if hits else None,
         "hazard_false_alarm_rate": (
             sum(r["hazard_false_alarm"] for r in valid_negative) / len(valid_negative)
@@ -213,6 +216,37 @@ def aggregate(rows: list[dict]) -> dict:
         ),
         "avg_latency_ms": sum(r["latency_ms"] for r in rows) / total if total else None,
     }
+
+
+def hazard_review_gate(overall: dict, taxonomy: dict) -> dict:
+    """Conservative engineering gate, not a statement of real-world safety."""
+    config = taxonomy.get("hazardReviewGates", {})
+    min_clean = config.get("minValidCleanSamples", 25)
+    min_coverage = config.get("minPredictionCoverage", 0.95)
+    max_unexpected = config.get("maxUnexpectedHazardRate", 0.0)
+    n_labels = overall["hazard_predictions_with_labels"]
+    unexpected = overall["samples_with_unexpected_hazards"]
+    rate = unexpected / n_labels if n_labels else None
+    coverage = overall["prediction_coverage"]
+    clean_total = overall["hazard_negative_samples"]
+    clean_valid = overall["hazard_negative_valid_predictions"]
+    clean_coverage = clean_valid / clean_total if clean_total else None
+    clean_alarm_rate = overall["hazard_false_alarm_rate"]
+    reasons = []
+    if clean_valid < min_clean:
+        reasons.append(f"fewer than {min_clean} valid reviewed clean predictions")
+    if coverage is None or coverage < min_coverage:
+        reasons.append(f"prediction coverage below {min_coverage:.0%} or unavailable")
+    if clean_coverage is None or clean_coverage < min_coverage:
+        reasons.append(f"clean-image coverage below {min_coverage:.0%} or unavailable")
+    if rate is None or rate > max_unexpected:
+        reasons.append(f"unexpected hazard rate above {max_unexpected:.0%} or unavailable")
+    if clean_alarm_rate is None or clean_alarm_rate > max_unexpected:
+        reasons.append(f"clean-image false alarm rate above {max_unexpected:.0%} or unavailable")
+    return {"verdict": "FAIL" if reasons else "PASS", "reasons": reasons,
+            "unexpected_hazard_rate": rate, "max_unexpected_hazard_rate": max_unexpected,
+            "clean_prediction_coverage": clean_coverage, "clean_false_alarm_rate": clean_alarm_rate,
+            "min_prediction_coverage": min_coverage, "min_valid_clean_samples": min_clean}
 
 
 def field_accuracy(rows: list[dict], key: str) -> float | None:
@@ -279,6 +313,7 @@ def evaluate(args: argparse.Namespace) -> dict:
             "safety_recall": safety_recall,
             "hazard_negative": not reference_hazards,
             "hazard_false_alarm": not reference_hazards and bool(predicted_hazards) and success,
+            "unexpected_hazards": len(predicted_hazards - reference_hazards) if predicted_hazards is not None else None,
         }
         category_rows[category].append(result)
         results.append(result)
@@ -314,6 +349,7 @@ def evaluate(args: argparse.Namespace) -> dict:
     if taxonomy:
         gate_results = evaluate_gates(per_category, taxonomy)
         output["gates"] = gate_results
+        output["hazard_review_gate"] = hazard_review_gate(overall, taxonomy)
         output["taxonomy_version"] = taxonomy.get("version")
 
     # Save results
@@ -335,6 +371,8 @@ def evaluate(args: argparse.Namespace) -> dict:
     print(f"Invalid references: {len(invalid)}; unmapped references: {sum(unmapped.values())}")
 
     if taxonomy:
+        review = output["hazard_review_gate"]
+        print(f"Hazard review gate: {review['verdict']} {'; '.join(review['reasons'])}")
         print("\nPer-class release gates:")
         print(f"{'class':<28} {'verdict':<22} detail")
         for class_id, gate in sorted(
@@ -400,6 +438,9 @@ def gate_blockers(output: dict) -> list[str]:
     gates = output.get("gates") or {}
     if not gates:
         blockers.append("no configured class gates")
+    review = output.get("hazard_review_gate") or {}
+    if review.get("verdict") != "PASS":
+        blockers.extend(review.get("reasons") or ["no passing hazard review gate"])
     blockers.extend(
         f"{category}: {gate['verdict']}"
         for category, gate in sorted(gates.items())

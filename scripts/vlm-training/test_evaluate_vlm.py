@@ -38,6 +38,7 @@ class EvaluateVlmTest(unittest.TestCase):
                 "version": "fixture",
                 "defaultGates": {"minEvalSamples": 1},
                 "safetyCriticalGates": {"minEvalSamples": 1},
+                "hazardReviewGates": {"minValidCleanSamples": 1},
                 "classes": [
                     {"id": "leak", "aliases": ["pipe leak"], "safetyCritical": True},
                     {"id": "no_defect"},
@@ -92,6 +93,33 @@ class EvaluateVlmTest(unittest.TestCase):
         self.assertEqual(result["unmapped_reference_categories"], {"typo": 1})
         self.assertIn("invalid reference records", evaluator.gate_blockers(result))
         self.assertIn("unmapped reference categories", evaluator.gate_blockers(result))
+
+    def test_correct_categories_cannot_hide_false_alarms_on_clean_images(self):
+        clean = response("no_defect")
+        leak = response("leak", ["water"])
+        result, _ = self.evaluate([row(clean)] * 25 + [row(leak)],
+                                  [response("no_defect", ["electrical"])] * 25 + [leak])
+        self.assertEqual(result["overall"]["accuracy"], 1)
+        self.assertEqual(result["overall"]["hazard_false_alarm_rate"], 1)
+        self.assertEqual(result["overall"]["samples_with_unexpected_hazards"], 25)
+        self.assertEqual(result["hazard_review_gate"]["verdict"], "FAIL")
+        self.assertTrue(evaluator.gate_blockers(result))
+
+    def test_perfect_recall_cannot_hide_extra_hazards(self):
+        clean = response("no_defect")
+        leak = response("leak", ["water"])
+        result, _ = self.evaluate([row(clean), row(leak)], [clean, response("leak", ["water", "electrical"])])
+        self.assertEqual(result["overall"]["mean_safety_recall"], 1)
+        self.assertEqual(result["overall"]["hazard_false_alarm_rate"], 0)
+        self.assertEqual(result["hazard_review_gate"]["unexpected_hazard_rate"], 0.5)
+        self.assertTrue(evaluator.gate_blockers(result))
+
+    def test_missing_predictions_cannot_masquerade_as_no_alarms(self):
+        clean = response("no_defect")
+        leak = response("leak", ["water"])
+        result, _ = self.evaluate([row(clean)] * 5 + [row(leak)], [clean] * 4 + [None, leak])
+        self.assertEqual(result["overall"]["hazard_false_alarm_rate"], 0)
+        self.assertTrue(any("coverage" in item for item in evaluator.gate_blockers(result)))
 
     def test_malformed_predictions_cannot_pass_on_type_alone(self):
         ref = response("leak", ["water"], "major", "urgent")
