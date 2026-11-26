@@ -19,7 +19,8 @@ function toWaitingFor(value: unknown): ReportStaffFollowup['waitingFor'] {
 export async function readReportStaffFollowup(
   actor: string,
   reportId: string,
-  propertyId: string
+  propertyId: string,
+  isOpenInternalReport: boolean
 ): Promise<ReportStaffFollowup | undefined> {
   const access = await PropertyTeamService.authorize(
     actor,
@@ -30,14 +31,42 @@ export async function readReportStaffFollowup(
 
   const result = await serverSupabase
     .from('property_action_followups')
-    .select('assigned_to,due_at,waiting_for')
+    .select('*')
     .eq('kind', 'report')
     .eq('source_id', reportId)
     .eq('property_id', propertyId)
     .maybeSingle();
   if (result.error) throw result.error;
 
-  const assigneeId = result.data?.assigned_to;
+  const row = result.data;
+  const assigneeId = row?.assigned_to;
+  if (access.role !== 'owner' && actor !== assigneeId) return undefined;
+  const completion =
+    row?.completion_note && row.completion_at
+      ? {
+          note: String(row.completion_note),
+          submittedAt: String(row.completion_at),
+          submittedBy: 'Property teammate',
+          awaitingReview:
+            isOpenInternalReport && row.completion_revision === row.revision,
+        }
+      : undefined;
+  if (completion && row?.completion_by) {
+    const author = await serverSupabase
+      .from('profiles')
+      .select('first_name,last_name')
+      .eq('id', row.completion_by)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (author.error) throw author.error;
+    completion.submittedBy =
+      row.completion_by === actor
+        ? 'You'
+        : [author.data?.first_name, author.data?.last_name]
+            .filter(Boolean)
+            .join(' ')
+            .trim() || 'Property teammate';
+  }
   const staff: ReportStaffFollowup = {
     propertyId,
     canManage: access.role === 'owner',
@@ -45,6 +74,7 @@ export async function readReportStaffFollowup(
     needsReassignment: false,
     dueAt: result.data?.due_at ?? null,
     waitingFor: toWaitingFor(result.data?.waiting_for),
+    ...(completion ? { completion } : {}),
   };
   if (!assigneeId) return staff;
 
@@ -63,6 +93,15 @@ export async function readReportStaffFollowup(
   }
   return {
     ...staff,
+    // Before the migration is applied, the completion fields are absent.
+    ...(isOpenInternalReport &&
+    access.role !== 'owner' &&
+    actor === assigneeId &&
+    row &&
+    Object.prototype.hasOwnProperty.call(row, 'completion_revision') &&
+    !completion?.awaitingReview
+      ? { completionRevision: row.revision as number }
+      : {}),
     assigneeName:
       assigneeId === actor
         ? 'You'

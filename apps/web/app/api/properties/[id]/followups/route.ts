@@ -142,3 +142,48 @@ export const PATCH = withApiHandler({}, async (request, { user, params }) => {
   if (error) throw error;
   return NextResponse.json({ followup: data });
 });
+
+const submitCompletion = z.object({
+  reportId: z.string().uuid(),
+  revision: z.number().int().min(0).max(2147483646),
+  note: z.string().trim().min(1).max(5000),
+});
+
+export const POST = withApiHandler({}, async (request, { user, params }) => {
+  const parsed = submitCompletion.safeParse(await request.json());
+  if (!parsed.success)
+    throw new BadRequestError('Enter a valid completion note.');
+  const { reportId, revision, note } = parsed.data;
+  // The database rechecks current membership, assignment and report state
+  // while it saves. This endpoint cannot close a report or post a message.
+  const { error } = await serverSupabase.rpc('submit_report_staff_completion', {
+    p_actor: user.id,
+    p_property: params.id,
+    p_source: reportId,
+    p_revision: revision,
+    p_note: note,
+  });
+  if (['PT409', '40001'].includes(error?.code ?? ''))
+    return NextResponse.json(
+      {
+        error:
+          'This handover has changed. Refresh the case before resubmitting.',
+      },
+      { status: 409 }
+    );
+  if (error?.code === '42501')
+    throw new ForbiddenError(
+      'Only the assigned teammate can submit for review.'
+    );
+  if (error?.code === '22023')
+    throw new BadRequestError(
+      'This repair is no longer open for internal handover.'
+    );
+  if (error) throw error;
+  return NextResponse.json(
+    { submitted: true },
+    {
+      headers: { 'Cache-Control': 'private, no-store' },
+    }
+  );
+});

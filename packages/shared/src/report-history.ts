@@ -3,6 +3,13 @@ export interface ReportStaffFollowup {
   canManage: boolean;
   assigneeName: string | null;
   needsReassignment: boolean;
+  completionRevision?: number;
+  completion?: {
+    note: string;
+    submittedAt: string;
+    submittedBy: string;
+    awaitingReview: boolean;
+  };
   dueAt?: string | null;
   waitingFor?: 'manager' | 'tenant' | 'contractor' | 'approval' | null;
 }

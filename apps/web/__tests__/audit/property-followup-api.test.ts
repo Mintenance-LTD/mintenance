@@ -40,7 +40,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
     },
   },
 }));
-import { GET, PATCH } from '@/app/api/properties/[id]/followups/route';
+import { GET, PATCH, POST } from '@/app/api/properties/[id]/followups/route';
 const id = '00000000-0000-4000-8000-000000000001';
 const payload = {
   kind: 'job',
@@ -141,4 +141,47 @@ it('denies viewers before any RPC and retains server identity binding', async ()
       p_revision: 3,
     })
   );
+});
+
+const submit = (body: Record<string, unknown>) =>
+  (POST as unknown as (req: NextRequest, ctx: unknown) => Promise<Response>)(
+    new NextRequest('http://localhost/api/properties/home/followups', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+    { user: { id: 'actor' }, params: { id: 'home' } }
+  );
+
+it('submits a private completion using the authenticated teammate and route property', async () => {
+  const response = await submit({
+    reportId: id,
+    revision: 4,
+    note: ' Leak fixed ',
+    actor: 'ignored',
+    property: 'ignored',
+  });
+  expect(await response.json()).toEqual({ submitted: true });
+  expect(mock.rpc).toHaveBeenCalledExactlyOnceWith(
+    'submit_report_staff_completion',
+    {
+      p_actor: 'actor',
+      p_property: 'home',
+      p_source: id,
+      p_revision: 4,
+      p_note: 'Leak fixed',
+    }
+  );
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+});
+
+it('does not accept blank completion notes and reports revision conflicts without a retry', async () => {
+  await expect(
+    submit({ reportId: id, revision: 4, note: '   ' })
+  ).rejects.toMatchObject({ statusCode: 400 });
+  expect(mock.rpc).not.toHaveBeenCalled();
+  mock.rpc.mockResolvedValue({ error: { code: 'PT409' } });
+  expect(
+    (await submit({ reportId: id, revision: 4, note: 'Leak fixed' })).status
+  ).toBe(409);
+  expect(mock.rpc).toHaveBeenCalledTimes(1);
 });

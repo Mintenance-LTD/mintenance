@@ -71,8 +71,11 @@ function CaseConversation({
     [pending, setPending] = useState<{ id: string; body: string } | null>(null);
   const staffFollowup =
     !receipt && data?.role === 'manager' ? data.staffFollowup : undefined;
-  const nextStep =
-    data?.status === 'new' && staffFollowup?.assigneeName === 'You'
+  const nextStep = staffFollowup?.completion?.awaitingReview
+    ? staffFollowup.canManage
+      ? 'Review the completion note before marking the report resolved.'
+      : 'The property owner will review your completion note. The report remains open for now.'
+    : data?.status === 'new' && staffFollowup?.assigneeName === 'You'
       ? 'Review the original report and share an update when you know the next step.'
       : data?.status === 'new' &&
           staffFollowup?.canManage &&
@@ -249,8 +252,8 @@ function CaseConversation({
             <StaffFollowup
               followup={staffFollowup}
               reportId={reportId}
-              onSaved={() => {
-                setNotice('Follow-up saved.');
+              onSaved={(message) => {
+                setNotice(message ?? 'Follow-up saved.');
                 setAttempt((value) => value + 1);
               }}
             />
