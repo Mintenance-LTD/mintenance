@@ -182,6 +182,7 @@ try {
     `BEGIN; ${sql('20261124160045_assigned_tenant_report_handoffs.sql')} COMMIT;`
   );
   await db.exec(sql('20261126101500_report_staff_completion.sql'));
+  await db.exec(sql('20261126104600_reset_staff_completion_on_reopen.sql'));
   await db.exec('SET ROLE service_role');
   await test('team scope respects membership and owner-only tenant reports', async () => {
     const manager = await queue();
@@ -465,6 +466,41 @@ try {
       (await filteredQueue(1, 10)).items.some((x) => x.id === id(21)),
       false
     );
+  });
+  await test('reopening sends a completed repair back to the team without losing the original note', async () => {
+    const setStatus = (status) =>
+      db.query('UPDATE anonymous_reports SET status=$2 WHERE id=$1', [
+        id(21),
+        status,
+      ]);
+    await setStatus('acknowledged');
+    await save({
+      actor: 1,
+      kind: 'report',
+      source: 21,
+      revision: 0,
+      assignee: 2,
+    });
+    await complete();
+    await setStatus('resolved');
+    await setStatus('new');
+    const reopened = (await filteredQueue(1, 10)).items.find(
+      (x) => x.id === id(21)
+    );
+    assert.equal(reopened.next_action, 'Awaiting manager');
+    await setStatus('acknowledged');
+    const followup = (await snapshot()).followups.find(
+      (x) => x.source_id === id(21)
+    );
+    assert.equal(followup.assigned_to, id(2));
+    assert.equal(followup.revision, 3);
+    assert.equal(followup.completion_revision, 2);
+    assert.equal(followup.completion_note, 'Washer replaced');
+    await rejects(() => complete(2, 2), 'PT409');
+    await complete(2, 3, 'Second inspection complete');
+    const updates = (await snapshot()).updates;
+    for (const note of ['Washer replaced', 'Second inspection complete'])
+      assert.equal(updates.filter((x) => x.body.includes(note)).length, 1);
   });
   await db.exec('RESET ROLE');
   for (const role of ['anon', 'authenticated']) {
