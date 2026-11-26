@@ -43,6 +43,19 @@ export function PropertyViewSwitcher() {
           </>
         )}
       </PropertyChoice>
+      {ready && view === 'agency' && (
+        <TouchableOpacity
+          accessibilityRole='button'
+          accessible
+          accessibilityLabel='Open Agency workspace'
+          style={styles.linkButton}
+          onPress={() =>
+            navigation.navigate('ProfileTab', { screen: 'PortfolioInbox' })
+          }
+        >
+          <Text style={styles.link}>Open Agency workspace</Text>
+        </TouchableOpacity>
+      )}
       <TouchableOpacity
         accessibilityRole='button'
         style={styles.linkButton}

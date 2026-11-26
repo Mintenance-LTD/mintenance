@@ -1,6 +1,6 @@
 # Mintenance agency repair pilot
 
-This branch adds the first staff-operated slice to the Portfolio workspace. It does not dispatch contractors, invite a landlord, publish a listing, or move money.
+This branch adds the first staff-operated slice to the existing homeowner Agency view in Mintenance. Select **Agency** in the homeowner view switcher, then **Open Agency workspace**. That opens the existing Portfolio workspace; there is no separate app, sign-in, or account. It does not dispatch contractors, invite a landlord, publish a listing, or move money.
 
 ## Staff acceptance
 

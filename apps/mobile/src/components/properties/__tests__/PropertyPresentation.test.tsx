@@ -95,6 +95,19 @@ it('dismisses the view chooser without changing the preference', () => {
   expect(mockSetView).not.toHaveBeenCalled();
   expect(ui.queryByText('Agency')).toBeNull();
 });
+it('opens the existing Portfolio Inbox from Agency but not from My home or Rentals', () => {
+  const ui = render(<PropertyViewSwitcher />);
+  expect(ui.queryByText('Open Agency workspace')).toBeNull();
+  mockPreference.view = 'rentals';
+  ui.rerender(<PropertyViewSwitcher />);
+  expect(ui.queryByText('Open Agency workspace')).toBeNull();
+  mockPreference.view = 'agency';
+  ui.rerender(<PropertyViewSwitcher />);
+  fireEvent.press(ui.getByLabelText('Open Agency workspace'));
+  expect(mockNavigate).toHaveBeenCalledWith('ProfileTab', {
+    screen: 'PortfolioInbox',
+  });
+});
 it('groups upload dates and filters an older album', async () => {
   const ui = albums();
   await ui.findByText('Uploaded 30 October 2026 · 1 photo');
