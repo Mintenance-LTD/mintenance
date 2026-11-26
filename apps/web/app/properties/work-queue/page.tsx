@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { propertyRepairHref } from '@/lib/properties/repair-navigation';
+import { propertyRepairQueueHref } from '@/lib/properties/repair-navigation';
 import {
   queueReportFocus,
   queueReturnParams,
@@ -406,7 +406,11 @@ export default function PropertyWorkQueuePage() {
                         item.kind === 'job'
                           ? item.can_open_job
                             ? `/jobs/${item.id}`
-                            : `${propertyRepairHref(item.property_id, item.id)}?from=queue`
+                            : propertyRepairQueueHref(
+                                item.property_id,
+                                item.id,
+                                queueSearch
+                              )
                           : item.kind === 'report'
                             ? reportConversationHref(
                                 item.id,
