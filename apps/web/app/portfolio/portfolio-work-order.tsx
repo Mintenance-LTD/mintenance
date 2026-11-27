@@ -9,6 +9,7 @@ import {
   workOrderInput,
 } from './work-order-model';
 import type { WorkOrder } from './work-order-model';
+import { PortfolioDispatch } from './portfolio-dispatch';
 
 const costFields = [
   { label: 'Quoted', amount: 'quotedPence', reference: undefined },
@@ -58,7 +59,15 @@ export function PortfolioWorkOrder({ ticketId }: { ticketId: string }) {
         {open ? 'Hide work order' : 'Open work order'}
       </button>
       <div id={id + '-panel'} hidden={!open}>
-        {open && <WorkOrderEditor key={ticketId} ticketId={ticketId} />}
+        {open && (
+          <>
+            <WorkOrderEditor key={ticketId} ticketId={ticketId} />
+            <PortfolioDispatch
+              key={'dispatch:' + ticketId}
+              ticketId={ticketId}
+            />
+          </>
+        )}
       </div>
     </section>
   );

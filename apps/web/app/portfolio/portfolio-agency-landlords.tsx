@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from 'react';
 import type { FormEvent } from 'react';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { amountLabel, parsePounds } from './work-order-model';
+import { PortfolioLandlordQuoteAccess } from './portfolio-landlord-quote-access';
 
 type Landlord = {
   id: string;
@@ -235,8 +236,9 @@ function DirectoryPanel({ workspaceId }: { workspaceId: string }) {
   return (
     <div className='mt-3 border-t border-slate-200 pt-3'>
       <p className='text-sm text-slate-600'>
-        This directory is internal. Linking a property or recording an approval
-        limit does not give a landlord access or send an approval request.
+        This directory is internal. To let a landlord review quotes, explicitly
+        link their existing Mintenance account. Linking a property alone does
+        not grant access.
       </p>
       {loading && (
         <p role='status' className='mt-2 text-sm'>
@@ -464,6 +466,13 @@ function DirectoryPanel({ workspaceId }: { workspaceId: string }) {
                     >
                       Edit {record.displayName}
                     </button>
+                  )}
+                  {directory.canEdit && !selected && (
+                    <PortfolioLandlordQuoteAccess
+                      workspaceId={workspaceId}
+                      landlordId={record.id}
+                      landlordName={record.displayName}
+                    />
                   )}
                 </li>
               ))}

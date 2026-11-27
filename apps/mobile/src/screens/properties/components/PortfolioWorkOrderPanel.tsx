@@ -22,6 +22,8 @@ import {
   type WorkOrderDraft,
 } from './portfolioWorkOrderModel';
 
+import { StaffAgencyDispatchPanel } from './StaffAgencyDispatchPanel';
+
 type Props = { userId: string; workspaceId: string; ticketId: string };
 type Response = { workOrder: WorkOrder | null };
 
@@ -267,6 +269,14 @@ function WorkOrderRecord({ userId, workspaceId, ticketId }: Props) {
             }}
             disabled={conflict}
           />
+          {saved && !conflict && (
+            <StaffAgencyDispatchPanel
+              userId={userId}
+              workspaceId={workspaceId}
+              ticketId={ticketId}
+              arrangement={saved.arrangement}
+            />
+          )}
         </>
       ) : (
         <>

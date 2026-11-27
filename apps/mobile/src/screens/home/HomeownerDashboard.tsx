@@ -10,6 +10,7 @@
  * "home, taken care of" rather than "look at my numbers".
  */
 
+import { AgencyPrivateWorkShortcut } from './components/AgencyPrivateWorkShortcut';
 import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSwitcher';
 import { isActiveJob } from '../../utils/jobActivity';
 import React, { useState } from 'react';
@@ -269,6 +270,9 @@ export const HomeownerDashboard: React.FC = () => {
         </View>
 
         <PropertyViewSwitcher />
+        {user?.role === 'homeowner' && (
+          <AgencyPrivateWorkShortcut viewer='landlord' />
+        )}
 
         {/* Editorial greeting — caption + serif headline + subtitle */}
         <FadeIn duration={400}>
