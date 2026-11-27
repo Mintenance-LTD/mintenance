@@ -11,6 +11,7 @@ import {
   parseReportHistory,
   reportHistoryDate,
   reportStatusLabel,
+  type ReportStaffFollowup,
 } from '@mintenance/shared';
 import { useAuth } from '../../../contexts/AuthContext';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
@@ -22,24 +23,38 @@ function messageId() {
     return (c === 'x' ? r : (r & 3) | 8).toString(16);
   });
 }
-export function IssueConversation({ reportId }: { reportId: string }) {
+export function IssueConversation({
+  reportId,
+  caseTitle,
+  initiallyOpen = false,
+}: {
+  reportId: string;
+  caseTitle?: string;
+  initiallyOpen?: boolean;
+}) {
   const { user } = useAuth();
   return user ? (
     <CaseHistory
       key={`${user.id}:${reportId}`}
       reportId={reportId}
       userId={user.id}
+      caseTitle={caseTitle}
+      initiallyOpen={initiallyOpen}
     />
   ) : null;
 }
 function CaseHistory({
   reportId,
   userId,
+  caseTitle,
+  initiallyOpen,
 }: {
   reportId: string;
   userId: string;
+  caseTitle?: string;
+  initiallyOpen: boolean;
 }) {
-  const [open, setOpen] = useState(false),
+  const [open, setOpen] = useState(initiallyOpen),
     [offset, setOffset] = useState(0),
     [latest, setLatest] = useState(false),
     [body, setBody] = useState(''),
@@ -62,7 +77,7 @@ function CaseHistory({
     queryFn: async ({ signal }) =>
       parseReportHistory(
         await mobileApiClient.get(
-          `/api/report-conversation?reportId=${reportId}&offset=${offset}&latest=${latest}`,
+          `/api/report-conversation?reportId=${encodeURIComponent(reportId)}&offset=${offset}&latest=${latest}`,
           { signal, timeout: 15000, retries: 0 }
         )
       ),
@@ -107,6 +122,11 @@ function CaseHistory({
       <TouchableOpacity
         style={styles.button}
         accessibilityRole='button'
+        accessibilityLabel={
+          caseTitle
+            ? `${open ? 'Close' : 'Open'} repair case: ${caseTitle}`
+            : 'Shared issue conversation'
+        }
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen(!open)}
       >
@@ -116,7 +136,9 @@ function CaseHistory({
       </TouchableOpacity>
       {open && (
         <>
-          <Text>Tenant case history · {reportId}</Text>
+          <Text style={styles.heading}>
+            {caseTitle || 'Tenant case history'}
+          </Text>
           <Text>
             Shared with the resident, managers and assigned contractor. Do not
             include access codes or payment details.
@@ -143,7 +165,7 @@ function CaseHistory({
               {data.summary ? (
                 <View style={styles.entry}>
                   <Text style={styles.heading}>
-                    Original report · {data.summary.category.replace(/_/g, ' ')}
+                    Original report: {data.summary.category.replace(/_/g, ' ')}
                   </Text>
                   <Text>
                     Submitted {reportHistoryDate(data.summary.created_at)}
@@ -155,6 +177,17 @@ function CaseHistory({
                   Original report summary unavailable. Refresh to retry.
                 </Text>
               )}
+              {data.role === 'manager' && data.staffFollowup && (
+                <PrivateHandover
+                  reportId={reportId}
+                  followup={data.staffFollowup}
+                  checkingAccess={query.isFetching}
+                  onRefresh={async () => {
+                    await query.refetch();
+                  }}
+                />
+              )}
+              <Text style={styles.heading}>Resident conversation</Text>
               <Text>
                 Recorded updates, oldest first within each page. Status changes
                 appear as system updates.
@@ -249,6 +282,162 @@ function CaseHistory({
     </View>
   );
 }
+
+const waitingForLabel = {
+  manager: 'Property team action',
+  tenant: 'Resident response',
+  contractor: 'Contractor response',
+  approval: 'Approval',
+} as const;
+
+function PrivateHandover({
+  followup,
+  reportId,
+  onRefresh,
+  checkingAccess,
+}: {
+  followup: ReportStaffFollowup;
+  reportId: string;
+  onRefresh: () => Promise<void>;
+  checkingAccess: boolean;
+}) {
+  const [note, setNote] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [blockedRevision, setBlockedRevision] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const inFlight = useRef(false);
+  const revision = followup.completionRevision;
+  const canSubmit =
+    !followup.canManage &&
+    !followup.needsReassignment &&
+    !followup.completion?.awaitingReview &&
+    typeof revision === 'number' &&
+    Number.isInteger(revision) &&
+    revision >= 0;
+  const blocked = blockedRevision !== null && blockedRevision === revision;
+  const submitDisabled = busy || blocked || checkingAccess || !note.trim();
+
+  async function submit() {
+    if (!canSubmit || submitDisabled || inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      const reply = await mobileApiClient.post<{ submitted: boolean }>(
+        `/api/properties/${encodeURIComponent(followup.propertyId)}/followups`,
+        { reportId, revision, note: note.trim() },
+        { timeout: 15000, retries: 0 }
+      );
+      if (reply?.submitted !== true) throw new Error('Completion unconfirmed');
+      setNote('');
+      setSubmitted(true);
+      setBlockedRevision(revision ?? null);
+      await onRefresh();
+    } catch (cause) {
+      const code = (cause as { statusCode?: number } | null)?.statusCode;
+      if (code === 401 || code === 403 || code === 404) {
+        setAccessDenied(true);
+        setNote('');
+      } else if (code === 409) {
+        setBlockedRevision(revision ?? null);
+        setError(
+          'This handover changed or you no longer have access. Refresh the case before resubmitting.'
+        );
+      } else {
+        setError(
+          'Completion was not confirmed. Your note is still here; try again.'
+        );
+      }
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  if (accessDenied) {
+    return (
+      <Text accessibilityRole='alert'>
+        You no longer have access to this handover. Refresh the case to confirm.
+      </Text>
+    );
+  }
+
+  const completion = followup.completion;
+  const responsible = followup.needsReassignment
+    ? 'Needs reassignment'
+    : followup.assigneeName || 'Unassigned';
+  return (
+    <View
+      style={styles.entry}
+      accessibilityLabel='Private property team handover'
+    >
+      <Text style={styles.heading}>Property team handover</Text>
+      <Text>Not shared with the resident.</Text>
+      <Text>Responsible: {responsible}</Text>
+      <Text>
+        Next action:{' '}
+        {completion?.awaitingReview || (submitted && blocked)
+          ? 'Owner reviews completion'
+          : followup.needsReassignment
+            ? 'Owner reassigns this repair'
+            : followup.waitingFor
+              ? waitingForLabel[followup.waitingFor]
+              : 'Not recorded'}
+      </Text>
+      {followup.dueAt ? (
+        <Text>Follow-up due: {reportHistoryDate(followup.dueAt)}</Text>
+      ) : null}
+      {completion && (
+        <View style={styles.entry}>
+          <Text style={styles.heading}>
+            {completion.awaitingReview
+              ? 'Ready for owner review'
+              : 'Last completion handover'}
+          </Text>
+          <Text>
+            {completion.submittedBy} ·{' '}
+            {reportHistoryDate(completion.submittedAt)}
+          </Text>
+          <Text>{completion.note}</Text>
+        </View>
+      )}
+      {submitted && (blocked || completion?.awaitingReview) && (
+        <Text accessibilityLiveRegion='polite'>
+          Completion sent to the owner for review. The report is still open.
+        </Text>
+      )}
+      {canSubmit && !(submitted && blocked) && (
+        <>
+          <Text style={styles.heading}>Private completion note</Text>
+          <TextInput
+            accessibilityLabel='Private completion note'
+            style={styles.input}
+            editable={!busy}
+            multiline
+            maxLength={5000}
+            value={note}
+            onChangeText={setNote}
+            textAlignVertical='top'
+          />
+          <TouchableOpacity
+            style={styles.button}
+            accessibilityRole='button'
+            accessibilityLabel='Submit for owner review'
+            disabled={submitDisabled}
+            accessibilityState={{ disabled: submitDisabled }}
+            onPress={() => void submit()}
+          >
+            <Text>{busy ? 'Submitting…' : 'Submit for owner review'}</Text>
+          </TouchableOpacity>
+        </>
+      )}
+      {!!error && <Text accessibilityRole='alert'>{error}</Text>}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { gap: 10, paddingVertical: 12 },
   heading: { fontWeight: '600', color: theme.colors.textPrimary },

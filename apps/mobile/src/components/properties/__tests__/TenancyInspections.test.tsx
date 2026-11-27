@@ -1,4 +1,5 @@
 import React from 'react';
+import { Share } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { TrackedQueryClient as QueryClient } from '../../../__tests__/setup/TrackedQueryClient';
@@ -350,4 +351,26 @@ it('withholds the correction action from a report viewer', async () => {
   const ui = show(originalReport.id);
   await ui.findByText(originalReport.title);
   expect(ui.queryByText('Correct this report')).toBeNull();
+});
+
+it('shares the exact report at the configured web origin and leaves PDF export available', async () => {
+  const saved = process.env.EXPO_PUBLIC_WEB_URL;
+  process.env.EXPO_PUBLIC_WEB_URL = 'https://preview.example.test/some-base-path';
+  try {
+    jest.mocked(mobileApiClient.get).mockResolvedValue({
+      folder,
+      canCreate: false,
+      photos: [],
+      report: originalReport,
+    });
+    const ui = show(originalReport.id);
+    fireEvent.press(await ui.findByText('Share member-only report link'));
+    expect(Share.share).toHaveBeenCalledWith({
+      message: 'https://preview.example.test/properties/property/inspections/' + originalReport.id,
+    });
+    expect(ui.getByText('Download PDF')).toBeTruthy();
+  } finally {
+    if (saved === undefined) delete process.env.EXPO_PUBLIC_WEB_URL;
+    else process.env.EXPO_PUBLIC_WEB_URL = saved;
+  }
 });

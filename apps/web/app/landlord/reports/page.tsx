@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getCurrentUserFromCookies } from '@/lib/auth';
@@ -10,6 +11,28 @@ export const metadata: Metadata = {
   title: 'Tenant Reports | Mintenance',
   description: 'View and manage maintenance reports submitted by tenants.',
 };
+
+function ReportInboxNavigation() {
+  return (
+    <aside aria-label='Tenant report inbox scope' className='m-6 text-sm'>
+      <p>
+        This inbox shows reports from links you own. To pick up work on
+        properties shared with you, use the maintenance action queue.
+      </p>
+      <div className='mt-2 flex flex-wrap gap-4'>
+        <Link className='font-semibold underline' href='/properties/work-queue'>
+          Open team action queue
+        </Link>
+        <Link
+          className='font-semibold text-red-700 underline'
+          href='/maintenance/emergencies'
+        >
+          Review emergency acknowledgments
+        </Link>
+      </div>
+    </aside>
+  );
+}
 
 export default async function TenantReportsPage({
   searchParams,
@@ -51,9 +74,7 @@ export default async function TenantReportsPage({
         <p role='alert'>
           Reports could not be loaded. Your inbox has not been confirmed empty.
         </p>
-        <a href='/maintenance/emergencies' className='my-4 block underline'>
-          Review emergency acknowledgments
-        </a>
+        <ReportInboxNavigation />
         <a
           className='underline'
           href={
@@ -77,12 +98,7 @@ export default async function TenantReportsPage({
   if (isMintEditorial) {
     return (
       <>
-        <a
-          href='/maintenance/emergencies'
-          className='m-6 inline-block font-semibold text-red-700 underline'
-        >
-          Review emergency acknowledgments
-        </a>
+        <ReportInboxNavigation />
         <MintEditorialTenantReports
           key={initialReportId ?? 'inbox'}
           reports={reports || []}
@@ -94,12 +110,7 @@ export default async function TenantReportsPage({
 
   return (
     <>
-      <a
-        href='/maintenance/emergencies'
-        className='m-6 inline-block font-semibold text-red-700 underline'
-      >
-        Review emergency acknowledgments
-      </a>
+      <ReportInboxNavigation />
       <TenantReportsClient
         key={initialReportId ?? 'inbox'}
         reports={reports || []}

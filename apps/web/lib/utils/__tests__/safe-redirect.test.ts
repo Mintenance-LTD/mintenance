@@ -34,6 +34,34 @@ describe('isAllowedRedirect', () => {
     expect(isAllowedRedirect('/accept-invite-evil')).toBe(false);
     expect(isAllowedRedirect('/getting-started-evil')).toBe(false);
   });
+  it('returns signed-in teammates to exact repair and reporting destinations', () => {
+    const property = '00000000-0000-4000-8000-000000000010';
+    const item = '00000000-0000-4000-8000-000000000030';
+    const destinations = [
+      '/properties',
+      `/properties/work-queue?property=${property}&sort=due`,
+      `/properties/${property}/repairs/${item}?from=queue&sort=due`,
+      `/landlord/reports?reportId=${item}`,
+      '/landlord/reporting-links',
+      '/maintenance/emergencies',
+      `/maintenance/reports/${item}?from=action-queue`,
+      '/portfolio',
+    ];
+    for (const destination of destinations) {
+      expect(safeRedirect(destination, '/dashboard')).toBe(destination);
+      expect(isAllowedRedirect(`https://example.com${destination}`)).toBe(
+        false
+      );
+    }
+    expect(isAllowedRedirect('/landlord/reports-archive')).toBe(false);
+    expect(isAllowedRedirect('/portfolio/settings')).toBe(false);
+    expect(isAllowedRedirect(`/properties/${property}/repairs/unknown`)).toBe(
+      false
+    );
+    expect(isAllowedRedirect(`/maintenance/reports/${item}/export`)).toBe(
+      false
+    );
+  });
   it('accepts same-origin path with an allowlisted prefix', () => {
     expect(isAllowedRedirect('/dashboard')).toBe(true);
     expect(isAllowedRedirect('/dashboard/analytics')).toBe(true);

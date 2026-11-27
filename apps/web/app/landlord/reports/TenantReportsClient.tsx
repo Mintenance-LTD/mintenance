@@ -300,6 +300,7 @@ export function TenantReportsClient({
                 reportId={selectedReport.id}
                 propertyId={selectedReport.properties?.id}
                 jobId={selectedReport.job_id}
+                status={selectedReport.status}
               />
               {/* Status mutation row — buttons depend on the current
                   state. Audit fix (2026-05-12): the filter tabs implied
@@ -371,7 +372,7 @@ export function TenantReportsClient({
               <div className='flex gap-2 pt-2'>
                 <TenantReportCreateJobLink
                   report={selectedReport}
-                  className='flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2 px-3 text-sm font-medium'
+                  className='flex-1 flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50'
                 />
                 <button
                   type='button'

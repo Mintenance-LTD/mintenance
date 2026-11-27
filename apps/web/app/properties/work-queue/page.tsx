@@ -1,7 +1,7 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { propertyRepairHref } from '@/lib/properties/repair-navigation';
+import { propertyRepairQueueHref } from '@/lib/properties/repair-navigation';
 import {
   queueReportFocus,
   queueReturnParams,
@@ -94,12 +94,14 @@ export default function PropertyWorkQueuePage() {
     window.history.replaceState(window.history.state, '', url);
   }, [queueQuery, ready]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!data || restoredFocus.current) return;
     const focusId = window.location.hash.slice(1);
     if (!focusId.startsWith('queue-report-')) return;
-    restoredFocus.current = true;
-    document.getElementById(focusId)?.focus();
+    const link = document.getElementById(focusId);
+    if (!link) return;
+    link.focus();
+    restoredFocus.current = document.activeElement === link;
   }, [data]);
   const updateFilter = (key: keyof typeof filters, value: string) => {
     setFilters((previous) => ({ ...previous, [key]: value }));
@@ -406,7 +408,11 @@ export default function PropertyWorkQueuePage() {
                         item.kind === 'job'
                           ? item.can_open_job
                             ? `/jobs/${item.id}`
-                            : `${propertyRepairHref(item.property_id, item.id)}?from=queue`
+                            : propertyRepairQueueHref(
+                                item.property_id,
+                                item.id,
+                                queueSearch
+                              )
                           : item.kind === 'report'
                             ? reportConversationHref(
                                 item.id,

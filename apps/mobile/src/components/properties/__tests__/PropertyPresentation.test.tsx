@@ -95,6 +95,26 @@ it('dismisses the view chooser without changing the preference', () => {
   expect(mockSetView).not.toHaveBeenCalled();
   expect(ui.queryByText('Agency')).toBeNull();
 });
+it('opens the separate workspace and CRM destinations only from Agency', () => {
+  const ui = render(<PropertyViewSwitcher />);
+  expect(ui.queryByText('Open Agency workspace')).toBeNull();
+  expect(ui.queryByText('Open Agency CRM')).toBeNull();
+  mockPreference.view = 'rentals';
+  ui.rerender(<PropertyViewSwitcher />);
+  expect(ui.queryByText('Open Agency workspace')).toBeNull();
+  expect(ui.queryByText('Open Agency CRM')).toBeNull();
+  mockPreference.view = 'agency';
+  ui.rerender(<PropertyViewSwitcher />);
+  fireEvent.press(ui.getByLabelText('Open Agency workspace'));
+  expect(mockNavigate).toHaveBeenCalledWith('ProfileTab', {
+    screen: 'PortfolioInbox',
+  });
+  fireEvent.press(ui.getByRole('button', { name: 'Open Agency CRM' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('ProfileTab', {
+    screen: 'AgencyCrm',
+  });
+  expect(ui.getByText('Property records')).toBeTruthy();
+});
 it('groups upload dates and filters an older album', async () => {
   const ui = albums();
   await ui.findByText('Uploaded 30 October 2026 · 1 photo');

@@ -59,7 +59,7 @@ const save = async (overrides = {}) => {
   };
   return (
     await one(
-      'SELECT save_property_action_followup($1,$2,$3,$4,$5,$6,NULL,$7,$8) AS result',
+      'SELECT save_property_action_followup($1,$2,$3,$4,$5,$6,$7,$8,$9) AS result',
       [
         p.actor === null ? null : id(p.actor),
         id(p.property),
@@ -67,12 +67,21 @@ const save = async (overrides = {}) => {
         id(p.source),
         p.revision,
         p.assignee === null ? null : id(p.assignee),
+        p.due ?? null,
         p.waiting,
         p.note,
       ]
     )
   ).result;
 };
+const complete = (actor = 2, revision = 1, note = 'Washer replaced') =>
+  one('SELECT submit_report_staff_completion($1,$2,$3,$4,$5)', [
+    id(actor),
+    id(10),
+    id(21),
+    revision,
+    note,
+  ]);
 const snapshot = () =>
   one(`SELECT
  (SELECT jsonb_agg(to_jsonb(f) ORDER BY kind,source_id) FROM property_action_followups f) AS followups,
@@ -172,6 +181,11 @@ try {
   );
   await db.exec(
     `BEGIN; ${sql('20261124160045_assigned_tenant_report_handoffs.sql')} COMMIT;`
+  );
+  await db.exec(sql('20261126101500_report_staff_completion.sql'));
+  await db.exec(sql('20261126104600_reset_staff_completion_on_reopen.sql'));
+  await db.exec(
+    sql('20261126110700_preserve_staff_completion_on_review_edit.sql')
   );
   await db.exec('SET ROLE service_role');
   await test('team scope respects membership and owner-only tenant reports', async () => {
@@ -382,12 +396,150 @@ try {
     await rejects(() => save({ actor: 4, property: 20, assignee: 4 }), 'PT409');
     assert.deepEqual(await snapshot(), before);
   });
+  await test('assigned staff submit a private completion without closing, messaging or notifying', async () => {
+    await db.query(
+      "UPDATE anonymous_reports SET status='acknowledged', urgency='low' WHERE id=$1",
+      [id(21)]
+    );
+    await save({
+      actor: 1,
+      kind: 'report',
+      source: 21,
+      revision: 0,
+      assignee: 2,
+    });
+    const before = await snapshot();
+    for (const actor of [1, 3, 5, 6])
+      await rejects(() => complete(actor), '42501');
+    await rejects(() => complete(2, 0), 'PT409');
+    assert.deepEqual(await snapshot(), before);
+    await complete();
+    const saved = await snapshot();
+    await complete();
+    await rejects(() => complete(2, 1, 'Changed note'), 'PT409');
+    assert.deepEqual(await snapshot(), saved);
+    assert.deepEqual(saved.notifications, before.notifications);
+    const row = saved.followups.find((x) => x.source_id === id(21));
+    assert.equal(row.completion_revision, 2);
+    assert.equal(row.revision, 2);
+    assert.equal(row.completion_by, id(2));
+    assert.equal(row.completion_note, 'Washer replaced');
+    assert.equal(row.assigned_to, id(2));
+    assert.equal(row.waiting_for, 'approval');
+    assert.equal(
+      saved.updates.filter((x) => x.body.includes('Washer replaced')).length,
+      1
+    );
+    assert.equal(
+      saved.updates.find((x) => x.body.includes('Washer replaced')).author_id,
+      id(2)
+    );
+    const ownerQueue = await filteredQueue(1, 10);
+    assert.equal(
+      ownerQueue.items.find((x) => x.id === id(21)).next_action,
+      'Awaiting approval'
+    );
+    const history = await one(
+      'SELECT report_conversation($1,$2,NULL) AS history',
+      [id(21), id(1)]
+    );
+    assert.equal(history.history.status, 'acknowledged');
+    assert.equal(
+      JSON.stringify(history.history).includes('Washer replaced'),
+      false
+    );
+    await save({
+      actor: 1,
+      kind: 'report',
+      source: 21,
+      revision: 2,
+      assignee: 2,
+      waiting: 'manager',
+    });
+    await db.query('UPDATE anonymous_reports SET job_id=$2 WHERE id=$1', [
+      id(21),
+      id(11),
+    ]);
+    await rejects(() => complete(2, 3), '22023');
+    await db.query(
+      "UPDATE anonymous_reports SET job_id=NULL,status='resolved' WHERE id=$1",
+      [id(21)]
+    );
+    await rejects(() => complete(2, 3), '22023');
+    assert.equal(
+      (await filteredQueue(1, 10)).items.some((x) => x.id === id(21)),
+      false
+    );
+  });
+  await test('reopening sends a completed repair back to the team without losing the original note', async () => {
+    const setStatus = (status) =>
+      db.query('UPDATE anonymous_reports SET status=$2 WHERE id=$1', [
+        id(21),
+        status,
+      ]);
+    await setStatus('acknowledged');
+    await save({
+      actor: 1,
+      kind: 'report',
+      source: 21,
+      revision: 0,
+      assignee: 2,
+    });
+    await complete();
+    await setStatus('resolved');
+    await setStatus('new');
+    const reopened = (await filteredQueue(1, 10)).items.find(
+      (x) => x.id === id(21)
+    );
+    assert.equal(reopened.next_action, 'Awaiting manager');
+    await setStatus('acknowledged');
+    const followup = (await snapshot()).followups.find(
+      (x) => x.source_id === id(21)
+    );
+    assert.equal(followup.assigned_to, id(2));
+    assert.equal(followup.revision, 3);
+    assert.equal(followup.completion_revision, 2);
+    assert.equal(followup.completion_note, 'Washer replaced');
+    await rejects(() => complete(2, 2), 'PT409');
+    await complete(2, 3, 'Second inspection complete');
+    const updates = (await snapshot()).updates;
+    for (const note of ['Washer replaced', 'Second inspection complete'])
+      assert.equal(updates.filter((x) => x.body.includes(note)).length, 1);
+  });
+  await test('editing only the review date does not discard a pending completion', async () => {
+    await db.query(
+      "UPDATE anonymous_reports SET status='acknowledged' WHERE id=$1",
+      [id(21)]
+    );
+    await save({
+      actor: 1,
+      kind: 'report',
+      source: 21,
+      revision: 0,
+      assignee: 2,
+    });
+    await complete();
+    const options = { actor: 1, kind: 'report', source: 21, assignee: 2 };
+    let result = await save({
+      ...options,
+      revision: 2,
+      waiting: 'approval',
+      due: '2030-12-01T10:00:00Z',
+    });
+    assert.equal(result.completion_revision, result.revision);
+    assert.equal(result.completion_note, 'Washer replaced');
+    await rejects(() => complete(2, 3, 'Duplicate submission'), 'PT409');
+    result = await save({ ...options, revision: 3, waiting: 'manager' });
+    assert.notEqual(result.completion_revision, result.revision);
+    await complete(2, 4, 'Updated after owner review');
+  });
   await db.exec('RESET ROLE');
   for (const role of ['anon', 'authenticated']) {
     await db.exec(`SET ROLE ${role}`);
     await assert.rejects(() => queue(), { code: '42501' });
     await assert.rejects(() => filteredQueue(1, 10), { code: '42501' });
     await assert.rejects(() => save(), { code: '42501' });
+    await assert.rejects(() => complete(), { code: '42501' });
     await assert.rejects(
       () => db.query('SELECT * FROM property_action_followups'),
       { code: '42501' }

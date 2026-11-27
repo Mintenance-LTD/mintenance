@@ -6,8 +6,8 @@
  *    per query via a keyed state object; capture queryClient calls)
  *  - @react-navigation/native (capture navigate())
  *  - useAuth (drive user / signOut)
- *  - logger, animations primitives, Ionicons, design-system tokens
- *  - all sub-components + the push-permission banner (stubbed to host
+ *  - logger, animations primitives, Ionicons
+ *  - dashboard sub-components other than the agency shortcut, plus push-permission (stubbed to host
  *    elements that re-expose their callback props as fireable buttons)
  *
  * Goal: exercise every handler/CTA/nav-row and every conditional branch
@@ -129,16 +129,6 @@ jest.mock('../../../utils/logger', () => ({
     error: jest.fn(),
     info: jest.fn(),
     debug: jest.fn(),
-  },
-}));
-
-// design-system tokens — only the keys the screen reads
-jest.mock('../../../design-system/mint-editorial', () => ({
-  me: {
-    brand: '#3F8C7A',
-    ink: '#111',
-    errFg: '#c00',
-    bg: '#fff',
   },
 }));
 
@@ -429,6 +419,17 @@ describe('HomeownerDashboard', () => {
       role: 'homeowner',
       first_name: 'Alice',
     };
+  });
+
+  it('opens the landlord quote inbox from the real Agency shortcut', () => {
+    const { getByText } = render(<HomeownerDashboard />);
+
+    fireEvent.press(getByText('Open agency quote approvals'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('ProfileTab', {
+      screen: 'AgencyPrivateWork',
+      params: { viewer: 'landlord' },
+    });
   });
 
   // --------------------------------------------------------------------------

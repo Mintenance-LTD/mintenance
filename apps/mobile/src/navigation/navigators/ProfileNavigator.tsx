@@ -3,6 +3,9 @@ import { GettingStartedScreen } from '../../screens/onboarding/GettingStartedScr
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../types';
 import { PropertyRepairScreen } from '../../screens/properties/PropertyRepairScreen';
+import { PortfolioInboxScreen } from '../../screens/properties/PortfolioInboxScreen';
+import { AgencyCrmScreen } from '../../screens/properties/AgencyCrmScreen';
+import { AgencyPrivateWorkScreen } from '../../screens/properties/AgencyPrivateWorkScreen';
 import { PropertyInspectionScreen } from '../../screens/properties/PropertyInspectionScreen';
 
 // Settings screens that did not previously have nav targets. Wired in
@@ -254,8 +257,24 @@ const ProfileNavigator = () => {
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen
+        name='PortfolioInbox'
+        component={PortfolioInboxScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='AgencyCrm'
+        component={AgencyCrmScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='AgencyPrivateWork'
+        component={AgencyPrivateWorkScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
         name='PropertyInspection'
         component={PropertyInspectionScreen}
+        options={{ headerShown: false }}
       />
       <ProfileStack.Screen
         name='EditProperty'

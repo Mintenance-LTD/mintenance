@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { getCsrfHeaders } from '@/lib/csrf-client';
+import { ArrowLeft, Inbox, Plus, RotateCw } from 'lucide-react';
+import { PortfolioWorkOrder } from './portfolio-work-order';
 
 type TicketStatus =
   | 'open'
@@ -13,6 +16,9 @@ type TicketStatus =
 type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 interface PortfolioInboxClientProps {
+  workspaceId: string;
+  workspaceRole: string;
+  initialTicketId?: string;
   user: {
     id: string;
     name: string;
@@ -65,6 +71,7 @@ interface TicketUpdate {
 interface TicketDetailResponse {
   ticket: TicketSummary;
   updates: TicketUpdate[];
+  assessmentSource?: { id: string; href: string };
 }
 
 const STATUS_OPTIONS: TicketStatus[] = [
@@ -80,14 +87,24 @@ const PRIORITY_OPTIONS: TicketPriority[] = ['low', 'medium', 'high', 'urgent'];
 const toLabel = (value: string) =>
   value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
 
-export function PortfolioInboxClient({ user }: PortfolioInboxClientProps) {
-  return <PortfolioInbox key={user.id} user={user} />;
+export function PortfolioInboxClient(props: PortfolioInboxClientProps) {
+  return (
+    <PortfolioInbox key={`${props.user.id}:${props.workspaceId}`} {...props} />
+  );
 }
 
-function PortfolioInbox({ user }: PortfolioInboxClientProps) {
+function PortfolioInbox({
+  user,
+  workspaceId,
+  workspaceRole,
+  initialTicketId,
+}: PortfolioInboxClientProps) {
+  const canManage = ['owner', 'manager', 'maintenance_coordinator'].includes(
+    workspaceRole
+  );
   const pendingRequests = useRef({ tickets: 0, properties: 0, detail: 0 });
   const [mobileView, setMobileView] = useState<'inbox' | 'detail' | 'create'>(
-    'inbox'
+    initialTicketId ? 'detail' : 'inbox'
   );
   const [access, setAccess] = useState<PortfolioAccessResponse | null>(null);
   const [accessLoading, setAccessLoading] = useState(true);
@@ -96,13 +113,16 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
   const [tickets, setTickets] = useState<TicketSummary[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [ticketsError, setTicketsError] = useState<string | null>(null);
-  const [orgId, setOrgId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | TicketStatus>('all');
 
   const [properties, setProperties] = useState<PortfolioProperty[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(false);
 
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(
+    initialTicketId ?? null
+  );
+  const [assessmentSource, setAssessmentSource] =
+    useState<TicketDetailResponse['assessmentSource']>();
   const [selectedTicket, setSelectedTicket] = useState<TicketSummary | null>(
     null
   );
@@ -178,6 +198,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
     try {
       const params = new URLSearchParams();
       params.set('limit', '50');
+      params.set('orgId', workspaceId);
       if (statusFilter !== 'all') {
         params.set('status', statusFilter);
       }
@@ -197,9 +218,9 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
 
       const ticketItems = (data?.tickets || []) as TicketSummary[];
       setTickets(ticketItems);
-      setOrgId(data?.orgId || null);
 
       setSelectedTicketId((current) =>
+        (current && current === initialTicketId) ||
         ticketItems.some((ticket) => ticket.id === current)
           ? current
           : ticketItems[0]?.id || null
@@ -212,15 +233,18 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
     } finally {
       if (request === pendingRequests.current.tickets) setTicketsLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, workspaceId, initialTicketId]);
 
   const loadProperties = useCallback(async () => {
     const request = ++pendingRequests.current.properties;
     setPropertiesLoading(true);
     try {
-      const response = await fetch('/api/portfolio/properties', {
-        cache: 'no-store',
-      });
+      const response = await fetch(
+        `/api/portfolio/properties?orgId=${encodeURIComponent(workspaceId)}`,
+        {
+          cache: 'no-store',
+        }
+      );
       const data = await response.json();
       if (request !== pendingRequests.current.properties) return;
       if (!response.ok) {
@@ -235,47 +259,56 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
       if (request === pendingRequests.current.properties)
         setPropertiesLoading(false);
     }
-  }, []);
+  }, [workspaceId]);
 
-  const loadTicketDetail = useCallback(async (ticketId: string) => {
-    const request = ++pendingRequests.current.detail;
-    setTicketLoading(true);
-    setTicketError(null);
-    setSelectedTicket(null);
-    setTicketUpdates([]);
-
-    try {
-      const response = await fetch(`/api/portfolio/tickets/${ticketId}`, {
-        cache: 'no-store',
-      });
-      const data = (await response.json()) as TicketDetailResponse & {
-        error?: string;
-        message?: string;
-      };
-      if (request !== pendingRequests.current.detail) return;
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message || data?.error || 'Failed to load ticket detail'
-        );
-      }
-
-      setSelectedTicket(data.ticket);
-      setTicketUpdates(data.updates || []);
-      setUpdateStatus(data.ticket.status);
-      setUpdatePriority(data.ticket.priority);
-      setResolutionNote('');
-    } catch (error) {
-      if (request !== pendingRequests.current.detail) return;
-      setTicketError(
-        error instanceof Error ? error.message : 'Failed to load ticket detail'
-      );
+  const loadTicketDetail = useCallback(
+    async (ticketId: string) => {
+      const request = ++pendingRequests.current.detail;
+      setTicketLoading(true);
+      setTicketError(null);
       setSelectedTicket(null);
+      setAssessmentSource(undefined);
       setTicketUpdates([]);
-    } finally {
-      if (request === pendingRequests.current.detail) setTicketLoading(false);
-    }
-  }, []);
+
+      try {
+        const response = await fetch(`/api/portfolio/tickets/${ticketId}`, {
+          cache: 'no-store',
+        });
+        const data = (await response.json()) as TicketDetailResponse & {
+          error?: string;
+          message?: string;
+        };
+        if (request !== pendingRequests.current.detail) return;
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message || data?.error || 'Failed to load ticket detail'
+          );
+        }
+
+        if (data.ticket.org_id !== workspaceId)
+          throw new Error('Task not found in this workspace');
+        setSelectedTicket(data.ticket);
+        setAssessmentSource(data.assessmentSource);
+        setTicketUpdates(data.updates || []);
+        setUpdateStatus(data.ticket.status);
+        setUpdatePriority(data.ticket.priority);
+        setResolutionNote('');
+      } catch (error) {
+        if (request !== pendingRequests.current.detail) return;
+        setTicketError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load ticket detail'
+        );
+        setSelectedTicket(null);
+        setTicketUpdates([]);
+      } finally {
+        if (request === pendingRequests.current.detail) setTicketLoading(false);
+      }
+    },
+    [workspaceId]
+  );
 
   useEffect(() => {
     const requests = pendingRequests.current;
@@ -309,7 +342,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
   }, [selectedTicketId, access?.allowed, loadTicketDetail]);
 
   const submitTicketUpdate = async () => {
-    if (!selectedTicketId || !selectedTicket) return;
+    if (!canManage || !selectedTicketId || !selectedTicket) return;
     const detailRevision = pendingRequests.current.detail;
     setUpdatingTicket(true);
     setTicketError(null);
@@ -331,7 +364,10 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
         `/api/portfolio/tickets/${selectedTicketId}`,
         {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(await getCsrfHeaders()),
+          },
           body: JSON.stringify(payload),
         }
       );
@@ -361,10 +397,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
     setCreateError(null);
     setCreateSuccess(null);
 
-    if (!orgId) {
-      setCreateError('No organization context found for this account.');
-      return;
-    }
+    if (!canManage) return;
     if (!newPropertyId) {
       setCreateError('Select a property before creating a ticket.');
       return;
@@ -374,9 +407,12 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
     try {
       const response = await fetch('/api/portfolio/tickets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getCsrfHeaders()),
+        },
         body: JSON.stringify({
-          orgId,
+          orgId: workspaceId,
           propertyId: newPropertyId,
           title: newTitle,
           description: newDescription,
@@ -413,22 +449,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
   };
 
   return (
-    <main className='mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8'>
-      <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
-        <div>
-          <h1 className='text-2xl font-semibold text-gray-900'>
-            Portfolio Inbox
-          </h1>
-          <p className='text-sm text-gray-600'>
-            Manage maintenance tickets across your properties.
-          </p>
-        </div>
-        <div className='text-sm text-gray-500'>
-          Signed in as{' '}
-          <span className='font-medium text-gray-700'>{user.name}</span>
-        </div>
-      </div>
-
+    <section aria-label='Maintenance tickets' className='min-w-0'>
       {accessLoading && (
         <div className='rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600'>
           Checking portfolio access...
@@ -462,63 +483,43 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
       )}
 
       {!accessLoading && access?.allowed && (
-        <div className='grid grid-cols-1 gap-6 lg:grid-cols-12'>
-          <section className='rounded-xl border border-gray-200 bg-white p-3 lg:col-span-12 lg:hidden'>
-            <div className='grid grid-cols-3 gap-2'>
-              <button
-                type='button'
-                onClick={() => setMobileView('inbox')}
-                className={`rounded-md px-3 py-2 text-sm font-medium ${
-                  mobileView === 'inbox'
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                Inbox
-              </button>
-              <button
-                type='button'
-                onClick={() => setMobileView('detail')}
-                className={`rounded-md px-3 py-2 text-sm font-medium ${
-                  mobileView === 'detail'
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                Detail
-              </button>
-              <button
-                type='button'
-                onClick={() => setMobileView('create')}
-                className={`rounded-md px-3 py-2 text-sm font-medium ${
-                  mobileView === 'create'
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                Create
-              </button>
-            </div>
-          </section>
-
+        <div className='grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6'>
+          {mobileView !== 'inbox' && (
+            <button
+              type='button'
+              onClick={() => setMobileView('inbox')}
+              className='inline-flex min-h-11 w-fit items-center gap-2 rounded-lg px-2 text-sm font-semibold text-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-800 lg:hidden'
+            >
+              <ArrowLeft size={16} aria-hidden='true' /> Back to tickets
+            </button>
+          )}
           <section
-            className={`rounded-xl border border-gray-200 bg-white p-4 lg:col-span-4 ${
+            className={`min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:col-span-4 ${
               mobileView === 'inbox' ? 'block' : 'hidden lg:block'
             }`}
           >
-            <div className='mb-3 flex items-center justify-between'>
+            <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
               <h2 className='text-sm font-semibold uppercase tracking-wide text-gray-700'>
                 Tickets
               </h2>
               <button
                 type='button'
                 onClick={() => void loadTickets()}
-                className='text-xs font-medium text-teal-700 hover:text-teal-800'
+                className='inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-teal-800 hover:bg-teal-50 focus-visible:outline focus-visible:outline-teal-800'
               >
-                Refresh
+                <RotateCw size={15} aria-hidden='true' /> Refresh
               </button>
             </div>
 
+            {canManage && (
+              <button
+                type='button'
+                onClick={() => setMobileView('create')}
+                className='mb-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal-800 px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800 lg:hidden'
+              >
+                <Plus size={17} aria-hidden='true' /> New ticket
+              </button>
+            )}
             <label className='mb-3 block text-xs text-gray-600'>
               Status filter
               <select
@@ -526,7 +527,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                 onChange={(event) =>
                   setStatusFilter(event.target.value as 'all' | TicketStatus)
                 }
-                className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
               >
                 <option value='all'>All</option>
                 {STATUS_OPTIONS.map((status) => (
@@ -542,7 +543,25 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
             ) : ticketsError ? (
               <p className='text-sm text-red-700'>{ticketsError}</p>
             ) : filteredTickets.length === 0 ? (
-              <p className='text-sm text-gray-600'>No tickets found.</p>
+              <div className='rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-slate-700'>
+                <Inbox
+                  size={22}
+                  aria-hidden='true'
+                  className='mb-3 text-teal-800'
+                />
+                <p className='text-sm font-semibold text-slate-900'>
+                  {statusFilter === 'all'
+                    ? 'No maintenance tickets yet'
+                    : 'No tickets match this filter'}
+                </p>
+                <p className='mt-1 text-sm leading-5'>
+                  {statusFilter !== 'all'
+                    ? 'Choose another status or show all tickets.'
+                    : canManage
+                      ? 'Create a ticket to record a repair against a property.'
+                      : 'Tickets will appear here when your team logs a repair.'}
+                </p>
+              </div>
             ) : (
               <div className='space-y-2'>
                 {filteredTickets.map((ticket) => (
@@ -559,7 +578,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    <p className='text-sm font-medium text-gray-900'>
+                    <p className='break-words text-sm font-medium text-gray-900'>
                       {ticket.title}
                     </p>
                     <p className='mt-1 text-xs text-gray-600'>
@@ -576,7 +595,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
           </section>
 
           <section
-            className={`rounded-xl border border-gray-200 bg-white p-4 lg:col-span-8 ${
+            className={`min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:col-span-8 ${
               mobileView === 'detail' ? 'block' : 'hidden lg:block'
             }`}
           >
@@ -598,9 +617,17 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                   <h3 className='text-lg font-semibold text-gray-900'>
                     {selectedTicket.title}
                   </h3>
-                  <p className='mt-2 text-sm text-gray-700'>
+                  <p className='mt-2 whitespace-pre-wrap break-words text-sm text-gray-700'>
                     {selectedTicket.description}
                   </p>
+                  {assessmentSource && (
+                    <Link
+                      className='mt-2 inline-block text-sm text-teal-800 underline'
+                      href={assessmentSource.href}
+                    >
+                      Open source assessment
+                    </Link>
+                  )}
                   <div className='mt-3 flex flex-wrap gap-2 text-xs text-gray-600'>
                     <span className='rounded bg-gray-100 px-2 py-1'>
                       Status: {toLabel(selectedTicket.status)}
@@ -622,7 +649,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                       onChange={(event) =>
                         setUpdateStatus(event.target.value as TicketStatus)
                       }
-                      className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                      className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                     >
                       {STATUS_OPTIONS.map((status) => (
                         <option key={status} value={status}>
@@ -639,7 +666,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                       onChange={(event) =>
                         setUpdatePriority(event.target.value as TicketPriority)
                       }
-                      className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                      className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                     >
                       {PRIORITY_OPTIONS.map((priority) => (
                         <option key={priority} value={priority}>
@@ -656,7 +683,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                     value={resolutionNote}
                     onChange={(event) => setResolutionNote(event.target.value)}
                     rows={3}
-                    className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                    className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                     placeholder='Add context for this update'
                   />
                 </label>
@@ -664,11 +691,18 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                 <button
                   type='button'
                   onClick={() => void submitTicketUpdate()}
-                  disabled={updatingTicket}
+                  disabled={updatingTicket || !canManage}
                   className='inline-flex items-center rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60'
                 >
                   {updatingTicket ? 'Updating...' : 'Update Ticket'}
                 </button>
+
+                {canManage && (
+                  <PortfolioWorkOrder
+                    key={selectedTicket.id}
+                    ticketId={selectedTicket.id}
+                  />
+                )}
 
                 <div>
                   <h4 className='mb-2 text-sm font-semibold text-gray-800'>
@@ -687,7 +721,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                             {toLabel(update.update_type)} ·{' '}
                             {new Date(update.created_at).toLocaleString()}
                           </p>
-                          <p className='mt-1 text-sm text-gray-700'>
+                          <p className='mt-1 whitespace-pre-wrap break-words text-sm text-gray-700'>
                             {update.body}
                           </p>
                         </div>
@@ -700,7 +734,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
           </section>
 
           <section
-            className={`rounded-xl border border-gray-200 bg-white p-4 lg:col-span-12 ${
+            className={`min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:col-span-12 ${
               mobileView === 'create' ? 'block' : 'hidden lg:block'
             }`}
           >
@@ -708,10 +742,9 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
               Create Ticket
             </h2>
 
-            {!orgId && (
+            {!canManage && (
               <p className='mb-3 text-sm text-amber-700'>
-                No organization membership found. You need an active
-                organization before creating tickets.
+                Your workspace role does not allow staff ticket changes.
               </p>
             )}
 
@@ -724,7 +757,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                 <select
                   value={newPropertyId}
                   onChange={(event) => setNewPropertyId(event.target.value)}
-                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                   disabled={propertiesLoading}
                 >
                   <option value=''>Select property</option>
@@ -744,7 +777,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                   onChange={(event) =>
                     setNewPriority(event.target.value as TicketPriority)
                   }
-                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                 >
                   {PRIORITY_OPTIONS.map((priority) => (
                     <option key={priority} value={priority}>
@@ -759,7 +792,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                 <input
                   value={newTitle}
                   onChange={(event) => setNewTitle(event.target.value)}
-                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                   placeholder='Kitchen sink leaking'
                   required
                   minLength={3}
@@ -772,7 +805,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                 <input
                   value={newCategory}
                   onChange={(event) => setNewCategory(event.target.value)}
-                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                   placeholder='plumbing'
                   maxLength={100}
                 />
@@ -783,7 +816,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
                 <textarea
                   value={newDescription}
                   onChange={(event) => setNewDescription(event.target.value)}
-                  className='mt-1 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
+                  className='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/25 sm:text-sm'
                   placeholder='Describe the issue in detail...'
                   rows={3}
                   required
@@ -806,7 +839,7 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
               <div className='md:col-span-2'>
                 <button
                   type='submit'
-                  disabled={creatingTicket || !orgId}
+                  disabled={creatingTicket || !canManage || !newPropertyId}
                   className='inline-flex items-center rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60'
                 >
                   {creatingTicket ? 'Creating...' : 'Create Ticket'}
@@ -816,6 +849,6 @@ function PortfolioInbox({ user }: PortfolioInboxClientProps) {
           </section>
         </div>
       )}
-    </main>
+    </section>
   );
 }

@@ -22,7 +22,7 @@ import {
   PoundSterling,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { logger } from '@mintenance/shared';
@@ -111,9 +111,32 @@ export default function PropertyDetailsClient({
   const router = useRouter();
   const confirm = useConfirm();
   const { view } = usePropertyView();
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'jobs' | 'assessments' | 'manage'
-  >('overview');
+  const search = useSearchParams();
+  const requestedTab = search.get('tab');
+  const activeTab =
+    requestedTab === 'jobs' ||
+    requestedTab === 'assessments' ||
+    requestedTab === 'manage'
+      ? requestedTab
+      : 'overview';
+  const showRecords =
+    activeTab === 'manage' && search.get('manage') === 'records';
+  const recordsRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!showRecords || !recordsRef.current) return;
+    recordsRef.current.focus({ preventScroll: true });
+    recordsRef.current.scrollIntoView({ block: 'start' });
+  }, [showRecords, property.id]);
+
+  const selectTab = (tab: typeof activeTab) => {
+    if (tab === activeTab) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    url.searchParams.delete('manage');
+    if (url.hash === '#manage-records') url.hash = '';
+    window.history.pushState(null, '', url);
+  };
   const [isFavorited, setIsFavorited] = useState(false);
 
   // Tenant reporting state
@@ -644,7 +667,7 @@ export default function PropertyDetailsClient({
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => selectTab(tab.id)}
               className={`pb-3 px-4 font-medium text-sm transition-colors relative flex items-center gap-2 ${
                 activeTab === tab.id
                   ? 'text-teal-700'
@@ -753,7 +776,7 @@ export default function PropertyDetailsClient({
                     {showPropertyTool(view, 'team') && (
                       <button
                         type='button'
-                        onClick={() => setActiveTab('manage')}
+                        onClick={() => selectTab('manage')}
                         className='text-sm text-teal-700 hover:underline'
                       >
                         Manage team access
@@ -911,7 +934,15 @@ export default function PropertyDetailsClient({
         {activeTab === 'manage' && (
           <div className='space-y-6'>
             <PropertyFileHub propertyId={property.id} />
-            <TenancyInspections key={property.id} propertyId={property.id} />
+            <section
+              id='manage-records'
+              ref={recordsRef}
+              tabIndex={-1}
+              className='scroll-mt-24'
+              aria-label='Tenancy and inspections'
+            >
+              <TenancyInspections key={property.id} propertyId={property.id} />
+            </section>
             <p className='text-sm text-gray-500'>
               Manage your property with premium tools. Features are available
               based on your subscription plan.

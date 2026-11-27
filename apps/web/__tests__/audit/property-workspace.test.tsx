@@ -133,6 +133,12 @@ it('shows the highest priority assessment and updates the next action when filte
       .getByRole('link', { name: 'View full assessment' })
       .getAttribute('href')
   ).toBe('/building-assessments/urgent');
+  expect(
+    within(panel).getByRole('link', {
+      name: 'Draft a marketplace inspection job',
+    })
+  ).toHaveAttribute('href', '/jobs/create?property_id=property');
+  expect(within(panel).getByText(/does not book a visit/)).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Search assessments'), {
     target: { value: 'Paint' },
   });
@@ -142,7 +148,9 @@ it('shows the highest priority assessment and updates the next action when filte
       .getAttribute('href')
   ).toBe('/building-assessments/routine');
   expect(
-    within(panel).queryByRole('link', { name: 'Arrange inspection' })
+    within(panel).queryByRole('link', {
+      name: 'Draft a marketplace inspection job',
+    })
   ).toBeNull();
 });
 it('normalises empty access values, cancels edits, and sends only changed fields', async () => {

@@ -59,8 +59,14 @@ const PropertyCard: React.FC<{
 }> = ({ property, onPress, isFavorite, onToggleFavorite }) => {
   const pType = property.property_type ?? 'other';
   const role = (property as Property & { _role?: string })._role;
-  const sharedRole = role === 'admin' ? 'Team administrator'
-    : role === 'manager' ? 'Manager' : role === 'viewer' ? 'Viewer' : null;
+  const sharedRole =
+    role === 'admin'
+      ? 'Team administrator'
+      : role === 'manager'
+        ? 'Manager'
+        : role === 'viewer'
+          ? 'Viewer'
+          : null;
   return (
     <TouchableOpacity style={styles.propertyCard} onPress={onPress}>
       <View style={styles.cardHeader}>
@@ -85,7 +91,11 @@ const PropertyCard: React.FC<{
           <Text style={styles.propertyLocation} numberOfLines={2}>
             {property.address}
           </Text>
-          {sharedRole && <Text style={styles.propertyLocation}>Shared with you · {sharedRole}</Text>}
+          {sharedRole && (
+            <Text style={styles.propertyLocation}>
+              Shared with you · {sharedRole}
+            </Text>
+          )}
         </View>
         <TouchableOpacity
           onPress={(event) => {
@@ -319,6 +329,21 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={styles.portfolioShortcut}
+        accessibilityRole='button'
+        onPress={() => navigation.navigate('PortfolioInbox')}
+      >
+        <Ionicons name='file-tray-outline' size={22} color={me.brand} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.portfolioTitle}>Portfolio Inbox</Text>
+          <Text style={styles.portfolioSubtitle}>
+            Internal maintenance tickets and workspace setup
+          </Text>
+        </View>
+        <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+      </TouchableOpacity>
 
       {/* Sort & filter options */}
       {!!properties?.length && (

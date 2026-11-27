@@ -77,6 +77,11 @@ export function useNavSections(
           },
           { label: 'Job paperwork', href: '/documents', icon: FolderOpen },
           {
+            label: 'Agency quote approvals',
+            href: '/agency-work',
+            icon: ClipboardCheck,
+          },
+          {
             label: 'Visit confirmations',
             href: '/appointments/response',
             icon: Calendar,
@@ -125,6 +130,7 @@ export function useNavSections(
             href: '/properties/work-queue',
             icon: RefreshCw,
           },
+          { label: 'Portfolio Inbox', href: '/portfolio', icon: RefreshCw },
           { label: 'Contacts', href: '/landlord/contacts', icon: Contact },
           {
             label: 'Recurring Tasks',
@@ -208,6 +214,11 @@ export function useNavSections(
             ],
           },
           { label: 'Quotes', href: '/contractor/quotes', icon: FileText },
+          {
+            label: 'Private work orders',
+            href: '/agency-work',
+            icon: ClipboardCheck,
+          },
           {
             label: 'Messages',
             href: '/contractor/messages',

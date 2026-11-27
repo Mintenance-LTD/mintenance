@@ -97,7 +97,8 @@ export async function conversation(request: NextRequest, actor: string | null) {
       staffFollowup = await readReportStaffFollowup(
         actor,
         value.data.reportId,
-        result.data.property_id
+        result.data.property_id,
+        !result.data.job_id && data.status === 'acknowledged'
       );
     if (result.data?.job_id && result.data.property_id) {
       try {

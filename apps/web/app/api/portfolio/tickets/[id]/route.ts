@@ -8,6 +8,7 @@ import {
   NotFoundError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 const updateTicketSchema = z.object({
   status: z
@@ -47,7 +48,7 @@ function canManageTicket(role: string | null): boolean {
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
-    const blocked = await requirePortfolioModeSubscription(request);
+    const blocked = await requirePortfolioModeSubscription(request, user.id);
     if (blocked) {
       return blocked;
     }
@@ -91,6 +92,37 @@ export const GET = withApiHandler(
     }
     const { data: updates, error: updatesError } = await updatesQuery;
 
+    let assessmentSource: { id: string; href: string } | undefined;
+    // Independently confirm access before disclosing even a source ID.
+    if (role && role !== 'tenant') {
+      const { data: source, error: sourceError } = await serverSupabase
+        .from('portfolio_assessment_sources')
+        .select('assessment_id')
+        .eq('ticket_id', ticket.id)
+        .maybeSingle();
+      if (sourceError && !['42P01', 'PGRST205'].includes(sourceError.code))
+        throw sourceError;
+      if (
+        source &&
+        (await PropertyTeamService.getRole(user.id, ticket.property_id))
+      ) {
+        const { data: assessment, error: assessmentError } =
+          await serverSupabase
+            .from('building_assessments')
+            .select('id')
+            .eq('id', source.assessment_id)
+            .eq('property_id', ticket.property_id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+        if (assessmentError) throw assessmentError;
+        if (assessment)
+          assessmentSource = {
+            id: assessment.id,
+            href: '/building-assessments/' + assessment.id,
+          };
+      }
+    }
+
     if (updatesError) {
       throw updatesError;
     }
@@ -99,6 +131,7 @@ export const GET = withApiHandler(
       feature: 'portfolio_mode',
       ticket,
       updates: updates || [],
+      ...(assessmentSource ? { assessmentSource } : {}),
     });
   }
 );
@@ -106,7 +139,7 @@ export const GET = withApiHandler(
 export const PATCH = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
-    const blocked = await requirePortfolioModeSubscription(request);
+    const blocked = await requirePortfolioModeSubscription(request, user.id);
     if (blocked) {
       return blocked;
     }

@@ -30,7 +30,7 @@ export function TenantReportCreateJobLink({
         },
       }}
     >
-      <FileText size={15} aria-hidden='true' /> Create job
+      <FileText size={15} aria-hidden='true' /> Create marketplace job
     </Link>
   );
 }

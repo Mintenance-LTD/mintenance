@@ -7,6 +7,21 @@ import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { ActionFollowup } from './ActionFollowup';
 import { PortfolioReport } from './PortfolioReport';
 import { IssueConversation } from './IssueConversation';
+const PAGE_SIZE = 5;
+const SCOPES = [
+  {
+    id: 'team',
+    label: 'Team',
+    hint: 'Actions across properties you can access.',
+  },
+  { id: 'mine', label: 'Mine', hint: 'Actions assigned to you.' },
+  {
+    id: 'unassigned',
+    label: 'Unassigned',
+    hint: 'Actions without an owner or needing reassignment.',
+  },
+] as const;
+
 interface Item {
   id: string;
   kind: string;
@@ -47,14 +62,14 @@ function ActionQueue({
   const [offset, setOffset] = useState(0);
   const [expanded, setExpanded] = useState(initiallyExpanded);
   const [editing, setEditing] = useState<string | null>(null);
-  const [scope, setScope] = useState('team');
+  const [scope, setScope] = useState<(typeof SCOPES)[number]['id']>('team');
   const query = useQuery({
     queryKey: ['portfolio-actions', userId, scope, offset],
     enabled: !!userId && expanded,
     retry: false,
     queryFn: async ({ signal }) => {
       const result = await mobileApiClient.get<Queue>(
-        `/api/portfolio/queue?offset=${offset}&limit=5&scope=${scope}`,
+        `/api/portfolio/queue?offset=${offset}&limit=${PAGE_SIZE}&scope=${scope}`,
         { signal, timeout: 15000, retries: 0 }
       );
       if (
@@ -69,10 +84,19 @@ function ActionQueue({
     },
     staleTime: 30000,
   });
+  const count = query.data?.items.length ?? 0;
+  const total = query.data?.total ?? 0;
+  const changePage = (next: number) => {
+    setEditing(null);
+    setOffset(next);
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
         accessibilityRole='button'
+        style={styles.tapTarget}
+        accessibilityLabel='Maintenance action queue'
         accessibilityState={{ expanded }}
         onPress={() => setExpanded(!expanded)}
       >
@@ -82,38 +106,33 @@ function ActionQueue({
       </TouchableOpacity>
       {expanded && (
         <>
-          <PortfolioReport />
           <Text>
             Open work, reports and upcoming renewals across your properties.
           </Text>
           <View style={styles.filters}>
-            {['team', 'mine', 'unassigned'].map((value) => (
+            {SCOPES.map(({ id, label }) => (
               <TouchableOpacity
-                key={value}
-                style={styles.filter}
+                key={id}
+                style={[styles.filter, scope === id && styles.filterSelected]}
                 accessibilityRole='button'
-                accessibilityLabel={`${value === 'team' ? 'Team' : value === 'mine' ? 'Mine' : 'Unassigned'} queue`}
-                accessibilityState={{ selected: scope === value }}
+                accessibilityLabel={`${label} queue`}
+                accessibilityState={{ selected: scope === id }}
                 onPress={() => {
-                  setScope(value);
-                  setOffset(0);
-                  setEditing(null);
+                  if (scope !== id) {
+                    setScope(id);
+                    changePage(0);
+                  }
                 }}
               >
-                <Text>
-                  {scope === value ? '✓ ' : ''}
-                  {value === 'team'
-                    ? 'Team'
-                    : value === 'mine'
-                      ? 'Mine'
-                      : 'Unassigned'}
+                <Text style={styles.body}>
+                  {scope === id ? '✓ ' : ''}
+                  {label}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text>
-            Team includes all accessible actions. Mine shows your assignments.
-            Unassigned includes work needing reassignment.
+          <Text style={styles.helper}>
+            {SCOPES.find(({ id }) => scope === id)?.hint}
           </Text>
           {query.isPending ? (
             <Text accessibilityRole='text'>Loading actions…</Text>
@@ -126,12 +145,20 @@ function ActionQueue({
             </TouchableOpacity>
           ) : (
             <>
-              <Text>{query.data?.total ?? 0} actions</Text>
+              <Text accessibilityLiveRegion='polite' style={styles.helper}>
+                {count > 0
+                  ? `Showing ${offset + 1}–${offset + count} of ${total}`
+                  : `${total} actions`}
+              </Text>
               {query.data?.items.length === 0 && (
                 <Text>
-                  {scope === 'mine'
-                    ? 'No follow-ups assigned to you on this page.'
-                    : 'No actions in this queue on this page.'}
+                  {offset > 0
+                    ? 'No actions on this page. Go back to see earlier actions.'
+                    : scope === 'mine'
+                      ? 'No follow-ups assigned to you.'
+                      : scope === 'unassigned'
+                        ? 'No actions need assignment.'
+                        : 'No actions in the team queue.'}
                 </Text>
               )}
               {query.data?.items.map((item) => (
@@ -169,11 +196,18 @@ function ActionQueue({
                         </Text>
                       )}
                     <Text>
-                      {item.kind === 'job' && ((item.can_open_job && onOpenJob) || onOpenSharedJob)
+                      {item.kind === 'job' &&
+                      ((item.can_open_job && onOpenJob) || onOpenSharedJob)
                         ? 'Open job →'
                         : 'Open property →'}
                     </Text>
                   </TouchableOpacity>
+                  {item.kind === 'report' && (
+                    <IssueConversation
+                      reportId={item.id}
+                      caseTitle={item.title}
+                    />
+                  )}
                   {item.can_manage_followup === true ? (
                     <TouchableOpacity
                       accessibilityRole='button'
@@ -193,9 +227,7 @@ function ActionQueue({
                       the follow-up.
                     </Text>
                   )}
-                  {item.kind === 'report' && (
-                    <IssueConversation reportId={item.id} />
-                  )}
+
                   {item.can_manage_followup === true &&
                     editing === `${item.kind}:${item.id}` && (
                       <ActionFollowup
@@ -207,30 +239,49 @@ function ActionQueue({
                     )}
                 </View>
               ))}
-              <View style={styles.pages}>
-                <TouchableOpacity
-                  accessibilityRole='button'
-                  disabled={offset === 0}
-                  onPress={() => setOffset(Math.max(0, offset - 5))}
-                >
-                  <Text>{offset === 0 ? '' : 'Previous'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  accessibilityRole='button'
-                  disabled={!query.data?.hasMore}
-                  onPress={() => setOffset(offset + 5)}
-                >
-                  <Text>{query.data?.hasMore ? 'Next' : ''}</Text>
-                </TouchableOpacity>
-              </View>
+              {(offset > 0 || query.data?.hasMore) && (
+                <View style={styles.pages}>
+                  {offset > 0 && (
+                    <TouchableOpacity
+                      accessibilityRole='button'
+                      accessibilityLabel='Previous page'
+                      style={styles.tapTarget}
+                      onPress={() =>
+                        changePage(Math.max(0, offset - PAGE_SIZE))
+                      }
+                    >
+                      <Text style={styles.body}>Previous</Text>
+                    </TouchableOpacity>
+                  )}
+                  {query.data?.hasMore && (
+                    <TouchableOpacity
+                      accessibilityRole='button'
+                      accessibilityLabel='Next page'
+                      style={[styles.tapTarget, styles.nextPage]}
+                      onPress={() => changePage(offset + PAGE_SIZE)}
+                    >
+                      <Text style={styles.body}>Next</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </>
           )}
+          <PortfolioReport />
         </>
       )}
     </View>
   );
 }
 const styles = StyleSheet.create({
+  tapTarget: { minHeight: 44, justifyContent: 'center' },
+  nextPage: { marginLeft: 'auto' },
+  body: { color: theme.colors.textPrimary },
+  helper: { color: theme.colors.textSecondary },
+  filterSelected: {
+    backgroundColor: theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
+  },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   filter: {
     minHeight: 48,
@@ -256,7 +307,7 @@ const styles = StyleSheet.create({
   },
   pages: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
+    flexWrap: 'wrap',
+    gap: 16,
   },
 });

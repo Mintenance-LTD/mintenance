@@ -3,13 +3,13 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { PROPERTY_VIEWS, type PropertyView } from '@mintenance/shared';
 import { usePropertyView } from '../../hooks/usePropertyView';
+import type { RootTabParamList } from '../../navigation/types';
 import { me } from '../../design-system/mint-editorial';
 import { PropertyChoice } from './PropertyChoice';
 
 export function PropertyViewSwitcher() {
   const { view, setView, ready, enabled, saved } = usePropertyView();
-  const navigation =
-    useNavigation<NavigationProp<Record<string, object | undefined>>>();
+  const navigation = useNavigation<NavigationProp<RootTabParamList>>();
   if (!enabled) return null;
   return (
     <View style={styles.row}>
@@ -43,6 +43,32 @@ export function PropertyViewSwitcher() {
           </>
         )}
       </PropertyChoice>
+      {ready && view === 'agency' && (
+        <>
+          <TouchableOpacity
+            accessibilityRole='button'
+            accessible
+            accessibilityLabel='Open Agency workspace'
+            style={styles.linkButton}
+            onPress={() =>
+              navigation.navigate('ProfileTab', { screen: 'PortfolioInbox' })
+            }
+          >
+            <Text style={styles.link}>Open Agency workspace</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole='button'
+            accessible
+            accessibilityLabel='Open Agency CRM'
+            style={styles.linkButton}
+            onPress={() =>
+              navigation.navigate('ProfileTab', { screen: 'AgencyCrm' })
+            }
+          >
+            <Text style={styles.link}>Open Agency CRM</Text>
+          </TouchableOpacity>
+        </>
+      )}
       <TouchableOpacity
         accessibilityRole='button'
         style={styles.linkButton}

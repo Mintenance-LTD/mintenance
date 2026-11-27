@@ -78,8 +78,8 @@ export function MintEditorialPropertyManage({
     },
     {
       id: 'records',
-      title: 'Property records',
-      detail: 'Photos and compliance',
+      title: 'Tenancy & inspections',
+      detail: 'Check-in, check-out and property records',
       icon: FolderOpen,
     },
   ];
@@ -183,6 +183,7 @@ export function MintEditorialPropertyManage({
                   <TenantReportingCard
                     propertyId={propertyId}
                     propertyName={propertyName}
+                    showActionQueueLink={false}
                   />
                 </FeatureGateCard>
               </div>
@@ -194,15 +195,18 @@ export function MintEditorialPropertyManage({
                 </span>
                 <div>
                   <h3>Tenant reports</h3>
-                  <p className='pw-muted'>Review and assign reported issues.</p>
+                  <p className='pw-muted'>
+                    Review reported issues and team follow-ups for this
+                    property.
+                  </p>
                 </div>
               </div>
               <Link
                 className='pw-btn'
                 style={{ marginTop: 18 }}
-                href='/landlord/reports'
+                href={`/properties/work-queue?property=${encodeURIComponent(propertyId)}`}
               >
-                View reports <ArrowRight size={16} />
+                Open property action queue <ArrowRight size={16} />
               </Link>
             </section>
           </div>

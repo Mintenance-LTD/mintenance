@@ -81,6 +81,7 @@ const linkingConfig = {
             InvoiceManagement: 'profile/invoices',
             Properties: 'properties',
             PropertyDetail: 'properties/:propertyId',
+            PropertyInspection: 'properties/:propertyId/inspections/:reportId',
             // 2026-05-26 audit-57 P2: the TeamAccess invite flow opens
             // `mintenance://profile/subscription` when a non-Agency
             // homeowner hits the 402 upgrade gate. Without this entry

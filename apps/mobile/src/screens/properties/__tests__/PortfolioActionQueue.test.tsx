@@ -48,13 +48,18 @@ it('loads on expansion, opens the correct property and retrieves the next page',
   await waitFor(() => expect(view.getByText('Repair')).toBeTruthy());
   fireEvent.press(view.getByText('Open property →'));
   expect(open).toHaveBeenCalledWith('property');
-  fireEvent.press(view.getByText('Next'));
+  expect(view.getByText('Showing 1–1 of 6')).toBeTruthy();
+  expect(view.queryByLabelText('Previous page')).toBeNull();
+  fireEvent.press(view.getByLabelText('Next page'));
   await waitFor(() =>
     expect(mockGet).toHaveBeenCalledWith(
       '/api/portfolio/queue?offset=5&limit=5&scope=team',
       expect.objectContaining({ timeout: 15000, retries: 0 })
     )
   );
+  await view.findByText('Showing 6–6 of 6');
+  fireEvent.press(view.getByLabelText('Previous page'));
+  await view.findByText('Showing 1–1 of 6');
 });
 it('shows a retry action after a failed load', async () => {
   mockGet.mockRejectedValue(new Error('offline'));
@@ -152,7 +157,7 @@ it('filters on the server and hides management controls for a viewer', async () 
     )
   );
   fireEvent.press(view.getByLabelText('Mine queue'));
-  await view.findByText('No follow-ups assigned to you on this page.');
+  await view.findByText('No follow-ups assigned to you.');
   expect(mockGet).toHaveBeenCalledWith(
     '/api/portfolio/queue?offset=0&limit=5&scope=mine',
     expect.anything()
@@ -170,10 +175,67 @@ it('does not label a legacy unfiltered response as Mine', async () => {
       <PortfolioActionQueue initiallyExpanded onOpenProperty={jest.fn()} />
     </QueryClientProvider>
   );
-  await view.findByText('No actions in this queue on this page.');
+  await view.findByText('No actions in the team queue.');
   fireEvent.press(view.getByLabelText('Mine queue'));
   await view.findByText('Unable to load actions. Tap to retry.');
+  expect(view.queryByText('No follow-ups assigned to you.')).toBeNull();
+});
+
+it('opens the exact repair case from a tenant report without falling back to the property', async () => {
+  mockGet.mockImplementation((url: string) =>
+    Promise.resolve(
+      url.startsWith('/api/portfolio/queue')
+        ? {
+            items: [
+              {
+                id: 'first-report',
+                kind: 'report',
+                property_id: 'property',
+                property_name: 'Home',
+                title: 'First leak',
+                next_action: 'Review',
+              },
+              {
+                id: 'target-report',
+                kind: 'report',
+                property_id: 'property',
+                property_name: 'Home',
+                title: 'Second leak',
+                next_action: 'Review',
+              },
+            ],
+            total: 2,
+            scope: 'team',
+            hasMore: false,
+          }
+        : {
+            role: 'manager',
+            status: 'acknowledged',
+            messages: [],
+            hasMore: false,
+            pageOffset: 0,
+            summary: {
+              category: 'plumbing',
+              description: 'Exact second report',
+              created_at: '2026-11-26T10:00:00Z',
+            },
+          }
+    )
+  );
+  const onOpenProperty = jest.fn();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <PortfolioActionQueue initiallyExpanded onOpenProperty={onOpenProperty} />
+    </QueryClientProvider>
+  );
+  fireEvent.press(await view.findByLabelText('Open repair case: Second leak'));
+  await view.findByText('Exact second report');
+  expect(mockGet).toHaveBeenCalledWith(
+    expect.stringContaining('reportId=target-report&'),
+    expect.anything()
+  );
   expect(
-    view.queryByText('No follow-ups assigned to you on this page.')
-  ).toBeNull();
+    mockGet.mock.calls.some(([url]) => url.includes('reportId=first-report'))
+  ).toBe(false);
+  expect(onOpenProperty).not.toHaveBeenCalled();
 });

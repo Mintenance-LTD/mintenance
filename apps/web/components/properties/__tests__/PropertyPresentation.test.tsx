@@ -60,39 +60,52 @@ function Navigation({
   );
 }
 describe('property view controls', () => {
-  it('shows the Agency shortcuts below Payment protected and hides them in Home view', () => {
+  it('shows the Agency shortcuts below Payment protected and hides them in Home and Rentals views', () => {
     const sidePanel = (
       <MintEditorialSidePanel appointments={[]} escrowHeld={3.72} />
     );
     const view = render(sidePanel);
     expect(
-      screen.queryByRole('region', { name: 'Portfolio action queue' })
+      screen.queryByRole('region', { name: 'Agency workspace' })
+    ).toBeNull();
+    state.view = 'rentals';
+    view.rerender(sidePanel);
+    expect(
+      screen.queryByRole('region', { name: 'Agency workspace' })
     ).toBeNull();
     state.view = 'agency';
     view.rerender(
       <MintEditorialSidePanel appointments={[]} escrowHeld={3.72} />
     );
     const queue = screen.getByRole('region', {
-      name: 'Portfolio action queue',
+      name: 'Agency workspace',
     });
     const payment = screen.getByRole('heading', { name: 'Payment protected' });
     expect(
       payment.compareDocumentPosition(queue) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    expect(
-      screen.getByRole('link', { name: 'Open action queue' })
-    ).toHaveAttribute('href', '/properties/work-queue');
+    expect(screen.getByRole('link', { name: 'Action queue' })).toHaveAttribute(
+      'href',
+      '/properties/work-queue'
+    );
     expect(
       screen.getByRole('link', { name: 'Tenant reports' })
     ).toHaveAttribute('href', '/landlord/reports');
+    expect(
+      screen.getByRole('link', { name: 'Open Agency workspace' })
+    ).toHaveAttribute('href', '/portfolio');
+    expect(screen.getByRole('link', { name: 'CRM' })).toHaveAttribute(
+      'href',
+      '/portfolio?view=crm'
+    );
     const properties = screen.getByRole('link', { name: 'Properties' });
     expect(properties).toHaveAttribute('href', '/properties');
     expect(
-      screen.getByText(/Manage tab under People and access/)
+      screen.getByText(/Manage workspace teammates from the Portfolio Inbox/)
     ).toBeVisible();
     view.rerender(<MintEditorialSidePanel appointments={[]} escrowHeld={0} />);
     expect(
-      screen.getByRole('region', { name: 'Portfolio action queue' })
+      screen.getByRole('region', { name: 'Agency workspace' })
     ).toBeVisible();
   });
   it('selects a presentation preference without checkout or permission writes', () => {

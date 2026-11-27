@@ -37,6 +37,7 @@ import { GettingStartedCard } from '../../components/onboarding/GettingStartedCa
 import { FinishSetupCard } from './components/FinishSetupCard';
 import { ContractorBadgesCard } from './components/ContractorBadgesCard';
 import { NextUpCard } from './components/NextUpCard';
+import { AgencyPrivateWorkShortcut } from './components/AgencyPrivateWorkShortcut';
 import { HotLeadsRail } from './components/HotLeadsRail';
 import { styles } from './contractorDashboardStyles';
 import { NotificationService } from '../../services/NotificationService';
@@ -315,6 +316,9 @@ export const ContractorDashboard: React.FC = () => {
 
         {/* Content below hero */}
         <View style={styles.content}>
+          {user?.role === 'contractor' && (
+            <AgencyPrivateWorkShortcut viewer='contractor' />
+          )}
           {/* 2026-05-21 — Mint Editorial "Next up" dark card above
               everything else, plus a warm-bids rail. Both self-hide
               when there's no data (no next appointment / no pending

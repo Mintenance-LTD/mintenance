@@ -3,7 +3,11 @@ import { notFound, redirect } from 'next/navigation';
 import { PROPERTY_JOB_STATUS_LABELS } from '@mintenance/shared';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { propertyRepairHref } from '@/lib/properties/repair-navigation';
+import {
+  propertyRepairHref,
+  propertyRepairQueueHref,
+  propertyRepairQueueReturn,
+} from '@/lib/properties/repair-navigation';
 import { readPropertyRepair } from '@/lib/services/property-team/read-property-repair';
 import { RepairFollowup } from './RepairFollowup';
 import '../../components/property-workspace.css';
@@ -19,14 +23,22 @@ export default async function PropertyRepairPage({
   searchParams,
 }: {
   params: Promise<{ id: string; jobId: string }>;
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id, jobId } = await params;
-  const fromQueue = (await searchParams).from === 'queue';
+  const query = await searchParams;
+  const fromQueue = query.from === 'queue';
+  const queueSearch = new URLSearchParams();
+  if (fromQueue) {
+    for (const [key, value] of Object.entries(query)) {
+      if (typeof value === 'string') queueSearch.set(key, value);
+    }
+  }
   const actor = await getCurrentUserFromCookies();
   if (!actor) {
-    const target =
-      propertyRepairHref(id, jobId) + (fromQueue ? '?from=queue' : '');
+    const target = fromQueue
+      ? propertyRepairQueueHref(id, jobId, queueSearch)
+      : propertyRepairHref(id, jobId);
     redirect(`/login?redirect=${encodeURIComponent(target)}`);
   }
   const repair = await readPropertyRepair(actor.id, id, jobId);
@@ -37,7 +49,10 @@ export default async function PropertyRepairPage({
       <main className='property-workspace space-y-4'>
         <nav aria-label='Repair navigation' className='flex flex-wrap gap-4'>
           {fromQueue && (
-            <Link href='/properties/work-queue' className='pw-back'>
+            <Link
+              href={propertyRepairQueueReturn(queueSearch)}
+              className='pw-back'
+            >
               Back to action queue
             </Link>
           )}

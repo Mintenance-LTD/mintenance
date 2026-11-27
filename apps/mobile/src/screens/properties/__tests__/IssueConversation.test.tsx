@@ -134,3 +134,134 @@ it('identifies job cases and resets expanded state when switching jobs', async (
   view.rerender(renderJob('job-2'));
   expect(view.queryByText('water leak · new')).toBeNull();
 });
+
+const staffFollowup = {
+  propertyId: 'property-1',
+  assigneeName: 'You',
+  needsReassignment: false,
+  canManage: false,
+  waitingFor: 'manager',
+  dueAt: '2026-07-03T11:00:00Z',
+  completionRevision: 4,
+};
+
+it('submits a private note for owner review without sending the resident draft', async () => {
+  mockGet
+    .mockResolvedValueOnce({ ...data(), staffFollowup })
+    .mockResolvedValue({
+      ...data(),
+      staffFollowup: {
+        ...staffFollowup,
+        completionRevision: undefined,
+        waitingFor: 'approval',
+        completion: {
+          note: 'Valve replaced',
+          submittedAt: '2026-07-03T09:00:00Z',
+          submittedBy: 'You',
+          awaitingReview: true,
+        },
+      },
+    });
+  mockPost.mockResolvedValue({ submitted: true });
+  const view = render(content('exact-repair'));
+  fireEvent.press(view.getByText('Shared issue conversation +'));
+  await view.findByText('Responsible: You');
+  expect(view.getByText('Next action: Property team action')).toBeTruthy();
+  fireEvent.changeText(view.getByLabelText('Shared message'), 'Resident draft');
+  fireEvent.changeText(
+    view.getByLabelText('Private completion note'),
+    ' Valve replaced '
+  );
+  fireEvent.press(view.getByText('Submit for owner review'));
+  await view.findByText('Ready for owner review');
+  expect(view.getByLabelText('Shared message').props.value).toBe(
+    'Resident draft'
+  );
+  expect(view.queryByLabelText('Private completion note')).toBeNull();
+  expect(mockPost).toHaveBeenCalledTimes(1);
+  expect(mockPost).toHaveBeenCalledWith(
+    '/api/properties/property-1/followups',
+    { reportId: 'exact-repair', revision: 4, note: 'Valve replaced' },
+    expect.objectContaining({ retries: 0 })
+  );
+});
+
+it('retains the private draft after a network error and blocks retry after stale permission', async () => {
+  mockGet
+    .mockResolvedValueOnce({ ...data(), staffFollowup })
+    .mockResolvedValue(data());
+  mockPost
+    .mockRejectedValueOnce(new Error('Lost response'))
+    .mockRejectedValueOnce(
+      Object.assign(new Error('Assignment removed'), { statusCode: 403 })
+    );
+  const view = render(content());
+  fireEvent.press(view.getByText('Shared issue conversation +'));
+  const note = await view.findByLabelText('Private completion note');
+  fireEvent.changeText(note, 'Internal draft');
+  fireEvent.press(view.getByText('Submit for owner review'));
+  await view.findByText(
+    'Completion was not confirmed. Your note is still here; try again.'
+  );
+  expect(view.getByLabelText('Private completion note').props.value).toBe(
+    'Internal draft'
+  );
+  fireEvent.press(view.getByText('Submit for owner review'));
+  await view.findByText(
+    'You no longer have access to this handover. Refresh the case to confirm.'
+  );
+  expect(mockPost.mock.calls[0][1]).toEqual(mockPost.mock.calls[1][1]);
+  expect(view.queryByLabelText('Submit for owner review')).toBeNull();
+  expect(view.queryByText('Property team handover')).toBeNull();
+});
+
+it.each(['tenant', 'contractor'])(
+  'never displays private staff fields to %s',
+  async (role) => {
+    mockGet.mockResolvedValue({ ...data(), role, staffFollowup });
+    const view = render(content());
+    fireEvent.press(view.getByText('Shared issue conversation +'));
+    await view.findByText('Original leak');
+    expect(view.queryByText('Property team handover')).toBeNull();
+    expect(view.queryByLabelText('Private completion note')).toBeNull();
+  }
+);
+
+it('shows the completion to the owner without offering teammate submission', async () => {
+  mockGet.mockResolvedValue({
+    ...data(),
+    staffFollowup: {
+      ...staffFollowup,
+      canManage: true,
+      completion: {
+        note: 'Valve replaced',
+        submittedAt: '2026-07-03T09:00:00Z',
+        submittedBy: 'Alex',
+        awaitingReview: true,
+      },
+    },
+  });
+  const view = render(content());
+  fireEvent.press(view.getByText('Shared issue conversation +'));
+  await view.findByText('Ready for owner review');
+  expect(view.getByText('Valve replaced')).toBeTruthy();
+  expect(view.queryByLabelText('Private completion note')).toBeNull();
+});
+
+it('can initialise an exact signed-in case without first expanding a list row', async () => {
+  const view = render(
+    <QueryClientProvider client={client}>
+      <IssueConversation
+        reportId='incoming-case'
+        initiallyOpen
+        caseTitle='Tenant repair case'
+      />
+    </QueryClientProvider>
+  );
+  await view.findByText('Original leak');
+  expect(view.getByText('Tenant repair case')).toBeTruthy();
+  expect(mockGet).toHaveBeenCalledWith(
+    expect.stringContaining('reportId=incoming-case&'),
+    expect.anything()
+  );
+});

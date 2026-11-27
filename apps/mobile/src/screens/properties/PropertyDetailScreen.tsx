@@ -7,7 +7,8 @@ import { TenancyInspections } from './components/TenancyInspections';
 import { PropertyTimeline } from './components/PropertyTimeline';
 import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSwitcher';
 import { usePropertyView } from '../../hooks/usePropertyView';
-import { showPropertyTool ,
+import {
+  showPropertyTool,
   isOpenPropertyJob,
   PROPERTY_JOB_STATUS_LABELS,
 } from '@mintenance/shared';
@@ -58,7 +59,15 @@ import { PropertyFiles } from './components/PropertyFiles';
 // 2026-05-23 audit: added 'access' tab. Mobile previously had no
 // access-editing surface at all; the homeowner had to switch to web
 // to set the lock-box code / access notes / utility locations.
-type Tab = 'overview' | 'access' | 'maintenance' | 'manage' | 'timeline';
+type Tab =
+  | 'overview'
+  | 'access'
+  | 'maintenance'
+  | 'tenancy'
+  | 'documents'
+  | 'assessments'
+  | 'manage'
+  | 'timeline';
 
 // 2026-05-23 audit: shape the API response into the narrower shape
 // PropertyHealthScore + SpendingAnalytics expect (both define their
@@ -120,6 +129,9 @@ const TABS: {
   { key: 'overview', label: 'Overview', icon: 'home-outline' },
   { key: 'access', label: 'Access', icon: 'key-outline' },
   { key: 'maintenance', label: 'Maintenance', icon: 'construct-outline' },
+  { key: 'tenancy', label: 'Tenancy & inspections', icon: 'clipboard-outline' },
+  { key: 'documents', label: 'Documents', icon: 'document-text-outline' },
+  { key: 'assessments', label: 'Assessments', icon: 'scan-outline' },
   { key: 'manage', label: 'Manage', icon: 'settings-outline' },
   { key: 'timeline', label: 'Timeline', icon: 'time-outline' },
 ];
@@ -143,12 +155,12 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const [accessDenied, setAccessDenied] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [maintenanceSection, setMaintenanceSection] = useState<
-    'tasks' | 'certificates' | 'files'
-  >('tasks');
-  const [manageSection, setManageSection] = useState<
-    'people' | 'records' | 'settings'
-  >('records');
+  const [documentSection, setDocumentSection] = useState<
+    'certificates' | 'files' | 'room-photos'
+  >('certificates');
+  const [manageSection, setManageSection] = useState<'people' | 'settings'>(
+    'people'
+  );
   const [roomsOpen, setRoomsOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -266,7 +278,10 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const propertyRole = (property as { _role?: PropertyRoleApi } | undefined)
     ?._role;
   const caps = capsForRole(propertyRole);
-  const recordsOnly = !caps.canEdit;
+  const docsSection =
+    !caps.canManageMaintenance && documentSection === 'files'
+      ? 'certificates'
+      : documentSection;
   const canOpenParticipantJob =
     propertyRole === 'owner' || propertyRole === 'platform_admin';
 
@@ -775,12 +790,10 @@ export const PropertyDetailScreen: React.FC<Props> = ({
             <TouchableOpacity
               style={ws.row}
               accessibilityRole='button'
-              onPress={() =>
-                navigation.navigate('AssessmentHistory', { propertyId })
-              }
+              onPress={() => setActiveTab('assessments')}
             >
               <Ionicons name='clipboard-outline' size={22} color={me.ink2} />
-              <Text style={ws.rowText}>Survey history</Text>
+              <Text style={ws.rowText}>Assessments</Text>
               <Ionicons name='chevron-forward' size={18} color={me.ink2} />
             </TouchableOpacity>
           )}
@@ -861,7 +874,8 @@ export const PropertyDetailScreen: React.FC<Props> = ({
                 | undefined) ?? null,
             key_safe_code:
               (p?.key_safe_code as string | null | undefined) ?? null,
-            access_notes: (p?.access_notes as string | null | undefined) ?? null,
+            access_notes:
+              (p?.access_notes as string | null | undefined) ?? null,
             stopcock_location:
               (p?.stopcock_location as string | null | undefined) ?? null,
             gas_isolator_location:
@@ -876,111 +890,68 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   const renderMaintenanceTab = () => (
     <>
+      <RecurringMaintenance
+        key={user?.id + ':' + propertyId}
+        propertyId={propertyId}
+        editable={caps.canManageMaintenance}
+        onAccessDenied={() => setAccessDenied(true)}
+      />
+      <TouchableOpacity
+        style={ws.row}
+        accessibilityRole='button'
+        onPress={() => {
+          setActiveTab('overview');
+          setShowHistory(true);
+          setJobFilter('open');
+        }}
+      >
+        <Text style={ws.rowText}>Open jobs ({activeJobs.length})</Text>
+        <Ionicons name='chevron-forward' size={20} color={me.brand2} />
+      </TouchableOpacity>
+    </>
+  );
+
+  const renderDocumentsTab = () => (
+    <>
       <PropertySegments
-        value={maintenanceSection}
-        onChange={setMaintenanceSection}
+        value={docsSection}
+        onChange={setDocumentSection}
         options={[
-          { value: 'tasks', label: 'Tasks' },
           { value: 'certificates', label: 'Certificates' },
           ...(caps.canManageMaintenance
             ? [{ value: 'files' as const, label: 'Files' }]
             : []),
+          { value: 'room-photos', label: 'Room photos' },
         ]}
       />
-      <PropertyPanel active={maintenanceSection === 'tasks'}>
-          <RecurringMaintenance
-            key={user?.id + ':' + propertyId}
-            propertyId={propertyId}
-            editable={caps.canManageMaintenance}
-            onAccessDenied={() => setAccessDenied(true)}
-          />
-          <TouchableOpacity
-            style={ws.row}
-            accessibilityRole='button'
-            onPress={() => {
-              setActiveTab('overview');
-              setShowHistory(true);
-              setJobFilter('open');
-            }}
-          >
-            <Text style={ws.rowText}>Open jobs ({activeJobs.length})</Text>
-            <Ionicons name='chevron-forward' size={20} color={me.brand2} />
-          </TouchableOpacity>
-      </PropertyPanel>
-      <PropertyPanel active={maintenanceSection === 'certificates'}>
-        <ComplianceCertificates
-          key={user?.id + ':' + propertyId}
-          propertyId={propertyId}
-        />
-      </PropertyPanel>
-      {caps.canManageMaintenance && <PropertyPanel active={maintenanceSection === 'files'}><PropertyFiles propertyId={propertyId} /></PropertyPanel>}
+      {docsSection === 'certificates' && (
+        <ComplianceCertificates propertyId={propertyId} />
+      )}
+      {docsSection === 'files' && caps.canManageMaintenance && (
+        <PropertyFiles propertyId={propertyId} />
+      )}
+      {docsSection === 'room-photos' && (
+        <RoomPhotoAlbums propertyId={propertyId} editable={caps.canEdit} />
+      )}
     </>
   );
 
   const renderManageTab = () => (
     <>
-      {!recordsOnly && (
-        <PropertySegments
-          value={manageSection}
-          onChange={setManageSection}
-          options={[
-            { value: 'people', label: 'People' },
-            { value: 'records', label: 'Records' },
-            { value: 'settings', label: 'Settings' },
-          ]}
-        />
-      )}
-      <PropertyPanel active={recordsOnly || manageSection === 'records'}>
-          <TenancyInspections
-            key={`tenancies:${user?.id}:${propertyId}`}
-            propertyId={propertyId}
-          />
-          {propertyId && (
-            <RoomPhotoAlbums
-              key={`${user?.id}:${propertyId}`}
-              propertyId={propertyId}
-              editable={caps.canEdit}
-            />
-          )}
-          <View style={ws.card}>
-            {caps.canManageMaintenance && (
-              <TouchableOpacity
-                accessibilityRole='button'
-                style={ws.row}
-                onPress={() => {
-                  setActiveTab('maintenance');
-                  setMaintenanceSection('files');
-                }}
-              >
-                <Ionicons
-                  name='document-text-outline'
-                  size={22}
-                  color={me.brand2}
-                />
-                <Text style={ws.rowText}>Documents</Text>
-                <Ionicons name='chevron-forward' size={18} color={me.ink2} />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              accessibilityRole='button'
-              style={ws.row}
-              onPress={() => {
-                setActiveTab('maintenance');
-                setMaintenanceSection('certificates');
-              }}
-            >
-              <Ionicons name='ribbon-outline' size={22} color={me.brand2} />
-              <Text style={ws.rowText}>Certificates</Text>
-              <Ionicons name='chevron-forward' size={18} color={me.ink2} />
-            </TouchableOpacity>
-          </View>
-      </PropertyPanel>
+      <PropertySegments
+        value={manageSection}
+        onChange={setManageSection}
+        options={[
+          { value: 'people', label: 'People' },
+          { value: 'settings', label: 'Settings' },
+        ]}
+      />
       <PropertyPanel active={manageSection === 'people'}>
-          {showPropertyTool(view, 'rental') && caps.canManageReporting && (
-            <TenantReportingLinks propertyId={propertyId} />
-          )}
-          <Text style={styles.sectionTitle}>PEOPLE AND ACCESS</Text>
-          {/* 2026-05-24 audit-30 P1: PropertyContacts surfaces the 4-role
+        {showPropertyTool(view, 'rental') && caps.canManageReporting && (
+          <TenantReportingLinks propertyId={propertyId} />
+        )}
+        <Text style={styles.sectionTitle}>PEOPLE AND ACCESS</Text>
+        {/* 2026-05-24 audit-30 P1: PropertyContacts surfaces the 4-role
           (tenant / keyholder / emergency / managing agent) collection
           that the web /landlord/contacts page writes to, so the
           mobile-managed property carries the same "who do I call
@@ -989,15 +960,11 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           2026-05-26 audit-57 P2: gated on canManageContacts so a
           viewer-role team member doesn't see an editor whose actions
           all 403 server-side. */}
-          {caps.canManageContacts && (
-            <PropertyContacts propertyId={propertyId} />
-          )}
-          {showPropertyTool(view, 'rental') && caps.canManageContacts && (
-            <TenantContacts propertyId={propertyId} />
-          )}
-          {caps.canManageTeam && (
-            <TeamAccess propertyId={propertyId} />
-          )}
+        {caps.canManageContacts && <PropertyContacts propertyId={propertyId} />}
+        {showPropertyTool(view, 'rental') && caps.canManageContacts && (
+          <TenantContacts propertyId={propertyId} />
+        )}
+        {caps.canManageTeam && <TeamAccess propertyId={propertyId} />}
       </PropertyPanel>
       {manageSection === 'settings' &&
         (caps.canEdit || caps.canRunAssessment || caps.canDelete) && (
@@ -1019,45 +986,6 @@ export const PropertyDetailScreen: React.FC<Props> = ({
                 <Ionicons name='chevron-forward' size={18} color={me.ink3} />
               </TouchableOpacity>
             )}
-            {caps.canRunAssessment && (
-              <TouchableOpacity
-                style={styles.actionRow}
-                onPress={() =>
-                  navigation.navigate('PropertyAssessment', {
-                    propertyId,
-                    propertyAddress: property.address,
-                  })
-                }
-              >
-                <View
-                  style={[styles.actionIcon, { backgroundColor: me.warnBg }]}
-                >
-                  <Ionicons
-                    name='videocam-outline'
-                    size={18}
-                    color={me.accent}
-                  />
-                </View>
-                <Text style={styles.actionText}>Property Assessment</Text>
-                <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-              </TouchableOpacity>
-            )}
-            {caps.canRunAssessment && (
-              <TouchableOpacity
-                style={styles.actionRow}
-                onPress={() =>
-                  navigation.navigate('AssessmentHistory', { propertyId })
-                }
-              >
-                <View
-                  style={[styles.actionIcon, { backgroundColor: me.infoBg }]}
-                >
-                  <Ionicons name='time-outline' size={18} color={me.infoFg} />
-                </View>
-                <Text style={styles.actionText}>Past Surveys</Text>
-                <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-              </TouchableOpacity>
-            )}
             {caps.canDelete && (
               <TouchableOpacity style={styles.actionRow} onPress={handleDelete}>
                 <View
@@ -1074,6 +1002,48 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           </View>
         )}
     </>
+  );
+
+  const renderAssessmentsTab = () => (
+    <View style={ws.card}>
+      <Text style={styles.sectionTitle}>PROPERTY ASSESSMENTS</Text>
+      <Text style={ws.rowText}>
+        Capture visible damage with Mint AI or review saved assessments.
+      </Text>
+      {caps.canRunAssessment && (
+        <TouchableOpacity
+          style={styles.actionRow}
+          accessibilityRole='button'
+          onPress={() =>
+            navigation.navigate('PropertyAssessment', {
+              propertyId,
+              propertyAddress: property.address,
+            })
+          }
+        >
+          <View style={[styles.actionIcon, { backgroundColor: me.warnBg }]}>
+            <Ionicons name='videocam-outline' size={18} color={me.accent} />
+          </View>
+          <Text style={styles.actionText}>New assessment</Text>
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+        </TouchableOpacity>
+      )}
+      {caps.canRunAssessment && (
+        <TouchableOpacity
+          style={styles.actionRow}
+          accessibilityRole='button'
+          onPress={() =>
+            navigation.navigate('AssessmentHistory', { propertyId })
+          }
+        >
+          <View style={[styles.actionIcon, { backgroundColor: me.infoBg }]}>
+            <Ionicons name='time-outline' size={18} color={me.infoFg} />
+          </View>
+          <Text style={styles.actionText}>Assessment history</Text>
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+        </TouchableOpacity>
+      )}
+    </View>
   );
 
   return (
@@ -1109,8 +1079,8 @@ export const PropertyDetailScreen: React.FC<Props> = ({
               editable={property.owner_id === user?.id}
               onViewPhotos={() => {
                 setRoomsOpen(false);
-                setActiveTab('manage');
-                setManageSection('records');
+                setDocumentSection('room-photos');
+                setActiveTab('documents');
               }}
             />
           </ScrollView>
@@ -1181,6 +1151,8 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         {TABS.filter(
           (tab) =>
             (tab.key !== 'access' || caps.canEditAccess) &&
+            (tab.key !== 'manage' || caps.canEdit) &&
+            (tab.key !== 'assessments' || caps.canRunAssessment) &&
             (tab.key !== 'timeline' || propertyRole === 'owner')
         ).map((tab) => (
           <TouchableOpacity
@@ -1205,7 +1177,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
                 activeTab === tab.key && styles.tabTextActive,
               ]}
             >
-              {tab.key === 'manage' && recordsOnly ? 'Records' : tab.label}
+              {tab.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -1233,7 +1205,17 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           {activeTab === 'overview' && renderOverviewTab()}
           {activeTab === 'access' && renderAccessTab()}
           {activeTab === 'maintenance' && renderMaintenanceTab()}
-          {activeTab === 'manage' && renderManageTab()}
+          {activeTab === 'tenancy' && (
+            <TenancyInspections
+              key={'tenancies:' + user?.id + ':' + propertyId}
+              propertyId={propertyId}
+            />
+          )}
+          {activeTab === 'documents' && renderDocumentsTab()}
+          {activeTab === 'assessments' &&
+            caps.canRunAssessment &&
+            renderAssessmentsTab()}
+          {activeTab === 'manage' && caps.canEdit && renderManageTab()}
           {activeTab === 'timeline' && propertyRole === 'owner' && user?.id && (
             <PropertyTimeline
               key={`${user.id}/${propertyId}`}

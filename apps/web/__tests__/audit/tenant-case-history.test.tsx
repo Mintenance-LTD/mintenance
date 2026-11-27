@@ -87,7 +87,11 @@ it('shows the resident confirmed visit times and repair milestones without a job
   expect(progress.querySelector('a')).toBeNull();
 });
 it.each([
-  ['tenant-reports', 'Back to tenant reports', '/landlord/reports'],
+  [
+    'tenant-reports',
+    'Back to tenant reports',
+    '/landlord/reports?reportId=first',
+  ],
   ['emergencies', 'Back to emergency reports', '/maintenance/emergencies'],
   [
     'https://elsewhere.invalid',
@@ -228,6 +232,8 @@ it('shows the assigned manager their next step without exposing the owner editor
         assigneeName: 'You',
         canManage: false,
         needsReassignment: false,
+        waitingFor: 'contractor',
+        dueAt: '2026-12-01T12:00:00Z',
       },
     })
   );
@@ -235,6 +241,14 @@ it('shows the assigned manager their next step without exposing the owner editor
   expect(
     await screen.findByRole('region', { name: 'Property team follow-up' })
   ).toHaveTextContent('You');
+  expect(screen.getByText('Contractor response')).toBeInTheDocument();
+  expect(screen.getByText('Follow-up due')).toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: 'Open property inspections' })
+  ).toHaveAttribute(
+    'href',
+    '/properties/property?tab=manage&manage=records#manage-records'
+  );
   expect(screen.getByRole('region', { name: 'Next step' })).toHaveTextContent(
     'Review the original report and share an update'
   );
@@ -328,19 +342,21 @@ it.each([
   'opens a targeted report and never marks it converted when opening job creation (%s)',
   async (_name, Component) => {
     render(<Component reports={[report]} initialReportId={report.id} />);
-    const link = screen.getByRole('link', { name: /Create Job/i });
+    const link = screen.getByRole('link', { name: /Create marketplace job/i });
     expect(link).toHaveAttribute(
       'href',
       '/jobs/create?tenant_report_id=report-1'
     );
     fireEvent.click(link);
     expect(fetcher).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole('link', { name: 'Open shared issue conversation' })
-    ).toHaveAttribute(
+    const repair = screen.getByRole('link', { name: 'Open repair case' });
+    expect(repair).toHaveAttribute(
       'href',
       '/maintenance/reports/report-1?from=tenant-reports'
     );
+    fireEvent.click(repair);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(screen.getByText(/No marketplace job is needed/)).toBeVisible();
   }
 );
 it.each([
@@ -362,7 +378,9 @@ it.each([
       'href',
       '/properties/home'
     );
-    expect(screen.queryByRole('link', { name: /Create Job/i })).toBeNull();
+    expect(
+      screen.queryByRole('link', { name: /Create marketplace job/i })
+    ).toBeNull();
     expect(screen.queryByRole('button', { name: 'Reopen' })).toBeNull();
   }
 );

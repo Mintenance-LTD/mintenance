@@ -55,6 +55,22 @@ type NativeDraft = {
   noIssues: boolean;
 };
 
+function inspectionShareUrl(propertyId: string, reportId: string) {
+  const path = inspectionReportPath(propertyId, reportId);
+  const configured = process.env.EXPO_PUBLIC_WEB_URL;
+  if (configured) {
+    try {
+      const base = new URL(configured);
+      if (base.protocol === 'https:' && !base.username && !base.password) {
+        return new URL(path, base.origin).toString();
+      }
+    } catch {
+      // Invalid build-time URL: use the canonical browser fallback.
+    }
+  }
+  return 'https://www.mintenance.co.uk' + path;
+}
+
 export function TenancyInspections({
   propertyId,
   initialReportId,
@@ -425,7 +441,7 @@ function TenancyWorkspace({
     <View style={s.panel}>
       {!initialReportId && (
         <>
-          <Text style={s.title}>Tenancy folders & inspections</Text>
+          <Text style={s.title}>Tenancy & inspections</Text>
           <Text style={s.text}>
             Reports are shared with current property members only.
           </Text>
@@ -1092,8 +1108,7 @@ function NativeReport({
         onPress={() =>
           void Share.share({
             message:
-              'https://www.mintenance.co.uk' +
-              inspectionReportPath(propertyId, detail.report.id),
+              inspectionShareUrl(propertyId, detail.report.id),
           }).catch(() => undefined)
         }
       />

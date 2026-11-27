@@ -26,6 +26,8 @@ import { logger } from '@mintenance/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { AIAnalysisCard } from '../job-details/components';
 import { me } from '../../design-system/mint-editorial';
+import { useAuth } from '../../contexts/AuthContext';
+import { AssessmentMaintenanceHandoff } from './AssessmentMaintenanceHandoff';
 
 interface StatusResponse {
   id: string;
@@ -51,15 +53,24 @@ interface StatusResponse {
 }
 
 interface Props {
-  navigation: { goBack: () => void };
-  route: { params: { assessmentId: string; title?: string } };
+  navigation: {
+    goBack: () => void;
+    navigate?: (
+      name: 'PortfolioInbox',
+      params: { ticketId: string; orgId: string }
+    ) => void;
+  };
+  route: {
+    params: { assessmentId: string; title?: string; propertyId?: string };
+  };
 }
 
 export const AssessmentDetailScreen: React.FC<Props> = ({
   navigation,
   route,
 }) => {
-  const { assessmentId, title } = route.params;
+  const { assessmentId, title, propertyId } = route.params;
+  const { user } = useAuth();
 
   const [data, setData] = useState<StatusResponse | null>(null);
   const [loadFailed, setLoadFailed] = useState<boolean | null>(null);
@@ -237,6 +248,22 @@ export const AssessmentDetailScreen: React.FC<Props> = ({
             />
           </>
         )}
+        {loadFailed === false &&
+          data?.id === assessmentId &&
+          propertyId &&
+          user?.id && (
+            <AssessmentMaintenanceHandoff
+              key={user.id + ':' + propertyId + ':' + assessmentId}
+              propertyId={propertyId}
+              assessmentId={assessmentId}
+              openTicket={(ticket) =>
+                navigation.navigate?.('PortfolioInbox', {
+                  ticketId: ticket.id,
+                  orgId: ticket.org_id,
+                })
+              }
+            />
+          )}
       </ScrollView>
     </SafeAreaView>
   );

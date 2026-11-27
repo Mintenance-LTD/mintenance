@@ -127,7 +127,7 @@ export const AssessmentHistoryScreen: React.FC<Props> = ({
           <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.title} accessibilityRole='header'>
-          {roomName ? `${roomName} surveys` : 'Survey history'}
+          {roomName ? `${roomName} surveys` : 'Assessment history'}
         </Text>
         <View style={styles.backBtn} />
       </View>
@@ -177,6 +177,7 @@ export const AssessmentHistoryScreen: React.FC<Props> = ({
               onPress={() =>
                 navigation.navigate('AssessmentDetail', {
                   assessmentId: row.id,
+                  propertyId,
                   title: row.room?.name ?? undefined,
                 })
               }
