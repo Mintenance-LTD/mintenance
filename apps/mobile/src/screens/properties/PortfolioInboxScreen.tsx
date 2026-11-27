@@ -155,7 +155,10 @@ function PortfolioInbox({
       ? entry?.ticketId
       : undefined;
   const canSetup =
-    !!workspaces.data?.canSetUp && (!workspace || workspace.role === 'owner');
+    !!workspaces.data?.canSetUp &&
+    (!workspace ||
+      workspace.role === 'owner' ||
+      workspaces.data.unlinkedProperties.length > 0);
   const refresh = async () => {
     const result = await access.refetch();
     if (result.isSuccess && result.data.allowed) {
@@ -262,18 +265,26 @@ function PortfolioInbox({
                     Role: {inboxLabel(workspace.role)}
                   </Text>
                 )}
-                {workspace?.role === 'owner' && (
+                {(canSetup || workspace?.role === 'owner') && (
                   <View style={styles.buttons}>
                     {canSetup && (
                       <InboxButton
-                        label={showSetup ? 'Return to inbox' : 'Add a property'}
+                        label={
+                          showSetup
+                            ? 'Return to inbox'
+                            : workspace?.role === 'owner'
+                              ? 'Add a property'
+                              : 'Set up a separate workspace'
+                        }
                         onPress={() => setShowSetup((value) => !value)}
                       />
                     )}
-                    <InboxButton
-                      label='Manage teammates on the website'
-                      onPress={onWebSettings}
-                    />
+                    {workspace?.role === 'owner' && (
+                      <InboxButton
+                        label='Manage teammates on the website'
+                        onPress={onWebSettings}
+                      />
+                    )}
                   </View>
                 )}
               </View>
@@ -287,7 +298,7 @@ function PortfolioInbox({
               <WorkspaceSetup
                 key={workspace?.id ?? 'new'}
                 data={workspaces.data}
-                workspace={workspace}
+                workspace={workspace?.role === 'owner' ? workspace : undefined}
                 onComplete={(orgId) => {
                   setSelection(orgId);
                   setShowSetup(false);

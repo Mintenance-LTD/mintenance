@@ -107,3 +107,46 @@ it('shows unavailable without offering an alternative write and opens a persiste
     await screen.findByRole('link', { name: 'Open linked Portfolio task' })
   ).toHaveAttribute('href', '/portfolio?orgId=workspace&ticketId=existing');
 });
+
+it('distinguishes matching same-day findings and opens the selected assessment', async () => {
+  const first = {
+    ...assessment,
+    id: '11111111-1111-4111-8111-111111111111',
+    room: { name: 'Kitchen' },
+    createdAt: '2026-07-01T10:00:00Z',
+  };
+  const second = {
+    ...first,
+    id: '22222222-2222-4222-8222-222222222222',
+    room: { name: 'Bathroom' },
+  };
+  fetcher.mockImplementation((url: string) =>
+    Promise.resolve(
+      response(
+        url.endsWith('/assessments')
+          ? { assessments: [first, second] }
+          : { canCreate: false }
+      )
+    )
+  );
+  render(<PropertyAssessments propertyId='property' />);
+  expect(
+    await screen.findByRole('button', {
+      name: /review water mark, kitchen.*11:00:00.*11111111/i,
+    })
+  ).toBeTruthy();
+  const bathroom = screen.getByRole('button', {
+    name: /review water mark, bathroom.*22222222/i,
+  });
+  fireEvent.click(bathroom);
+  expect(bathroom).toHaveAttribute('aria-pressed', 'true');
+  expect(
+    screen.getByRole('link', { name: 'View full assessment' })
+  ).toHaveAttribute('href', '/building-assessments/' + second.id);
+  fireEvent.change(screen.getByLabelText('Search assessments'), {
+    target: { value: 'Bathroom' },
+  });
+  expect(
+    screen.queryByRole('button', { name: /review water mark, kitchen/i })
+  ).toBeNull();
+});
