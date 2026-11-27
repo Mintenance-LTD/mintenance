@@ -748,7 +748,7 @@ These are configured in `vercel.json` and run automatically on Vercel.
 | `/api/cron/anniversary-recognition` | Daily 08:00 UTC | Anniversary recognition messages |
 | `/api/cron/contractor-job-digest` | Weekly Mon 08:00 UTC | Weekly job digest for contractors |
 | `/api/cron/compliance-expiry-reminders` | Daily 07:00 UTC | Compliance document expiry alerts |
-| `/api/cron/recurring-job-creator` | Daily 06:00 UTC | Create recurring scheduled jobs |
+| `/api/cron/recurring-job-creator` | Every 30 minutes | Create recurring scheduled jobs |
 
 All cron endpoints require the `CRON_SECRET` header for authentication. Vercel automatically provides this for scheduled invocations.
 
