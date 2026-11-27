@@ -93,9 +93,17 @@ jobs:
         id: determine-profile
         env:
           REQUESTED_PROFILE: ${{ github.event.inputs.profile }}
+          REQUESTED_PLATFORM: ${{ github.event.inputs.platform }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             PROFILE="$REQUESTED_PROFILE"
+            if [ "$GITHUB_REF" = "refs/heads/test/my-home-staging-apk" ]; then
+              if [ "$PROFILE" != staging ] || [ "$REQUESTED_PLATFORM" != android ]; then
+                echo "::error::This QA ref only permits a staging Android APK." >&2
+                exit 1
+              fi
+              PROFILE=agency-qa-android
+            fi
           elif [ "$GITHUB_REF" = "refs/heads/Main" ] || [ "$GITHUB_REF" = "refs/heads/main" ]; then
             PROFILE=internal
           elif [ "$GITHUB_REF" = "refs/heads/develop" ]; then
@@ -105,7 +113,7 @@ jobs:
           fi
 
           case "$PROFILE" in
-            internal|development|staging|production) ;;
+            internal|development|staging|production|agency-qa-android) ;;
             *) echo "::error::Invalid build profile" >&2; exit 1 ;;
           esac
           printf 'profile=%s\n' "$PROFILE" >> "$GITHUB_OUTPUT"
@@ -131,6 +139,7 @@ jobs:
         run: npx expo install --check
 
       - name: Validate environment
+        if: steps.determine-profile.outputs.profile != 'agency-qa-android'
         working-directory: apps/mobile
         # These secrets exist in repo settings but were never mapped into this
         # step's env, so validate:env failed on every run (2026-07-27 triage).
@@ -204,9 +213,13 @@ jobs:
         working-directory: apps/mobile
         run: |
           case "$PROFILE" in
-            internal|development|staging|production) ;;
+            internal|development|staging|production|agency-qa-android) ;;
             *) echo "::error::Invalid build profile" >&2; exit 1 ;;
           esac
+          if [ "$PROFILE" = agency-qa-android ]; then
+            # Only EAS preview credentials may populate the isolated profile.
+            unset EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
+          fi
           eas build --platform android --profile "$PROFILE" --non-interactive --no-wait
         env:
           PROFILE: ${{ needs.pre-build-checks.outputs.build-profile }}
@@ -222,6 +235,7 @@ jobs:
           echo "https://expo.dev/accounts/$(cat package.json | grep -o '"name": "[^"]*' | cut -d'"' -f4)/projects/mintenance/builds"
 
       - name: Get build URL
+        if: needs.pre-build-checks.outputs.build-profile != 'agency-qa-android'
         id: build-url
         working-directory: apps/mobile
         env:
