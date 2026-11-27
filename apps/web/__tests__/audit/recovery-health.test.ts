@@ -102,7 +102,7 @@ it('matches monitored paths to deployed schedules instead of assuming daily jobs
       'pii-cleanup': ['0 3 * * *', 1560],
       'retention-cleanup': ['0 3 * * *', 1560],
       'data-archival': ['0 4 1 * *', 35 * 24 * 60],
-      'recurring-job-creator': ['*/15 * * * *', 45],
+      'recurring-job-creator': ['*/30 * * * *', 60],
       'model-retraining': ['0 5 * * *', 1560],
     };
     const expected = schedules[job.name] ?? ['*/5 * * * *', 15];
@@ -188,4 +188,29 @@ it('distinguishes awaiting data from a failed training attempt', () => {
       now
     )
   ).toBe('attention');
+});
+
+it('reduces only non-urgent cron cadence and keeps recovery and alert cadence', () => {
+  const { crons } = JSON.parse(
+    readFileSync(path.resolve(process.cwd(), '../../vercel.json'), 'utf8')
+  ) as { crons: Array<{ path: string; schedule: string }> };
+  const cadence = Object.fromEntries(
+    crons.map(({ path: route, schedule }) => [
+      route.split('/').at(-1),
+      schedule,
+    ])
+  );
+  expect(cadence).toMatchObject({
+    'admin-verification-assignments': '*/15 * * * *',
+    'recurring-job-creator': '*/30 * * * *',
+    'admin-dispute-assignments': '*/5 * * * *',
+    'payment-reconciliation': '*/5 * * * *',
+    'refund-recovery': '*/5 * * * *',
+    'admin-release-recovery': '*/5 * * * *',
+    'dispute-resolution-recovery': '*/5 * * * *',
+    'password-change-recovery': '*/5 * * * *',
+    'notification-processor': '*/5 * * * *',
+    'tenant-report-email': '*/5 * * * *',
+    'operator-alerts': '*/5 * * * *',
+  });
 });
