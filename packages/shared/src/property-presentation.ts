@@ -126,6 +126,8 @@ export function propertyNavigationVisible(view: PropertyView, href: string) {
         '/properties/compliance',
         '/properties/work-queue',
         '/financials',
+        '/agency-work',
+        '/portfolio',
       ].includes(href))
   )
     return false;

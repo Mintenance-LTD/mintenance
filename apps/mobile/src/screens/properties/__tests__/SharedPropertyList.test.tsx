@@ -15,6 +15,13 @@ jest.mock('../components/PropertyInvitations', () => ({
   PropertyInvitations: () => null,
 }));
 const mockGet = jest.fn();
+const mockView = { view: 'home', ready: true };
+beforeEach(() => {
+  mockView.view = 'home';
+});
+jest.mock('../../../hooks/usePropertyView', () => ({
+  usePropertyView: () => mockView,
+}));
 const mockUser = { id: 'first-member' };
 const clients: QueryClient[] = [];
 afterEach(() => clients.splice(0).forEach((client) => client.clear()));
@@ -139,14 +146,22 @@ it('searches property names and addresses and clears an empty result', async () 
   view.unmount();
 });
 
-
 it('opens the Portfolio Inbox even before the first property is added', async () => {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   clients.push(client);
   mockUser.id = 'new-agency-owner';
   mockGet.mockResolvedValue({ properties: [] });
   const navigate = jest.fn();
   const view = render(
+    <QueryClientProvider client={client}>
+      <PropertiesScreen navigation={{ navigate } as never} />
+    </QueryClientProvider>
+  );
+  expect(view.queryByText('Portfolio Inbox')).toBeNull();
+  mockView.view = 'agency';
+  view.rerender(
     <QueryClientProvider client={client}>
       <PropertiesScreen navigation={{ navigate } as never} />
     </QueryClientProvider>

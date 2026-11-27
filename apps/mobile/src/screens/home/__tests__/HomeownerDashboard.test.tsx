@@ -23,6 +23,10 @@ import { render, fireEvent } from '@testing-library/react-native';
 // import after mocks
 // ============================================================================
 import { HomeownerDashboard } from '../HomeownerDashboard';
+const mockPropertyView = { view: 'home', ready: true };
+jest.mock('../../../hooks/usePropertyView', () => ({
+  usePropertyView: () => mockPropertyView,
+}));
 
 // ============================================================================
 // react-query mock — keyed query state, controllable per test
@@ -408,6 +412,8 @@ describe('HomeownerDashboard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetQueryState();
+    mockPropertyView.view = 'home';
+    mockPropertyView.ready = true;
     mockExecuteQueryFns = false;
     mockAppointmentsGet.mockResolvedValue({ appointments: [] });
     mockGetUserJobs.mockResolvedValue([]);
@@ -422,8 +428,10 @@ describe('HomeownerDashboard', () => {
   });
 
   it('opens the landlord quote inbox from the real Agency shortcut', () => {
-    const { getByText } = render(<HomeownerDashboard />);
-
+    const { getByText, queryByText, rerender } = render(<HomeownerDashboard />);
+    expect(queryByText('Open agency quote approvals')).toBeNull();
+    mockPropertyView.view = 'agency';
+    rerender(<HomeownerDashboard />);
     fireEvent.press(getByText('Open agency quote approvals'));
 
     expect(mockNavigate).toHaveBeenCalledWith('ProfileTab', {

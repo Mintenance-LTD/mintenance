@@ -64,15 +64,13 @@ describe('property view controls', () => {
   it('shows the Agency shortcuts below Payment protected and hides them in Home and Rentals views', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response(
-            JSON.stringify({
-              workspaces: [{ id: 'agency-one', role: 'owner' }],
-            })
-          )
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            workspaces: [{ id: 'agency-one', role: 'owner' }],
+          })
         )
+      )
     );
     const sidePanel = (
       <MintEditorialSidePanel appointments={[]} escrowHeld={3.72} />
@@ -171,12 +169,24 @@ describe('property view controls', () => {
   });
   it('hides rental tools in My home and team analytics until Agency, preserving core tasks', () => {
     const view = render(<Navigation />);
-    expect(screen.queryByText('Tenant Reports')).toBeNull();
+    for (const item of [
+      'Tenant Reports',
+      'Agency quote approvals',
+      'Portfolio Inbox',
+    ]) {
+      expect(screen.queryByText(item)).toBeNull();
+    }
     expect(screen.getByText('Properties')).toBeTruthy();
     expect(screen.getByText('Payments')).toBeTruthy();
     state.view = 'rentals';
     view.rerender(<Navigation />);
-    expect(screen.getByText('Tenant Reports')).toBeTruthy();
+    for (const item of [
+      'Tenant Reports',
+      'Agency quote approvals',
+      'Portfolio Inbox',
+    ]) {
+      expect(screen.getByText(item)).toBeTruthy();
+    }
     expect(screen.queryByText('Year-over-Year')).toBeNull();
     state.view = 'agency';
     view.rerender(<Navigation />);

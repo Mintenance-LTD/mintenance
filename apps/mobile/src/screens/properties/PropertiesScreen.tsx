@@ -22,6 +22,8 @@ import type {
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { goBackSafe } from '../../navigation/hooks';
+import { propertyNavigationVisible } from '@mintenance/shared';
+import { usePropertyView } from '../../hooks/usePropertyView';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -154,6 +156,7 @@ type SortOption = 'name' | 'date' | 'type';
 
 export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
+  const { view: propertyView, ready: propertyViewReady } = usePropertyView();
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -330,20 +333,23 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={styles.portfolioShortcut}
-        accessibilityRole='button'
-        onPress={() => navigation.navigate('PortfolioInbox')}
-      >
-        <Ionicons name='file-tray-outline' size={22} color={me.brand} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.portfolioTitle}>Portfolio Inbox</Text>
-          <Text style={styles.portfolioSubtitle}>
-            Internal maintenance tickets and workspace setup
-          </Text>
-        </View>
-        <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-      </TouchableOpacity>
+      {propertyViewReady &&
+        propertyNavigationVisible(propertyView, '/portfolio') && (
+          <TouchableOpacity
+            style={styles.portfolioShortcut}
+            accessibilityRole='button'
+            onPress={() => navigation.navigate('PortfolioInbox')}
+          >
+            <Ionicons name='file-tray-outline' size={22} color={me.brand} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.portfolioTitle}>Portfolio Inbox</Text>
+              <Text style={styles.portfolioSubtitle}>
+                Internal maintenance tickets and workspace setup
+              </Text>
+            </View>
+            <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+          </TouchableOpacity>
+        )}
 
       {/* Sort & filter options */}
       {!!properties?.length && (
