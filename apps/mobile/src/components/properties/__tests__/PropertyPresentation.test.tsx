@@ -12,6 +12,7 @@ const mockNavigate = jest.fn();
 const mockSetView = jest.fn();
 const mockPreference = {
   view: 'home',
+  accountId: 'test-owner',
   enabled: true,
   ready: true,
   saved: true,
@@ -95,17 +96,30 @@ it('dismisses the view chooser without changing the preference', () => {
   expect(mockSetView).not.toHaveBeenCalled();
   expect(ui.queryByText('Agency')).toBeNull();
 });
-it('opens the separate workspace and CRM destinations only from Agency', () => {
-  const ui = render(<PropertyViewSwitcher />);
+it('opens the separate workspace and CRM destinations only from Agency', async () => {
+  jest
+    .mocked(mobileApiClient.get)
+    .mockResolvedValue({ workspaces: [{ id: 'one', role: 'owner' }] });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  const page = () => (
+    <QueryClientProvider client={client}>
+      <PropertyViewSwitcher />
+    </QueryClientProvider>
+  );
+  const ui = render(page());
   expect(ui.queryByText('Open Agency workspace')).toBeNull();
   expect(ui.queryByText('Open Agency CRM')).toBeNull();
   mockPreference.view = 'rentals';
-  ui.rerender(<PropertyViewSwitcher />);
+  ui.rerender(page());
   expect(ui.queryByText('Open Agency workspace')).toBeNull();
   expect(ui.queryByText('Open Agency CRM')).toBeNull();
   mockPreference.view = 'agency';
-  ui.rerender(<PropertyViewSwitcher />);
-  fireEvent.press(ui.getByLabelText('Open Agency workspace'));
+  ui.rerender(page());
+  fireEvent.press(
+    await ui.findByRole('button', { name: 'Open Agency workspace' })
+  );
   expect(mockNavigate).toHaveBeenCalledWith('ProfileTab', {
     screen: 'PortfolioInbox',
   });
@@ -113,6 +127,32 @@ it('opens the separate workspace and CRM destinations only from Agency', () => {
   expect(mockNavigate).toHaveBeenLastCalledWith('ProfileTab', {
     screen: 'AgencyCrm',
   });
+  expect(ui.getByText('Property records')).toBeTruthy();
+});
+it('does not show CRM to a property-only teammate', async () => {
+  mockPreference.view = 'agency';
+  jest
+    .mocked(mobileApiClient.get)
+    .mockResolvedValue({
+      workspaces: [],
+      canSetUp: false,
+      unlinkedProperties: [],
+    });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  const ui = render(
+    <QueryClientProvider client={client}>
+      <PropertyViewSwitcher />
+    </QueryClientProvider>
+  );
+  await ui.findByText(
+    /Shared properties and agency workspace access are separate/
+  );
+  expect(ui.queryByRole('button', { name: 'Open Agency CRM' })).toBeNull();
+  expect(
+    ui.queryByRole('button', { name: 'Open Agency workspace' })
+  ).toBeNull();
   expect(ui.getByText('Property records')).toBeTruthy();
 });
 it('groups upload dates and filters an older album', async () => {

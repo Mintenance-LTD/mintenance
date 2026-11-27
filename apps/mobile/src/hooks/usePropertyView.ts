@@ -21,6 +21,7 @@ export function usePropertyView() {
   return {
     ...state,
     enabled: !!id,
+    accountId: id,
     setView: (view: PropertyView) => {
       if (id) void store.set(id, view);
     },
