@@ -507,3 +507,31 @@ it('requires evidence and a sufficient invoice before recording an external paym
   ).toBeTruthy();
   expect(mockPut).not.toHaveBeenCalled();
 });
+
+it('lets an eligible coordinator create a separate workspace, not link into the staff workspace', async () => {
+  mockGet.mockImplementation(async (url: string) => {
+    if (url === '/api/portfolio/access') return { allowed: true };
+    if (url === '/api/portfolio/workspace')
+      return {
+        workspaces: [{ ...workspace, role: 'maintenance_coordinator' }],
+        unlinkedProperties: [property],
+        canSetUp: true,
+      };
+    if (url.startsWith('/api/portfolio/tickets?')) return { tickets: [] };
+    throw new Error('Unexpected request: ' + url);
+  });
+  mockPost.mockResolvedValue({ orgId: otherOrg });
+  const view = show();
+  fireEvent.press(await view.findByText('Set up a separate workspace'));
+  expect(view.queryByText('Manage teammates on the website')).toBeNull();
+  expect(view.queryByText('Add to this workspace')).toBeNull();
+  fireEvent.changeText(view.getByLabelText('Workspace name'), 'My agency');
+  fireEvent.press(view.getByText(property.property_name));
+  fireEvent.press(view.getByText('Create workspace and add property'));
+  await waitFor(() =>
+    expect(mockPost).toHaveBeenCalledWith('/api/portfolio/workspace', {
+      propertyId: property.id,
+      workspace: { action: 'create', name: 'My agency' },
+    })
+  );
+});

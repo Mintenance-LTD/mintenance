@@ -59,6 +59,7 @@ export function PortfolioWorkspace({
   const [revision, setRevision] = useState(0);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -89,9 +90,20 @@ export function PortfolioWorkspace({
 
   const workspace = data?.workspaces.find((item) => item.id === workspaceId);
 
-  async function setUp(event: React.FormEvent<HTMLFormElement>) {
+  async function setUp(
+    event: React.FormEvent<HTMLFormElement>,
+    action: 'create' | 'link'
+  ) {
     event.preventDefault();
-    if (adding || !propertyId || (!workspace && name.trim().length < 2)) return;
+    if (
+      adding ||
+      !data?.canSetUp ||
+      !data.unlinkedProperties.some((property) => property.id === propertyId) ||
+      (action === 'create'
+        ? name.trim().length < 2
+        : workspace?.role !== 'owner')
+    )
+      return;
     setAdding(true);
     setActionError('');
     setNotice('');
@@ -106,7 +118,7 @@ export function PortfolioWorkspace({
           body: JSON.stringify({
             propertyId,
             workspace:
-              workspace?.role === 'owner'
+              action === 'link' && workspace
                 ? { action: 'link', orgId: workspace.id }
                 : { action: 'create', name: name.trim() },
           }),
@@ -116,6 +128,7 @@ export function PortfolioWorkspace({
       setRevision((value) => value + 1);
       setPropertyId('');
       setName('');
+      setCreateOpen(false);
       setNotice('Property added to the Portfolio workspace.');
     } catch (error) {
       setActionError((error as Error).message);
@@ -197,6 +210,43 @@ export function PortfolioWorkspace({
           ))}
         </select>
       </label>
+    );
+  }
+
+  function createWorkspaceForm() {
+    return (
+      <form
+        onSubmit={(event) => void setUp(event, 'create')}
+        className='mt-6 grid min-w-0 gap-4'
+      >
+        <label className='block min-w-0 text-sm font-semibold text-slate-800'>
+          New workspace name
+          <input
+            className={field}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder='e.g. Brookfield Lettings'
+            autoComplete='organization'
+            required
+            minLength={2}
+            maxLength={100}
+            disabled={adding}
+          />
+        </label>
+        {propertyField()}
+        {actionError && (
+          <p role='alert' className='text-sm text-red-800'>
+            {actionError}
+          </p>
+        )}
+        <button
+          className={primary + ' mt-1 sm:justify-self-start'}
+          disabled={adding || !propertyId || name.trim().length < 2}
+        >
+          {adding ? 'Creating workspace…' : 'Create workspace'}
+          {!adding && <ArrowRight size={17} aria-hidden='true' />}
+        </button>
+      </form>
     );
   }
 
@@ -333,37 +383,7 @@ export function PortfolioWorkspace({
                   ? 'Give your workspace a name and add the first property you want to manage. You can add more properties later.'
                   : 'Ask the agency owner to add you using the email address you sign in with. Sharing a property with you doesn’t give you access to its Portfolio tickets.'}
               </p>
-              {firstSetup && hasUnlinked && (
-                <form onSubmit={setUp} className='mt-6 grid min-w-0 gap-4'>
-                  <label className='block min-w-0 text-sm font-semibold text-slate-800'>
-                    New workspace name
-                    <input
-                      className={field}
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      placeholder='e.g. Brookfield Lettings'
-                      autoComplete='organization'
-                      required
-                      minLength={2}
-                      maxLength={100}
-                      disabled={adding}
-                    />
-                  </label>
-                  {propertyField()}
-                  {actionError && (
-                    <p role='alert' className='text-sm text-red-800'>
-                      {actionError}
-                    </p>
-                  )}
-                  <button
-                    className={primary + ' mt-1 sm:justify-self-start'}
-                    disabled={adding || !propertyId || name.trim().length < 2}
-                  >
-                    {adding ? 'Creating workspace…' : 'Create workspace'}
-                    {!adding && <ArrowRight size={17} aria-hidden='true' />}
-                  </button>
-                </form>
-              )}
+              {firstSetup && hasUnlinked && createWorkspaceForm()}
               {firstSetup && !hasUnlinked && (
                 <div className='mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4'>
                   <p className='text-sm font-semibold text-slate-900'>
@@ -450,6 +470,26 @@ export function PortfolioWorkspace({
             {notice}
           </p>
         )}
+        {!crm && workspace && data?.canSetUp && hasUnlinked && (
+          <section className={panel + ' mb-5 p-4 sm:p-5'}>
+            <button
+              type='button'
+              className={secondary}
+              aria-expanded={createOpen}
+              onClick={() => {
+                setPropertyId('');
+                setActionError('');
+                setCreateOpen(!createOpen);
+              }}
+              disabled={adding}
+            >
+              {createOpen
+                ? 'Cancel workspace setup'
+                : 'Set up a separate workspace'}
+            </button>
+            {createOpen && createWorkspaceForm()}
+          </section>
+        )}
         {!crm && workspaceTools && (
           <details key={workspace?.id} className={panel + ' mb-5 p-4 sm:p-5'}>
             <summary className='cursor-pointer rounded-md py-2 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-800'>
@@ -461,8 +501,11 @@ export function PortfolioWorkspace({
             <div className='mt-5 grid gap-5 lg:grid-cols-2'>
               <section className='min-w-0 rounded-xl border border-slate-200 p-4'>
                 <h2 className='font-semibold'>Properties</h2>
-                {hasUnlinked ? (
-                  <form onSubmit={setUp} className='mt-3 grid gap-3'>
+                {hasUnlinked && !createOpen ? (
+                  <form
+                    onSubmit={(event) => void setUp(event, 'link')}
+                    className='mt-3 grid gap-3'
+                  >
                     {propertyField()}
                     <button
                       className={primary + ' sm:justify-self-start'}
@@ -475,7 +518,9 @@ export function PortfolioWorkspace({
                   </form>
                 ) : (
                   <p className='mt-2 text-sm text-slate-600'>
-                    There are no unlinked properties you own.
+                    {createOpen
+                      ? 'Finish or cancel the separate workspace setup first.'
+                      : 'There are no unlinked properties you own.'}
                   </p>
                 )}
               </section>
@@ -513,7 +558,7 @@ export function PortfolioWorkspace({
             {workspace && (
               <PortfolioDocumentBranding workspaceId={workspace.id} />
             )}
-            {actionError && (
+            {actionError && !createOpen && (
               <p role='alert' className='mt-4 text-sm text-red-800'>
                 {actionError}
               </p>

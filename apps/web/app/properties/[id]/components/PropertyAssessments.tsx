@@ -29,6 +29,7 @@ interface PropertyAssessment {
   createdAt: string | null;
   updatedAt: string | null;
   thumbnailUrl: string | null;
+  room?: { name: string | null } | null;
   ricsConditionRating: number | null;
   needsOnsiteInspection: boolean;
 }
@@ -208,17 +209,25 @@ const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
   ai_analysis_skipped_no_auth: { label: 'AI skipped', tone: 'text-amber-600' },
 };
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return '—';
-  }
+const recordedAtFormatter = new Intl.DateTimeFormat('en-GB', {
+  dateStyle: 'medium',
+  timeStyle: 'medium',
+  timeZone: 'Europe/London',
+});
+
+function recordedAt(iso: string | null): string {
+  const date = iso ? new Date(iso) : null;
+  return date && Number.isFinite(date.getTime())
+    ? recordedAtFormatter.format(date)
+    : 'Date not recorded';
+}
+
+function roomLabel(assessment: PropertyAssessment): string {
+  return assessment.room?.name?.trim() || 'No room recorded';
+}
+
+function reference(assessment: PropertyAssessment): string {
+  return assessment.id.split('-')[0].toUpperCase();
 }
 
 export default function PropertyAssessments({
@@ -300,10 +309,15 @@ export default function PropertyAssessments({
   const visible = assessments
     .filter(
       (a) =>
-        (a.damageType ?? 'Assessment')
-          .replace(/_/g, ' ')
+        [
+          a.damageType?.replace(/_/g, ' ') ?? 'Assessment',
+          a.room?.name,
+          reference(a),
+        ]
+          .filter(Boolean)
+          .join(' ')
           .toLowerCase()
-          .includes(query.toLowerCase()) &&
+          .includes(query.trim().toLowerCase()) &&
         (filter === 'all' ||
           (filter === 'review' ? needsReview(a) : a.needsOnsiteInspection))
     )
@@ -435,7 +449,7 @@ export default function PropertyAssessments({
               <thead>
                 <tr>
                   <th>Assessment</th>
-                  <th>Date</th>
+                  <th>Recorded (UK time)</th>
                   <th>Severity</th>
                   <th>Condition</th>
                   <th>Review status</th>
@@ -448,17 +462,19 @@ export default function PropertyAssessments({
                       <button
                         className='pw-text-button pw-row'
                         onClick={() => setSelectedId(a.id)}
-                        aria-label={'Review ' + title(a)}
+                        aria-label={`Review ${title(a)}, ${roomLabel(a)}, ${recordedAt(a.createdAt)}, ref ${reference(a)}`}
+                        aria-pressed={a.id === selected?.id}
                       >
                         {thumbnail(a)}
-                        <span
-                          style={{ minWidth: 120, textTransform: 'capitalize' }}
-                        >
-                          {title(a)}
+                        <span className='min-w-0 text-left'>
+                          <span className='block capitalize'>{title(a)}</span>
+                          <span className='pw-muted block text-xs'>
+                            {roomLabel(a)} · Ref {reference(a)}
+                          </span>
                         </span>
                       </button>
                     </td>
-                    <td>{formatDate(a.createdAt)}</td>
+                    <td>{recordedAt(a.createdAt)}</td>
                     <td>{severity(a)}</td>
                     <td>{condition(a)}</td>
                     <td>
@@ -492,6 +508,10 @@ export default function PropertyAssessments({
           {selected ? (
             <>
               <h2 style={{ textTransform: 'capitalize' }}>{title(selected)}</h2>
+              <p className='pw-muted text-sm'>
+                {roomLabel(selected)} · Ref {reference(selected)} ·{' '}
+                {recordedAt(selected.createdAt)} (UK time)
+              </p>
               {selected.needsOnsiteInspection && (
                 <div>
                   <WorkspaceBadge tone='warn'>

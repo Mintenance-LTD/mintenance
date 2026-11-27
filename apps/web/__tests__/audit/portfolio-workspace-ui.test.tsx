@@ -306,3 +306,55 @@ it('does not fetch CRM for a workspace role without directory access', async () 
   expect(await screen.findByText(/role does not include access/i)).toBeTruthy();
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it('creates a separate workspace for an eligible coordinator without granting owner controls in the current one', async () => {
+  const current = {
+    id: 'staff',
+    name: 'Staff workspace',
+    role: 'maintenance_coordinator',
+  };
+  const fetcher = vi
+    .fn()
+    .mockImplementationOnce(() =>
+      reply({
+        workspaces: [current],
+        unlinkedProperties: [{ id: 'p1', property_name: 'Oak House' }],
+        canSetUp: true,
+      })
+    )
+    .mockImplementationOnce(() => reply({ orgId: 'owned' }))
+    .mockImplementationOnce(() =>
+      reply({
+        workspaces: [
+          current,
+          { id: 'owned', name: 'Oak Lettings', role: 'owner' },
+        ],
+        unlinkedProperties: [],
+        canSetUp: true,
+      })
+    );
+  vi.stubGlobal('fetch', fetcher);
+  render(<PortfolioWorkspace user={user} />);
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Set up a separate workspace' })
+  );
+  expect(screen.queryByLabelText('Teammate email')).toBeNull();
+  expect(
+    screen.queryByRole('button', { name: 'Add property to workspace' })
+  ).toBeNull();
+  fireEvent.change(screen.getByLabelText('New workspace name'), {
+    target: { value: 'Oak Lettings' },
+  });
+  fireEvent.change(screen.getByLabelText('Property to add'), {
+    target: { value: 'p1' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Create workspace' }));
+  expect(await screen.findByText('Inbox for owned as owner')).toBeTruthy();
+  expect(fetcher.mock.calls[1][1]).toMatchObject({
+    method: 'POST',
+    body: JSON.stringify({
+      propertyId: 'p1',
+      workspace: { action: 'create', name: 'Oak Lettings' },
+    }),
+  });
+});
