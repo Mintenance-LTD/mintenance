@@ -43,6 +43,7 @@ require('./validate-release-env').validateReleaseEnvironment();
 // intended for the older preview APK whose dirty build source is unavailable.
 const betaLoginBuild = process.env.MINTENANCE_BETA_LOGIN_BUILD === '1';
 const internalBuild = process.env.MINTENANCE_INTERNAL_BUILD === '1';
+const agencyQaBuild = process.env.MINTENANCE_AGENCY_DEVICE_QA === '1';
 if (betaLoginBuild || internalBuild) {
   const projectUrl = 'https://ukrjudtlvapiajkjbcrd.supabase.co';
   if (
@@ -215,7 +216,7 @@ module.exports = {
     scheme: 'mintenance',
     updates: {
       url: 'https://u.expo.dev/1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
-      ...(betaLoginBuild || internalBuild ? { enabled: false } : {}),
+      ...(betaLoginBuild || internalBuild || agencyQaBuild ? { enabled: false } : {}),
     },
     // SQLCipher and expo-crypto require a rebuilt native binary. Keep these
     // updates off older 1.2.4 runtimes that lack the required native code.
@@ -233,7 +234,7 @@ module.exports = {
           android: {
             newArchEnabled: true,
             enableProguardInReleaseBuilds: true,
-            enableSeparateBuildPerCPUArchitecture: true,
+            enableSeparateBuildPerCPUArchitecture: !agencyQaBuild,
             universalApk: false,
             enableHermes: true,
             minSdkVersion: 24,

@@ -2,6 +2,7 @@
 function validateReleaseEnvironment(env = process.env) {
   const release =
     env.NODE_ENV === 'production' ||
+    env.MINTENANCE_AGENCY_DEVICE_QA === '1' ||
     ['staging', 'production'].includes(env.EXPO_PUBLIC_ENVIRONMENT) ||
     (env.EAS_BUILD_PROFILE && env.EAS_BUILD_PROFILE !== 'development');
   if (!release) return;
@@ -57,10 +58,34 @@ function validateReleaseEnvironment(env = process.env) {
     key &&
     !key.startsWith('pk_test_')
   ) {
-    errors.push('Staging builds require Stripe sandbox keys');
+    errors.push('Staging builds require a sandbox EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY');
   }
   if (env.EXPO_PUBLIC_USE_MOCK === 'true')
     errors.push('Release builds cannot use mock data');
+  if (
+    env.MINTENANCE_AGENCY_DEVICE_QA === '1' ||
+    ['agency-qa-android', 'agency-qa-ios-simulator'].includes(env.EAS_BUILD_PROFILE)
+  ) {
+    const stage = 'https://mintenance-native-qa-mintenance.vercel.app';
+    const auth = 'https://pzothyoipifjwnypzcuv.supabase.co';
+    const required = {
+      MINTENANCE_AGENCY_DEVICE_QA: '1',
+      EXPO_PUBLIC_ENVIRONMENT: 'staging',
+      EXPO_PUBLIC_SUPABASE_URL: auth,
+      EXPO_PUBLIC_MOBILE_API_GATEWAY_URL: `${auth}/functions/v1/mobile-api-relay`,
+      EXPO_PUBLIC_API_URL: stage,
+      EXPO_PUBLIC_API_BASE_URL: stage,
+      EXPO_PUBLIC_WEB_URL: stage,
+      EXPO_PUBLIC_USE_MOCK: 'false',
+      EXPO_PUBLIC_ENABLE_CRASH_REPORTING: 'false',
+    };
+    for (const [name, expected] of Object.entries(required)) {
+      if (env[name] !== expected) errors.push(`${name} must match isolated Agency QA settings`);
+    }
+    if (env.MINTENANCE_INTERNAL_BUILD === '1' || env.MINTENANCE_BETA_LOGIN_BUILD === '1') {
+      errors.push('Agency QA cannot use internal or beta production configuration');
+    }
+  }
   // Never include setting values in build logs.
   if (errors.length)
     throw new Error(
