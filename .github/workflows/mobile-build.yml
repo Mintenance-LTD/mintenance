@@ -97,7 +97,7 @@ jobs:
         run: |
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             PROFILE="$REQUESTED_PROFILE"
-            if [ "$GITHUB_REF" = "refs/heads/test/my-home-staging-apk" ]; then
+            if [ "$GITHUB_REF" = "refs/heads/test/my-home-staging-apk" ] || [ "$GITHUB_REF" = "refs/heads/test/my-home-staging-apk-preflight" ]; then
               if [ "$PROFILE" != staging ] || [ "$REQUESTED_PLATFORM" != android ]; then
                 echo "::error::This QA ref only permits a staging Android APK." >&2
                 exit 1
@@ -210,16 +210,13 @@ jobs:
           # Credentials are managed via secrets
 
       - name: Build Android APK/AAB
+        if: needs.pre-build-checks.outputs.build-profile != 'agency-qa-android'
         working-directory: apps/mobile
         run: |
           case "$PROFILE" in
-            internal|development|staging|production|agency-qa-android) ;;
+            internal|development|staging|production) ;;
             *) echo "::error::Invalid build profile" >&2; exit 1 ;;
           esac
-          if [ "$PROFILE" = agency-qa-android ]; then
-            # Only EAS preview credentials may populate the isolated profile.
-            unset EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
-          fi
           eas build --platform android --profile "$PROFILE" --non-interactive --no-wait
         env:
           PROFILE: ${{ needs.pre-build-checks.outputs.build-profile }}
@@ -227,6 +224,22 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
           EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+
+      - name: Preflight and submit isolated Android APK
+        if: needs.pre-build-checks.outputs.build-profile == 'agency-qa-android'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL_STAGING }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
+          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL_STAGING }}
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_URL_STAGING }}
+          EXPO_NO_DOTENV: '1'
+        run: |
+          # Check the named settings without printing their values.
+          node scripts/validate-eas-config.cjs agency-qa-android
+          cd apps/mobile
+          eas build --platform android --profile agency-qa-android --non-interactive --no-wait
 
       - name: Wait for build completion
         working-directory: apps/mobile

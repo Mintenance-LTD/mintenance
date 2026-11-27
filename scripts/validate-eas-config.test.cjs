@@ -144,7 +144,7 @@ test('staging cannot silently fall back to production settings', () => {
         ...workflowEnvironment('staging'),
         EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_live_synthetic',
       }),
-    /Staging builds require Stripe sandbox keys/
+    /Staging builds require.*sandbox/
   );
 });
 
@@ -293,4 +293,15 @@ test('beta APK still requires public client settings and rejects private keys wi
       error.message.includes('Private credentials') &&
       !error.message.includes(secret)
   );
+});
+
+test('isolated Android QA preflights the staged APK and fails without client configuration', () => {
+  const env = workflowEnvironment('staging');
+  const profile = 'agency-qa-android';
+  const resolved = resolveBuildEnvironment(profile, env);
+  assert.equal(resolved.EXPO_PUBLIC_SUPABASE_URL, 'https://pzothyoipifjwnypzcuv.supabase.co');
+  assert.equal(resolved.EXPO_PUBLIC_API_BASE_URL, 'https://mintenance-native-qa-mintenance.vercel.app');
+  validateExpoConfig(profile, env);
+  assert.throws(() => validateExpoConfig(profile, { ...env, EXPO_PUBLIC_SUPABASE_ANON_KEY: '' }), /EXPO_PUBLIC_SUPABASE_ANON_KEY is required/);
+  assert.throws(() => validateExpoConfig(profile, { ...env, EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_live_synthetic' }), /sandbox/);
 });
