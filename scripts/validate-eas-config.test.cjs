@@ -144,7 +144,7 @@ test('staging cannot silently fall back to production settings', () => {
         ...workflowEnvironment('staging'),
         EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_live_synthetic',
       }),
-    /Staging builds require.*sandbox/
+    /Staging builds require a sandbox EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY/
   );
 });
 
