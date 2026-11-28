@@ -97,7 +97,7 @@ jobs:
         run: |
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             PROFILE="$REQUESTED_PROFILE"
-            if [ "$GITHUB_REF" = "refs/heads/test/my-home-staging-apk" ] || [ "$GITHUB_REF" = "refs/heads/test/my-home-staging-apk-preflight" ]; then
+            if [ "$GITHUB_REF" = "refs/heads/test/my-home-staging-apk" ]; then
               if [ "$PROFILE" != staging ] || [ "$REQUESTED_PLATFORM" != android ]; then
                 echo "::error::This QA ref only permits a staging Android APK." >&2
                 exit 1
@@ -169,6 +169,7 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch' &&
       needs.pre-build-checks.outputs.should-build == 'true' &&
+      needs.pre-build-checks.outputs.build-profile != 'agency-qa-android' &&
       (github.event.inputs.platform == 'android' ||
        github.event.inputs.platform == 'all' ||
        github.event_name != 'workflow_dispatch')
@@ -210,7 +211,6 @@ jobs:
           # Credentials are managed via secrets
 
       - name: Build Android APK/AAB
-        if: needs.pre-build-checks.outputs.build-profile != 'agency-qa-android'
         working-directory: apps/mobile
         run: |
           case "$PROFILE" in
@@ -225,22 +225,6 @@ jobs:
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
           EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
 
-      - name: Preflight and submit isolated Android APK
-        if: needs.pre-build-checks.outputs.build-profile == 'agency-qa-android'
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL_STAGING }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
-          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
-          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL_STAGING }}
-          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_URL_STAGING }}
-          EXPO_NO_DOTENV: '1'
-        run: |
-          # Check the named settings without printing their values.
-          node scripts/validate-eas-config.cjs agency-qa-android
-          cd apps/mobile
-          eas build --platform android --profile agency-qa-android --non-interactive --no-wait
-
       - name: Wait for build completion
         working-directory: apps/mobile
         run: |
@@ -248,7 +232,6 @@ jobs:
           echo "https://expo.dev/accounts/$(cat package.json | grep -o '"name": "[^"]*' | cut -d'"' -f4)/projects/mintenance/builds"
 
       - name: Get build URL
-        if: needs.pre-build-checks.outputs.build-profile != 'agency-qa-android'
         id: build-url
         working-directory: apps/mobile
         env:
@@ -269,6 +252,65 @@ jobs:
           echo "- Status: Submitted to EAS" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "[View build status on EAS](https://expo.dev)" >> "$GITHUB_STEP_SUMMARY"
+
+  build-android-staging:
+    name: Build isolated Android staging APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: pre-build-checks
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/test/my-home-staging-apk' &&
+      needs.pre-build-checks.outputs.build-profile == 'agency-qa-android'
+    environment: STRIPE_TEST_SECRET_KEY
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Install pinned EAS CLI
+        run: |
+          npm ci --prefix tools/eas-cli --ignore-scripts --engine-strict --no-audit --no-fund
+          echo "$GITHUB_WORKSPACE/tools/eas-cli/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        env:
+          ONNXRUNTIME_NODE_INSTALL: 'skip'
+        run: npm ci
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: Preflight and submit isolated Android APK
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          SANDBOX_PUBLISHABLE_KEY: ${{ secrets.STRIPE_TEST_PUBLISHABLE_KEY }}
+          MINTENANCE_ANDROID_STAGING_PROJECT: '1'
+          EXPO_NO_DOTENV: '1'
+        run: |
+          if [[ -z "$EXPO_TOKEN" ]]; then
+            echo "::error::EXPO_TOKEN is required."
+            exit 1
+          fi
+          if [[ ! "$SANDBOX_PUBLISHABLE_KEY" =~ ^pk_test_[A-Za-z0-9]+$ ]]; then
+            echo "::error::STRIPE_TEST_PUBLISHABLE_KEY must be a sandbox publishable key."
+            exit 1
+          fi
+          eas env:create preview --scope project --name EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY \
+            --value "$SANDBOX_PUBLISHABLE_KEY" --visibility sensitive --force --non-interactive
+          unset SANDBOX_PUBLISHABLE_KEY
+          eas env:exec preview "node ../../scripts/validate-eas-config.cjs agency-qa-android" --non-interactive
+          build_json=$(eas build --platform android --profile agency-qa-android --non-interactive --no-wait --json)
+          build_id=$(jq -er '.[0].id' <<<"$build_json")
+          printf 'EAS build: https://expo.dev/accounts/mintenance-ltd/projects/mintenance-android-staging/builds/%s\n' "$build_id" | tee -a "$GITHUB_STEP_SUMMARY"
 
   # ============================================================
   # iOS BUILD (EAS)

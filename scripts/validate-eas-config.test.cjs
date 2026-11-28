@@ -296,12 +296,26 @@ test('beta APK still requires public client settings and rejects private keys wi
 });
 
 test('isolated Android QA preflights the staged APK and fails without client configuration', () => {
-  const env = workflowEnvironment('staging');
+  const env = {
+    ...workflowEnvironment('staging'),
+    EXPO_PUBLIC_SUPABASE_URL: 'https://pzothyoipifjwnypzcuv.supabase.co',
+    EXPO_PUBLIC_API_URL: 'https://mintenance-native-qa-mintenance.vercel.app',
+    EXPO_PUBLIC_API_BASE_URL: 'https://mintenance-native-qa-mintenance.vercel.app',
+  };
   const profile = 'agency-qa-android';
   const resolved = resolveBuildEnvironment(profile, env);
   assert.equal(resolved.EXPO_PUBLIC_SUPABASE_URL, 'https://pzothyoipifjwnypzcuv.supabase.co');
   assert.equal(resolved.EXPO_PUBLIC_API_BASE_URL, 'https://mintenance-native-qa-mintenance.vercel.app');
-  validateExpoConfig(profile, env);
+  const config = validateExpoConfig(profile, env);
+  assert.equal(config.slug, 'mintenance-android-staging');
+  assert.equal(config.extra.eas.projectId, '65a2e789-0cf7-4dad-b435-fc128a8e4cdc');
+  assert.equal(config.android.package, 'com.mintenance.app.staging');
+  assert.deepEqual(config.android.intentFilters, []);
+  assert.equal(config.updates.enabled, false);
+  assert.throws(
+    () => validateExpoConfig(profile, { ...env, EXPO_PUBLIC_SUPABASE_URL: 'https://production.example.test' }),
+    /EXPO_PUBLIC_SUPABASE_URL must match the staging host/
+  );
   assert.throws(() => validateExpoConfig(profile, { ...env, EXPO_PUBLIC_SUPABASE_ANON_KEY: '' }), /EXPO_PUBLIC_SUPABASE_ANON_KEY is required/);
   assert.throws(() => validateExpoConfig(profile, { ...env, EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_live_synthetic' }), /sandbox/);
 });

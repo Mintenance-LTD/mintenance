@@ -13,6 +13,17 @@ function resolveBuildEnvironment(profile, env = process.env) {
   if (!supported.includes(profile)) {
     throw new Error('Choose a supported Expo config preflight profile: ' + supported.join(', '));
   }
+  if (profile === 'agency-qa-android') {
+    for (const name of [
+      'EXPO_PUBLIC_SUPABASE_URL',
+      'EXPO_PUBLIC_API_URL',
+      'EXPO_PUBLIC_API_BASE_URL',
+    ]) {
+      if (env[name] !== profiles[profile].env[name]) {
+        throw new Error(`Expo staging environment: ${name} must match the staging host.`);
+      }
+    }
+  }
   // Match EAS profile precedence. Do not fetch credentials, load local dotenv
   // files, or weaken the validators to get through initial config evaluation.
   const resolved = {

@@ -7,7 +7,14 @@ const workflow = (name) =>
   yaml.load(
     readFileSync(path.join(__dirname, '../.github/workflows', name), 'utf8')
   );
-function runs(expression, event, draft = false, ref = 'refs/pull/1/merge', vars = {}) {
+function runs(
+  expression,
+  event,
+  draft = false,
+  ref = 'refs/pull/1/merge',
+  vars = {},
+  profile = 'internal'
+) {
   const github = {
     event_name: event,
     ref,
@@ -15,12 +22,14 @@ function runs(expression, event, draft = false, ref = 'refs/pull/1/merge', vars 
   };
   const needs = {
     'e2e-secrets-gate': { outputs: { 'has-staging': 'true' } },
-    'pre-build-checks': { outputs: { 'should-build': 'true' } },
+    'pre-build-checks': {
+      outputs: { 'should-build': 'true', 'build-profile': profile },
+    },
     'native-build-changes': { outputs: { 'should-build': 'true' } },
   };
   // Evaluate the checked-in boolean gate with deliberately enabled secrets and changed native inputs.
   expression = expression.replace(
-    /\.(e2e-secrets-gate|has-staging|pre-build-checks|should-build|native-build-changes)/g,
+    /\.(e2e-secrets-gate|has-staging|pre-build-checks|should-build|build-profile|native-build-changes)/g,
     '["$1"]'
   );
   return Function('github', 'needs', 'vars', `return (${expression});`)(github, needs, vars);
@@ -29,7 +38,7 @@ test('draft PR skips every native build job, even with staging credentials and n
   for (const [file, jobs] of [
     ['ci-cd.yml', ['mobile-pr-smoke', 'build-production', 'build-staging']],
     ['mobile-tests.yml', ['e2e-android', 'e2e-ios']],
-    ['mobile-build.yml', ['build-android', 'build-ios']],
+    ['mobile-build.yml', ['build-android', 'build-android-staging', 'build-ios']],
   ]) {
     const config = workflow(file);
     for (const name of jobs) {
@@ -52,7 +61,7 @@ test('ready PR retains Detox coverage; EAS remains excluded on all PRs', () => {
       runs(workflow('mobile-tests.yml').jobs[name].if, 'pull_request'),
       true
     );
-  for (const name of ['build-android', 'build-ios'])
+  for (const name of ['build-android', 'build-android-staging', 'build-ios'])
     assert.equal(
       runs(workflow('mobile-build.yml').jobs[name].if, 'pull_request'),
       false
@@ -101,4 +110,14 @@ test('aggregate gates still execute when draft native jobs are skipped', () => {
       workflow(file).on.pull_request.types.includes('ready_for_review')
     );
   }
+});
+
+test('staging APK submission is confined to the requested Android branch', () => {
+  const jobs = workflow('mobile-build.yml').jobs;
+  const ref = 'refs/heads/test/my-home-staging-apk';
+  const profile = 'agency-qa-android';
+  assert.equal(runs(jobs['build-android-staging'].if, 'workflow_dispatch', false, ref, {}, profile), true);
+  assert.equal(runs(jobs['build-android'].if, 'workflow_dispatch', false, ref, {}, profile), false);
+  assert.equal(runs(jobs['build-android-staging'].if, 'workflow_dispatch', false, 'refs/heads/main', {}, profile), false);
+  assert.equal(runs(jobs['build-android-staging'].if, 'pull_request', false, ref, {}, profile), false);
 });

@@ -44,6 +44,11 @@ require('./validate-release-env').validateReleaseEnvironment();
 const betaLoginBuild = process.env.MINTENANCE_BETA_LOGIN_BUILD === '1';
 const internalBuild = process.env.MINTENANCE_INTERNAL_BUILD === '1';
 const agencyQaBuild = process.env.MINTENANCE_AGENCY_DEVICE_QA === '1';
+const androidStagingProject =
+  process.env.MINTENANCE_ANDROID_STAGING_PROJECT === '1';
+const easProjectId = androidStagingProject
+  ? '65a2e789-0cf7-4dad-b435-fc128a8e4cdc'
+  : '1ee95edc-0cc1-4775-b52e-4af46f9e51d0';
 if (betaLoginBuild || internalBuild) {
   const projectUrl = 'https://ukrjudtlvapiajkjbcrd.supabase.co';
   if (
@@ -78,8 +83,14 @@ const resolveGoogleServicesFile = (envVar, localPath) => {
 
 module.exports = {
   expo: {
-    name: internalBuild ? 'Mintenance Internal' : betaLoginBuild ? 'Mintenance Beta' : 'Mintenance',
-    slug: 'mintenance',
+    name: androidStagingProject
+      ? 'Mintenance Staging'
+      : internalBuild
+        ? 'Mintenance Internal'
+        : betaLoginBuild
+          ? 'Mintenance Beta'
+          : 'Mintenance',
+    slug: androidStagingProject ? 'mintenance-android-staging' : 'mintenance',
     owner: 'mintenance-ltd',
     version: '1.2.4',
     description:
@@ -157,7 +168,9 @@ module.exports = {
             process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
         },
       },
-      package: 'com.mintenance.app',
+      package: androidStagingProject
+        ? 'com.mintenance.app.staging'
+        : 'com.mintenance.app',
       // Bumped 2026-08-03: 20 was consumed by the Play internal-track
       // submission of the build that froze on the splash. eas.json sets
       // appVersionSource: 'local', so EAS does NOT auto-increment this —
@@ -169,10 +182,9 @@ module.exports = {
       // Internal 50 accompanies the homeowner and contractor journey fixes.
       versionCode: internalBuild ? 53 : betaLoginBuild ? 47 : 40,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
-      googleServicesFile: resolveGoogleServicesFile(
-        'GOOGLE_SERVICES_JSON',
-        './google-services.json'
-      ),
+      googleServicesFile: androidStagingProject
+        ? undefined
+        : resolveGoogleServicesFile('GOOGLE_SERVICES_JSON', './google-services.json'),
       playStoreUrl:
         'https://play.google.com/store/apps/details?id=com.mintenance.app',
       // 2026-06-08: App Links host migrated to mintenance.co.uk. autoVerify
@@ -185,7 +197,7 @@ module.exports = {
       // deliberately excludes. Now derived from the canonical allowlist in
       // packages/shared/deep-link-paths.json, the same file the AASA route
       // reads, so the two platforms cannot drift again.
-      intentFilters: [
+      intentFilters: androidStagingProject ? [] : [
         {
           action: 'VIEW',
           autoVerify: true,
@@ -213,9 +225,9 @@ module.exports = {
     web: {
       favicon: './assets/favicon.png',
     },
-    scheme: 'mintenance',
+    scheme: androidStagingProject ? 'mintenance-staging' : 'mintenance',
     updates: {
-      url: 'https://u.expo.dev/1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
+      url: `https://u.expo.dev/${easProjectId}`,
       ...(betaLoginBuild || internalBuild || agencyQaBuild ? { enabled: false } : {}),
     },
     // SQLCipher and expo-crypto require a rebuilt native binary. Keep these
@@ -324,7 +336,7 @@ module.exports = {
     ],
     extra: {
       eas: {
-        projectId: '1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
+        projectId: easProjectId,
         owner: 'mintenance-ltd',
       },
       // Supabase runtime config (read by src/config/supabase.ts)
