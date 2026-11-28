@@ -308,7 +308,9 @@ jobs:
             --value "$SANDBOX_PUBLISHABLE_KEY" --visibility sensitive --force --non-interactive
           unset SANDBOX_PUBLISHABLE_KEY
           eas env:exec preview "node ../../scripts/validate-eas-config.cjs agency-qa-android" --non-interactive
-          build_json=$(eas build --platform android --profile agency-qa-android --non-interactive --no-wait --json)
+          build_json=$(eas env:exec preview \
+            "eas build --platform android --profile agency-qa-android --non-interactive --no-wait --json" \
+            --non-interactive)
           build_id=$(jq -er '.[0].id' <<<"$build_json")
           printf 'EAS build: https://expo.dev/accounts/mintenance-ltd/projects/mintenance-android-staging/builds/%s\n' "$build_id" | tee -a "$GITHUB_STEP_SUMMARY"
 
