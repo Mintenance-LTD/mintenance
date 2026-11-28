@@ -6,23 +6,15 @@ const {
 const {
   validateReleaseEnvironment,
 } = require('../apps/mobile/validate-release-env');
+const {
+  applyAndroidStagingEnvironment,
+} = require('../apps/mobile/staging-build-env.cjs');
 const profiles = require('../apps/mobile/eas.json').build;
 
 function resolveBuildEnvironment(profile, env = process.env) {
   const supported = ['production', 'staging', 'beta-login-test', 'internal', 'ios-simulator', 'agency-qa-android'];
   if (!supported.includes(profile)) {
     throw new Error('Choose a supported Expo config preflight profile: ' + supported.join(', '));
-  }
-  if (profile === 'agency-qa-android') {
-    for (const name of [
-      'EXPO_PUBLIC_SUPABASE_URL',
-      'EXPO_PUBLIC_API_URL',
-      'EXPO_PUBLIC_API_BASE_URL',
-    ]) {
-      if (env[name] !== profiles[profile].env[name]) {
-        throw new Error(`Expo staging environment: ${name} must match the staging host.`);
-      }
-    }
   }
   // Match EAS profile precedence. Do not fetch credentials, load local dotenv
   // files, or weaken the validators to get through initial config evaluation.
@@ -37,6 +29,7 @@ function resolveBuildEnvironment(profile, env = process.env) {
     EXPO_NO_DOTENV: '1',
     EXPO_OFFLINE: '1',
   };
+  applyAndroidStagingEnvironment(resolved);
   validatePublicBuildEnvironment(resolved);
   validateReleaseEnvironment(resolved);
   return resolved;

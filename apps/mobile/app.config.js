@@ -34,6 +34,8 @@ try {
   }
 }
 
+require('./staging-build-env.cjs').applyAndroidStagingEnvironment();
+
 // Fail before bundling if a server credential was put in a public setting.
 validatePublicBuildEnvironment();
 

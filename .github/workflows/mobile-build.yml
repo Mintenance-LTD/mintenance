@@ -304,7 +304,7 @@ jobs:
             echo "::error::STRIPE_TEST_PUBLISHABLE_KEY must be a sandbox publishable key."
             exit 1
           fi
-          eas env:create preview --scope project --name EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY \
+          eas env:create preview --scope project --name MINTENANCE_STAGING_STRIPE_KEY \
             --value "$SANDBOX_PUBLISHABLE_KEY" --visibility sensitive --force --non-interactive
           unset SANDBOX_PUBLISHABLE_KEY
           eas env:exec preview "node ../../scripts/validate-eas-config.cjs agency-qa-android" --non-interactive

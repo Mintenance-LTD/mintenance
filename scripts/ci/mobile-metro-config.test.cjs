@@ -13,6 +13,7 @@ function load(getDefaultConfig) {
   const context = {
     __dirname: app,
     module: { exports: {} },
+    process: { env: {} },
     require(name) {
       if (name === 'path') return path;
       assert.equal(name, 'expo/metro-config');

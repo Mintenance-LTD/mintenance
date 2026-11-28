@@ -1,5 +1,10 @@
 // Extend Expo's Metro defaults for both local exports and EAS builds.
 const path = require('path');
+if (process.env.MINTENANCE_ANDROID_STAGING_PROJECT === '1') {
+  require('./staging-build-env.cjs').applyAndroidStagingEnvironment();
+  require('./validate-public-build-env').validatePublicBuildEnvironment();
+  require('./validate-release-env').validateReleaseEnvironment();
+}
 const { getDefaultConfig } = require('expo/metro-config');
 const defaultConfig = getDefaultConfig(__dirname);
 // Preserve support for either Expo API shape; configuration failures must surface.

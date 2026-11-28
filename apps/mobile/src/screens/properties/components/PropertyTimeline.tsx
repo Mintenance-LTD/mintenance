@@ -102,7 +102,9 @@ export function PropertyTimeline({
         (!event.href.startsWith('/properties/') ||
           event.href.startsWith('/properties/' + propertyId + '/'))
       ) {
-        await openBrowserAsync('https://www.mintenance.co.uk' + event.href);
+        const webUrl =
+          process.env.EXPO_PUBLIC_WEB_URL || 'https://www.mintenance.co.uk';
+        await openBrowserAsync(new URL(event.href, webUrl).href);
       } else {
         setRecordError('This activity record is unavailable.');
       }
