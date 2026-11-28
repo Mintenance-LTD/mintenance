@@ -11,6 +11,8 @@
  */
 
 import { AgencyPrivateWorkShortcut } from './components/AgencyPrivateWorkShortcut';
+import { usePropertyView } from '../../hooks/usePropertyView';
+import { propertyNavigationVisible } from '@mintenance/shared';
 import { PropertyViewSwitcher } from '../../components/properties/PropertyViewSwitcher';
 import { isActiveJob } from '../../utils/jobActivity';
 import React, { useState } from 'react';
@@ -55,6 +57,7 @@ const appIcon = require('../../../assets/icon.png');
 
 export const HomeownerDashboard: React.FC = () => {
   const { user, signOut } = useAuth();
+  const { view: propertyView, ready: propertyViewReady } = usePropertyView();
   const navigation =
     useNavigation<NavigationProp<Record<string, object | undefined>>>();
   const queryClient = useQueryClient();
@@ -270,9 +273,11 @@ export const HomeownerDashboard: React.FC = () => {
         </View>
 
         <PropertyViewSwitcher />
-        {user?.role === 'homeowner' && (
-          <AgencyPrivateWorkShortcut viewer='landlord' />
-        )}
+        {user?.role === 'homeowner' &&
+          propertyViewReady &&
+          propertyNavigationVisible(propertyView, '/agency-work') && (
+            <AgencyPrivateWorkShortcut viewer='landlord' />
+          )}
 
         {/* Editorial greeting — caption + serif headline + subtitle */}
         <FadeIn duration={400}>

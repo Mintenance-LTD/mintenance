@@ -47,3 +47,43 @@ it.each([
 it('permits incomplete local development configuration', () => {
   expect(() => validate({ NODE_ENV: 'development' })).not.toThrow();
 });
+
+const qaAuth = 'https://pzothyoipifjwnypzcuv.supabase.co';
+const qaWeb = 'https://mintenance-native-qa-mintenance.vercel.app';
+const agencyDevice = {
+  ...valid,
+  EAS_BUILD_PROFILE: 'agency-qa-android',
+  MINTENANCE_AGENCY_DEVICE_QA: '1',
+  EXPO_PUBLIC_SUPABASE_URL: qaAuth,
+  EXPO_PUBLIC_API_BASE_URL: qaWeb,
+  EXPO_PUBLIC_API_URL: qaWeb,
+  EXPO_PUBLIC_WEB_URL: qaWeb,
+  EXPO_PUBLIC_MOBILE_API_GATEWAY_URL: `${qaAuth}/functions/v1/mobile-api-relay`,
+  EXPO_PUBLIC_ENABLE_CRASH_REPORTING: 'false',
+  EXPO_PUBLIC_USE_MOCK: 'false',
+};
+
+it.each(['agency-qa-android', 'agency-qa-ios-simulator'])(
+  'accepts isolated backend settings for %s',
+  (profile) => {
+    expect(() =>
+      validate({ ...agencyDevice, EAS_BUILD_PROFILE: profile })
+    ).not.toThrow();
+  }
+);
+
+it.each([
+  ['MINTENANCE_AGENCY_DEVICE_QA', '0'],
+  ['EXPO_PUBLIC_ENVIRONMENT', 'production'],
+  ['EXPO_PUBLIC_SUPABASE_URL', 'https://other.supabase.co'],
+  ['EXPO_PUBLIC_WEB_URL', 'https://www.mintenance.co.uk'],
+  ['EXPO_PUBLIC_MOBILE_API_GATEWAY_URL', ''],
+  ['EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY', 'pk_live_synthetic'],
+])(
+  'fails the device build when %s can break staging isolation',
+  (setting, value) => {
+    expect(() => validate({ ...agencyDevice, [setting]: value })).toThrow(
+      setting
+    );
+  }
+);

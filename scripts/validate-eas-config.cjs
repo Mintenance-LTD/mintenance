@@ -6,13 +6,15 @@ const {
 const {
   validateReleaseEnvironment,
 } = require('../apps/mobile/validate-release-env');
+const {
+  applyAndroidStagingEnvironment,
+} = require('../apps/mobile/staging-build-env.cjs');
 const profiles = require('../apps/mobile/eas.json').build;
 
 function resolveBuildEnvironment(profile, env = process.env) {
-  if (!['production', 'staging', 'beta-login-test', 'internal', 'ios-simulator'].includes(profile)) {
-    throw new Error(
-      'Choose a production, staging, beta-login-test, internal or ios-simulator config preflight.'
-    );
+  const supported = ['production', 'staging', 'beta-login-test', 'internal', 'ios-simulator', 'agency-qa-android'];
+  if (!supported.includes(profile)) {
+    throw new Error('Choose a supported Expo config preflight profile: ' + supported.join(', '));
   }
   // Match EAS profile precedence. Do not fetch credentials, load local dotenv
   // files, or weaken the validators to get through initial config evaluation.
@@ -21,11 +23,13 @@ function resolveBuildEnvironment(profile, env = process.env) {
     // The isolated beta profile inherits preview's public build defaults.
     ...(profile === 'beta-login-test' ? profiles.preview.env : {}),
     ...(profile === 'ios-simulator' ? profiles.internal.env : {}),
+    ...(profile === 'agency-qa-android' ? profiles.staging.env : {}),
     ...profiles[profile].env,
     EAS_BUILD_PROFILE: profile,
     EXPO_NO_DOTENV: '1',
     EXPO_OFFLINE: '1',
   };
+  applyAndroidStagingEnvironment(resolved);
   validatePublicBuildEnvironment(resolved);
   validateReleaseEnvironment(resolved);
   return resolved;

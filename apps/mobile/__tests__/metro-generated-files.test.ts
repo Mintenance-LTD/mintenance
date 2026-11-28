@@ -17,6 +17,7 @@ it('excludes generated files and duplicate checkouts without excluding mobile de
     {
       __dirname: mobile,
       module: result,
+      process: { env: {} },
       require: (name: string) =>
         name === 'path'
           ? path

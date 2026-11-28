@@ -13,6 +13,7 @@ import { useNavSections } from '@/components/layouts/sidebar/sidebarNavConfig';
 import { MintEditorialSidePanel } from '@/app/dashboard/components/mint-editorial/MintEditorialSidePanel';
 const state = vi.hoisted(() => ({
   view: 'home',
+  accountId: 'test-owner',
   enabled: true,
   ready: true,
   saved: true,
@@ -60,7 +61,17 @@ function Navigation({
   );
 }
 describe('property view controls', () => {
-  it('shows the Agency shortcuts below Payment protected and hides them in Home and Rentals views', () => {
+  it('shows the Agency shortcuts below Payment protected and hides them in Home and Rentals views', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            workspaces: [{ id: 'agency-one', role: 'owner' }],
+          })
+        )
+      )
+    );
     const sidePanel = (
       <MintEditorialSidePanel appointments={[]} escrowHeld={3.72} />
     );
@@ -92,16 +103,18 @@ describe('property view controls', () => {
       screen.getByRole('link', { name: 'Tenant reports' })
     ).toHaveAttribute('href', '/landlord/reports');
     expect(
-      screen.getByRole('link', { name: 'Open Agency workspace' })
+      await screen.findByRole('link', { name: 'Open Agency workspace' })
     ).toHaveAttribute('href', '/portfolio');
     expect(screen.getByRole('link', { name: 'CRM' })).toHaveAttribute(
       'href',
-      '/portfolio?view=crm'
+      '/portfolio?orgId=agency-one&view=crm'
     );
     const properties = screen.getByRole('link', { name: 'Properties' });
     expect(properties).toHaveAttribute('href', '/properties');
     expect(
-      screen.getByText(/Manage workspace teammates from the Portfolio Inbox/)
+      screen.getByText(
+        /Workspace teammates and landlord records are managed separately/
+      )
     ).toBeVisible();
     view.rerender(<MintEditorialSidePanel appointments={[]} escrowHeld={0} />);
     expect(
@@ -156,12 +169,24 @@ describe('property view controls', () => {
   });
   it('hides rental tools in My home and team analytics until Agency, preserving core tasks', () => {
     const view = render(<Navigation />);
-    expect(screen.queryByText('Tenant Reports')).toBeNull();
+    for (const item of [
+      'Tenant Reports',
+      'Agency quote approvals',
+      'Portfolio Inbox',
+    ]) {
+      expect(screen.queryByText(item)).toBeNull();
+    }
     expect(screen.getByText('Properties')).toBeTruthy();
     expect(screen.getByText('Payments')).toBeTruthy();
     state.view = 'rentals';
     view.rerender(<Navigation />);
-    expect(screen.getByText('Tenant Reports')).toBeTruthy();
+    for (const item of [
+      'Tenant Reports',
+      'Agency quote approvals',
+      'Portfolio Inbox',
+    ]) {
+      expect(screen.getByText(item)).toBeTruthy();
+    }
     expect(screen.queryByText('Year-over-Year')).toBeNull();
     state.view = 'agency';
     view.rerender(<Navigation />);

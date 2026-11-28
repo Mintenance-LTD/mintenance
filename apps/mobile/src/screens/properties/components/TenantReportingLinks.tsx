@@ -102,9 +102,13 @@ export function TenantReportingLinks({ propertyId }: { propertyId: string }) {
                     try {
                       if (!token.token)
                         throw new Error('Reporting token unavailable');
-                      await Share.share({
-                        message: `https://www.mintenance.co.uk/report/${encodeURIComponent(token.token)}`,
-                      });
+                      const webUrl =
+                        process.env.EXPO_PUBLIC_WEB_URL || 'https://www.mintenance.co.uk';
+                      const reportUrl = new URL(
+                        `/report/${encodeURIComponent(token.token)}`,
+                        webUrl
+                      );
+                      await Share.share({ message: reportUrl.href });
                     } catch {
                       setError(
                         'The sharing menu could not be opened. Please retry.'

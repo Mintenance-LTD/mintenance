@@ -1,6 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+import {
+  canManageInbox,
+  type WorkspaceAccess,
+} from '../../screens/properties/components/portfolioInboxModel';
 import { PROPERTY_VIEWS, type PropertyView } from '@mintenance/shared';
 import { usePropertyView } from '../../hooks/usePropertyView';
 import type { RootTabParamList } from '../../navigation/types';
@@ -8,7 +14,7 @@ import { me } from '../../design-system/mint-editorial';
 import { PropertyChoice } from './PropertyChoice';
 
 export function PropertyViewSwitcher() {
-  const { view, setView, ready, enabled, saved } = usePropertyView();
+  const { view, setView, ready, enabled, saved, accountId } = usePropertyView();
   const navigation = useNavigation<NavigationProp<RootTabParamList>>();
   if (!enabled) return null;
   return (
@@ -43,31 +49,12 @@ export function PropertyViewSwitcher() {
           </>
         )}
       </PropertyChoice>
-      {ready && view === 'agency' && (
-        <>
-          <TouchableOpacity
-            accessibilityRole='button'
-            accessible
-            accessibilityLabel='Open Agency workspace'
-            style={styles.linkButton}
-            onPress={() =>
-              navigation.navigate('ProfileTab', { screen: 'PortfolioInbox' })
-            }
-          >
-            <Text style={styles.link}>Open Agency workspace</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            accessibilityRole='button'
-            accessible
-            accessibilityLabel='Open Agency CRM'
-            style={styles.linkButton}
-            onPress={() =>
-              navigation.navigate('ProfileTab', { screen: 'AgencyCrm' })
-            }
-          >
-            <Text style={styles.link}>Open Agency CRM</Text>
-          </TouchableOpacity>
-        </>
+      {ready && view === 'agency' && accountId && (
+        <AgencyWorkspaceLinks
+          key={accountId}
+          accountId={accountId}
+          navigation={navigation}
+        />
       )}
       <TouchableOpacity
         accessibilityRole='button'
@@ -79,6 +66,70 @@ export function PropertyViewSwitcher() {
         <Text style={styles.link}>Property records</Text>
       </TouchableOpacity>
     </View>
+  );
+}
+function AgencyWorkspaceLinks({
+  accountId,
+  navigation,
+}: {
+  accountId: string;
+  navigation: NavigationProp<RootTabParamList>;
+}) {
+  const access = useQuery({
+    queryKey: ['property-view-workspace-access', accountId],
+    queryFn: ({ signal }) =>
+      mobileApiClient.get<WorkspaceAccess>('/api/portfolio/workspace', {
+        signal,
+      }),
+    refetchOnMount: 'always',
+    retry: false,
+  });
+  const data =
+    access.isFetchedAfterMount &&
+    !access.isError &&
+    Array.isArray(access.data?.workspaces)
+      ? access.data
+      : undefined;
+  const hasWorkspace = !!data?.workspaces.length;
+  const canSetUp = data?.canSetUp && (data.unlinkedProperties?.length ?? 0) > 0;
+  const canOpenCrm = data?.workspaces.some(({ role }) => canManageInbox(role));
+  const workspaceLabel = hasWorkspace
+    ? 'Open Agency workspace'
+    : 'Set up an Agency workspace';
+  return (
+    <>
+      {(hasWorkspace || canSetUp) && (
+        <TouchableOpacity
+          accessible
+          accessibilityLabel={workspaceLabel}
+          accessibilityRole='button'
+          style={styles.linkButton}
+          onPress={() =>
+            navigation.navigate('ProfileTab', { screen: 'PortfolioInbox' })
+          }
+        >
+          <Text style={styles.link}>{workspaceLabel}</Text>
+        </TouchableOpacity>
+      )}
+      {canOpenCrm && (
+        <TouchableOpacity
+          accessible
+          accessibilityLabel='Open Agency CRM'
+          accessibilityRole='button'
+          style={styles.linkButton}
+          onPress={() =>
+            navigation.navigate('ProfileTab', { screen: 'AgencyCrm' })
+          }
+        >
+          <Text style={styles.link}>Open Agency CRM</Text>
+        </TouchableOpacity>
+      )}
+      {!!data && !canOpenCrm && (
+        <Text style={styles.detail}>
+          Shared properties and agency workspace access are separate.
+        </Text>
+      )}
+    </>
   );
 }
 const styles = StyleSheet.create({

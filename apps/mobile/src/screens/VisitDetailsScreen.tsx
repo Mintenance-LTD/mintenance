@@ -106,8 +106,10 @@ export function VisitDetailsScreen({
       params.set('jobId', visit.job.id);
       params.set('jobTitle', visit.job.title);
     }
+    const webUrl =
+      process.env.EXPO_PUBLIC_WEB_URL || 'https://www.mintenance.co.uk';
     void WebBrowser.openBrowserAsync(
-      'https://www.mintenance.co.uk/contractor/scheduling?' + params
+      new URL('/contractor/scheduling?' + params, webUrl).href
     );
   }
 

@@ -88,6 +88,31 @@
       "channel": "staging",
       "environment": "preview"
     },
+    "agency-qa-android": {
+      "extends": "staging",
+      "channel": "agency-native-qa",
+      "environment": "preview",
+      "env": {
+        "MINTENANCE_AGENCY_DEVICE_QA": "1",
+        "MINTENANCE_ANDROID_STAGING_PROJECT": "1",
+        "EXPO_NO_DOTENV": "1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://pzothyoipifjwnypzcuv.supabase.co",
+        "EXPO_PUBLIC_API_URL": "https://mintenance-native-qa-mintenance.vercel.app",
+        "EXPO_PUBLIC_API_BASE_URL": "https://mintenance-native-qa-mintenance.vercel.app",
+        "EXPO_PUBLIC_WEB_URL": "https://mintenance-native-qa-mintenance.vercel.app",
+        "EXPO_PUBLIC_MOBILE_API_GATEWAY_URL": "https://pzothyoipifjwnypzcuv.supabase.co/functions/v1/mobile-api-relay",
+        "EXPO_PUBLIC_ENABLE_CRASH_REPORTING": "false"
+      }
+    },
+    "agency-qa-ios-simulator": {
+      "extends": "agency-qa-android",
+      "env": {
+        "MINTENANCE_ANDROID_STAGING_PROJECT": "0"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
     "preview": {
       "distribution": "internal",
       "environment": "production",

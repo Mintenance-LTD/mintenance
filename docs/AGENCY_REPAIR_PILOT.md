@@ -23,7 +23,11 @@ Set up a synthetic agency workspace with an owner, a maintenance coordinator, a 
 
 Use the separate Mintenance Native QA Vercel project and staging Supabase reference `pzothyoipifjwnypzcuv`. Never use existing production-bound Expo profiles for write tests. For each build, confirm API, API gateway, Auth, Share links, payment sandbox or verified disabled state, and the embedded bundle all resolve to staging. Verify an actual native request can reach the app's authentication layer without a browser session. Keep Vercel deployment protection on; no privileged credentials belong in the mobile app.
 
-Run Android against a compatible APK and iOS against an explicit iOS Simulator build of the same Git revision; pin both to the same isolated backend. Record the two Expo build IDs, Git SHA and smoke-check results. A web preview, Jest test, or compiled build is not a device pass.
+The branch provides two Expo profiles: `agency-qa-android` and `agency-qa-ios-simulator`. From `apps/mobile`, use an authorised EAS session and run `eas build --platform android --profile agency-qa-android` and `eas build --platform ios --profile agency-qa-ios-simulator`. Do not submit either build to an app store. Verify the APK has the emulator's ABI, the Apple build targets iphonesimulator, and both embedded bundles come from the tested revision (updates are disabled for these profiles).
+
+Before starting, verify the EAS build receives the staging Supabase public client key and a Stripe sandbox publishable key. Install the signed-in staging relay to the verified QA backend using server-side configuration only; do not disable Vercel protection or embed its credentials. Check the relay reaches Mintenance app authentication on a clean simulator without a Vercel browser session.
+
+Run the staff acceptance journey above once on Android and once on iOS with staging-only test accounts and data. Record build IDs, Git SHA, device and OS versions, and the result of each step, including a relaunch to confirm saved state. A web preview, Jest test, or compiled build is not a device pass.
 
 Local verification:
 - `npm run build:packages`
